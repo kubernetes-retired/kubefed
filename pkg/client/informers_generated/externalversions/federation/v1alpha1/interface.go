@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
 	FederatedReplicaSets() FederatedReplicaSetInformer
+	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
+	FederatedReplicaSetOverrides() FederatedReplicaSetOverrideInformer
 	// FederatedSecrets returns a FederatedSecretInformer.
 	FederatedSecrets() FederatedSecretInformer
 	// FederatedSecretOverrides returns a FederatedSecretOverrideInformer.
@@ -48,6 +50,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.
 func (v *version) FederatedReplicaSets() FederatedReplicaSetInformer {
 	return &federatedReplicaSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
+func (v *version) FederatedReplicaSetOverrides() FederatedReplicaSetOverrideInformer {
+	return &federatedReplicaSetOverrideInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedSecrets returns a FederatedSecretInformer.

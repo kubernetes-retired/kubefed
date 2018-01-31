@@ -17,6 +17,8 @@ package v1alpha1
 
 type FederatedReplicaSetExpansion interface{}
 
+type FederatedReplicaSetOverrideExpansion interface{}
+
 type FederatedSecretExpansion interface{}
 
 type FederatedSecretOverrideExpansion interface{}
