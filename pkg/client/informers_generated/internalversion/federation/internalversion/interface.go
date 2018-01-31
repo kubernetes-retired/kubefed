@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// FederatedSecrets returns a FederatedSecretInformer.
 	FederatedSecrets() FederatedSecretInformer
+	// FederatedSecretOverrideses returns a FederatedSecretOverridesInformer.
+	FederatedSecretOverrideses() FederatedSecretOverridesInformer
 }
 
 type version struct {
@@ -42,4 +44,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // FederatedSecrets returns a FederatedSecretInformer.
 func (v *version) FederatedSecrets() FederatedSecretInformer {
 	return &federatedSecretInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedSecretOverrideses returns a FederatedSecretOverridesInformer.
+func (v *version) FederatedSecretOverrideses() FederatedSecretOverridesInformer {
+	return &federatedSecretOverridesInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

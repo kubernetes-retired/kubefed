@@ -16,3 +16,5 @@ limitations under the License.
 package v1alpha1
 
 type FederatedSecretExpansion interface{}
+
+type FederatedSecretOverridesExpansion interface{}
