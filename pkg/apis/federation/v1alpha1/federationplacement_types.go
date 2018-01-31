@@ -46,6 +46,9 @@ type FederationPlacement struct {
 
 // FederationPlacementSpec defines the desired state of FederationPlacement
 type FederationPlacementSpec struct {
+	ResourceSelector metav1.LabelSelector
+	// TODO(marun) is gt/lt required as per https://github.com/kubernetes/federation/blob/master/apis/federation/v1beta1/types.go#L130
+	ClusterSelector metav1.LabelSelector
 }
 
 // FederationPlacementStatus defines the observed state of FederationPlacement
