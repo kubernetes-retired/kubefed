@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
@@ -24,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -46,6 +45,13 @@ type FederatedSecretOverride struct {
 
 // FederatedSecretOverrideSpec defines the desired state of FederatedSecretOverride
 type FederatedSecretOverrideSpec struct {
+	Overrides []FederatedSecretClusterOverride
+}
+
+// FederatedSecretClusterOverride defines the overrides for a named cluster
+type FederatedSecretClusterOverride struct {
+	ClusterName string
+	Override    corev1.Secret
 }
 
 // FederatedSecretOverrideStatus defines the observed state of FederatedSecretOverride
