@@ -25,6 +25,10 @@ type FakeFederation struct {
 	*testing.Fake
 }
 
+func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
+	return &FakeFederatedReplicaSets{c, namespace}
+}
+
 func (c *FakeFederation) FederatedSecrets(namespace string) internalversion.FederatedSecretInterface {
 	return &FakeFederatedSecrets{c, namespace}
 }

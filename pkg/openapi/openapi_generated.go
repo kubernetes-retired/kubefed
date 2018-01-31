@@ -30,6 +30,163 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSet": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedReplicaSet",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec", "github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSet"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetSchemeFns": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedReplicaSet Functions and Structs",
+					Properties: map[string]spec.Schema{
+						"DefaultSchemeFns": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"),
+							},
+						},
+					},
+					Required: []string{"DefaultSchemeFns"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedReplicaSetSpec defines the desired state of FederatedReplicaSet",
+					Properties: map[string]spec.Schema{
+						"Template": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/api/apps/v1.ReplicaSet"),
+							},
+						},
+					},
+					Required: []string{"Template"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/apps/v1.ReplicaSet"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedReplicaSetStatus defines the observed state of FederatedReplicaSet",
+					Properties:  map[string]spec.Schema{},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatusStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStatusStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStatusStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
 		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecret": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{

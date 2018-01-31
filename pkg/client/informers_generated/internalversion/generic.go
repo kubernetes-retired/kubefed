@@ -52,6 +52,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=federation.k8s.io, Version=internalVersion
+	case federation.SchemeGroupVersion.WithResource("federatedreplicasets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedReplicaSets().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedsecrets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedSecrets().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedsecretoverrides"):

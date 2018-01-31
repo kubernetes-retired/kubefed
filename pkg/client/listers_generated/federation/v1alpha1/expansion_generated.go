@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// FederatedReplicaSetListerExpansion allows custom methods to be added to
+// FederatedReplicaSetLister.
+type FederatedReplicaSetListerExpansion interface{}
+
+// FederatedReplicaSetNamespaceListerExpansion allows custom methods to be added to
+// FederatedReplicaSetNamespaceLister.
+type FederatedReplicaSetNamespaceListerExpansion interface{}
+
 // FederatedSecretListerExpansion allows custom methods to be added to
 // FederatedSecretLister.
 type FederatedSecretListerExpansion interface{}
