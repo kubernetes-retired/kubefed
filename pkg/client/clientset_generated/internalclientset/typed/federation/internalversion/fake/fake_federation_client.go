@@ -29,6 +29,10 @@ func (c *FakeFederation) FederatedSecrets(namespace string) internalversion.Fede
 	return &FakeFederatedSecrets{c, namespace}
 }
 
+func (c *FakeFederation) FederatedSecretOverrides(namespace string) internalversion.FederatedSecretOverrideInterface {
+	return &FakeFederatedSecretOverrides{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeFederation) RESTClient() rest.Interface {
