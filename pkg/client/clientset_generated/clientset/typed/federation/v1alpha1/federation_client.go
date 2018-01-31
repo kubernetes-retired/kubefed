@@ -25,6 +25,7 @@ import (
 type FederationV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	FederatedSecretsGetter
+	FederatedSecretOverridesesGetter
 }
 
 // FederationV1alpha1Client is used to interact with features provided by the federation.k8s.io group.
@@ -34,6 +35,10 @@ type FederationV1alpha1Client struct {
 
 func (c *FederationV1alpha1Client) FederatedSecrets(namespace string) FederatedSecretInterface {
 	return newFederatedSecrets(c, namespace)
+}
+
+func (c *FederationV1alpha1Client) FederatedSecretOverrideses(namespace string) FederatedSecretOverridesInterface {
+	return newFederatedSecretOverrideses(c, namespace)
 }
 
 // NewForConfig creates a new FederationV1alpha1Client for the given config.

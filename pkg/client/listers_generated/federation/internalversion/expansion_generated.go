@@ -25,3 +25,11 @@ type FederatedSecretListerExpansion interface{}
 // FederatedSecretNamespaceListerExpansion allows custom methods to be added to
 // FederatedSecretNamespaceLister.
 type FederatedSecretNamespaceListerExpansion interface{}
+
+// FederatedSecretOverridesListerExpansion allows custom methods to be added to
+// FederatedSecretOverridesLister.
+type FederatedSecretOverridesListerExpansion interface{}
+
+// FederatedSecretOverridesNamespaceListerExpansion allows custom methods to be added to
+// FederatedSecretOverridesNamespaceLister.
+type FederatedSecretOverridesNamespaceListerExpansion interface{}
