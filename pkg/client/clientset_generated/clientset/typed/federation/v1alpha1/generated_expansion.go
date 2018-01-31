@@ -18,3 +18,5 @@ package v1alpha1
 type FederatedSecretExpansion interface{}
 
 type FederatedSecretOverrideExpansion interface{}
+
+type FederationPlacementExpansion interface{}
