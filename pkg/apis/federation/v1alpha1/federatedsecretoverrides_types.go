@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -46,6 +47,13 @@ type FederatedSecretOverrides struct {
 
 // FederatedSecretOverridesSpec defines the desired state of FederatedSecretOverrides
 type FederatedSecretOverridesSpec struct {
+	Overrides []FederatedSecretOverride
+}
+
+// FederatedSecretOverride defines the overrides for a named cluster
+type FederatedSecretOverride struct {
+	ClusterName string
+	Override    corev1.Secret
 }
 
 // FederatedSecretOverridesStatus defines the observed state of FederatedSecretOverrides
