@@ -20,6 +20,7 @@ package controller
 
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
+	"github.com/marun/fnord/pkg/controller/federatedreplicaset"
 	"github.com/marun/fnord/pkg/controller/federatedsecret"
 	"github.com/marun/fnord/pkg/controller/federatedsecretoverride"
 	"github.com/marun/fnord/pkg/controller/federationplacement"
@@ -31,6 +32,7 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 	shutdown := make(chan struct{})
 	si := sharedinformers.NewSharedInformers(config, shutdown)
 	return []controller.Controller{
+		federatedreplicaset.NewFederatedReplicaSetController(config, si),
 		federatedsecret.NewFederatedSecretController(config, si),
 		federatedsecretoverride.NewFederatedSecretOverrideController(config, si),
 		federationplacement.NewFederationPlacementController(config, si),

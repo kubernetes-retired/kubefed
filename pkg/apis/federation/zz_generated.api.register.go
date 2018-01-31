@@ -21,6 +21,7 @@ package federation
 import (
 	"fmt"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,18 @@ import (
 )
 
 var (
+	InternalFederatedReplicaSet = builders.NewInternalResource(
+		"federatedreplicasets",
+		"FederatedReplicaSet",
+		func() runtime.Object { return &FederatedReplicaSet{} },
+		func() runtime.Object { return &FederatedReplicaSetList{} },
+	)
+	InternalFederatedReplicaSetStatus = builders.NewInternalResourceStatus(
+		"federatedreplicasets",
+		"FederatedReplicaSetStatus",
+		func() runtime.Object { return &FederatedReplicaSet{} },
+		func() runtime.Object { return &FederatedReplicaSetList{} },
+	)
 	InternalFederatedSecret = builders.NewInternalResource(
 		"federatedsecrets",
 		"FederatedSecret",
@@ -69,6 +82,8 @@ var (
 	)
 	// Registered resources and subresources
 	ApiVersion = builders.NewApiGroup("federation.k8s.io").WithKinds(
+		InternalFederatedReplicaSet,
+		InternalFederatedReplicaSetStatus,
 		InternalFederatedSecret,
 		InternalFederatedSecretStatus,
 		InternalFederatedSecretOverride,
@@ -100,17 +115,6 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type FederatedSecretOverride struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedSecretOverrideSpec
-	Status FederatedSecretOverrideStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type FederatedSecret struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
@@ -118,18 +122,29 @@ type FederatedSecret struct {
 	Status FederatedSecretStatus
 }
 
-type FederatedSecretOverrideStatus struct {
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSet struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedReplicaSetSpec
+	Status FederatedReplicaSetStatus
 }
 
 type FederatedSecretStatus struct {
 }
 
-type FederatedSecretSpec struct {
-	Template corev1.Secret
+type FederatedReplicaSetStatus struct {
 }
 
-type FederatedSecretOverrideSpec struct {
-	Overrides []FederatedSecretClusterOverride
+type FederatedReplicaSetSpec struct {
+	Template appsv1.ReplicaSet
+}
+
+type FederatedSecretSpec struct {
+	Template corev1.Secret
 }
 
 // +genclient
@@ -143,17 +158,155 @@ type FederationPlacement struct {
 	Status FederationPlacementStatus
 }
 
-type FederatedSecretClusterOverride struct {
-	ClusterName string
-	Override    corev1.Secret
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedSecretOverride struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedSecretOverrideSpec
+	Status FederatedSecretOverrideStatus
 }
 
 type FederationPlacementStatus struct {
 }
 
+type FederatedSecretOverrideStatus struct {
+}
+
+type FederatedSecretOverrideSpec struct {
+	Overrides []FederatedSecretClusterOverride
+}
+
 type FederationPlacementSpec struct {
 	ResourceSelector metav1.LabelSelector
 	ClusterSelector  metav1.LabelSelector
+}
+
+type FederatedSecretClusterOverride struct {
+	ClusterName string
+	Override    corev1.Secret
+}
+
+//
+// FederatedReplicaSet Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSetList struct {
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []FederatedReplicaSet
+}
+
+func (FederatedReplicaSet) NewStatus() interface{} {
+	return FederatedReplicaSetStatus{}
+}
+
+func (pc *FederatedReplicaSet) GetStatus() interface{} {
+	return pc.Status
+}
+
+func (pc *FederatedReplicaSet) SetStatus(s interface{}) {
+	pc.Status = s.(FederatedReplicaSetStatus)
+}
+
+func (pc *FederatedReplicaSet) GetSpec() interface{} {
+	return pc.Spec
+}
+
+func (pc *FederatedReplicaSet) SetSpec(s interface{}) {
+	pc.Spec = s.(FederatedReplicaSetSpec)
+}
+
+func (pc *FederatedReplicaSet) GetObjectMeta() *metav1.ObjectMeta {
+	return &pc.ObjectMeta
+}
+
+func (pc *FederatedReplicaSet) SetGeneration(generation int64) {
+	pc.ObjectMeta.Generation = generation
+}
+
+func (pc FederatedReplicaSet) GetGeneration() int64 {
+	return pc.ObjectMeta.Generation
+}
+
+// Registry is an interface for things that know how to store FederatedReplicaSet.
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetRegistry interface {
+	ListFederatedReplicaSets(ctx request.Context, options *internalversion.ListOptions) (*FederatedReplicaSetList, error)
+	GetFederatedReplicaSet(ctx request.Context, id string, options *metav1.GetOptions) (*FederatedReplicaSet, error)
+	CreateFederatedReplicaSet(ctx request.Context, id *FederatedReplicaSet) (*FederatedReplicaSet, error)
+	UpdateFederatedReplicaSet(ctx request.Context, id *FederatedReplicaSet) (*FederatedReplicaSet, error)
+	DeleteFederatedReplicaSet(ctx request.Context, id string) (bool, error)
+}
+
+// NewRegistry returns a new Registry interface for the given Storage. Any mismatched types will panic.
+func NewFederatedReplicaSetRegistry(sp builders.StandardStorageProvider) FederatedReplicaSetRegistry {
+	return &storageFederatedReplicaSet{sp}
+}
+
+// Implement Registry
+// storage puts strong typing around storage calls
+// +k8s:deepcopy-gen=false
+type storageFederatedReplicaSet struct {
+	builders.StandardStorageProvider
+}
+
+func (s *storageFederatedReplicaSet) ListFederatedReplicaSets(ctx request.Context, options *internalversion.ListOptions) (*FederatedReplicaSetList, error) {
+	if options != nil && options.FieldSelector != nil && !options.FieldSelector.Empty() {
+		return nil, fmt.Errorf("field selector not supported yet")
+	}
+	st := s.GetStandardStorage()
+	obj, err := st.List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedReplicaSetList), err
+}
+
+func (s *storageFederatedReplicaSet) GetFederatedReplicaSet(ctx request.Context, id string, options *metav1.GetOptions) (*FederatedReplicaSet, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Get(ctx, id, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedReplicaSet), nil
+}
+
+func (s *storageFederatedReplicaSet) CreateFederatedReplicaSet(ctx request.Context, object *FederatedReplicaSet) (*FederatedReplicaSet, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Create(ctx, object, nil, true)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedReplicaSet), nil
+}
+
+func (s *storageFederatedReplicaSet) UpdateFederatedReplicaSet(ctx request.Context, object *FederatedReplicaSet) (*FederatedReplicaSet, error) {
+	st := s.GetStandardStorage()
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedReplicaSet), nil
+}
+
+func (s *storageFederatedReplicaSet) DeleteFederatedReplicaSet(ctx request.Context, id string) (bool, error) {
+	st := s.GetStandardStorage()
+	_, sync, err := st.Delete(ctx, id, nil)
+	return sync, err
 }
 
 //

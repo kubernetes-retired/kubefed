@@ -27,6 +27,13 @@ import (
 )
 
 var (
+	federationFederatedReplicaSetStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedReplicaSet,
+		FederatedReplicaSetSchemeFns{},
+		func() runtime.Object { return &FederatedReplicaSet{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedReplicaSetList{} }, // Register versioned resource list
+		&FederatedReplicaSetStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedSecretStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedSecret,
 		FederatedSecretSchemeFns{},
@@ -49,7 +56,14 @@ var (
 		&FederationPlacementStrategy{builders.StorageStrategySingleton},
 	)
 	ApiVersion = builders.NewApiVersion("federation.k8s.io", "v1alpha1").WithResources(
-		federationFederatedSecretStorage,
+		federationFederatedReplicaSetStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedReplicaSetStatus,
+			FederatedReplicaSetSchemeFns{},
+			func() runtime.Object { return &FederatedReplicaSet{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedReplicaSetList{} }, // Register versioned resource list
+			&FederatedReplicaSetStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedSecretStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedSecretStatus,
 			FederatedSecretSchemeFns{},
@@ -89,6 +103,32 @@ func Kind(kind string) schema.GroupKind {
 // Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
+
+//
+// FederatedReplicaSet Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSetList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedReplicaSet `json:"items"`
 }
 
 //
