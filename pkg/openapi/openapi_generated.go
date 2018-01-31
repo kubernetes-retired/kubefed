@@ -70,6 +70,29 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretSpec", "github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedSecretClusterOverride defines the overrides for a named cluster",
+					Properties: map[string]spec.Schema{
+						"ClusterName": {
+							SchemaProps: spec.SchemaProps{
+								Type:   []string{"string"},
+								Format: "",
+							},
+						},
+						"Override": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/api/core/v1.Secret"),
+							},
+						},
+					},
+					Required: []string{"ClusterName", "Override"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.Secret"},
+		},
 		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -111,6 +134,170 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecret", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverride": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedSecretOverride",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec", "github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverride"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSchemeFns": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedSecretOverride Functions and Structs",
+					Properties: map[string]spec.Schema{
+						"DefaultSchemeFns": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"),
+							},
+						},
+					},
+					Required: []string{"DefaultSchemeFns"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedSecretOverrideSpec defines the desired state of FederatedSecretOverride",
+					Properties: map[string]spec.Schema{
+						"Overrides": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"Overrides"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedSecretOverrideStatus defines the observed state of FederatedSecretOverride",
+					Properties:  map[string]spec.Schema{},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatusStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStatusStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStatusStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
+		},
+		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
 		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretSchemeFns": {
 			Schema: spec.Schema{

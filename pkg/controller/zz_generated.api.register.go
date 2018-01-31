@@ -21,6 +21,7 @@ package controller
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	"github.com/marun/fnord/pkg/controller/federatedsecret"
+	"github.com/marun/fnord/pkg/controller/federatedsecretoverride"
 	"github.com/marun/fnord/pkg/controller/sharedinformers"
 	"k8s.io/client-go/rest"
 )
@@ -30,5 +31,6 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 	si := sharedinformers.NewSharedInformers(config, shutdown)
 	return []controller.Controller{
 		federatedsecret.NewFederatedSecretController(config, si),
+		federatedsecretoverride.NewFederatedSecretOverrideController(config, si),
 	}, shutdown
 }
