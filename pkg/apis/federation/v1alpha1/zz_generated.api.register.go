@@ -34,6 +34,13 @@ var (
 		func() runtime.Object { return &FederatedReplicaSetList{} }, // Register versioned resource list
 		&FederatedReplicaSetStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedReplicaSetOverrideStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedReplicaSetOverride,
+		FederatedReplicaSetOverrideSchemeFns{},
+		func() runtime.Object { return &FederatedReplicaSetOverride{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedReplicaSetOverrideList{} }, // Register versioned resource list
+		&FederatedReplicaSetOverrideStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedSecretStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedSecret,
 		FederatedSecretSchemeFns{},
@@ -63,6 +70,13 @@ var (
 			func() runtime.Object { return &FederatedReplicaSet{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedReplicaSetList{} }, // Register versioned resource list
 			&FederatedReplicaSetStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedReplicaSetOverrideStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedReplicaSetOverrideStatus,
+			FederatedReplicaSetOverrideSchemeFns{},
+			func() runtime.Object { return &FederatedReplicaSetOverride{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedReplicaSetOverrideList{} }, // Register versioned resource list
+			&FederatedReplicaSetOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedSecretStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedSecretStatus,
@@ -129,6 +143,32 @@ type FederatedReplicaSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedReplicaSet `json:"items"`
+}
+
+//
+// FederatedReplicaSetOverride Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetOverrideSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetOverrideStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetOverrideStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSetOverrideList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedReplicaSetOverride `json:"items"`
 }
 
 //

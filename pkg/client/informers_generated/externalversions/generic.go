@@ -54,6 +54,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=federation.k8s.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedReplicaSets().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetoverrides"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedReplicaSetOverrides().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecrets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedSecrets().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecretoverrides"):

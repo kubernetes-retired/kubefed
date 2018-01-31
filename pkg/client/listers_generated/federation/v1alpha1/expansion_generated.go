@@ -26,6 +26,14 @@ type FederatedReplicaSetListerExpansion interface{}
 // FederatedReplicaSetNamespaceLister.
 type FederatedReplicaSetNamespaceListerExpansion interface{}
 
+// FederatedReplicaSetOverrideListerExpansion allows custom methods to be added to
+// FederatedReplicaSetOverrideLister.
+type FederatedReplicaSetOverrideListerExpansion interface{}
+
+// FederatedReplicaSetOverrideNamespaceListerExpansion allows custom methods to be added to
+// FederatedReplicaSetOverrideNamespaceLister.
+type FederatedReplicaSetOverrideNamespaceListerExpansion interface{}
+
 // FederatedSecretListerExpansion allows custom methods to be added to
 // FederatedSecretLister.
 type FederatedSecretListerExpansion interface{}
