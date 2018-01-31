@@ -18,3 +18,5 @@ package internalversion
 type FederatedSecretExpansion interface{}
 
 type FederatedSecretOverrideExpansion interface{}
+
+type FederationPlacementExpansion interface{}

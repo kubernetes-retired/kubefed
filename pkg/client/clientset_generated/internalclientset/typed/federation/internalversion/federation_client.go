@@ -24,6 +24,7 @@ type FederationInterface interface {
 	RESTClient() rest.Interface
 	FederatedSecretsGetter
 	FederatedSecretOverridesGetter
+	FederationPlacementsGetter
 }
 
 // FederationClient is used to interact with features provided by the federation.k8s.io group.
@@ -37,6 +38,10 @@ func (c *FederationClient) FederatedSecrets(namespace string) FederatedSecretInt
 
 func (c *FederationClient) FederatedSecretOverrides(namespace string) FederatedSecretOverrideInterface {
 	return newFederatedSecretOverrides(c, namespace)
+}
+
+func (c *FederationClient) FederationPlacements(namespace string) FederationPlacementInterface {
+	return newFederationPlacements(c, namespace)
 }
 
 // NewForConfig creates a new FederationClient for the given config.
