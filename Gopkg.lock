@@ -279,6 +279,16 @@
   version = "v0.1-alpha.28"
 
 [[projects]]
+  branch = "fnord"
+  name = "github.com/kubernetes-sig-testing/frameworks"
+  packages = [
+    "integration",
+    "integration/internal"
+  ]
+  revision = "99ecc237e516c6f89d640e04cd614b3049619f2c"
+  source = "github.com/marun/frameworks"
+
+[[projects]]
   name = "github.com/mailru/easyjson"
   packages = [
     "buffer",
@@ -328,6 +338,8 @@
   packages = [
     ".",
     "format",
+    "gbytes",
+    "gexec",
     "internal/assertion",
     "internal/asyncassertion",
     "internal/oraclematcher",
@@ -339,8 +351,8 @@
     "matchers/support/goraph/util",
     "types"
   ]
-  revision = "c893efa28eb45626cdaa76c9f653b62488858837"
-  version = "v1.2.0"
+  revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
+  version = "v1.3.0"
 
 [[projects]]
   name = "github.com/pborman/uuid"
@@ -868,6 +880,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "330c26fba71450402e495f00ffb1723275b7e899542cc7abadfb0be4d834bfd7"
+  inputs-digest = "aac1c31d90bc3cabf2d0ed829a3b9b24d93a5395e878b398440bd379ea99610a"
   solver-name = "gps-cdcl"
   solver-version = 1

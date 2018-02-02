@@ -95,3 +95,8 @@
 
 [[constraint]]
   name = "k8s.io/kube-openapi"
+
+[[constraint]]
+  name = "github.com/kubernetes-sig-testing/frameworks"
+  source = "github.com/marun/frameworks"
+  branch = "fnord"
