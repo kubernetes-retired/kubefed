@@ -19,11 +19,12 @@ package integration
 import (
 	"testing"
 
-	fedapiv1alpha1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	fedapiv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
 	"github.com/marun/fnord/test/integration/framework"
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 // TestCrud validates create/read/update/delete operations for federated types.
@@ -52,9 +53,9 @@ func TestCrud(t *testing.T) {
 	defer fedApiFixture.TearDown(t)
 
 	fedClient := fedApiFixture.NewClient(t, "crud-test")
-	_, err = fedClient.FederationV1alpha1().FederatedSecrets(namespace).Create(&fedapiv1alpha1.FederatedSecret{
+	_, err = fedClient.FederationV1alpha1().FederatedSecrets(namespace).Create(&fedapiv1a1.FederatedSecret{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-fed-secret"},
-		Spec: fedapiv1alpha1.FederatedSecretSpec{
+		Spec: fedapiv1a1.FederatedSecretSpec{
 			Template: corev1.Secret{},
 		},
 	})
@@ -62,4 +63,30 @@ func TestCrud(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+//  TestClusterRegisterApi exercises the cluster registry api.
+func TestClusterRegistryApi(t *testing.T) {
+	apiRegistryFixture := framework.SetUpApiRegistryFixture(t)
+	defer apiRegistryFixture.TearDown(t)
+
+	crClient := apiRegistryFixture.NewClient(t, "crud-test")
+	_, err := crClient.ClusterregistryV1alpha1().Clusters().Create(&crv1a1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "test-cluster-",
+		},
+		Spec: crv1a1.ClusterSpec{
+			KubernetesAPIEndpoints: crv1a1.KubernetesAPIEndpoints{
+				ServerEndpoints: []crv1a1.ServerAddressByClientCIDR{
+					{
+						ClientCIDR:    "0.0.0.0",
+						ServerAddress: "192.168.0.1:53332",
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }

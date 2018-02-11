@@ -285,7 +285,7 @@
     "integration",
     "integration/internal"
   ]
-  revision = "99ecc237e516c6f89d640e04cd614b3049619f2c"
+  revision = "ff3580b405d36497ba2e989886bac477f4866fef"
   source = "github.com/marun/frameworks"
 
 [[projects]]
@@ -866,6 +866,19 @@
   revision = "9389c055a838d4f208b699b3c7c51b70f2368861"
 
 [[projects]]
+  branch = "vendorable"
+  name = "k8s.io/cluster-registry"
+  packages = [
+    "pkg/apis/clusterregistry",
+    "pkg/apis/clusterregistry/v1alpha1",
+    "pkg/client/clientset_generated/clientset",
+    "pkg/client/clientset_generated/clientset/scheme",
+    "pkg/client/clientset_generated/clientset/typed/clusterregistry/v1alpha1"
+  ]
+  revision = "6f8fd7783b2899f4f1837cb0ac9dd594165beac8"
+  source = "github.com/marun/cluster-registry"
+
+[[projects]]
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = [
@@ -880,6 +893,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "aac1c31d90bc3cabf2d0ed829a3b9b24d93a5395e878b398440bd379ea99610a"
+  inputs-digest = "c94c32d6b851f4331d0aee9d1580d4a201c0dff261acd815f6d4c547b610f38d"
   solver-name = "gps-cdcl"
   solver-version = 1

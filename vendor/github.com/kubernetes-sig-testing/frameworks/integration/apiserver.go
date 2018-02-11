@@ -15,6 +15,9 @@ type APIServer struct {
 	// If this is not specified, we default to a random free port on localhost.
 	URL *url.URL
 
+	// Name is the filename of the apiserver binary.  Defaults to 'kube-apiserver'.
+	Name string
+
 	// Path is the path to the apiserver binary.
 	//
 	// If this is left as the empty string, we will attempt to locate a binary,
@@ -70,8 +73,12 @@ func (s *APIServer) Start() error {
 
 	s.processState = &internal.ProcessState{}
 
+	if len(s.Name) == 0 {
+		s.Name = "kube-apiserver"
+	}
+
 	s.processState.DefaultedProcessInput, err = internal.DoDefaulting(
-		"kube-apiserver",
+		s.Name,
 		s.URL,
 		s.CertDir,
 		s.Path,
