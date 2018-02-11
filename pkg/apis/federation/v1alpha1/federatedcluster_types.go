@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
@@ -24,10 +22,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/marun/fnord/pkg/apis/federation"
+	"github.com/marun/fnord/pkg/apis/federation/common"
 )
 
 // +genclient
@@ -47,10 +47,38 @@ type FederatedCluster struct {
 
 // FederatedClusterSpec defines the desired state of FederatedCluster
 type FederatedClusterSpec struct {
+	// Name of the cluster resource indicating the
+	// TODO(marun) should this go away in favor of a 1:1 mapping?
+	ClusterRef apiv1.LocalObjectReference `json:"clusterRef,omitempty"`
+
+	// Name of the secret containing kubeconfig to access the referenced cluster.
+	//
+	// Admin needs to ensure that the required secret exists. Secret
+	// should be in the same namespace where federation control plane
+	// is hosted and it should have kubeconfig in its data with key
+	// "kubeconfig".
+	//
+	// This will later be changed to a reference to secret in
+	// federation control plane when the federation control plane
+	// supports secrets.
+	//
+	// This can be left empty if the cluster allows insecure access.
+	// +optional
+	SecretRef *apiv1.LocalObjectReference `json:"secretRef,omitempty"`
 }
 
-// FederatedClusterStatus defines the observed state of FederatedCluster
+// FederatedClusterStatus is information about the current status of a cluster updated by cluster controller periodically.
 type FederatedClusterStatus struct {
+	// Conditions is an array of current cluster conditions.
+	// +optional
+	Conditions []ClusterCondition `json:"conditions,omitempty"`
+	// Zones is the list of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.
+	// These will always be in the same region.
+	// +optional
+	Zones []string `json:"zones,omitempty"`
+	// Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.
+	// +optional
+	Region string `json:"region,omitempty"`
 }
 
 // Validate checks that an instance of FederatedCluster is well formed
@@ -71,4 +99,24 @@ func (FederatedClusterSchemeFns) DefaultingFunction(o interface{}) {
 	obj := o.(*FederatedCluster)
 	// set default field values here
 	log.Printf("Defaulting fields for FederatedCluster %s\n", obj.Name)
+}
+
+// ClusterCondition describes current state of a cluster.
+type ClusterCondition struct {
+	// Type of cluster condition, Ready or Offline.
+	Type common.ClusterConditionType `json:"type"`
+	// Status of the condition, one of True, False, Unknown.
+	Status apiv1.ConditionStatus `json:"status"`
+	// Last time the condition was checked.
+	// +optional
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	// Last time the condition transit from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	// (brief) reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
 }
