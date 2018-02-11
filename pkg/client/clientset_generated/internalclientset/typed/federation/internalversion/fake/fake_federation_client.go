@@ -25,6 +25,10 @@ type FakeFederation struct {
 	*testing.Fake
 }
 
+func (c *FakeFederation) FederatedClusters() internalversion.FederatedClusterInterface {
+	return &FakeFederatedClusters{c}
+}
+
 func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }

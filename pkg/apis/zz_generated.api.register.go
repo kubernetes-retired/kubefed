@@ -39,7 +39,9 @@ var federationApiGroup = builders.NewApiGroupBuilder(
 	WithVersionedApis(
 		federationv1alpha1.ApiVersion,
 	).
-	WithRootScopedKinds()
+	WithRootScopedKinds(
+		"FederatedCluster",
+	)
 
 func GetFederationAPIBuilder() *builders.APIGroupBuilder {
 	return federationApiGroup
