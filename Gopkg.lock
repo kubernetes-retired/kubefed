@@ -285,7 +285,7 @@
     "integration",
     "integration/internal"
   ]
-  revision = "99ecc237e516c6f89d640e04cd614b3049619f2c"
+  revision = "ff3580b405d36497ba2e989886bac477f4866fef"
   source = "github.com/marun/frameworks"
 
 [[projects]]
