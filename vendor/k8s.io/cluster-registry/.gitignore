@@ -1,0 +1,3 @@
+/bazel-*
+examples/samplecontainer/contents/clusterregistry
+examples/samplecontainer/contents/slackcontroller

@@ -100,3 +100,8 @@
   name = "github.com/kubernetes-sig-testing/frameworks"
   source = "github.com/marun/frameworks"
   branch = "fnord"
+
+[[constraint]]
+  name = "k8s.io/cluster-registry"
+  source = "github.com/marun/cluster-registry"
+  branch = "vendorable"
