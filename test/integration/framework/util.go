@@ -20,6 +20,9 @@ import (
 	"net"
 	"strconv"
 	"testing"
+
+	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // FindFreeLocalPort returns the number of an available port number on
@@ -57,4 +60,42 @@ func TearDownOnPanic(t *testing.T, f TestFixture) {
 		f.TearDown(t)
 		panic(r)
 	}
+}
+
+// CreateKubeConfig transforms a rest config to a cli config.
+func CreateKubeConfig(clientCfg *rest.Config) *clientcmdapi.Config {
+	clusterNick := "cluster"
+	userNick := "user"
+	contextNick := "context"
+
+	config := clientcmdapi.NewConfig()
+
+	credentials := clientcmdapi.NewAuthInfo()
+	credentials.Token = clientCfg.BearerToken
+	credentials.ClientCertificate = clientCfg.TLSClientConfig.CertFile
+	if len(credentials.ClientCertificate) == 0 {
+		credentials.ClientCertificateData = clientCfg.TLSClientConfig.CertData
+	}
+	credentials.ClientKey = clientCfg.TLSClientConfig.KeyFile
+	if len(credentials.ClientKey) == 0 {
+		credentials.ClientKeyData = clientCfg.TLSClientConfig.KeyData
+	}
+	config.AuthInfos[userNick] = credentials
+
+	cluster := clientcmdapi.NewCluster()
+	cluster.Server = clientCfg.Host
+	cluster.CertificateAuthority = clientCfg.CAFile
+	if len(cluster.CertificateAuthority) == 0 {
+		cluster.CertificateAuthorityData = clientCfg.CAData
+	}
+	cluster.InsecureSkipTLSVerify = clientCfg.Insecure
+	config.Clusters[clusterNick] = cluster
+
+	context := clientcmdapi.NewContext()
+	context.Cluster = clusterNick
+	context.AuthInfo = userNick
+	config.Contexts[contextNick] = context
+	config.CurrentContext = contextNick
+
+	return config
 }
