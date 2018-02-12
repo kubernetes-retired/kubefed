@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// FederatedClusters returns a FederatedClusterInformer.
+	FederatedClusters() FederatedClusterInformer
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
 	FederatedReplicaSets() FederatedReplicaSetInformer
 	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
@@ -45,6 +47,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// FederatedClusters returns a FederatedClusterInformer.
+func (v *version) FederatedClusters() FederatedClusterInformer {
+	return &federatedClusterInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.

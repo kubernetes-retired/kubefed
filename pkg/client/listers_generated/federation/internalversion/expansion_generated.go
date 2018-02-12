@@ -18,6 +18,10 @@ limitations under the License.
 
 package internalversion
 
+// FederatedClusterListerExpansion allows custom methods to be added to
+// FederatedClusterLister.
+type FederatedClusterListerExpansion interface{}
+
 // FederatedReplicaSetListerExpansion allows custom methods to be added to
 // FederatedReplicaSetLister.
 type FederatedReplicaSetListerExpansion interface{}

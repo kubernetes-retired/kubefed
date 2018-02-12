@@ -24,6 +24,7 @@ import (
 
 type FederationV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	FederatedClustersGetter
 	FederatedReplicaSetsGetter
 	FederatedReplicaSetOverridesGetter
 	FederatedSecretsGetter
@@ -34,6 +35,10 @@ type FederationV1alpha1Interface interface {
 // FederationV1alpha1Client is used to interact with features provided by the federation.k8s.io group.
 type FederationV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *FederationV1alpha1Client) FederatedClusters() FederatedClusterInterface {
+	return newFederatedClusters(c)
 }
 
 func (c *FederationV1alpha1Client) FederatedReplicaSets(namespace string) FederatedReplicaSetInterface {

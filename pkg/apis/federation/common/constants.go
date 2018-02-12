@@ -13,16 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package v1alpha1
 
-type FederatedClusterExpansion interface{}
+package common
 
-type FederatedReplicaSetExpansion interface{}
+type ClusterConditionType string
 
-type FederatedReplicaSetOverrideExpansion interface{}
-
-type FederatedSecretExpansion interface{}
-
-type FederatedSecretOverrideExpansion interface{}
-
-type FederationPlacementExpansion interface{}
+// These are valid conditions of a cluster.
+const (
+	// ClusterReady means the cluster is ready to accept workloads.
+	ClusterReady ClusterConditionType = "Ready"
+	// ClusterOffline means the cluster is temporarily down or not reachable
+	ClusterOffline ClusterConditionType = "Offline"
+)

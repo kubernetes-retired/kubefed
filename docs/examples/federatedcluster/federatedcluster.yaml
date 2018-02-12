@@ -1,0 +1,7 @@
+note: FederatedCluster Example
+sample: |
+  apiVersion: federation.k8s.io/v1alpha1
+  kind: FederatedCluster
+  metadata:
+    name: federatedcluster-example
+  spec:

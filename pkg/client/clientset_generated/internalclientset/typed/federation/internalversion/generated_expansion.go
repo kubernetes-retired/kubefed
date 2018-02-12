@@ -15,6 +15,8 @@ limitations under the License.
 */
 package internalversion
 
+type FederatedClusterExpansion interface{}
+
 type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}

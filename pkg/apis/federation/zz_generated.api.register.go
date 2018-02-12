@@ -21,6 +21,7 @@ package federation
 import (
 	"fmt"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
+	federationcommon "github.com/marun/fnord/pkg/apis/federation/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
@@ -32,6 +33,18 @@ import (
 )
 
 var (
+	InternalFederatedCluster = builders.NewInternalResource(
+		"federatedclusters",
+		"FederatedCluster",
+		func() runtime.Object { return &FederatedCluster{} },
+		func() runtime.Object { return &FederatedClusterList{} },
+	)
+	InternalFederatedClusterStatus = builders.NewInternalResourceStatus(
+		"federatedclusters",
+		"FederatedClusterStatus",
+		func() runtime.Object { return &FederatedCluster{} },
+		func() runtime.Object { return &FederatedClusterList{} },
+	)
 	InternalFederatedReplicaSet = builders.NewInternalResource(
 		"federatedreplicasets",
 		"FederatedReplicaSet",
@@ -94,6 +107,8 @@ var (
 	)
 	// Registered resources and subresources
 	ApiVersion = builders.NewApiGroup("federation.k8s.io").WithKinds(
+		InternalFederatedCluster,
+		InternalFederatedClusterStatus,
 		InternalFederatedReplicaSet,
 		InternalFederatedReplicaSetStatus,
 		InternalFederatedReplicaSetOverride,
@@ -123,43 +138,6 @@ func Kind(kind string) schema.GroupKind {
 // Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedReplicaSet struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedReplicaSetSpec
-	Status FederatedReplicaSetStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederationPlacement struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederationPlacementSpec
-	Status FederationPlacementStatus
-}
-
-type FederatedReplicaSetStatus struct {
-}
-
-type FederationPlacementStatus struct {
-}
-
-type FederationPlacementSpec struct {
-	ResourceSelector metav1.LabelSelector
-	ClusterSelector  metav1.LabelSelector
-}
-
-type FederatedReplicaSetSpec struct {
-	Template appsv1.ReplicaSet
 }
 
 // +genclient
@@ -221,9 +199,197 @@ type FederatedReplicaSetOverrideSpec struct {
 	Overrides []FederatedReplicaSetClusterOverride
 }
 
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSet struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedReplicaSetSpec
+	Status FederatedReplicaSetStatus
+}
+
 type FederatedReplicaSetClusterOverride struct {
 	ClusterName string
 	Override    appsv1.ReplicaSet
+}
+
+type FederatedReplicaSetStatus struct {
+}
+
+type FederatedReplicaSetSpec struct {
+	Template appsv1.ReplicaSet
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedCluster struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedClusterSpec
+	Status FederatedClusterStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederationPlacement struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederationPlacementSpec
+	Status FederationPlacementStatus
+}
+
+type FederatedClusterStatus struct {
+	Conditions []ClusterCondition
+	Zones      []string
+	Region     string
+}
+
+type FederationPlacementStatus struct {
+}
+
+type ClusterCondition struct {
+	Type               federationcommon.ClusterConditionType
+	Status             corev1.ConditionStatus
+	LastProbeTime      metav1.Time
+	LastTransitionTime metav1.Time
+	Reason             string
+	Message            string
+}
+
+type FederationPlacementSpec struct {
+	ResourceSelector metav1.LabelSelector
+	ClusterSelector  metav1.LabelSelector
+}
+
+type FederatedClusterSpec struct {
+	ClusterRef corev1.LocalObjectReference
+	SecretRef  *corev1.LocalObjectReference
+}
+
+//
+// FederatedCluster Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedClusterStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedClusterStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedClusterList struct {
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []FederatedCluster
+}
+
+func (FederatedCluster) NewStatus() interface{} {
+	return FederatedClusterStatus{}
+}
+
+func (pc *FederatedCluster) GetStatus() interface{} {
+	return pc.Status
+}
+
+func (pc *FederatedCluster) SetStatus(s interface{}) {
+	pc.Status = s.(FederatedClusterStatus)
+}
+
+func (pc *FederatedCluster) GetSpec() interface{} {
+	return pc.Spec
+}
+
+func (pc *FederatedCluster) SetSpec(s interface{}) {
+	pc.Spec = s.(FederatedClusterSpec)
+}
+
+func (pc *FederatedCluster) GetObjectMeta() *metav1.ObjectMeta {
+	return &pc.ObjectMeta
+}
+
+func (pc *FederatedCluster) SetGeneration(generation int64) {
+	pc.ObjectMeta.Generation = generation
+}
+
+func (pc FederatedCluster) GetGeneration() int64 {
+	return pc.ObjectMeta.Generation
+}
+
+// Registry is an interface for things that know how to store FederatedCluster.
+// +k8s:deepcopy-gen=false
+type FederatedClusterRegistry interface {
+	ListFederatedClusters(ctx request.Context, options *internalversion.ListOptions) (*FederatedClusterList, error)
+	GetFederatedCluster(ctx request.Context, id string, options *metav1.GetOptions) (*FederatedCluster, error)
+	CreateFederatedCluster(ctx request.Context, id *FederatedCluster) (*FederatedCluster, error)
+	UpdateFederatedCluster(ctx request.Context, id *FederatedCluster) (*FederatedCluster, error)
+	DeleteFederatedCluster(ctx request.Context, id string) (bool, error)
+}
+
+// NewRegistry returns a new Registry interface for the given Storage. Any mismatched types will panic.
+func NewFederatedClusterRegistry(sp builders.StandardStorageProvider) FederatedClusterRegistry {
+	return &storageFederatedCluster{sp}
+}
+
+// Implement Registry
+// storage puts strong typing around storage calls
+// +k8s:deepcopy-gen=false
+type storageFederatedCluster struct {
+	builders.StandardStorageProvider
+}
+
+func (s *storageFederatedCluster) ListFederatedClusters(ctx request.Context, options *internalversion.ListOptions) (*FederatedClusterList, error) {
+	if options != nil && options.FieldSelector != nil && !options.FieldSelector.Empty() {
+		return nil, fmt.Errorf("field selector not supported yet")
+	}
+	st := s.GetStandardStorage()
+	obj, err := st.List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedClusterList), err
+}
+
+func (s *storageFederatedCluster) GetFederatedCluster(ctx request.Context, id string, options *metav1.GetOptions) (*FederatedCluster, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Get(ctx, id, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedCluster), nil
+}
+
+func (s *storageFederatedCluster) CreateFederatedCluster(ctx request.Context, object *FederatedCluster) (*FederatedCluster, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Create(ctx, object, nil, true)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedCluster), nil
+}
+
+func (s *storageFederatedCluster) UpdateFederatedCluster(ctx request.Context, object *FederatedCluster) (*FederatedCluster, error) {
+	st := s.GetStandardStorage()
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedCluster), nil
+}
+
+func (s *storageFederatedCluster) DeleteFederatedCluster(ctx request.Context, id string) (bool, error) {
+	st := s.GetStandardStorage()
+	_, sync, err := st.Delete(ctx, id, nil)
+	return sync, err
 }
 
 //
