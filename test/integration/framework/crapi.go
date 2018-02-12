@@ -29,21 +29,21 @@ import (
 	"k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
-// ApiRegistryFixture manages a api registry apiserver
-type ApiRegistryFixture struct {
+// ClusterRegistryApiFixture manages a api registry apiserver
+type ClusterRegistryApiFixture struct {
 	EtcdUrl             string
 	Host                string
 	SecureConfigFixture *SecureConfigFixture
-	ApiRegistry         *integration.APIServer
+	ClusterRegistryApi  *integration.APIServer
 }
 
-func SetUpApiRegistryFixture(t *testing.T) *ApiRegistryFixture {
-	f := &ApiRegistryFixture{}
+func SetUpClusterRegistryApiFixture(t *testing.T) *ClusterRegistryApiFixture {
+	f := &ClusterRegistryApiFixture{}
 	f.setUp(t)
 	return f
 }
 
-func (f *ApiRegistryFixture) setUp(t *testing.T) {
+func (f *ClusterRegistryApiFixture) setUp(t *testing.T) {
 	defer TearDownOnPanic(t, f)
 
 	f.EtcdUrl = SetUpEtcd(t)
@@ -85,13 +85,13 @@ func (f *ApiRegistryFixture) setUp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error starting api registry apiserver: %v", err)
 	}
-	f.ApiRegistry = apiServer
+	f.ClusterRegistryApi = apiServer
 }
 
-func (f *ApiRegistryFixture) TearDown(t *testing.T) {
-	if f.ApiRegistry != nil {
-		f.ApiRegistry.Stop()
-		f.ApiRegistry = nil
+func (f *ClusterRegistryApiFixture) TearDown(t *testing.T) {
+	if f.ClusterRegistryApi != nil {
+		f.ClusterRegistryApi.Stop()
+		f.ClusterRegistryApi = nil
 	}
 	if f.SecureConfigFixture != nil {
 		f.SecureConfigFixture.TearDown(t)
@@ -103,7 +103,7 @@ func (f *ApiRegistryFixture) TearDown(t *testing.T) {
 	}
 }
 
-func (f *ApiRegistryFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
+func (f *ClusterRegistryApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
 	config := f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
 	return clientset.NewForConfigOrDie(config)
 }
