@@ -19,29 +19,39 @@ package util
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
 
-	"github.com/golang/glog"
+	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/apimachinery/pkg/util/wait"
+	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	federation_v1beta1 "k8s.io/federation/apis/federation/v1beta1"
-	"k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+
+	"github.com/golang/glog"
 )
 
 const (
-	KubeAPIQPS              = 20.0
-	KubeAPIBurst            = 30
-	KubeconfigSecretDataKey = "kubeconfig"
-	getSecretTimeout        = 1 * time.Minute
+	// TODO(marun) this should be discovered rather than hard-coded
+	FederationSystemNamespace = "federation-system"
+	KubeAPIQPS                = 20.0
+	KubeAPIBurst              = 30
+	KubeconfigSecretDataKey   = "kubeconfig"
+	getSecretTimeout          = 1 * time.Minute
 )
 
-func BuildClusterConfig(c *federation_v1beta1.Cluster) (*restclient.Config, error) {
+func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*restclient.Config, error) {
+	clusterName := fedCluster.Name
+
+	// Retrieve the associated cluster
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Get(clusterName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
 	var serverAddress string
 	var clusterConfig *restclient.Config
 	hostIP, err := utilnet.ChooseHostInterface()
@@ -49,7 +59,8 @@ func BuildClusterConfig(c *federation_v1beta1.Cluster) (*restclient.Config, erro
 		return nil, err
 	}
 
-	for _, item := range c.Spec.ServerAddressByClientCIDRs {
+	// Determine the server address
+	for _, item := range cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints {
 		_, cidrnet, err := net.ParseCIDR(item.ClientCIDR)
 		if err != nil {
 			return nil, err
@@ -60,84 +71,39 @@ func BuildClusterConfig(c *federation_v1beta1.Cluster) (*restclient.Config, erro
 			break
 		}
 	}
-	if serverAddress != "" {
-		if c.Spec.SecretRef == nil {
-			glog.Infof("didn't find secretRef for cluster %s. Trying insecure access", c.Name)
-			clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
-		} else {
-			if c.Spec.SecretRef.Name == "" {
-				return nil, fmt.Errorf("found secretRef but no secret name for cluster %s", c.Name)
-			}
-			var secret *api.Secret
-			secret, err = getSecret(c.Spec.SecretRef.Name)
-			if err != nil {
-				return nil, err
-			}
-			// Pre-1.7, the secret contained a serialized kubeconfig which contained appropriate credentials.
-			// Post-1.7, the secret contains credentials for a service account.
-			// Check for the service account credentials, and use them if they exist; if not, use the
-			// serialized kubeconfig.
-			token, tokenFound := secret.Data["token"]
-			ca, caFound := secret.Data["ca.crt"]
-			if tokenFound != caFound {
-				return nil, fmt.Errorf("secret should have values for either both 'ca.crt' and 'token' in its Data, or neither: %v", secret)
-			} else if tokenFound && caFound {
-				clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
-				clusterConfig.CAData = ca
-				clusterConfig.BearerToken = string(token)
-			} else {
-				kubeconfigGetter := KubeconfigGetterForSecret(secret)
-				clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(serverAddress, kubeconfigGetter)
-			}
+	if serverAddress == "" {
+		return nil, fmt.Errorf("Unable to find address for cluster %s for host ip %s", clusterName, hostIP.String())
+	}
+
+	secretRef := fedCluster.Spec.SecretRef
+
+	if secretRef == nil {
+		glog.Infof("didn't find secretRef for cluster %s. Trying insecure access", clusterName)
+		clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
+	} else {
+		if secretRef.Name == "" {
+			return nil, fmt.Errorf("found secretRef but no secret name for cluster %s", clusterName)
 		}
+		secret, err := kubeClient.CoreV1().Secrets(FederationSystemNamespace).Get(secretRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
-		clusterConfig.QPS = KubeAPIQPS
-		clusterConfig.Burst = KubeAPIBurst
-	}
-	return clusterConfig, nil
-}
 
-// getSecret gets a secret from the cluster.
-func getSecret(secretName string) (*api.Secret, error) {
-	// Get the namespace this is running in from the env variable.
-	namespace := os.Getenv("POD_NAMESPACE")
-	if namespace == "" {
-		return nil, fmt.Errorf("unexpected: POD_NAMESPACE env var returned empty string")
+		kubeconfigGetter := KubeconfigGetterForSecret(secret)
+		clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(serverAddress, kubeconfigGetter)
 	}
-	// Get a client to talk to the k8s apiserver, to fetch secrets from it.
-	cc, err := restclient.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("error in creating in-cluster config: %s", err)
-	}
-	client, err := clientset.NewForConfig(cc)
-	if err != nil {
-		return nil, fmt.Errorf("error in creating in-cluster client: %s", err)
-	}
-	var secret *api.Secret
-	err = wait.PollImmediate(1*time.Second, getSecretTimeout, func() (bool, error) {
-		secret, err = client.Core().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-		if err == nil {
-			return true, nil
-		}
-		glog.Warningf("error in fetching secret: %s", err)
-		return false, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("timed out waiting for secret: %s", err)
-	}
-	if secret == nil {
-		return nil, fmt.Errorf("unexpected: received null secret %s", secretName)
-	}
-	return secret, nil
+
+	clusterConfig.QPS = KubeAPIQPS
+	clusterConfig.Burst = KubeAPIBurst
+
+	return clusterConfig, nil
 }
 
 // KubeconfigGetterForSecret gets the kubeconfig from the given secret.
 // This is to inject a different KubeconfigGetter in tests. We don't use
 // the standard one which calls NewInCluster in tests to avoid having to
 // set up service accounts and mount files with secret tokens.
-var KubeconfigGetterForSecret = func(secret *api.Secret) clientcmd.KubeconfigGetter {
+var KubeconfigGetterForSecret = func(secret *apiv1.Secret) clientcmd.KubeconfigGetter {
 	return func() (*clientcmdapi.Config, error) {
 		data, ok := secret.Data[KubeconfigSecretDataKey]
 		if !ok {

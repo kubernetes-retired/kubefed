@@ -17,15 +17,50 @@ limitations under the License.
 package integration
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/pborman/uuid"
+
+	"github.com/marun/fnord/pkg/federatedtypes"
+	"github.com/marun/fnord/test/common"
 	"github.com/marun/fnord/test/integration/framework"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // TestCrud validates create/read/update/delete operations for federated types.
 func TestCrud(t *testing.T) {
-	f := framework.SetUpFederationFixture(t, 2)
-	defer f.TearDown(t)
+	fedFixture := framework.SetUpFederationFixture(t, 2)
+	defer fedFixture.TearDown(t)
 
-	// TODO(marun)
+	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
+	for kind, fedTypeConfig := range fedTypeConfigs {
+		t.Run(kind, func(t *testing.T) {
+			fixture, crudTester, obj, _ := initCrudTest(t, fedFixture, fedTypeConfig.AdapterFactory, kind)
+			defer fixture.TearDown(t)
+
+			crudTester.CheckLifecycle(obj)
+		})
+	}
+}
+
+// initCrudTest initializes common elements of a crud test
+func initCrudTest(t *testing.T, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
+	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, federatedtypes.FederatedTypeAdapter) {
+	// TODO(marun) stop requiring user agent when creating new config or clients
+	userAgent := fmt.Sprintf("crud-test-%s", kind)
+	fedConfig := fedFixture.FedApi.NewConfig(t, userAgent)
+	kubeConfig := fedFixture.KubeApi.NewConfig(t, userAgent)
+	crConfig := fedFixture.CrApi.NewConfig(t, userAgent)
+	fixture := framework.NewControllerFixture(t, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+
+	client := fedFixture.FedApi.NewClient(t, userAgent)
+	adapter := adapterFactory(client)
+
+	clusterClients := fedFixture.ClusterClients(t, userAgent)
+	crudTester := framework.NewFederatedTypeCrudTester(t, adapter, clusterClients)
+
+	obj := federatedtypes.NewTestObject(kind, uuid.New())
+
+	return fixture, crudTester, obj, adapter
 }

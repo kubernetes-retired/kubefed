@@ -17,136 +17,147 @@ limitations under the License.
 package federatedtypes
 
 import (
+	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
+	"github.com/marun/fnord/pkg/controller/util"
 	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
-	federationclientset "k8s.io/federation/client/clientset_generated/federation_clientset"
-	"k8s.io/federation/pkg/federation-controller/util"
 )
 
 const (
-	SecretKind           = "secret"
-	SecretControllerName = "secrets"
+	SecretKind          = "Secret"
+	FederatedSecretKind = "FederatedSecret"
 )
 
 func init() {
-	RegisterFederatedType(SecretKind, SecretControllerName, []schema.GroupVersionResource{apiv1.SchemeGroupVersion.WithResource(SecretControllerName)}, NewSecretAdapter)
+	RegisterFederatedType(FederatedSecretKind, NewFederatedSecretAdapter)
+	RegisterTestObjectFunc(FederatedSecretKind, NewFederatedSecretForTest)
 }
 
-type SecretAdapter struct {
-	client federationclientset.Interface
+type FederatedSecretAdapter struct {
+	client fedclientset.Interface
 }
 
-func NewSecretAdapter(client federationclientset.Interface, config *restclient.Config, adapterSpecificArgs map[string]interface{}) FederatedTypeAdapter {
-	return &SecretAdapter{client: client}
+func NewFederatedSecretAdapter(client fedclientset.Interface) FederatedTypeAdapter {
+	return &FederatedSecretAdapter{client: client}
 }
 
-func (a *SecretAdapter) Kind() string {
+func (a *FederatedSecretAdapter) FedKind() string {
+	return FederatedSecretKind
+}
+
+func (a *FederatedSecretAdapter) FedObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
+	return &obj.(*fedv1a1.FederatedSecret).ObjectMeta
+}
+
+func (a *FederatedSecretAdapter) FedObjectType() pkgruntime.Object {
+	return &fedv1a1.FederatedSecret{}
+}
+
+func (a *FederatedSecretAdapter) ObjectForCluster(obj pkgruntime.Object, clusterName string) pkgruntime.Object {
+	// TODO(marun) support per-cluster overrides
+	fedSecret := obj.(*fedv1a1.FederatedSecret)
+	templateSecret := fedSecret.Spec.Template
+	secret := &apiv1.Secret{
+		ObjectMeta: util.DeepCopyRelevantObjectMeta(templateSecret.ObjectMeta),
+		Data:       templateSecret.Data,
+		Type:       templateSecret.Type,
+	}
+
+	// Avoid having to duplicate these details in the template
+	secret.Name = fedSecret.Name
+	secret.Namespace = fedSecret.Namespace
+
+	return secret
+}
+
+func (a *FederatedSecretAdapter) FedCreate(obj pkgruntime.Object) (pkgruntime.Object, error) {
+	fedSecret := obj.(*fedv1a1.FederatedSecret)
+	return a.client.FederationV1alpha1().FederatedSecrets(fedSecret.Namespace).Create(fedSecret)
+}
+
+func (a *FederatedSecretAdapter) FedDelete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
+	return a.client.FederationV1alpha1().FederatedSecrets(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
+}
+
+func (a *FederatedSecretAdapter) FedGet(qualifiedName QualifiedName) (pkgruntime.Object, error) {
+	return a.client.FederationV1alpha1().FederatedSecrets(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+}
+
+func (a *FederatedSecretAdapter) FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+	return a.client.FederationV1alpha1().FederatedSecrets(namespace).List(options)
+}
+
+func (a *FederatedSecretAdapter) FedUpdate(obj pkgruntime.Object) (pkgruntime.Object, error) {
+	fedSecret := obj.(*fedv1a1.FederatedSecret)
+	return a.client.FederationV1alpha1().FederatedSecrets(fedSecret.Namespace).Update(fedSecret)
+}
+
+func (a *FederatedSecretAdapter) FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
+	return a.client.FederationV1alpha1().FederatedSecrets(namespace).Watch(options)
+}
+
+func (a *FederatedSecretAdapter) Kind() string {
 	return SecretKind
 }
 
-func (a *SecretAdapter) ObjectType() pkgruntime.Object {
-	return &apiv1.Secret{}
-}
-
-func (a *SecretAdapter) IsExpectedType(obj interface{}) bool {
-	_, ok := obj.(*apiv1.Secret)
-	return ok
-}
-
-func (a *SecretAdapter) Copy(obj pkgruntime.Object) pkgruntime.Object {
-	secret := obj.(*apiv1.Secret)
-	return &apiv1.Secret{
-		ObjectMeta: util.DeepCopyRelevantObjectMeta(secret.ObjectMeta),
-		Data:       secret.Data,
-		Type:       secret.Type,
-	}
-}
-
-func (a *SecretAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
-	secret1 := obj1.(*apiv1.Secret)
-	secret2 := obj2.(*apiv1.Secret)
-	return util.SecretEquivalent(*secret1, *secret2)
-}
-
-func (a *SecretAdapter) QualifiedName(obj pkgruntime.Object) QualifiedName {
-	secret := obj.(*apiv1.Secret)
-	return QualifiedName{Namespace: secret.Namespace, Name: secret.Name}
-}
-
-func (a *SecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
+func (a *FederatedSecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 	return &obj.(*apiv1.Secret).ObjectMeta
 }
 
-func (a *SecretAdapter) FedCreate(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	secret := obj.(*apiv1.Secret)
-	return a.client.CoreV1().Secrets(secret.Namespace).Create(secret)
+func (a *FederatedSecretAdapter) ObjectType() pkgruntime.Object {
+	return &corev1.Secret{}
 }
 
-func (a *SecretAdapter) FedDelete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
-	return a.client.CoreV1().Secrets(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
+func (a *FederatedSecretAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
+	secret1 := obj1.(*corev1.Secret)
+	secret2 := obj2.(*corev1.Secret)
+	return util.SecretEquivalent(*secret1, *secret2)
 }
 
-func (a *SecretAdapter) FedGet(qualifiedName QualifiedName) (pkgruntime.Object, error) {
-	return a.client.CoreV1().Secrets(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-}
-
-func (a *SecretAdapter) FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return a.client.CoreV1().Secrets(namespace).List(options)
-}
-
-func (a *SecretAdapter) FedUpdate(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	secret := obj.(*apiv1.Secret)
-	return a.client.CoreV1().Secrets(secret.Namespace).Update(secret)
-}
-
-func (a *SecretAdapter) FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return a.client.CoreV1().Secrets(namespace).Watch(options)
-}
-
-func (a *SecretAdapter) ClusterCreate(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
-	secret := obj.(*apiv1.Secret)
+func (a *FederatedSecretAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
+	secret := obj.(*corev1.Secret)
 	return client.CoreV1().Secrets(secret.Namespace).Create(secret)
 }
 
-func (a *SecretAdapter) ClusterDelete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
+func (a *FederatedSecretAdapter) Delete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
 	return client.CoreV1().Secrets(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
 }
 
-func (a *SecretAdapter) ClusterGet(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error) {
+func (a *FederatedSecretAdapter) Get(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error) {
 	return client.CoreV1().Secrets(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 }
 
-func (a *SecretAdapter) ClusterList(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+func (a *FederatedSecretAdapter) List(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
 	return client.CoreV1().Secrets(namespace).List(options)
 }
 
-func (a *SecretAdapter) ClusterUpdate(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
-	secret := obj.(*apiv1.Secret)
+func (a *FederatedSecretAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
+	secret := obj.(*corev1.Secret)
 	return client.CoreV1().Secrets(secret.Namespace).Update(secret)
 }
 
-func (a *SecretAdapter) ClusterWatch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
+func (a *FederatedSecretAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().Secrets(namespace).Watch(options)
 }
 
-func (a *SecretAdapter) IsSchedulingAdapter() bool {
-	return false
-}
-
-func (a *SecretAdapter) NewTestObject(namespace string) pkgruntime.Object {
-	return &apiv1.Secret{
+func NewFederatedSecretForTest(namespace string) pkgruntime.Object {
+	return &fedv1a1.FederatedSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-secret-",
 			Namespace:    namespace,
 		},
-		Data: map[string][]byte{
-			"A": []byte("ala ma kota"),
+		Spec: fedv1a1.FederatedSecretSpec{
+			Template: corev1.Secret{
+				Data: map[string][]byte{
+					"A": []byte("ala ma kota"),
+				},
+				Type: corev1.SecretTypeOpaque,
+			},
 		},
-		Type: apiv1.SecretTypeOpaque,
 	}
 }

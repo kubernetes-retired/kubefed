@@ -19,39 +19,44 @@ package federatedtypes
 import (
 	"fmt"
 
+	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// FederatedType configures federation for a kubernetes type
-type FederatedType struct {
+// FederatedTypeConfig configures federation of a target type
+type FederatedTypeConfig struct {
 	Kind              string
 	ControllerName    string
 	RequiredResources []schema.GroupVersionResource
 	AdapterFactory    AdapterFactory
 }
 
-var typeRegistry = make(map[string]FederatedType)
+var typeRegistry = make(map[string]FederatedTypeConfig)
+
+// AdapterFactory defines the function signature for factory methods
+// that create instances of a FederatedTypeAdapter.  Such methods
+// should be registered with RegisterAdapterFactory to ensure the type
+// adapter is discoverable.
+type AdapterFactory func(client fedclientset.Interface) FederatedTypeAdapter
 
 // RegisterFederatedType ensures that configuration for the given kind will be returned by the FederatedTypes method.
-func RegisterFederatedType(kind, controllerName string, requiredResources []schema.GroupVersionResource, factory AdapterFactory) {
+func RegisterFederatedType(kind string, factory AdapterFactory) {
 	_, ok := typeRegistry[kind]
 	if ok {
 		// TODO Is panicking ok given that this is part of a type-registration mechanism
-		panic(fmt.Sprintf("Federated type %q has already been registered", kind))
+		panic(fmt.Sprintf("Type %q has already been registered", kind))
 	}
-	typeRegistry[kind] = FederatedType{
-		Kind:              kind,
-		ControllerName:    controllerName,
-		RequiredResources: requiredResources,
-		AdapterFactory:    factory,
+	typeRegistry[kind] = FederatedTypeConfig{
+		Kind:           kind,
+		AdapterFactory: factory,
 	}
 }
 
-// FederatedTypes returns a mapping of kind (e.g. "secret") to the
+// FederatedTypeConfigs returns a mapping of kind (e.g. "FederatedSecret") to the
 // type information required to configure its federation.
-func FederatedTypes() map[string]FederatedType {
-	// TODO copy RequiredResources to avoid accidental mutation
-	result := make(map[string]FederatedType)
+func FederatedTypeConfigs() map[string]FederatedTypeConfig {
+	// TODO copy to avoid accidental mutation
+	result := make(map[string]FederatedTypeConfig)
 	for key, value := range typeRegistry {
 		result[key] = value
 	}

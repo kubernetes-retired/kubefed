@@ -29,14 +29,14 @@ import (
 )
 
 const (
-	AnnotationTestFederationCRUDUpdate string = "federation.kubernetes.io/test-federation-crud-update"
+	AnnotationTestFederationCrudUpdate string = "federation.kubernetes.io/test-federation-crud-update"
 )
 
-// FederatedTypeCRUDTester exercises Create/Read/Update/Delete operations for
+// FederatedTypeCrudTester exercises Create/Read/Update/Delete operations for
 // federated types via the Federation API and validates that the
 // results of those operations are propagated to clusters that are
 // members of a federation.
-type FederatedTypeCRUDTester struct {
+type FederatedTypeCrudTester struct {
 	tl             TestLogger
 	adapter        federatedtypes.FederatedTypeAdapter
 	kind           string
@@ -48,18 +48,18 @@ type FederatedTypeCRUDTester struct {
 	clusterWaitTimeout time.Duration
 }
 
-func NewFederatedTypeCRUDTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) *FederatedTypeCRUDTester {
-	return &FederatedTypeCRUDTester{
+func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) *FederatedTypeCrudTester {
+	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		adapter:            adapter,
-		kind:               adapter.Kind(),
+		kind:               adapter.FedKind(),
 		clusterClients:     clusterClients,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
 	}
 }
 
-func (c *FederatedTypeCRUDTester) CheckLifecycle(desiredObject pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) CheckLifecycle(desiredObject pkgruntime.Object) {
 	obj := c.CheckCreate(desiredObject)
 	c.CheckUpdate(obj)
 
@@ -68,9 +68,9 @@ func (c *FederatedTypeCRUDTester) CheckLifecycle(desiredObject pkgruntime.Object
 	c.CheckDelete(obj, &orphanDependents)
 }
 
-func (c *FederatedTypeCRUDTester) Create(desiredObject pkgruntime.Object) pkgruntime.Object {
-	namespace := c.adapter.ObjectMeta(desiredObject).Namespace
-	resourceMsg := fmt.Sprintf("federated %s", c.kind)
+func (c *FederatedTypeCrudTester) Create(desiredObject pkgruntime.Object) pkgruntime.Object {
+	namespace := c.adapter.FedObjectMeta(desiredObject).Namespace
+	resourceMsg := c.kind
 	if len(namespace) > 0 {
 		resourceMsg = fmt.Sprintf("%s in namespace %q", resourceMsg, namespace)
 	}
@@ -82,13 +82,13 @@ func (c *FederatedTypeCRUDTester) Create(desiredObject pkgruntime.Object) pkgrun
 		c.tl.Fatalf("Error creating %s: %v", resourceMsg, err)
 	}
 
-	qualifiedName := c.adapter.QualifiedName(obj)
-	c.tl.Logf("Created new federated %s %q", c.kind, qualifiedName)
+	qualifiedName := federatedtypes.NewQualifiedName(obj)
+	c.tl.Logf("Created new %s %q", c.kind, qualifiedName)
 
 	return obj
 }
 
-func (c *FederatedTypeCRUDTester) CheckCreate(desiredObject pkgruntime.Object) pkgruntime.Object {
+func (c *FederatedTypeCrudTester) CheckCreate(desiredObject pkgruntime.Object) pkgruntime.Object {
 	obj := c.Create(desiredObject)
 
 	c.CheckPropagation(obj)
@@ -96,38 +96,38 @@ func (c *FederatedTypeCRUDTester) CheckCreate(desiredObject pkgruntime.Object) p
 	return obj
 }
 
-func (c *FederatedTypeCRUDTester) CheckUpdate(obj pkgruntime.Object) {
-	qualifiedName := c.adapter.QualifiedName(obj)
+func (c *FederatedTypeCrudTester) CheckUpdate(obj pkgruntime.Object) {
+	qualifiedName := federatedtypes.NewQualifiedName(obj)
 
 	var initialAnnotation string
-	meta := c.adapter.ObjectMeta(obj)
+	meta := c.adapter.FedObjectMeta(obj)
 	if meta.Annotations != nil {
-		initialAnnotation = meta.Annotations[AnnotationTestFederationCRUDUpdate]
+		initialAnnotation = meta.Annotations[AnnotationTestFederationCrudUpdate]
 	}
 
-	c.tl.Logf("Updating federated %s %q", c.kind, qualifiedName)
+	c.tl.Logf("Updating %s %q", c.kind, qualifiedName)
 	updatedObj, err := c.updateFedObject(obj)
 	if err != nil {
-		c.tl.Fatalf("Error updating federated %s %q: %v", c.kind, qualifiedName, err)
+		c.tl.Fatalf("Error updating %s %q: %v", c.kind, qualifiedName, err)
 	}
 
 	// updateFedObject is expected to have changed the value of the annotation
-	meta = c.adapter.ObjectMeta(updatedObj)
-	updatedAnnotation := meta.Annotations[AnnotationTestFederationCRUDUpdate]
+	meta = c.adapter.FedObjectMeta(updatedObj)
+	updatedAnnotation := meta.Annotations[AnnotationTestFederationCrudUpdate]
 	if updatedAnnotation == initialAnnotation {
-		c.tl.Fatalf("Federated %s %q not mutated", c.kind, qualifiedName)
+		c.tl.Fatalf("%s %q not mutated", c.kind, qualifiedName)
 	}
 
 	c.CheckPropagation(updatedObj)
 }
 
-func (c *FederatedTypeCRUDTester) CheckDelete(obj pkgruntime.Object, orphanDependents *bool) {
-	qualifiedName := c.adapter.QualifiedName(obj)
+func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDependents *bool) {
+	qualifiedName := federatedtypes.NewQualifiedName(obj)
 
-	c.tl.Logf("Deleting federated %s %q", c.kind, qualifiedName)
+	c.tl.Logf("Deleting %s %q", c.kind, qualifiedName)
 	err := c.adapter.FedDelete(qualifiedName, &metav1.DeleteOptions{OrphanDependents: orphanDependents})
 	if err != nil {
-		c.tl.Fatalf("Error deleting federated %s %q: %v", c.kind, qualifiedName, err)
+		c.tl.Fatalf("Error deleting %s %q: %v", c.kind, qualifiedName, err)
 	}
 
 	deletingInCluster := (orphanDependents != nil && *orphanDependents == false)
@@ -148,7 +148,7 @@ func (c *FederatedTypeCRUDTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 		return false, err
 	})
 	if err != nil {
-		c.tl.Fatalf("Error deleting federated %s %q: %v", c.kind, qualifiedName, err)
+		c.tl.Fatalf("Error deleting %s %q: %v", c.kind, qualifiedName, err)
 	}
 
 	var stateMsg string = "present"
@@ -156,12 +156,12 @@ func (c *FederatedTypeCRUDTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 		stateMsg = "not present"
 	}
 	for _, client := range c.clusterClients {
-		_, err := c.adapter.ClusterGet(client, qualifiedName)
+		_, err := c.adapter.Get(client, qualifiedName)
 		switch {
 		case !deletingInCluster && errors.IsNotFound(err):
-			c.tl.Fatalf("Federated %s %q was unexpectedly deleted from a member cluster", c.kind, qualifiedName)
+			c.tl.Fatalf("%s %q was unexpectedly deleted from a member cluster", c.kind, qualifiedName)
 		case deletingInCluster && err == nil:
-			c.tl.Fatalf("Federated %s %q was unexpectedly orphaned in a member cluster", c.kind, qualifiedName)
+			c.tl.Fatalf("%s %q was unexpectedly orphaned in a member cluster", c.kind, qualifiedName)
 		case err != nil && !errors.IsNotFound(err):
 			c.tl.Fatalf("Error while checking whether %s %q is %s in member clusters: %v", c.kind, qualifiedName, stateMsg, err)
 		}
@@ -169,17 +169,21 @@ func (c *FederatedTypeCRUDTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 }
 
 // CheckPropagation checks propagation for the crud tester's clients
-func (c *FederatedTypeCRUDTester) CheckPropagation(obj pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) CheckPropagation(obj pkgruntime.Object) {
 	c.CheckPropagationForClients(obj, c.clusterClients, true)
 }
 
 // CheckPropagationForClients checks propagation for the provided clients
-func (c *FederatedTypeCRUDTester) CheckPropagationForClients(obj pkgruntime.Object, clusterClients []clientset.Interface, objExpected bool) {
-	qualifiedName := c.adapter.QualifiedName(obj)
+func (c *FederatedTypeCrudTester) CheckPropagationForClients(obj pkgruntime.Object, clusterClients []clientset.Interface, objExpected bool) {
+	// non-federated
+	qualifiedName := federatedtypes.NewQualifiedName(obj)
+
+	// TODO(marun) need the names of clusters to be able to support a different object per cluster
+	expectedObj := c.adapter.ObjectForCluster(obj, "fake-cluster")
 
 	c.tl.Logf("Waiting for %s %q in %d clusters", c.kind, qualifiedName, len(clusterClients))
 	for _, client := range clusterClients {
-		err := c.waitForResource(client, obj)
+		err := c.waitForResource(client, expectedObj)
 		switch {
 		case err == wait.ErrWaitTimeout:
 			if objExpected {
@@ -193,20 +197,11 @@ func (c *FederatedTypeCRUDTester) CheckPropagationForClients(obj pkgruntime.Obje
 	}
 }
 
-func (c *FederatedTypeCRUDTester) waitForResource(client clientset.Interface, obj pkgruntime.Object) error {
-	qualifiedName := c.adapter.QualifiedName(obj)
+func (c *FederatedTypeCrudTester) waitForResource(client clientset.Interface, obj pkgruntime.Object) error {
+	qualifiedName := federatedtypes.NewQualifiedName(obj)
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-		equivalenceFunc := c.adapter.Equivalent
-		if c.adapter.IsSchedulingAdapter() {
-			schedulingAdapter, ok := c.adapter.(federatedtypes.SchedulingAdapter)
-			if !ok {
-				c.tl.Fatalf("Adapter for kind %q does not properly implement SchedulingAdapter.", c.adapter.Kind())
-			}
-			equivalenceFunc = schedulingAdapter.EquivalentIgnoringSchedule
-		}
-
-		clusterObj, err := c.adapter.ClusterGet(client, qualifiedName)
-		if err == nil && equivalenceFunc(clusterObj, obj) {
+		clusterObj, err := c.adapter.Get(client, qualifiedName)
+		if err == nil && c.adapter.Equivalent(clusterObj, obj) {
 			return true, nil
 		}
 		if errors.IsNotFound(err) {
@@ -217,16 +212,20 @@ func (c *FederatedTypeCRUDTester) waitForResource(client clientset.Interface, ob
 	return err
 }
 
-func (c *FederatedTypeCRUDTester) updateFedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (c *FederatedTypeCrudTester) updateFedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		// Target the metadata for simplicity (it's type-agnostic)
-		federatedtypes.SetAnnotation(c.adapter, obj, AnnotationTestFederationCRUDUpdate, "updated")
+		meta := c.adapter.FedObjectMeta(obj)
+		if meta.Annotations == nil {
+			meta.Annotations = make(map[string]string)
+		}
+		meta.Annotations[AnnotationTestFederationCrudUpdate] = "updated"
 
 		_, err := c.adapter.FedUpdate(obj)
 		if errors.IsConflict(err) {
 			// The resource was updated by the federation controller.
 			// Get the latest version and retry.
-			qualifiedName := c.adapter.QualifiedName(obj)
+			qualifiedName := federatedtypes.NewQualifiedName(obj)
 			obj, err = c.adapter.FedGet(qualifiedName)
 			return false, err
 		}

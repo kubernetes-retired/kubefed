@@ -21,23 +21,19 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
-	federationclientset "k8s.io/federation/client/clientset_generated/federation_clientset"
 )
 
-// FederatedTypeAdapter defines operations for interacting with a
-// federated type.  Code written to this interface can then target any
-// type for which an implementation of this interface exists.
+// FederatedTypeAdapter provides a common interface for interacting
+// with federated types in the federation api and its non-federated
+// target in memer clusters.
 type FederatedTypeAdapter interface {
-	Kind() string
-	ObjectType() pkgruntime.Object
-	IsExpectedType(obj interface{}) bool
-	Copy(obj pkgruntime.Object) pkgruntime.Object
-	Equivalent(obj1, obj2 pkgruntime.Object) bool
-	QualifiedName(obj pkgruntime.Object) QualifiedName
-	ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta
+	// Methods applying to federated types
 
-	// Fed* operations target the federation control plane
+	FedKind() string
+	FedObjectMeta(pkgruntime.Object) *metav1.ObjectMeta
+	FedObjectType() pkgruntime.Object
+	ObjectForCluster(obj pkgruntime.Object, clusterName string) pkgruntime.Object
+
 	FedCreate(obj pkgruntime.Object) (pkgruntime.Object, error)
 	FedDelete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error
 	FedGet(qualifiedName QualifiedName) (pkgruntime.Object, error)
@@ -45,35 +41,17 @@ type FederatedTypeAdapter interface {
 	FedUpdate(obj pkgruntime.Object) (pkgruntime.Object, error)
 	FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
 
-	// The following operations are intended to target a cluster that is a member of a federation
-	ClusterCreate(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error)
-	ClusterDelete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error
-	ClusterGet(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error)
-	ClusterList(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
-	ClusterUpdate(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error)
-	ClusterWatch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error)
+	// Methods applying to non-federated types
 
-	IsSchedulingAdapter() bool
+	Kind() string
+	ObjectMeta(pkgruntime.Object) *metav1.ObjectMeta
+	ObjectType() pkgruntime.Object
+	Equivalent(obj1, obj2 pkgruntime.Object) bool
 
-	NewTestObject(namespace string) pkgruntime.Object
-}
-
-// AdapterFactory defines the function signature for factory methods
-// that create instances of FederatedTypeAdapter.  Such methods should
-// be registered with RegisterAdapterFactory to ensure the type
-// adapter is discoverable.
-type AdapterFactory func(client federationclientset.Interface, config *restclient.Config, adapterSpecificArgs map[string]interface{}) FederatedTypeAdapter
-
-// SetAnnotation sets the given key and value in the given object's ObjectMeta.Annotations map
-func SetAnnotation(adapter FederatedTypeAdapter, obj pkgruntime.Object, key, value string) {
-	meta := adapter.ObjectMeta(obj)
-	if meta.Annotations == nil {
-		meta.Annotations = make(map[string]string)
-	}
-	meta.Annotations[key] = value
-}
-
-// ObjectKey returns a cluster-unique key for the given object
-func ObjectKey(adapter FederatedTypeAdapter, obj pkgruntime.Object) string {
-	return adapter.QualifiedName(obj).String()
+	Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error)
+	Delete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error
+	Get(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error)
+	List(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
+	Update(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error)
+	Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error)
 }

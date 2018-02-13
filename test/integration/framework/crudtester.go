@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ package framework
 import (
 	"testing"
 
+	"github.com/marun/fnord/pkg/federatedtypes"
+	"github.com/marun/fnord/test/common"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/federation/pkg/federatedtypes"
-	"k8s.io/federation/test/common/crudtester"
 )
 
 type IntegrationLogger struct {
@@ -41,7 +41,7 @@ func (l *IntegrationLogger) Fatal(msg string) {
 	l.T.Fatal(msg)
 }
 
-func NewFederatedTypeCRUDTester(t *testing.T, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface) *crudtester.FederatedTypeCRUDTester {
+func NewFederatedTypeCrudTester(t *testing.T, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface) *common.FederatedTypeCrudTester {
 	logger := &IntegrationLogger{t}
-	return crudtester.NewFederatedTypeCRUDTester(logger, adapter, clusterClients, DefaultWaitInterval, wait.ForeverTestTimeout)
+	return common.NewFederatedTypeCrudTester(logger, adapter, clusterClients, DefaultWaitInterval, wait.ForeverTestTimeout)
 }

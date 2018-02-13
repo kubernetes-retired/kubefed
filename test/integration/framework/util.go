@@ -20,9 +20,14 @@ import (
 	"net"
 	"strconv"
 	"testing"
+	"time"
 
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+)
+
+const (
+	DefaultWaitInterval = 50 * time.Millisecond
 )
 
 // FindFreeLocalPort returns the number of an available port number on

@@ -20,9 +20,12 @@ import (
 	"fmt"
 	"testing"
 
+	fedcommon "github.com/marun/fnord/pkg/apis/federation/common"
 	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	"github.com/marun/fnord/pkg/controller/util"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
@@ -32,12 +35,7 @@ import (
 // fixture run a namespace controller to ensure cleanup on deletion.
 // Will this be required?
 
-// TODO(marun) These should be defined outside of testing.
-const (
-	FederationSystemNamespace = "federation-system"
-	KubeConfigSecretDataKey   = "kubeconfig"
-	userAgent                 = "federation-framework"
-)
+const userAgent = "federation-framework"
 
 // FederationFixture manages servers for kube, cluster registry and
 // federation along with a set of member clusters.
@@ -118,7 +116,7 @@ func (f *FederationFixture) registerCluster(t *testing.T, host string) string {
 			KubernetesAPIEndpoints: crv1a1.KubernetesAPIEndpoints{
 				ServerEndpoints: []crv1a1.ServerAddressByClientCIDR{
 					{
-						ClientCIDR:    "0.0.0.0",
+						ClientCIDR:    "0.0.0.0/0",
 						ServerAddress: host,
 					},
 				},
@@ -153,13 +151,13 @@ func (f *FederationFixture) createSecret(t *testing.T, clusterFixture *Kubernete
 	// Build the secret object with the flattened kubeconfig content.
 	// TODO(marun) enforce some kind of relationship between federated cluster and secret?
 	kubeClient := f.KubeApi.NewClient(t, userAgent)
-	secret, err := kubeClient.CoreV1().Secrets(FederationSystemNamespace).Create(&apiv1.Secret{
+	secret, err := kubeClient.CoreV1().Secrets(util.FederationSystemNamespace).Create(&apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-credentials", clusterName),
-			Namespace:    FederationSystemNamespace,
+			Namespace:    util.FederationSystemNamespace,
 		},
 		Data: map[string][]byte{
-			KubeConfigSecretDataKey: configBytes,
+			util.KubeconfigSecretDataKey: configBytes,
 		},
 	})
 	if err != nil {
@@ -172,7 +170,7 @@ func (f *FederationFixture) createSecret(t *testing.T, clusterFixture *Kubernete
 // associates the cluster and secret.
 func (f *FederationFixture) createFederatedCluster(t *testing.T, clusterName, secretName string) {
 	fedClient := f.FedApi.NewClient(t, userAgent)
-	_, err := fedClient.FederationV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
+	cluster, err := fedClient.FederationV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},
@@ -188,4 +186,32 @@ func (f *FederationFixture) createFederatedCluster(t *testing.T, clusterName, se
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// TODO(marun) Rely on the cluster controller to set status rather than setting it manually.
+	currentTime := metav1.Now()
+	cluster.Status = fedv1a1.FederatedClusterStatus{
+		Conditions: []fedv1a1.ClusterCondition{
+			fedv1a1.ClusterCondition{
+				Type:               fedcommon.ClusterReady,
+				Status:             apiv1.ConditionTrue,
+				Reason:             "ClusterReady",
+				Message:            "/healthz responded with ok",
+				LastProbeTime:      currentTime,
+				LastTransitionTime: currentTime,
+			},
+		},
+	}
+	_, err = fedClient.FederationV1alpha1().FederatedClusters().UpdateStatus(cluster)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (f *FederationFixture) ClusterClients(t *testing.T, userAgent string) []clientset.Interface {
+	clients := []clientset.Interface{}
+	for _, cluster := range f.Clusters {
+		client := cluster.NewClient(t, userAgent)
+		clients = append(clients, client)
+	}
+	return clients
 }

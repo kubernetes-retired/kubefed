@@ -23,11 +23,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/marun/fnord/pkg/controller/util"
+	finalizersutil "github.com/marun/fnord/pkg/controller/util/finalizers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/federation/pkg/federation-controller/util"
-	finalizersutil "k8s.io/federation/pkg/federation-controller/util/finalizers"
 
 	"github.com/golang/glog"
 )

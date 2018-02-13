@@ -18,6 +18,9 @@ package federatedtypes
 
 import (
 	"fmt"
+
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // QualifiedName comprises a resource name with an optional namespace.
@@ -30,6 +33,19 @@ import (
 type QualifiedName struct {
 	Namespace string
 	Name      string
+}
+
+func NewQualifiedName(obj pkgruntime.Object) QualifiedName {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		// TODO(marun) This should never happen, but if it does, the
+		// resulting empty name.
+		return QualifiedName{}
+	}
+	return QualifiedName{
+		Namespace: accessor.GetNamespace(),
+		Name:      accessor.GetName(),
+	}
 }
 
 // String returns the general purpose string representation

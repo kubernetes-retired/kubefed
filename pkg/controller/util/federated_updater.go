@@ -21,12 +21,12 @@ import (
 	"strings"
 	"time"
 
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/api"
 )
 
 // Type of the operation that can be executed in Federated.
@@ -83,7 +83,7 @@ func NewFederatedUpdater(federation FederationView, kind string, timeout time.Du
 
 func (fu *federatedUpdaterImpl) recordEvent(obj runtime.Object, eventType, eventVerb string, args ...interface{}) {
 	messageFmt := eventVerb + " %s %q in cluster %s"
-	fu.eventRecorder.Eventf(obj, api.EventTypeNormal, eventType, messageFmt, args...)
+	fu.eventRecorder.Eventf(obj, apiv1.EventTypeNormal, eventType, messageFmt, args...)
 }
 
 // Update executes the given set of operations within the timeout specified for
@@ -131,7 +131,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
 				eventType := eventType + "Failed"
 				messageFmt := "Failed to " + baseEventType + " %s %q in cluster %s: %v"
 				eventArgs = append(eventArgs, err)
-				fu.eventRecorder.Eventf(op.Obj, api.EventTypeWarning, eventType, messageFmt, eventArgs...)
+				fu.eventRecorder.Eventf(op.Obj, apiv1.EventTypeWarning, eventType, messageFmt, eventArgs...)
 			}
 
 			done <- err

@@ -19,6 +19,7 @@ package integration
 import (
 	"testing"
 
+	"github.com/marun/fnord/pkg/controller/util"
 	"github.com/marun/fnord/test/integration/framework"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,15 +58,15 @@ func TestClusterRegistration(t *testing.T) {
 		t.Fatalf("Secret ref for cluster %s is unexpectedly nil", clusterName)
 	}
 	kubeClient := f.KubeApi.NewClient(t, userAgent)
-	secret, err := kubeClient.CoreV1().Secrets(framework.FederationSystemNamespace).Get(secretRef.Name, metav1.GetOptions{})
+	secret, err := kubeClient.CoreV1().Secrets(util.FederationSystemNamespace).Get(secretRef.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Load the config from the secret
-	kubeConfigFromSecret, ok := secret.Data[framework.KubeConfigSecretDataKey]
+	kubeConfigFromSecret, ok := secret.Data[util.KubeconfigSecretDataKey]
 	if !ok || len(kubeConfigFromSecret) == 0 {
-		t.Fatalf("Secret \"%s/%s\" for cluster %q has no value for key %q", framework.FederationSystemNamespace, secret.Name, clusterName, framework.KubeConfigSecretDataKey)
+		t.Fatalf("Secret \"%s/%s\" for cluster %q has no value for key %q", util.FederationSystemNamespace, secret.Name, clusterName, util.KubeconfigSecretDataKey)
 	}
 	clientConfig, err := clientcmd.Load(kubeConfigFromSecret)
 	if err != nil {

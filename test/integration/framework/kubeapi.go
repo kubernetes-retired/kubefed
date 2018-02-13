@@ -27,6 +27,7 @@ import (
 
 	"github.com/kubernetes-sig-testing/frameworks/integration"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // KubernetesApiFixture manages a kubernetes api server
@@ -103,6 +104,10 @@ func (f *KubernetesApiFixture) TearDown(t *testing.T) {
 }
 
 func (f *KubernetesApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
-	config := f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
+	config := f.NewConfig(t, userAgent)
 	return clientset.NewForConfigOrDie(config)
+}
+
+func (f *KubernetesApiFixture) NewConfig(t *testing.T, userAgent string) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,13 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/core/v1"
+	"github.com/golang/glog"
+	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
+	"github.com/marun/fnord/pkg/controller/util"
+	"github.com/marun/fnord/pkg/controller/util/deletionhelper"
+	"github.com/marun/fnord/pkg/federatedtypes"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -28,23 +34,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
-	federationapi "k8s.io/federation/apis/federation/v1beta1"
-	federationclientset "k8s.io/federation/client/clientset_generated/federation_clientset"
-	"k8s.io/federation/pkg/federatedtypes"
-	"k8s.io/federation/pkg/federation-controller/util"
-	"k8s.io/federation/pkg/federation-controller/util/clusterselector"
-	"k8s.io/federation/pkg/federation-controller/util/deletionhelper"
-	"k8s.io/federation/pkg/federation-controller/util/eventsink"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/controller"
-
-	"github.com/golang/glog"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
 const (
@@ -94,23 +91,32 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type adapter
-func StartFederationSyncController(kind string, adapterFactory federatedtypes.AdapterFactory, config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool, adapterSpecificArgs map[string]interface{}) {
-	restclient.AddUserAgent(config, fmt.Sprintf("federation-%s-controller", kind))
-	client := federationclientset.NewForConfigOrDie(config)
-	adapter := adapterFactory(client, config, adapterSpecificArgs)
-	controller := newFederationSyncController(client, adapter)
+func StartFederationSyncController(kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) {
+	// TODO(marun) should there be a unified client rather than
+	// requiring separate clients for fed and kube apis?  In an
+	// aggregated scenario one config can drive both of them, but it
+	// may be difficult to replicate that in integration testing.
+	userAgent := fmt.Sprintf("%s-controller", kind)
+	restclient.AddUserAgent(fedConfig, userAgent)
+	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
+	restclient.AddUserAgent(crConfig, userAgent)
+	crClient := crclientset.NewForConfigOrDie(crConfig)
+	adapter := adapterFactory(fedClient)
+	controller := newFederationSyncController(adapter, fedClient, kubeClient, crClient)
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting federated sync controller for %s resources", kind))
+	glog.Infof(fmt.Sprintf("Starting sync controller for %s resources", kind))
 	controller.Run(stopChan)
 }
 
 // newFederationSyncController returns a new sync controller for the given client and type adapter
-func newFederationSyncController(client federationclientset.Interface, adapter federatedtypes.FederatedTypeAdapter) *FederationSyncController {
+func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) *FederationSyncController {
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartRecordingToSink(eventsink.NewFederatedEventSink(client))
-	recorder := broadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: fmt.Sprintf("federation-%v-controller", adapter.Kind())})
+	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("%v-controller", adapter.FedKind())})
 
 	s := &FederationSyncController{
 		reviewDelay:             time.Second * 10,
@@ -128,6 +134,9 @@ func newFederationSyncController(client federationclientset.Interface, adapter f
 	s.deliverer = util.NewDelayingDeliverer()
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
+	// The lack of a resync period  that resync should be delayed as long as possible.
+	var noResyncPeriod time.Duration
+
 	// Start informer in federated API servers on the resource type that should be federated.
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
@@ -138,25 +147,27 @@ func newFederationSyncController(client federationclientset.Interface, adapter f
 				return adapter.FedWatch(metav1.NamespaceAll, options)
 			},
 		},
-		adapter.ObjectType(),
-		controller.NoResyncPeriodFunc(),
+		adapter.FedObjectType(),
+		noResyncPeriod,
 		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) { s.deliverObj(obj, 0, false) }))
 
 	// Federated informer on the resource type in members of federation.
 	s.informer = util.NewFederatedInformer(
-		client,
-		func(cluster *federationapi.Cluster, targetClient kubeclientset.Interface) (cache.Store, cache.Controller) {
+		fedClient,
+		kubeClient,
+		crClient,
+		func(cluster *fedv1a1.FederatedCluster, targetClient kubeclientset.Interface) (cache.Store, cache.Controller) {
 			return cache.NewInformer(
 				&cache.ListWatch{
 					ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-						return adapter.ClusterList(targetClient, metav1.NamespaceAll, options)
+						return adapter.List(targetClient, metav1.NamespaceAll, options)
 					},
 					WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-						return adapter.ClusterWatch(targetClient, metav1.NamespaceAll, options)
+						return adapter.Watch(targetClient, metav1.NamespaceAll, options)
 					},
 				},
 				adapter.ObjectType(),
-				controller.NoResyncPeriodFunc(),
+				noResyncPeriod,
 				// Trigger reconciliation whenever something in federated cluster is changed. In most cases it
 				// would be just confirmation that some operation on the target resource type had succeeded.
 				util.NewTriggerOnAllChanges(
@@ -167,31 +178,31 @@ func newFederationSyncController(client federationclientset.Interface, adapter f
 		},
 
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *federationapi.Cluster) {
+			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *federationapi.Cluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},
 	)
 
-	// Federated updeater along with Create/Update/Delete operations.
-	s.updater = util.NewFederatedUpdater(s.informer, adapter.Kind(), s.updateTimeout, s.eventRecorder,
+	// Federated updater along with Create/Update/Delete operations.
+	s.updater = util.NewFederatedUpdater(s.informer, adapter.FedKind(), s.updateTimeout, s.eventRecorder, // non-federated
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
-			_, err := adapter.ClusterCreate(client, obj)
+			_, err := adapter.Create(client, obj)
 			return err
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
-			_, err := adapter.ClusterUpdate(client, obj)
+			_, err := adapter.Update(client, obj)
 			return err
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) error {
-			qualifiedName := adapter.QualifiedName(obj)
+			qualifiedName := federatedtypes.NewQualifiedName(obj)
 			orphanDependents := false
-			err := adapter.ClusterDelete(client, qualifiedName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
+			err := adapter.Delete(client, qualifiedName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 			return err
 		})
 
@@ -199,7 +210,7 @@ func newFederationSyncController(client federationclientset.Interface, adapter f
 		s.updateObject,
 		// objNameFunc
 		func(obj pkgruntime.Object) string {
-			return adapter.QualifiedName(obj).String()
+			return federatedtypes.NewQualifiedName(obj).String()
 		},
 		s.informer,
 		s.updater,
@@ -282,7 +293,7 @@ func (s *FederationSyncController) worker() {
 }
 
 func (s *FederationSyncController) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
-	qualifiedName := s.adapter.QualifiedName(obj)
+	qualifiedName := federatedtypes.NewQualifiedName(obj)
 	s.deliver(qualifiedName, delay, failed)
 }
 
@@ -305,6 +316,7 @@ func (s *FederationSyncController) isSynced() bool {
 		glog.V(2).Infof("Cluster list not synced")
 		return false
 	}
+	// TODO(marun) set clusters as ready in the test fixture?
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
@@ -322,7 +334,7 @@ func (s *FederationSyncController) reconcileOnClusterChange() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
 	for _, obj := range s.store.List() {
-		qualifiedName := s.adapter.QualifiedName(obj.(pkgruntime.Object))
+		qualifiedName := federatedtypes.NewQualifiedName(obj.(pkgruntime.Object))
 		s.deliver(qualifiedName, s.smallDelay, false)
 	}
 }
@@ -332,7 +344,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusNotSynced
 	}
 
-	kind := s.adapter.Kind()
+	kind := s.adapter.FedKind()
 	key := qualifiedName.String()
 
 	glog.V(4).Infof("Starting to reconcile %v %v", kind, key)
@@ -347,14 +359,14 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusAllOK
 	}
 
-	meta := s.adapter.ObjectMeta(obj)
+	meta := s.adapter.FedObjectMeta(obj)
 	if meta.DeletionTimestamp != nil {
 		err := s.delete(obj, kind, qualifiedName)
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
 			args := []interface{}{kind, qualifiedName, err}
 			runtime.HandleError(fmt.Errorf(msg, args...))
-			s.eventRecorder.Eventf(obj, api.EventTypeWarning, "DeleteFailed", msg, args...)
+			s.eventRecorder.Eventf(obj, corev1.EventTypeWarning, "DeleteFailed", msg, args...)
 			return statusError
 		}
 		return statusAllOK
@@ -367,20 +379,25 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusError
 	}
 
-	operationsAccessor := func(adapter federatedtypes.FederatedTypeAdapter, selectedClusters []*federationapi.Cluster, unselectedClusters []*federationapi.Cluster, obj pkgruntime.Object, schedulingInfo interface{}) ([]util.FederatedOperation, error) {
-		operations, err := clusterOperations(adapter, selectedClusters, unselectedClusters, obj, key, schedulingInfo, func(clusterName string) (interface{}, bool, error) {
+	clusterNames, err := s.clusterNames()
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
+		return statusNotSynced
+	}
+
+	operationsAccessor := func(adapter federatedtypes.FederatedTypeAdapter, clusterNames []string, obj pkgruntime.Object) ([]util.FederatedOperation, error) {
+		operations, err := clusterOperations(adapter, clusterNames, obj, key, func(clusterName string) (interface{}, bool, error) {
 			return s.informer.GetTargetStore().GetByKey(clusterName, key)
 		})
 		if err != nil {
-			s.eventRecorder.Eventf(obj, api.EventTypeWarning, "FedClusterOperationsError", "Error obtaining sync operations for %s: %s error: %s", kind, key, err.Error())
+			s.eventRecorder.Eventf(obj, corev1.EventTypeWarning, "FedClusterOperationsError", "Error obtaining sync operations for %s: %s error: %s", kind, key, err.Error())
 		}
 		return operations, err
 	}
 
 	return syncToClusters(
-		s.informer.GetReadyClusters,
 		operationsAccessor,
-		selectedClusters,
+		clusterNames,
 		s.updater.Update,
 		s.adapter,
 		s.informer,
@@ -401,19 +418,24 @@ func (s *FederationSyncController) objFromCache(kind, key string) (pkgruntime.Ob
 	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
 }
 
+func (s *FederationSyncController) clusterNames() ([]string, error) {
+	clusters, err := s.informer.GetReadyClusters()
+	if err != nil {
+		return nil, err
+	}
+	clusterNames := []string{}
+	for _, cluster := range clusters {
+		clusterNames = append(clusterNames, cluster.Name)
+	}
+
+	return clusterNames, nil
+}
+
 // delete deletes the given resource or returns error if the deletion was not complete.
 func (s *FederationSyncController) delete(obj pkgruntime.Object, kind string, qualifiedName federatedtypes.QualifiedName) error {
 	glog.V(3).Infof("Handling deletion of %s %q", kind, qualifiedName)
 
-	// Perform pre-deletion cleanup for the namespace adapter
-	namespaceAdapter, ok := s.adapter.(*federatedtypes.NamespaceAdapter)
-	if ok {
-		var err error
-		obj, err = namespaceAdapter.CleanUpNamespace(obj, s.eventRecorder)
-		if err != nil {
-			return err
-		}
-	}
+	// TOD(marun) Perform pre-deletion cleanup for the namespace adapter
 
 	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(obj)
 	if err != nil {
@@ -432,57 +454,19 @@ func (s *FederationSyncController) delete(obj pkgruntime.Object, kind string, qu
 	return nil
 }
 
-type clustersAccessorFunc func() ([]*federationapi.Cluster, error)
-type operationsFunc func(federatedtypes.FederatedTypeAdapter, []*federationapi.Cluster, []*federationapi.Cluster, pkgruntime.Object, interface{}) ([]util.FederatedOperation, error)
-type clusterSelectorFunc func(*metav1.ObjectMeta, func(map[string]string, map[string]string) (bool, error), []*federationapi.Cluster) ([]*federationapi.Cluster, []*federationapi.Cluster, error)
+type operationsFunc func(federatedtypes.FederatedTypeAdapter, []string, pkgruntime.Object) ([]util.FederatedOperation, error)
 type executionFunc func([]util.FederatedOperation) error
 
 // syncToClusters ensures that the state of the given object is synchronized to member clusters.
-func syncToClusters(clustersAccessor clustersAccessorFunc, operationsAccessor operationsFunc, selector clusterSelectorFunc, execute executionFunc, adapter federatedtypes.FederatedTypeAdapter, informer util.FederatedInformer, obj pkgruntime.Object) reconciliationStatus {
-	kind := adapter.Kind()
-	key := federatedtypes.ObjectKey(adapter, obj)
+func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.FederatedTypeAdapter, informer util.FederatedInformer, obj pkgruntime.Object) reconciliationStatus {
+	kind := adapter.FedKind()
+	key := federatedtypes.NewQualifiedName(obj).String()
 
 	glog.V(3).Infof("Syncing %s %q in underlying clusters", kind, key)
 
-	clusters, err := clustersAccessor()
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
-		return statusNotSynced
-	}
-
-	selectedClusters, unselectedClusters, err := selector(adapter.ObjectMeta(obj), clusterselector.SendToCluster, clusters)
+	operations, err := operationsAccessor(adapter, clusterNames, obj)
 	if err != nil {
 		return statusError
-	}
-
-	var schedulingInfo interface{}
-	if adapter.IsSchedulingAdapter() {
-		schedulingAdapter, ok := adapter.(federatedtypes.SchedulingAdapter)
-		if !ok {
-			glog.Fatalf("Adapter for kind %q does not properly implement SchedulingAdapter.", kind)
-		}
-		schedulingInfo, err = schedulingAdapter.GetSchedule(obj, key, selectedClusters, informer)
-		if err != nil {
-			runtime.HandleError(fmt.Errorf("adapter.GetSchedule() failed on adapter for %s %q: %v", kind, key, err))
-			return statusError
-		}
-	}
-
-	operations, err := operationsAccessor(adapter, selectedClusters, unselectedClusters, obj, schedulingInfo)
-	if err != nil {
-		return statusError
-	}
-
-	if adapter.IsSchedulingAdapter() {
-		schedulingAdapter, ok := adapter.(federatedtypes.SchedulingAdapter)
-		if !ok {
-			glog.Fatalf("Adapter for kind %q does not properly implement SchedulingAdapter.", kind)
-		}
-		err = schedulingAdapter.UpdateFederatedStatus(obj, schedulingInfo)
-		if err != nil {
-			runtime.HandleError(fmt.Errorf("adapter.UpdateFinished() failed on adapter for %s %q: %v", kind, key, err))
-			return statusError
-		}
 	}
 
 	if len(operations) == 0 {
@@ -499,71 +483,30 @@ func syncToClusters(clustersAccessor clustersAccessorFunc, operationsAccessor op
 	return statusNeedsRecheck
 }
 
-// selectedClusters filters the provided clusters into two slices, one containing the clusters selected by selector and the other containing the rest of the provided clusters.
-func selectedClusters(objMeta *metav1.ObjectMeta, selector func(map[string]string, map[string]string) (bool, error), clusters []*federationapi.Cluster) ([]*federationapi.Cluster, []*federationapi.Cluster, error) {
-	selectedClusters := []*federationapi.Cluster{}
-	unselectedClusters := []*federationapi.Cluster{}
-
-	for _, cluster := range clusters {
-		send, err := selector(cluster.Labels, objMeta.Annotations)
-		if err != nil {
-			return nil, nil, err
-		} else if !send {
-			unselectedClusters = append(unselectedClusters, cluster)
-		} else {
-			selectedClusters = append(selectedClusters, cluster)
-		}
-	}
-	return selectedClusters, unselectedClusters, nil
-}
-
 type clusterObjectAccessorFunc func(clusterName string) (interface{}, bool, error)
 
 // clusterOperations returns the list of operations needed to synchronize the state of the given object to the provided clusters
-func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClusters []*federationapi.Cluster, unselectedClusters []*federationapi.Cluster, obj pkgruntime.Object, key string, schedulingInfo interface{}, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
+func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, clusterNames []string, obj pkgruntime.Object, key string, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
 	operations := make([]util.FederatedOperation, 0)
 
-	kind := adapter.Kind()
-	for _, cluster := range selectedClusters {
-		// The data should not be modified.
-		desiredObj := adapter.Copy(obj)
+	kind := adapter.Kind() // non-federated
+	for _, clusterName := range clusterNames {
+		desiredObj := adapter.ObjectForCluster(obj, clusterName)
 
-		clusterObj, found, err := accessor(cluster.Name)
+		clusterObj, found, err := accessor(clusterName)
 		if err != nil {
-			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, cluster.Name, err)
+			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, clusterName, err)
 			runtime.HandleError(wrappedErr)
 			return nil, wrappedErr
 		}
 
-		var scheduleAction federatedtypes.ScheduleAction = federatedtypes.ActionAdd
-		if adapter.IsSchedulingAdapter() {
-			schedulingAdapter, ok := adapter.(federatedtypes.SchedulingAdapter)
-			if !ok {
-				err = fmt.Errorf("adapter for kind %s does not properly implement SchedulingAdapter.", kind)
-				glog.Fatalf("Error: %v", err)
-			}
-			var clusterTypedObj pkgruntime.Object = nil
-			if clusterObj != nil {
-				clusterTypedObj = clusterObj.(pkgruntime.Object)
-			}
-			desiredObj, scheduleAction, err = schedulingAdapter.ScheduleObject(cluster, clusterTypedObj, desiredObj, schedulingInfo)
-			if err != nil {
-				runtime.HandleError(err)
-				return nil, err
-			}
-		}
-
 		var operationType util.FederatedOperationType = ""
 		if found {
-			if scheduleAction == federatedtypes.ActionDelete {
-				operationType = util.OperationTypeDelete
-			} else {
-				clusterObj := clusterObj.(pkgruntime.Object)
-				if !adapter.Equivalent(desiredObj, clusterObj) {
-					operationType = util.OperationTypeUpdate
-				}
+			clusterObj := clusterObj.(pkgruntime.Object)
+			if !adapter.Equivalent(desiredObj, clusterObj) { // non-federated
+				operationType = util.OperationTypeUpdate
 			}
-		} else if scheduleAction == federatedtypes.ActionAdd {
+		} else {
 			operationType = util.OperationTypeAdd
 		}
 
@@ -571,24 +514,7 @@ func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClus
 			operations = append(operations, util.FederatedOperation{
 				Type:        operationType,
 				Obj:         desiredObj,
-				ClusterName: cluster.Name,
-				Key:         key,
-			})
-		}
-	}
-
-	for _, cluster := range unselectedClusters {
-		clusterObj, found, err := accessor(cluster.Name)
-		if err != nil {
-			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, cluster.Name, err)
-			runtime.HandleError(wrappedErr)
-			return nil, wrappedErr
-		}
-		if found {
-			operations = append(operations, util.FederatedOperation{
-				Type:        util.OperationTypeDelete,
-				Obj:         clusterObj.(pkgruntime.Object),
-				ClusterName: cluster.Name,
+				ClusterName: clusterName,
 				Key:         key,
 			})
 		}
