@@ -105,3 +105,7 @@
   name = "k8s.io/cluster-registry"
   source = "github.com/marun/cluster-registry"
   branch = "vendorable"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/golang/groupcache"

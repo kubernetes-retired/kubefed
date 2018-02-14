@@ -163,6 +163,12 @@
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/groupcache"
+  packages = ["lru"]
+  revision = "66deaeb636dff1ac7d938ce666d090556056a4b0"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "jsonpb",
@@ -372,6 +378,12 @@
   version = "v2.0.1"
 
 [[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
   revision = "e7e903064f5e9eb5da98208bae10b475d4db0f8c"
@@ -407,6 +419,12 @@
   name = "github.com/spf13/pflag"
   packages = ["."]
   revision = "9ff6c6923cfffbcd502984b8e0c80539a94968b7"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
+  version = "v1.1.4"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -853,6 +871,7 @@
     "tools/clientcmd/api/v1",
     "tools/metrics",
     "tools/pager",
+    "tools/record",
     "tools/reference",
     "transport",
     "util/buffer",
@@ -893,6 +912,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c94c32d6b851f4331d0aee9d1580d4a201c0dff261acd815f6d4c547b610f38d"
+  inputs-digest = "017e3a0a30d58feebff42b223ca275eb83c84e48a52cfcee4730015f014e5f67"
   solver-name = "gps-cdcl"
   solver-version = 1
