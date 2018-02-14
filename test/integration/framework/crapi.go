@@ -26,6 +26,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-sig-testing/frameworks/integration"
+	"k8s.io/client-go/rest"
 	"k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
@@ -104,6 +105,10 @@ func (f *ClusterRegistryApiFixture) TearDown(t *testing.T) {
 }
 
 func (f *ClusterRegistryApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
-	config := f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
+	config := f.NewConfig(t, userAgent)
 	return clientset.NewForConfigOrDie(config)
+}
+
+func (f *ClusterRegistryApiFixture) NewConfig(t *testing.T, userAgent string) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
 }

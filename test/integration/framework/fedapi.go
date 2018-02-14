@@ -28,6 +28,7 @@ import (
 	"github.com/marun/fnord/pkg/apis"
 	"github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 	"github.com/marun/fnord/pkg/openapi"
+	"k8s.io/client-go/rest"
 )
 
 // FederationApiFixture manages a federation api server
@@ -97,6 +98,10 @@ func (f *FederationApiFixture) TearDown(t *testing.T) {
 }
 
 func (f *FederationApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
-	config := f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
+	config := f.NewConfig(t, userAgent)
 	return clientset.NewForConfigOrDie(config)
+}
+
+func (f *FederationApiFixture) NewConfig(t *testing.T, userAgent string) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
 }
