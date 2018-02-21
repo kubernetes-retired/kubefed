@@ -19,9 +19,10 @@ package framework
 import (
 	"fmt"
 	"testing"
+	"time"
 
-	fedcommon "github.com/marun/fnord/pkg/apis/federation/common"
 	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	"github.com/marun/fnord/pkg/controller/federatedcluster"
 	"github.com/marun/fnord/pkg/controller/util"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +41,8 @@ const userAgent = "federation-framework"
 // FederationFixture manages servers for kube, cluster registry and
 // federation along with a set of member clusters.
 type FederationFixture struct {
+	stopChan chan struct{}
+
 	KubeApi *KubernetesApiFixture
 	CrApi   *ClusterRegistryApiFixture
 	FedApi  *FederationApiFixture
@@ -68,10 +71,24 @@ func (f *FederationFixture) setUp(t *testing.T, clusterCount int) {
 		clusterName := f.AddMemberCluster(t)
 		t.Logf("Added cluster %s to the federation", clusterName)
 	}
+
+	// TODO(marun) Consider running the cluster controller as soon as
+	// the kube api is available to speed up setting cluster status.
+	f.stopChan = make(chan struct{})
+	monitorPeriod := 1 * time.Second
+	t.Logf("Starting cluster controller")
+	federatedcluster.StartClusterController(f.FedApi.NewConfig(t, ""), f.KubeApi.NewConfig(t, ""), f.CrApi.NewConfig(t, ""), f.stopChan, monitorPeriod)
+
 	t.Log("Federation started.")
 }
 
 func (f *FederationFixture) TearDown(t *testing.T) {
+	// Stop the cluster controller first to avoid spurious connection
+	// errors when the target urls become unavailable.
+	if f.stopChan != nil {
+		close(f.stopChan)
+		f.stopChan = nil
+	}
 	fixtures := []TestFixture{
 		// KubeApi will be torn down via f.Clusters
 		f.CrApi,
@@ -170,7 +187,7 @@ func (f *FederationFixture) createSecret(t *testing.T, clusterFixture *Kubernete
 // associates the cluster and secret.
 func (f *FederationFixture) createFederatedCluster(t *testing.T, clusterName, secretName string) {
 	fedClient := f.FedApi.NewClient(t, userAgent)
-	cluster, err := fedClient.FederationV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
+	_, err := fedClient.FederationV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},
@@ -183,25 +200,6 @@ func (f *FederationFixture) createFederatedCluster(t *testing.T, clusterName, se
 			},
 		},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// TODO(marun) Rely on the cluster controller to set status rather than setting it manually.
-	currentTime := metav1.Now()
-	cluster.Status = fedv1a1.FederatedClusterStatus{
-		Conditions: []fedv1a1.ClusterCondition{
-			fedv1a1.ClusterCondition{
-				Type:               fedcommon.ClusterReady,
-				Status:             apiv1.ConditionTrue,
-				Reason:             "ClusterReady",
-				Message:            "/healthz responded with ok",
-				LastProbeTime:      currentTime,
-				LastTransitionTime: currentTime,
-			},
-		},
-	}
-	_, err = fedClient.FederationV1alpha1().FederatedClusters().UpdateStatus(cluster)
 	if err != nil {
 		t.Fatal(err)
 	}

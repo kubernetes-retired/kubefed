@@ -14,22 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package federatedcluster
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
+	fedcommon "github.com/marun/fnord/pkg/apis/federation/common"
+	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	"github.com/marun/fnord/pkg/controller/util"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
+	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	federation_v1beta1 "k8s.io/federation/apis/federation/v1beta1"
-	"k8s.io/federation/pkg/federation-controller/util"
-	"k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
 const (
@@ -37,17 +34,17 @@ const (
 )
 
 type ClusterClient struct {
-	kubeClient *clientset.Clientset
+	kubeClient *kubeclientset.Clientset
 }
 
-func NewClusterClientSet(c *federation_v1beta1.Cluster) (*ClusterClient, error) {
-	clusterConfig, err := util.BuildClusterConfig(c)
+func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*ClusterClient, error) {
+	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, crClient)
 	if err != nil {
 		return nil, err
 	}
 	var clusterClientSet = ClusterClient{}
 	if clusterConfig != nil {
-		clusterClientSet.kubeClient = clientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
+		clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
 		if clusterClientSet.kubeClient == nil {
 			return nil, nil
 		}
@@ -56,36 +53,36 @@ func NewClusterClientSet(c *federation_v1beta1.Cluster) (*ClusterClient, error) 
 }
 
 // GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (self *ClusterClient) GetClusterHealthStatus() *federation_v1beta1.ClusterStatus {
-	clusterStatus := federation_v1beta1.ClusterStatus{}
+func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterStatus {
+	clusterStatus := fedv1a1.FederatedClusterStatus{}
 	currentTime := metav1.Now()
-	newClusterReadyCondition := federation_v1beta1.ClusterCondition{
-		Type:               federation_v1beta1.ClusterReady,
-		Status:             v1.ConditionTrue,
+	newClusterReadyCondition := fedv1a1.ClusterCondition{
+		Type:               fedcommon.ClusterReady,
+		Status:             corev1.ConditionTrue,
 		Reason:             "ClusterReady",
 		Message:            "/healthz responded with ok",
 		LastProbeTime:      currentTime,
 		LastTransitionTime: currentTime,
 	}
-	newClusterNotReadyCondition := federation_v1beta1.ClusterCondition{
-		Type:               federation_v1beta1.ClusterReady,
-		Status:             v1.ConditionFalse,
+	newClusterNotReadyCondition := fedv1a1.ClusterCondition{
+		Type:               fedcommon.ClusterReady,
+		Status:             corev1.ConditionFalse,
 		Reason:             "ClusterNotReady",
 		Message:            "/healthz responded without ok",
 		LastProbeTime:      currentTime,
 		LastTransitionTime: currentTime,
 	}
-	newNodeOfflineCondition := federation_v1beta1.ClusterCondition{
-		Type:               federation_v1beta1.ClusterOffline,
-		Status:             v1.ConditionTrue,
+	newNodeOfflineCondition := fedv1a1.ClusterCondition{
+		Type:               fedcommon.ClusterOffline,
+		Status:             corev1.ConditionTrue,
 		Reason:             "ClusterNotReachable",
 		Message:            "cluster is not reachable",
 		LastProbeTime:      currentTime,
 		LastTransitionTime: currentTime,
 	}
-	newNodeNotOfflineCondition := federation_v1beta1.ClusterCondition{
-		Type:               federation_v1beta1.ClusterOffline,
-		Status:             v1.ConditionFalse,
+	newNodeNotOfflineCondition := fedv1a1.ClusterCondition{
+		Type:               fedcommon.ClusterOffline,
+		Status:             corev1.ConditionFalse,
 		Reason:             "ClusterReachable",
 		Message:            "cluster is reachable",
 		LastProbeTime:      currentTime,
@@ -102,69 +99,5 @@ func (self *ClusterClient) GetClusterHealthStatus() *federation_v1beta1.ClusterS
 		}
 	}
 
-	zones, region, err := self.GetClusterZones()
-	if err != nil {
-		glog.Warningf("Failed to get zones and region for cluster with client %v: %v", self, err)
-	} else {
-		clusterStatus.Zones = zones
-		clusterStatus.Region = region
-	}
-
 	return &clusterStatus
-}
-
-// GetClusterZones gets the kubernetes cluster zones and region by inspecting labels on nodes in the cluster.
-func (self *ClusterClient) GetClusterZones() (zones []string, region string, err error) {
-	return getZoneNames(self.kubeClient)
-}
-
-// Find the name of the zone in which a Node is running
-func getZoneNameForNode(node api.Node) (string, error) {
-	for key, value := range node.Labels {
-		if key == kubeletapis.LabelZoneFailureDomain {
-			return value, nil
-		}
-	}
-	return "", fmt.Errorf("Zone name for node %s not found. No label with key %s",
-		node.Name, kubeletapis.LabelZoneFailureDomain)
-}
-
-// Find the name of the region in which a Node is running
-func getRegionNameForNode(node api.Node) (string, error) {
-	for key, value := range node.Labels {
-		if key == kubeletapis.LabelZoneRegion {
-			return value, nil
-		}
-	}
-	return "", fmt.Errorf("Region name for node %s not found. No label with key %s",
-		node.Name, kubeletapis.LabelZoneRegion)
-}
-
-// Find the names of all zones and the region in which we have nodes in this cluster.
-func getZoneNames(client *clientset.Clientset) (zones []string, region string, err error) {
-	zoneNames := sets.NewString()
-	nodes, err := client.Core().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		glog.Errorf("Failed to list nodes while getting zone names: %v", err)
-		return nil, "", err
-	}
-	for i, node := range nodes.Items {
-		// TODO: quinton-hoole make this more efficient.
-		//       For non-multi-zone clusters the zone will
-		//       be identical for all nodes, so we only need to look at one node
-		//       For multi-zone clusters we know at build time
-		//       which zones are included.  Rather get this info from there, because it's cheaper.
-		zoneName, err := getZoneNameForNode(node)
-		if err != nil {
-			return nil, "", err
-		}
-		zoneNames.Insert(zoneName)
-		if i == 0 {
-			region, err = getRegionNameForNode(node)
-			if err != nil {
-				return nil, "", err
-			}
-		}
-	}
-	return zoneNames.List(), region, nil
 }
