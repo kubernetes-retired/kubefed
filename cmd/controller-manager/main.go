@@ -36,8 +36,20 @@ func main() {
 		log.Fatalf("Could not create Config for talking to the apiserver: %v", err)
 	}
 
-	controllers, _ := controller.GetAllControllers(config)
-	controllerlib.StartControllerManager(controllers...)
+	stopChan := make(chan struct{})
+
+	// Configuration is passed in separately for the kube, federation
+	// and cluster registry clients.  When deployed in an aggregated
+	// configuration - as this controller manager is intended to run -
+	// requires that all 3 clients receive the same configuration.
+
+	// TODO(marun) Make the monitor period configurable
+	clusterMonitorPeriod := time.Seconds * 40
+	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
+
+	for kind, fedTypeConfig := range federatedtypes.FederatedTypeConfigs() {
+		sync.StartFederationSyncController(kind, fedTypeConfig.AdapterFactory, config, config, config, stopChan, false)
+	}
 
 	// Blockforever
 	select {}
