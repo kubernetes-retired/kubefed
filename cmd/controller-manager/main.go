@@ -47,6 +47,10 @@ func main() {
 	clusterMonitorPeriod := time.Seconds * 40
 	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
 
+	for kind, fedTypeConfig := range federatedtypes.FederatedTypeConfigs() {
+		sync.StartFederationSyncController(kind, fedTypeConfig.AdapterFactory, config, config, config, stopChan, false)
+	}
+
 	// Blockforever
 	select {}
 }
