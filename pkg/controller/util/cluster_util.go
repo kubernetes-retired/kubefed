@@ -80,6 +80,9 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 	if secretRef == nil {
 		glog.Infof("didn't find secretRef for cluster %s. Trying insecure access", clusterName)
 		clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		if secretRef.Name == "" {
 			return nil, fmt.Errorf("found secretRef but no secret name for cluster %s", clusterName)
@@ -89,8 +92,12 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 			return nil, err
 		}
 
+		// TODO(marun) Use a service account instead of a serialized kubeconfig
 		kubeconfigGetter := KubeconfigGetterForSecret(secret)
 		clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(serverAddress, kubeconfigGetter)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	clusterConfig.QPS = KubeAPIQPS
