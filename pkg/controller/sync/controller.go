@@ -134,9 +134,6 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	s.deliverer = util.NewDelayingDeliverer()
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	// The lack of a resync period  that resync should be delayed as long as possible.
-	var noResyncPeriod time.Duration
-
 	// Start informer in federated API servers on the resource type that should be federated.
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
@@ -148,7 +145,7 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 			},
 		},
 		adapter.FedObjectType(),
-		noResyncPeriod,
+		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) { s.deliverObj(obj, 0, false) }))
 
 	// Federated informer on the resource type in members of federation.
@@ -167,7 +164,7 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 					},
 				},
 				adapter.ObjectType(),
-				noResyncPeriod,
+				util.NoResyncPeriod,
 				// Trigger reconciliation whenever something in federated cluster is changed. In most cases it
 				// would be just confirmation that some operation on the target resource type had succeeded.
 				util.NewTriggerOnAllChanges(
