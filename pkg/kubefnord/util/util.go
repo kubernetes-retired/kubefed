@@ -20,17 +20,10 @@ import (
 	"fmt"
 
 	fedclient "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	"github.com/spf13/pflag"
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
-)
-
-const (
-	// DefaultFederationNamespace is the namespace in which
-	// federation system components are hosted.
-	DefaultFederationNamespace = "federation"
 )
 
 // FedConfig provides a filesystem based kubeconfig (via
@@ -141,36 +134,6 @@ func (a *fedConfig) getClientConfig(context, kubeconfigPath string) clientcmd.Cl
 	}
 
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&loadingRules, overrides)
-}
-
-// SubcommandOptions holds the configuration required by the subcommands of
-// `kubefnord`.
-type SubcommandOptions struct {
-	Name                string
-	Host                string
-	FederationNamespace string
-	Kubeconfig          string
-	DryRun              bool
-}
-
-// CommonBind adds the common flags to the flagset passed in.
-func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
-	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
-	flags.StringVar(&o.Host, "host-cluster-context", "", "Host cluster context")
-	flags.StringVar(&o.FederationNamespace, "federation-namespace", DefaultFederationNamespace, "Namespace in the host cluster where the federation system components are installed")
-	flags.BoolVar(&o.DryRun, "dry-run", false,
-		"Run the command in dry-run mode, without making any server requests.")
-}
-
-// SetName sets the name from the args passed in for the required positional
-// argument.
-func (o *SubcommandOptions) SetName(args []string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("NAME is required")
-	}
-
-	o.Name = args[0]
-	return nil
 }
 
 // ClusterServiceAccountName returns the name of a service account whose
