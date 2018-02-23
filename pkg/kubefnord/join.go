@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/glog"
 	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	"github.com/marun/fnord/pkg/kubefnord/options"
 	"github.com/marun/fnord/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -61,7 +62,7 @@ var (
 )
 
 type joinFederation struct {
-	util.SubcommandOptions
+	options.SubcommandOptions
 	joinFederationOptions
 }
 
