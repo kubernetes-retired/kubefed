@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/glog"
 	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	fedclient "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 	"github.com/marun/fnord/pkg/kubefnord/options"
 	"github.com/marun/fnord/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
@@ -36,8 +37,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	client "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
 const (
@@ -91,12 +92,12 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 		Long:    join_long,
 		Example: join_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(args, config)
+			fedClientset, err := opts.Complete(args, config)
 			if err != nil {
 				glog.Fatalf("error: %v", err)
 			}
 
-			err = opts.Run(cmdOut, config)
+			err = opts.Run(cmdOut, fedClientset, config)
 			if err != nil {
 				glog.Fatalf("error: %v", err)
 			}
@@ -111,10 +112,11 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 }
 
 // Complete ensures that options are valid and marshals them if necessary.
-func (j *joinFederation) Complete(args []string, config util.FedConfig) error {
+func (j *joinFederation) Complete(args []string,
+	config util.FedConfig) (util.FedClientset, error) {
 	err := j.SetName(args)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if j.clusterContext == "" {
@@ -125,24 +127,71 @@ func (j *joinFederation) Complete(args []string, config util.FedConfig) error {
 		j.Name, j.Host, j.FederationNamespace, j.Kubeconfig, j.clusterContext,
 		j.secretName, j.DryRun)
 
-	glog.V(2).Infof("Performing preflight checks.")
-	err = j.performPreflightChecks(config)
+	fedClientset, err := j.getClientsets(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	glog.V(2).Infof("Performing preflight checks.")
+	err = j.performPreflightChecks(fedClientset)
+	if err != nil {
+		return nil, err
+	}
+	return fedClientset, nil
+}
+
+// getClientsets sets up the clientsets necessary for the join operations.
+func (j *joinFederation) getClientsets(config util.FedConfig) (util.FedClientset, error) {
+	hostClientConfig, err := config.NewHostConfig(j.Host, j.Kubeconfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get host cluster config: %v", err)
+		return nil, err
+	}
+
+	clusterClientConfig, err := config.NewClusterConfig(j.clusterContext, j.Kubeconfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get joining cluster config: %v", err)
+		return nil, err
+	}
+
+	fedClientset := util.NewFedClientset()
+
+	// Get host kubernetes clientset
+	_, err = fedClientset.NewHostClientset(hostClientConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
+		return nil, err
+	}
+
+	// Get joining cluster kubernetes clientset
+	_, err = fedClientset.NewClusterClientset(clusterClientConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
+		return nil, err
+	}
+
+	// Get the cluster registry clientset using the host cluster config
+	_, err = fedClientset.NewClusterRegistryClientset(hostClientConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+		return nil, err
+	}
+
+	// Get the federation clientset using the host cluster config
+	_, err = fedClientset.NewFedClientset(hostClientConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get federation clientset: %v", err)
+		return nil, err
+	}
+
+	return fedClientset, nil
 }
 
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
-func (j *joinFederation) performPreflightChecks(config util.FedConfig) error {
-	clientset, _, err := j.joiningClusterClientset(config)
-	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
-		return err
-	}
-
+func (j *joinFederation) performPreflightChecks(fedClientset util.FedClientset) error {
 	// Make sure there is no existing service account in the joining cluster.
+	clientset := fedClientset.ClusterClientset()
 	saName := util.ClusterServiceAccountName(j.Name, j.Host)
 	sa, err := clientset.CoreV1().ServiceAccounts(j.FederationNamespace).Get(saName,
 		metav1.GetOptions{})
@@ -158,40 +207,33 @@ func (j *joinFederation) performPreflightChecks(config util.FedConfig) error {
 	return nil
 }
 
-// joiningClusterClientset returns a clientset for the joining cluster.
-func (j *joinFederation) joiningClusterClientset(config util.FedConfig) (*client.Clientset, *rest.Config, error) {
-	clientset, clientConfig, err := config.ClusterClientset(j.clusterContext, j.Kubeconfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return clientset, clientConfig, nil
-}
-
 // Run is the implementation of the `join federation` command.
-func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
+func (j *joinFederation) Run(cmdOut io.Writer, fedClientsets util.FedClientset,
+	fedConfig util.FedConfig) error {
 	clusterContext := j.clusterContext
 	dryRun := j.DryRun
 	federationNamespace := j.FederationNamespace
 	host := j.Host
-	kubeconfig := j.Kubeconfig
 	joiningClusterName := j.Name
 	secretName := j.secretName
 	if secretName == "" {
 		secretName = names.SimpleNameGenerator.GenerateName(j.Name + "-")
 	}
 
-	hostClientset, err := config.HostClientset(host, kubeconfig)
+	hostClientset := fedClientsets.HostClientset()
+	clusterClientset := fedClientsets.ClusterClientset()
+	crClientset := fedClientsets.ClusterRegistryClientset()
+	fedClientset := fedClientsets.FedClientset()
+
+	glog.V(2).Info("Registering cluster with the cluster registry")
+
+	_, err := registerCluster(crClientset, fedConfig.ClusterConfig().Host, joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
+		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
 		return err
 	}
 
-	clusterClientset, clientConfig, err := j.joiningClusterClientset(config)
-	if err != nil {
-		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
-		return err
-	}
+	glog.V(2).Info("Registered cluster with the cluster registry")
 
 	federationName, err := getFederationName(hostClientset, federationNamespace)
 	if err != nil {
@@ -222,21 +264,9 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	glog.V(2).Info("Cluster credentials secret created")
 
-	glog.V(2).Info("Registering cluster with the cluster registry")
-
-	_, err = registerCluster(config, host, kubeconfig, joiningClusterName,
-		clientConfig, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
-		return err
-	}
-
-	glog.V(2).Info("Registered cluster with the cluster registry")
-
 	glog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createFederatedCluster(config, host, kubeconfig, joiningClusterName,
-		secretName, dryRun)
+	_, err = createFederatedCluster(fedClientset, joiningClusterName, secretName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return err
@@ -249,14 +279,8 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 // createFederatedCluster creates a federated cluster resource that associates
 // the cluster and secret.
-func createFederatedCluster(config util.FedConfig, hostContext, kubeconfig,
-	joiningClusterName, secretName string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
-	fedClientset, err := config.FedClientset(hostContext, kubeconfig)
-	if err != nil {
-		glog.V(2).Infof("Could not create client for federation: %v", err)
-		return nil, err
-	}
-
+func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterName,
+	secretName string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
 	fedCluster := &fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: joiningClusterName,
@@ -275,7 +299,7 @@ func createFederatedCluster(config util.FedConfig, hostContext, kubeconfig,
 		return fedCluster, nil
 	}
 
-	fedCluster, err = fedClientset.FederationV1alpha1().FederatedClusters().Create(fedCluster)
+	fedCluster, err := fedClientset.FederationV1alpha1().FederatedClusters().Create(fedCluster)
 
 	if err != nil {
 		return fedCluster, err
@@ -286,14 +310,8 @@ func createFederatedCluster(config util.FedConfig, hostContext, kubeconfig,
 
 // registerCluster registers a cluster with the cluster registry.
 // TODO: save off service account authinfo for cluster.
-func registerCluster(config util.FedConfig, hostContext, kubeconfig, joiningClusterName string,
-	clientConfig *rest.Config, dryRun bool) (*crv1a1.Cluster, error) {
-	crClientset, _, err := config.ClusterRegistryClientset(hostContext, kubeconfig)
-	if err != nil {
-		glog.V(2).Infof("Could not create client for cluster registry: %v", err)
-		return nil, err
-	}
-
+func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName string,
+	dryRun bool) (*crv1a1.Cluster, error) {
 	cluster := &crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: joiningClusterName,
@@ -303,7 +321,7 @@ func registerCluster(config util.FedConfig, hostContext, kubeconfig, joiningClus
 				ServerEndpoints: []crv1a1.ServerAddressByClientCIDR{
 					{
 						ClientCIDR:    "0.0.0.0/0",
-						ServerAddress: clientConfig.Host,
+						ServerAddress: host,
 					},
 				},
 			},
@@ -314,7 +332,7 @@ func registerCluster(config util.FedConfig, hostContext, kubeconfig, joiningClus
 		return cluster, nil
 	}
 
-	cluster, err = crClientset.ClusterregistryV1alpha1().Clusters().Create(cluster)
+	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters().Create(cluster)
 	if err != nil {
 		return cluster, err
 	}
