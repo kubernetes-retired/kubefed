@@ -17,9 +17,8 @@ limitations under the License.
 package framework
 
 import (
-	"testing"
-
 	"github.com/kubernetes-sig-testing/frameworks/integration"
+	"github.com/marun/fnord/test/common"
 )
 
 var (
@@ -27,26 +26,26 @@ var (
 	refCount int
 )
 
-func SetUpEtcd(t *testing.T) string {
+func SetUpEtcd(tl common.TestLogger) string {
 	if etcd == nil {
 		etcd = &integration.Etcd{}
 		err := etcd.Start()
 		if err != nil {
 			etcd = nil
-			t.Fatalf("Error starting etcd: %v", err)
+			tl.Fatalf("Error starting etcd: %v", err)
 		}
 	}
 	refCount += 1
 	return etcd.URL.String()
 }
 
-func TearDownEtcd(t *testing.T) {
+func TearDownEtcd(tl common.TestLogger) {
 	if etcd != nil {
 		refCount -= 1
 		if refCount <= 0 {
 			err := etcd.Stop()
 			if err != nil {
-				t.Errorf("Error stopping etcd: %v", err)
+				tl.Errorf("Error stopping etcd: %v", err)
 			}
 			etcd = nil
 		}

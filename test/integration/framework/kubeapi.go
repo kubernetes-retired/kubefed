@@ -21,11 +21,11 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"testing"
 
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-sig-testing/frameworks/integration"
+	"github.com/marun/fnord/test/common"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -38,31 +38,31 @@ type KubernetesApiFixture struct {
 	ApiServer           *integration.APIServer
 }
 
-func SetUpKubernetesApiFixture(t *testing.T) *KubernetesApiFixture {
+func SetUpKubernetesApiFixture(tl common.TestLogger) *KubernetesApiFixture {
 	f := &KubernetesApiFixture{}
-	f.setUp(t)
+	f.setUp(tl)
 	return f
 }
 
-func (f *KubernetesApiFixture) setUp(t *testing.T) {
-	defer TearDownOnPanic(t, f)
+func (f *KubernetesApiFixture) setUp(tl common.TestLogger) {
+	defer TearDownOnPanic(tl, f)
 
-	f.EtcdUrl = SetUpEtcd(t)
-	f.SecureConfigFixture = SetUpSecureConfigFixture(t)
+	f.EtcdUrl = SetUpEtcd(tl)
+	f.SecureConfigFixture = SetUpSecureConfigFixture(tl)
 
 	// TODO(marun) ensure resiliency in the face of another process
 	// taking the port
 
 	port, err := FindFreeLocalPort()
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	bindAddress := "127.0.0.1"
 	f.Host = fmt.Sprintf("https://%s:%d", bindAddress, port)
 	url, err := url.Parse(f.Host)
 	if err != nil {
-		t.Fatalf("Error parsing url: %v", err)
+		tl.Fatalf("Error parsing url: %v", err)
 	}
 
 	args := []string{
@@ -83,31 +83,31 @@ func (f *KubernetesApiFixture) setUp(t *testing.T) {
 	}
 	err = apiServer.Start()
 	if err != nil {
-		t.Fatalf("Error starting kubernetes apiserver: %v", err)
+		tl.Fatalf("Error starting kubernetes apiserver: %v", err)
 	}
 	f.ApiServer = apiServer
 }
 
-func (f *KubernetesApiFixture) TearDown(t *testing.T) {
+func (f *KubernetesApiFixture) TearDown(tl common.TestLogger) {
 	if f.ApiServer != nil {
 		f.ApiServer.Stop()
 		f.ApiServer = nil
 	}
 	if len(f.EtcdUrl) > 0 {
-		TearDownEtcd(t)
+		TearDownEtcd(tl)
 		f.EtcdUrl = ""
 	}
 	if f.SecureConfigFixture != nil {
-		f.SecureConfigFixture.TearDown(t)
+		f.SecureConfigFixture.TearDown(tl)
 		f.SecureConfigFixture = nil
 	}
 }
 
-func (f *KubernetesApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
-	config := f.NewConfig(t, userAgent)
+func (f *KubernetesApiFixture) NewClient(tl common.TestLogger, userAgent string) clientset.Interface {
+	config := f.NewConfig(tl, userAgent)
 	return clientset.NewForConfigOrDie(config)
 }
 
-func (f *KubernetesApiFixture) NewConfig(t *testing.T, userAgent string) *rest.Config {
-	return f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
+func (f *KubernetesApiFixture) NewConfig(tl common.TestLogger, userAgent string) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(tl, f.Host, userAgent)
 }

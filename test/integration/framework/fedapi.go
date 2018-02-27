@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"testing"
 
 	"github.com/pborman/uuid"
 
@@ -28,6 +27,7 @@ import (
 	"github.com/marun/fnord/pkg/apis"
 	"github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 	"github.com/marun/fnord/pkg/openapi"
+	"github.com/marun/fnord/test/common"
 	"k8s.io/client-go/rest"
 )
 
@@ -39,24 +39,24 @@ type FederationApiFixture struct {
 	SecureConfigFixture *SecureConfigFixture
 }
 
-func SetUpFederationApiFixture(t *testing.T) *FederationApiFixture {
+func SetUpFederationApiFixture(tl common.TestLogger) *FederationApiFixture {
 	f := &FederationApiFixture{}
-	f.setUp(t)
+	f.setUp(tl)
 	return f
 }
 
-func (f *FederationApiFixture) setUp(t *testing.T) {
-	defer TearDownOnPanic(t, f)
+func (f *FederationApiFixture) setUp(tl common.TestLogger) {
+	defer TearDownOnPanic(tl, f)
 
-	f.EtcdUrl = SetUpEtcd(t)
-	f.SecureConfigFixture = SetUpSecureConfigFixture(t)
+	f.EtcdUrl = SetUpEtcd(tl)
+	f.SecureConfigFixture = SetUpSecureConfigFixture(tl)
 
 	// TODO(marun) ensure resiliency in the face of another process
 	// taking the port.
 
 	port, err := FindFreeLocalPort()
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	f.stopCh = make(chan struct{})
@@ -77,31 +77,31 @@ func (f *FederationApiFixture) setUp(t *testing.T) {
 
 	go func() {
 		if err := cmd.Execute(); err != nil {
-			t.Fatal(err)
+			tl.Fatal(err)
 		}
 	}()
 }
 
-func (f *FederationApiFixture) TearDown(t *testing.T) {
+func (f *FederationApiFixture) TearDown(tl common.TestLogger) {
 	if f.stopCh != nil {
 		close(f.stopCh)
 		f.stopCh = nil
 	}
 	if len(f.EtcdUrl) > 0 {
-		TearDownEtcd(t)
+		TearDownEtcd(tl)
 		f.EtcdUrl = ""
 	}
 	if f.SecureConfigFixture != nil {
-		f.SecureConfigFixture.TearDown(t)
+		f.SecureConfigFixture.TearDown(tl)
 		f.SecureConfigFixture = nil
 	}
 }
 
-func (f *FederationApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
-	config := f.NewConfig(t, userAgent)
+func (f *FederationApiFixture) NewClient(tl common.TestLogger, userAgent string) clientset.Interface {
+	config := f.NewConfig(tl, userAgent)
 	return clientset.NewForConfigOrDie(config)
 }
 
-func (f *FederationApiFixture) NewConfig(t *testing.T, userAgent string) *rest.Config {
-	return f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
+func (f *FederationApiFixture) NewConfig(tl common.TestLogger, userAgent string) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(tl, f.Host, userAgent)
 }

@@ -17,12 +17,37 @@ limitations under the License.
 package framework
 
 import (
-	"github.com/marun/fnord/pkg/federatedtypes"
+	"testing"
+
 	"github.com/marun/fnord/test/common"
-	"k8s.io/apimachinery/pkg/util/wait"
-	clientset "k8s.io/client-go/kubernetes"
 )
 
-func NewFederatedTypeCrudTester(tl common.TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface) *common.FederatedTypeCrudTester {
-	return common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, DefaultWaitInterval, wait.ForeverTestTimeout)
+type integrationLogger struct {
+	t *testing.T
+}
+
+func NewIntegrationLogger(t *testing.T) common.TestLogger {
+	return &integrationLogger{
+		t: t,
+	}
+}
+
+func (l *integrationLogger) Errorf(format string, args ...interface{}) {
+	l.t.Errorf(format, args...)
+}
+
+func (l *integrationLogger) Fatal(args ...interface{}) {
+	l.t.Fatal(args...)
+}
+
+func (l *integrationLogger) Fatalf(format string, args ...interface{}) {
+	l.t.Fatalf(format, args...)
+}
+
+func (l *integrationLogger) Log(args ...interface{}) {
+	l.t.Log(args...)
+}
+
+func (l *integrationLogger) Logf(format string, args ...interface{}) {
+	l.t.Logf(format, args...)
 }

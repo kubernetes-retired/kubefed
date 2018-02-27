@@ -18,12 +18,12 @@ package framework
 
 import (
 	"fmt"
-	"testing"
 	"time"
 
 	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
 	"github.com/marun/fnord/pkg/controller/federatedcluster"
 	"github.com/marun/fnord/pkg/controller/util"
+	"github.com/marun/fnord/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -50,39 +50,39 @@ type FederationFixture struct {
 	Clusters map[string]*KubernetesApiFixture
 }
 
-func SetUpFederationFixture(t *testing.T, clusterCount int) *FederationFixture {
+func SetUpFederationFixture(tl common.TestLogger, clusterCount int) *FederationFixture {
 	if clusterCount < 1 {
-		t.Fatal("Cluster count must be greater than 0")
+		tl.Fatal("Cluster count must be greater than 0")
 	}
-	t.Logf("Starting a federation of %d clusters...", clusterCount)
+	tl.Logf("Starting a federation of %d clusters...", clusterCount)
 	f := &FederationFixture{}
-	f.setUp(t, clusterCount)
+	f.setUp(tl, clusterCount)
 	return f
 }
 
-func (f *FederationFixture) setUp(t *testing.T, clusterCount int) {
-	defer TearDownOnPanic(t, f)
+func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
+	defer TearDownOnPanic(tl, f)
 
-	f.CrApi = SetUpClusterRegistryApiFixture(t)
-	f.FedApi = SetUpFederationApiFixture(t)
+	f.CrApi = SetUpClusterRegistryApiFixture(tl)
+	f.FedApi = SetUpFederationApiFixture(tl)
 
 	f.Clusters = make(map[string]*KubernetesApiFixture)
 	for i := 0; i < clusterCount; i++ {
-		clusterName := f.AddMemberCluster(t)
-		t.Logf("Added cluster %s to the federation", clusterName)
+		clusterName := f.AddMemberCluster(tl)
+		tl.Logf("Added cluster %s to the federation", clusterName)
 	}
 
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	f.stopChan = make(chan struct{})
 	monitorPeriod := 1 * time.Second
-	t.Logf("Starting cluster controller")
-	federatedcluster.StartClusterController(f.FedApi.NewConfig(t, ""), f.KubeApi.NewConfig(t, ""), f.CrApi.NewConfig(t, ""), f.stopChan, monitorPeriod)
+	tl.Logf("Starting cluster controller")
+	federatedcluster.StartClusterController(f.FedApi.NewConfig(tl, ""), f.KubeApi.NewConfig(tl, ""), f.CrApi.NewConfig(tl, ""), f.stopChan, monitorPeriod)
 
-	t.Log("Federation started.")
+	tl.Log("Federation started.")
 }
 
-func (f *FederationFixture) TearDown(t *testing.T) {
+func (f *FederationFixture) TearDown(tl common.TestLogger) {
 	// Stop the cluster controller first to avoid spurious connection
 	// errors when the target urls become unavailable.
 	if f.stopChan != nil {
@@ -98,22 +98,22 @@ func (f *FederationFixture) TearDown(t *testing.T) {
 		fixtures = append(fixtures, cluster)
 	}
 	for _, fixture := range fixtures {
-		fixture.TearDown(t)
+		fixture.TearDown(tl)
 	}
 }
 
 // AddCluster adds a new member cluster to the federation.
-func (f *FederationFixture) AddMemberCluster(t *testing.T) string {
-	kubeApi := SetUpKubernetesApiFixture(t)
+func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
+	kubeApi := SetUpKubernetesApiFixture(tl)
 
 	// Pick the first added cluster to be the primary
 	if f.KubeApi == nil {
 		f.KubeApi = kubeApi
 	}
 
-	clusterName := f.registerCluster(t, kubeApi.Host)
-	secretName := f.createSecret(t, kubeApi, clusterName)
-	f.createFederatedCluster(t, clusterName, secretName)
+	clusterName := f.registerCluster(tl, kubeApi.Host)
+	secretName := f.createSecret(tl, kubeApi, clusterName)
+	f.createFederatedCluster(tl, clusterName, secretName)
 
 	// Track clusters by name
 	f.Clusters[clusterName] = kubeApi
@@ -122,9 +122,9 @@ func (f *FederationFixture) AddMemberCluster(t *testing.T) string {
 }
 
 // registerCluster registers a cluster with the cluster registry
-func (f *FederationFixture) registerCluster(t *testing.T, host string) string {
+func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) string {
 	// Registry the kube api with the cluster registry
-	crClient := f.CrApi.NewClient(t, userAgent)
+	crClient := f.CrApi.NewClient(tl, userAgent)
 	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Create(&crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-cluster-",
@@ -141,33 +141,33 @@ func (f *FederationFixture) registerCluster(t *testing.T, host string) string {
 		},
 	})
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 	return cluster.Name
 }
 
 // createSecret creates a secret resource containing the credentials
 // necessary to access the fixture-managed cluster.
-func (f *FederationFixture) createSecret(t *testing.T, clusterFixture *KubernetesApiFixture, clusterName string) string {
+func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *KubernetesApiFixture, clusterName string) string {
 	// Do not include the host - it will need to be sourced from the
 	// Cluster resource.
-	config := clusterFixture.SecureConfigFixture.NewClientConfig(t, "", userAgent)
+	config := clusterFixture.SecureConfigFixture.NewClientConfig(tl, "", userAgent)
 	kubeConfig := CreateKubeConfig(config)
 
 	// Flatten the kubeconfig to ensure that all the referenced file
 	// contents are inlined.
 	err := clientcmdapi.FlattenConfig(kubeConfig)
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 	configBytes, err := clientcmd.Write(*kubeConfig)
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	// Build the secret object with the flattened kubeconfig content.
 	// TODO(marun) enforce some kind of relationship between federated cluster and secret?
-	kubeClient := f.KubeApi.NewClient(t, userAgent)
+	kubeClient := f.KubeApi.NewClient(tl, userAgent)
 	secret, err := kubeClient.CoreV1().Secrets(util.FederationSystemNamespace).Create(&apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-credentials", clusterName),
@@ -178,15 +178,15 @@ func (f *FederationFixture) createSecret(t *testing.T, clusterFixture *Kubernete
 		},
 	})
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 	return secret.Name
 }
 
 // createFederatedCluster create a federated cluster resource that
 // associates the cluster and secret.
-func (f *FederationFixture) createFederatedCluster(t *testing.T, clusterName, secretName string) {
-	fedClient := f.FedApi.NewClient(t, userAgent)
+func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, clusterName, secretName string) {
+	fedClient := f.FedApi.NewClient(tl, userAgent)
 	_, err := fedClient.FederationV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
@@ -201,14 +201,14 @@ func (f *FederationFixture) createFederatedCluster(t *testing.T, clusterName, se
 		},
 	})
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 }
 
-func (f *FederationFixture) ClusterClients(t *testing.T, userAgent string) []clientset.Interface {
+func (f *FederationFixture) ClusterClients(tl common.TestLogger, userAgent string) []clientset.Interface {
 	clients := []clientset.Interface{}
 	for _, cluster := range f.Clusters {
-		client := cluster.NewClient(t, userAgent)
+		client := cluster.NewClient(tl, userAgent)
 		clients = append(clients, client)
 	}
 	return clients

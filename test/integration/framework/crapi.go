@@ -21,11 +21,11 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"testing"
 
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-sig-testing/frameworks/integration"
+	"github.com/marun/fnord/test/common"
 	"k8s.io/client-go/rest"
 	"k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
@@ -38,31 +38,31 @@ type ClusterRegistryApiFixture struct {
 	ClusterRegistryApi  *integration.APIServer
 }
 
-func SetUpClusterRegistryApiFixture(t *testing.T) *ClusterRegistryApiFixture {
+func SetUpClusterRegistryApiFixture(tl common.TestLogger) *ClusterRegistryApiFixture {
 	f := &ClusterRegistryApiFixture{}
-	f.setUp(t)
+	f.setUp(tl)
 	return f
 }
 
-func (f *ClusterRegistryApiFixture) setUp(t *testing.T) {
-	defer TearDownOnPanic(t, f)
+func (f *ClusterRegistryApiFixture) setUp(tl common.TestLogger) {
+	defer TearDownOnPanic(tl, f)
 
-	f.EtcdUrl = SetUpEtcd(t)
-	f.SecureConfigFixture = SetUpSecureConfigFixture(t)
+	f.EtcdUrl = SetUpEtcd(tl)
+	f.SecureConfigFixture = SetUpSecureConfigFixture(tl)
 
 	// TODO(marun) ensure resiliency in the face of another process
 	// taking the port
 
 	port, err := FindFreeLocalPort()
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	bindAddress := "127.0.0.1"
 	f.Host = fmt.Sprintf("https://%s:%d", bindAddress, port)
 	url, err := url.Parse(f.Host)
 	if err != nil {
-		t.Fatalf("Error parsing url: %v", err)
+		tl.Fatalf("Error parsing url: %v", err)
 	}
 
 	args := []string{
@@ -84,31 +84,31 @@ func (f *ClusterRegistryApiFixture) setUp(t *testing.T) {
 	}
 	err = apiServer.Start()
 	if err != nil {
-		t.Fatalf("Error starting api registry apiserver: %v", err)
+		tl.Fatalf("Error starting api registry apiserver: %v", err)
 	}
 	f.ClusterRegistryApi = apiServer
 }
 
-func (f *ClusterRegistryApiFixture) TearDown(t *testing.T) {
+func (f *ClusterRegistryApiFixture) TearDown(tl common.TestLogger) {
 	if f.ClusterRegistryApi != nil {
 		f.ClusterRegistryApi.Stop()
 		f.ClusterRegistryApi = nil
 	}
 	if f.SecureConfigFixture != nil {
-		f.SecureConfigFixture.TearDown(t)
+		f.SecureConfigFixture.TearDown(tl)
 		f.SecureConfigFixture = nil
 	}
 	if len(f.EtcdUrl) > 0 {
-		TearDownEtcd(t)
+		TearDownEtcd(tl)
 		f.EtcdUrl = ""
 	}
 }
 
-func (f *ClusterRegistryApiFixture) NewClient(t *testing.T, userAgent string) clientset.Interface {
-	config := f.NewConfig(t, userAgent)
+func (f *ClusterRegistryApiFixture) NewClient(tl common.TestLogger, userAgent string) clientset.Interface {
+	config := f.NewConfig(tl, userAgent)
 	return clientset.NewForConfigOrDie(config)
 }
 
-func (f *ClusterRegistryApiFixture) NewConfig(t *testing.T, userAgent string) *rest.Config {
-	return f.SecureConfigFixture.NewClientConfig(t, f.Host, userAgent)
+func (f *ClusterRegistryApiFixture) NewConfig(tl common.TestLogger, userAgent string) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(tl, f.Host, userAgent)
 }
