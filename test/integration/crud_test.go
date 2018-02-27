@@ -50,11 +50,12 @@ func TestCrud(t *testing.T) {
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, federatedtypes.FederatedTypeAdapter) {
 	// TODO(marun) stop requiring user agent when creating new config or clients
-	userAgent := fmt.Sprintf("crud-test-%s", kind)
-	fedConfig := fedFixture.FedApi.NewConfig(tl, userAgent)
-	kubeConfig := fedFixture.KubeApi.NewConfig(tl, userAgent)
-	crConfig := fedFixture.CrApi.NewConfig(tl, userAgent)
+	fedConfig := fedFixture.FedApi.NewConfig(tl)
+	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
+	crConfig := fedFixture.CrApi.NewConfig(tl)
 	fixture := framework.NewControllerFixture(tl, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+
+	userAgent := fmt.Sprintf("crud-test-%s", kind)
 
 	client := fedFixture.FedApi.NewClient(tl, userAgent)
 	adapter := adapterFactory(client)

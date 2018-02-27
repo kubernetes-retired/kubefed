@@ -82,7 +82,7 @@ func (f *SecureConfigFixture) TearDown(tl common.TestLogger) {
 	}
 }
 
-func (f *SecureConfigFixture) NewClientConfig(tl common.TestLogger, host, userAgent string) *rest.Config {
+func (f *SecureConfigFixture) NewClientConfig(tl common.TestLogger, host string) *rest.Config {
 	// The server ca file is written on startup, and may not be immediately available
 	f.waitForServerCAFile(tl)
 
@@ -90,7 +90,6 @@ func (f *SecureConfigFixture) NewClientConfig(tl common.TestLogger, host, userAg
 		Host:            host,
 		TLSClientConfig: f.newTLSClientConfig(tl),
 	}
-	rest.AddUserAgent(config, userAgent)
 	return config
 }
 

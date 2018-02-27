@@ -77,7 +77,7 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	f.stopChan = make(chan struct{})
 	monitorPeriod := 1 * time.Second
 	tl.Logf("Starting cluster controller")
-	federatedcluster.StartClusterController(f.FedApi.NewConfig(tl, ""), f.KubeApi.NewConfig(tl, ""), f.CrApi.NewConfig(tl, ""), f.stopChan, monitorPeriod)
+	federatedcluster.StartClusterController(f.FedApi.NewConfig(tl), f.KubeApi.NewConfig(tl), f.CrApi.NewConfig(tl), f.stopChan, monitorPeriod)
 
 	tl.Log("Federation started.")
 }
@@ -151,7 +151,7 @@ func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) s
 func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *KubernetesApiFixture, clusterName string) string {
 	// Do not include the host - it will need to be sourced from the
 	// Cluster resource.
-	config := clusterFixture.SecureConfigFixture.NewClientConfig(tl, "", userAgent)
+	config := clusterFixture.SecureConfigFixture.NewClientConfig(tl, "")
 	kubeConfig := CreateKubeConfig(config)
 
 	// Flatten the kubeconfig to ensure that all the referenced file

@@ -105,10 +105,11 @@ func (f *ClusterRegistryApiFixture) TearDown(tl common.TestLogger) {
 }
 
 func (f *ClusterRegistryApiFixture) NewClient(tl common.TestLogger, userAgent string) clientset.Interface {
-	config := f.NewConfig(tl, userAgent)
+	config := f.NewConfig(tl)
+	rest.AddUserAgent(config, userAgent)
 	return clientset.NewForConfigOrDie(config)
 }
 
-func (f *ClusterRegistryApiFixture) NewConfig(tl common.TestLogger, userAgent string) *rest.Config {
-	return f.SecureConfigFixture.NewClientConfig(tl, f.Host, userAgent)
+func (f *ClusterRegistryApiFixture) NewConfig(tl common.TestLogger) *rest.Config {
+	return f.SecureConfigFixture.NewClientConfig(tl, f.Host)
 }
