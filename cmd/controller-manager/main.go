@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,16 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package main
 
 import (
 	"flag"
 	"log"
+	"time"
 
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-
-	"github.com/marun/fnord/pkg/controller"
+	"github.com/marun/fnord/pkg/controller/federatedcluster"
+	"github.com/marun/fnord/pkg/controller/sync"
+	"github.com/marun/fnord/pkg/federatedtypes"
 )
 
 var kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig")
@@ -44,7 +44,7 @@ func main() {
 	// requires that all 3 clients receive the same configuration.
 
 	// TODO(marun) Make the monitor period configurable
-	clusterMonitorPeriod := time.Seconds * 40
+	clusterMonitorPeriod := time.Second * 40
 	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
 
 	for kind, fedTypeConfig := range federatedtypes.FederatedTypeConfigs() {
