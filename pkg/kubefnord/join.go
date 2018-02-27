@@ -70,6 +70,7 @@ type joinFederation struct {
 type joinFederationOptions struct {
 	clusterContext string
 	secretName     string
+	addToRegistry  bool
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
@@ -79,6 +80,8 @@ func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
 	flags.StringVar(&o.secretName, "secret-name", "",
 		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. Defaults to cluster name if unspecified.")
+	flags.BoolVar(&o.addToRegistry, "add-to-registry", false,
+		"Add the cluster to the cluster registry that is aggregated with the kubernetes API server running in the host cluster context.")
 }
 
 // NewCmdJoin defines the `join` command that joins a cluster to a
@@ -156,28 +159,30 @@ func (j *joinFederation) getClientsets(config util.FedConfig) (util.FedClientset
 
 	fedClientset := util.NewFedClientset()
 
-	// Get host kubernetes clientset
+	// Get host kubernetes clientset.
 	_, err = fedClientset.NewHostClientset(hostClientConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
 		return nil, err
 	}
 
-	// Get joining cluster kubernetes clientset
+	// Get joining cluster kubernetes clientset.
 	_, err = fedClientset.NewClusterClientset(clusterClientConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
 		return nil, err
 	}
 
-	// Get the cluster registry clientset using the host cluster config
-	_, err = fedClientset.NewClusterRegistryClientset(hostClientConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
-		return nil, err
+	// Get the cluster registry clientset using the host cluster config.
+	if j.addToRegistry {
+		_, err = fedClientset.NewClusterRegistryClientset(hostClientConfig)
+		if err != nil {
+			glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+			return nil, err
+		}
 	}
 
-	// Get the federation clientset using the host cluster config
+	// Get the federation clientset using the host cluster config.
 	_, err = fedClientset.NewFedClientset(hostClientConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get federation clientset: %v", err)
@@ -222,18 +227,21 @@ func (j *joinFederation) Run(cmdOut io.Writer, fedClientsets util.FedClientset,
 
 	hostClientset := fedClientsets.HostClientset()
 	clusterClientset := fedClientsets.ClusterClientset()
-	crClientset := fedClientsets.ClusterRegistryClientset()
 	fedClientset := fedClientsets.FedClientset()
 
-	glog.V(2).Info("Registering cluster with the cluster registry")
+	if j.addToRegistry {
+		glog.V(2).Info("Registering cluster with the cluster registry")
 
-	_, err := registerCluster(crClientset, fedConfig.ClusterConfig().Host, joiningClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
-		return err
+		crClientset := fedClientsets.ClusterRegistryClientset()
+		_, err := registerCluster(crClientset, fedConfig.ClusterConfig().Host,
+			joiningClusterName, dryRun)
+		if err != nil {
+			glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
+			return err
+		}
+
+		glog.V(2).Info("Registered cluster with the cluster registry")
 	}
-
-	glog.V(2).Info("Registered cluster with the cluster registry")
 
 	federationName, err := getFederationName(hostClientset, federationNamespace)
 	if err != nil {
