@@ -26,35 +26,20 @@ import (
 	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
-// FedConfig provides a filesystem based kubeconfig (via
-// `PathOptions()`) and a mechanism to talk to the federation
-// host cluster and the federation control plane api server.
+// FedConfig provides a rest config based on the filesystem kubeconfig (via
+// `PathOptions()`) and context in order to talk to the host kubernetes cluster
+// and the joining kubernetes cluster
 type FedConfig interface {
-	// PathOptions provides filesystem based kubeconfig access.
 	PathOptions() *clientcmd.PathOptions
-	// HostClientSet provides a kubernetes API compliant clientset
-	// to communicate with the kubernetes API server.
-	HostClientset(context, kubeconfigPath string) (*client.Clientset, error)
-	// ClusterClientset provides a mechanism to communicate with the
-	// cluster derived from the context and the kubeconfig.
-	ClusterClientset(context,
-		kubeconfigPath string) (*client.Clientset, *rest.Config, error)
-	// ClusterRegistryClientset provides a clientset dervied from the context
-	// and the kubeconfig to communicate with the cluster registry.
-	ClusterRegistryClientset(context,
-		kubeconcifgPath string) (*crclient.Clientset, *rest.Config, error)
-	// FedClientSet provides a federation API compliant clientset
-	// to communicate with the federation API server.
-	FedClientset(context, kubeconfigPath string) (*fedclient.Clientset, error)
+	HostConfig(context, kubeconfigPath string) (*rest.Config, error)
+	ClusterConfig(context, kubeconfigPath string) (*rest.Config, error)
 }
 
 // fedConfig implements the FedConfig interface.
 type fedConfig struct {
-	pathOptions      *clientcmd.PathOptions
-	hostClientset    *client.Clientset
-	clusterClientset *client.Clientset
-	crClientset      *crclient.Clientset
-	fedClientset     *fedclient.Clientset
+	pathOptions   *clientcmd.PathOptions
+	hostConfig    *rest.Config
+	clusterConfig *rest.Config
 }
 
 // NewFedConfig creates a fedConfig for `kubefnord` commands.
@@ -64,63 +49,35 @@ func NewFedConfig(pathOptions *clientcmd.PathOptions) FedConfig {
 	}
 }
 
-// PathOptions returns the pathOptions in the fedConfig.
+// PathOptions provides filesystem based kubeconfig access.
 func (a *fedConfig) PathOptions() *clientcmd.PathOptions {
 	return a.pathOptions
 }
 
-// HostClientset provides a kubernetes API compliant clientset to communicate
-// with the kubernetes API server.
-func (a *fedConfig) HostClientset(context, kubeconfigPath string) (*client.Clientset, error) {
+// HostConfig provides a rest config to talk to the host kubernetes cluster
+// based on the context and kubeconfig passed in.
+func (a *fedConfig) HostConfig(context, kubeconfigPath string) (*rest.Config, error) {
 	hostConfig := a.getClientConfig(context, kubeconfigPath)
 	hostClientConfig, err := hostConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	a.hostClientset = client.NewForConfigOrDie(hostClientConfig)
-	return a.hostClientset, nil
+	a.hostConfig = hostClientConfig
+	return a.hostConfig, nil
 }
 
-// ClusterClientset provides a mechanism to communicate with the cluster
-// derived from the context and the kubeconfig.
-func (a *fedConfig) ClusterClientset(context,
-	kubeconfigPath string) (*client.Clientset, *rest.Config, error) {
+// ClusterConfig provides a rest config to talk to the joining kubernetes
+// cluster based on the context and kubeconfig passed in.
+func (a *fedConfig) ClusterConfig(context, kubeconfigPath string) (*rest.Config, error) {
 	clusterConfig := a.getClientConfig(context, kubeconfigPath)
 	clusterClientConfig, err := clusterConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	a.clusterClientset = client.NewForConfigOrDie(clusterClientConfig)
-	return a.clusterClientset, clusterClientConfig, nil
-}
-
-// ClusterRegistryClientset provides a clientset dervied from the context and
-// the kubeconfig to communicate with the cluster registry.
-func (a *fedConfig) ClusterRegistryClientset(context,
-	kubeconfigPath string) (*crclient.Clientset, *rest.Config, error) {
-	crConfig := a.getClientConfig(context, kubeconfigPath)
-	crClientConfig, err := crConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	a.crClientset = crclient.NewForConfigOrDie(crClientConfig)
-	return a.crClientset, crClientConfig, nil
-}
-
-// FedClientSet provides a federation API compliant clientset to communicate
-// with the federation API server.
-func (a *fedConfig) FedClientset(context, kubeconfigPath string) (*fedclient.Clientset, error) {
-	fedConfig := a.getClientConfig(context, kubeconfigPath)
-	fedClientConfig, err := fedConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	a.fedClientset = fedclient.NewForConfigOrDie(fedClientConfig)
-	return a.fedClientset, nil
+	a.clusterConfig = clusterClientConfig
+	return a.clusterConfig, nil
 }
 
 // getClientConfig is a helper method to create a client config from the
@@ -134,6 +91,82 @@ func (a *fedConfig) getClientConfig(context, kubeconfigPath string) clientcmd.Cl
 	}
 
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&loadingRules, overrides)
+}
+
+// FedClientset provides the clients to talk to the kubernetes
+// API server, the cluster registry API server, and the federation API server.
+type FedClientset interface {
+	NewHostClientset(config *rest.Config) (*client.Clientset, error)
+	HostClientset() *client.Clientset
+	NewClusterClientset(config *rest.Config) (*client.Clientset, error)
+	ClusterClientset() *client.Clientset
+	NewClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error)
+	ClusterRegistryClientset() *crclient.Clientset
+	NewFedClientset(config *rest.Config) (*fedclient.Clientset, error)
+	FedClientset() *fedclient.Clientset
+}
+
+// fedClientset implements the NewFedClientset interface.
+type fedClientset struct {
+	hostClientset    *client.Clientset
+	clusterClientset *client.Clientset
+	crClientset      *crclient.Clientset
+	fedClientset     *fedclient.Clientset
+}
+
+// NewFedClientset creates a fedClientset for `kubefnord` operations.
+func NewFedClientset() FedClientset {
+	return &fedClientset{}
+}
+
+// NewHostClientset provides a kubernetes API compliant clientset to
+// communicate with the host cluster's kubernetes API server.
+func (a *fedClientset) NewHostClientset(config *rest.Config) (*client.Clientset, error) {
+	a.hostClientset = client.NewForConfigOrDie(config)
+	return a.hostClientset, nil
+}
+
+// HostClientset retrieves the host cluster's kubernetes API compliant
+// clientset.
+func (a *fedClientset) HostClientset() *client.Clientset {
+	return a.hostClientset
+}
+
+// NewClusterClientset provides a kubernetes API compliant clientset to
+// communicate with the joining cluster's kubernetes API server.
+func (a *fedClientset) NewClusterClientset(config *rest.Config) (*client.Clientset, error) {
+	a.clusterClientset = client.NewForConfigOrDie(config)
+	return a.clusterClientset, nil
+}
+
+// ClusterClientset retrieves the joining cluster's kubernetes API compliant
+// clientset.
+func (a *fedClientset) ClusterClientset() *client.Clientset {
+	return a.clusterClientset
+}
+
+// NewClusterRegistryClientset provides a cluster registry API compliant
+// clientset to communicate with the cluster registry.
+func (a *fedClientset) NewClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error) {
+	a.crClientset = crclient.NewForConfigOrDie(config)
+	return a.crClientset, nil
+}
+
+// ClusterRegistryClientset retrieves the cluster registry clientset.
+func (a *fedClientset) ClusterRegistryClientset() *crclient.Clientset {
+	return a.crClientset
+}
+
+// NewFedClientset provides a federation API compliant clientset
+// to communicate with the federation API server.
+func (a *fedClientset) NewFedClientset(config *rest.Config) (*fedclient.Clientset, error) {
+	a.fedClientset = fedclient.NewForConfigOrDie(config)
+	return a.fedClientset, nil
+}
+
+// FedClientset retrieves the federation API compliant clientset.
+func (a *fedClientset) FedClientset() *fedclient.Clientset {
+	return a.fedClientset
 }
 
 // ClusterServiceAccountName returns the name of a service account whose
