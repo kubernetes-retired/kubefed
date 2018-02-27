@@ -19,9 +19,9 @@ package framework
 import (
 	"net"
 	"strconv"
-	"testing"
 	"time"
 
+	"github.com/marun/fnord/test/common"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -56,13 +56,13 @@ func FindFreeLocalPort() (int, error) {
 // SetUp is likely to be fixture-specific, but TearDown needs to be
 // consistent to enable TearDownOnPanic.
 type TestFixture interface {
-	TearDown(t *testing.T)
+	TearDown(tl common.TestLogger)
 }
 
 // TearDownOnPanic can be used to ensure cleanup on setup failure.
-func TearDownOnPanic(t *testing.T, f TestFixture) {
+func TearDownOnPanic(tl common.TestLogger, f TestFixture) {
 	if r := recover(); r != nil {
-		f.TearDown(t)
+		f.TearDown(tl)
 		panic(r)
 	}
 }

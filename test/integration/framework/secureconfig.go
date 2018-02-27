@@ -22,9 +22,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"testing"
 	"time"
 
+	"github.com/marun/fnord/test/common"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
@@ -38,63 +38,62 @@ type SecureConfigFixture struct {
 	CACertFile   string
 }
 
-func SetUpSecureConfigFixture(t *testing.T) *SecureConfigFixture {
+func SetUpSecureConfigFixture(tl common.TestLogger) *SecureConfigFixture {
 	f := &SecureConfigFixture{}
-	f.setUp(t)
+	f.setUp(tl)
 	return f
 }
 
-func (f *SecureConfigFixture) setUp(t *testing.T) {
-	defer TearDownOnPanic(t, f)
+func (f *SecureConfigFixture) setUp(tl common.TestLogger) {
+	defer TearDownOnPanic(tl, f)
 
 	var err error
 
 	f.CertDir, err = ioutil.TempDir("", "fed-test-certs")
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 	f.ServerCAFile = path.Join(f.CertDir, "apiserver.crt")
 
 	f.Key, err = cert.NewPrivateKey()
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	f.CACert, err = cert.NewSelfSignedCACert(cert.Config{CommonName: "client-ca"}, f.Key)
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	caCertFile, err := ioutil.TempFile(f.CertDir, "client-ca.crt")
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 	f.CACertFile = caCertFile.Name()
 
 	if err := ioutil.WriteFile(f.CACertFile, cert.EncodeCertPEM(f.CACert), 0644); err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 }
 
-func (f *SecureConfigFixture) TearDown(t *testing.T) {
+func (f *SecureConfigFixture) TearDown(tl common.TestLogger) {
 	if len(f.CertDir) >= 0 {
 		os.RemoveAll(f.CertDir)
 	}
 }
 
-func (f *SecureConfigFixture) NewClientConfig(t *testing.T, host, userAgent string) *rest.Config {
+func (f *SecureConfigFixture) NewClientConfig(tl common.TestLogger, host string) *rest.Config {
 	// The server ca file is written on startup, and may not be immediately available
-	f.waitForServerCAFile(t)
+	f.waitForServerCAFile(tl)
 
 	config := &rest.Config{
 		Host:            host,
-		TLSClientConfig: f.newTLSClientConfig(t),
+		TLSClientConfig: f.newTLSClientConfig(tl),
 	}
-	rest.AddUserAgent(config, userAgent)
 	return config
 }
 
-func (f *SecureConfigFixture) waitForServerCAFile(t *testing.T) {
+func (f *SecureConfigFixture) waitForServerCAFile(tl common.TestLogger) {
 	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
 		if _, err := os.Stat(f.ServerCAFile); err == nil {
 			return true, nil
@@ -102,14 +101,14 @@ func (f *SecureConfigFixture) waitForServerCAFile(t *testing.T) {
 		return false, err
 	})
 	if err != nil {
-		t.Fatalf("Error reading CA file: %s: %v\nHas the server been started?", f.ServerCAFile, err)
+		tl.Fatalf("Error reading CA file: %s: %v\nHas the server been started?", f.ServerCAFile, err)
 	}
 }
 
-func (f *SecureConfigFixture) newTLSClientConfig(t *testing.T) rest.TLSClientConfig {
+func (f *SecureConfigFixture) newTLSClientConfig(tl common.TestLogger) rest.TLSClientConfig {
 	key, err := cert.NewPrivateKey()
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	clientCert, err := cert.NewSignedCert(
@@ -120,7 +119,7 @@ func (f *SecureConfigFixture) newTLSClientConfig(t *testing.T) rest.TLSClientCon
 		key, f.CACert, f.Key,
 	)
 	if err != nil {
-		t.Fatal(err)
+		tl.Fatal(err)
 	}
 
 	return rest.TLSClientConfig{

@@ -18,7 +18,9 @@ package common
 
 // TestLogger defines operations common across different types of testing
 type TestLogger interface {
+	Errorf(format string, args ...interface{})
+	Fatal(args ...interface{})
 	Fatalf(format string, args ...interface{})
-	Fatal(msg string)
+	Log(args ...interface{})
 	Logf(format string, args ...interface{})
 }

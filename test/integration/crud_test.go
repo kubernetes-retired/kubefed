@@ -30,14 +30,16 @@ import (
 
 // TestCrud validates create/read/update/delete operations for federated types.
 func TestCrud(t *testing.T) {
-	fedFixture := framework.SetUpFederationFixture(t, 2)
-	defer fedFixture.TearDown(t)
+	tl := framework.NewIntegrationLogger(t)
+	fedFixture := framework.SetUpFederationFixture(tl, 2)
+	defer fedFixture.TearDown(tl)
 
 	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
 	for kind, fedTypeConfig := range fedTypeConfigs {
 		t.Run(kind, func(t *testing.T) {
-			fixture, crudTester, obj, _ := initCrudTest(t, fedFixture, fedTypeConfig.AdapterFactory, kind)
-			defer fixture.TearDown(t)
+			tl := framework.NewIntegrationLogger(t)
+			fixture, crudTester, obj, _ := initCrudTest(tl, fedFixture, fedTypeConfig.AdapterFactory, kind)
+			defer fixture.TearDown(tl)
 
 			crudTester.CheckLifecycle(obj)
 		})
@@ -45,20 +47,21 @@ func TestCrud(t *testing.T) {
 }
 
 // initCrudTest initializes common elements of a crud test
-func initCrudTest(t *testing.T, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
+func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, federatedtypes.FederatedTypeAdapter) {
 	// TODO(marun) stop requiring user agent when creating new config or clients
-	userAgent := fmt.Sprintf("crud-test-%s", kind)
-	fedConfig := fedFixture.FedApi.NewConfig(t, userAgent)
-	kubeConfig := fedFixture.KubeApi.NewConfig(t, userAgent)
-	crConfig := fedFixture.CrApi.NewConfig(t, userAgent)
-	fixture := framework.NewControllerFixture(t, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+	fedConfig := fedFixture.FedApi.NewConfig(tl)
+	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
+	crConfig := fedFixture.CrApi.NewConfig(tl)
+	fixture := framework.NewControllerFixture(tl, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
 
-	client := fedFixture.FedApi.NewClient(t, userAgent)
+	userAgent := fmt.Sprintf("crud-test-%s", kind)
+
+	client := fedFixture.FedApi.NewClient(tl, userAgent)
 	adapter := adapterFactory(client)
 
-	clusterClients := fedFixture.ClusterClients(t, userAgent)
-	crudTester := framework.NewFederatedTypeCrudTester(t, adapter, clusterClients)
+	clusterClients := fedFixture.ClusterClients(tl, userAgent)
+	crudTester := framework.NewFederatedTypeCrudTester(tl, adapter, clusterClients)
 
 	obj := federatedtypes.NewTestObject(kind, uuid.New())
 

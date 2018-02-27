@@ -14,15 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package framework
+package e2e
 
 import (
-	"github.com/marun/fnord/pkg/federatedtypes"
-	"github.com/marun/fnord/test/common"
-	"k8s.io/apimachinery/pkg/util/wait"
-	clientset "k8s.io/client-go/kubernetes"
+	"testing"
+
+	"github.com/marun/fnord/test/e2e/framework"
 )
 
-func NewFederatedTypeCrudTester(tl common.TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface) *common.FederatedTypeCrudTester {
-	return common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, DefaultWaitInterval, wait.ForeverTestTimeout)
+func init() {
+	framework.ParseFlags()
+}
+
+func TestE2E(t *testing.T) {
+	RunE2ETests(t)
 }

@@ -17,10 +17,9 @@ limitations under the License.
 package framework
 
 import (
-	"testing"
-
 	"github.com/marun/fnord/pkg/controller/sync"
 	"github.com/marun/fnord/pkg/federatedtypes"
+	"github.com/marun/fnord/test/common"
 	restclient "k8s.io/client-go/rest"
 )
 
@@ -30,7 +29,7 @@ type ControllerFixture struct {
 }
 
 // NewControllerFixture initializes a new controller fixture
-func NewControllerFixture(t *testing.T, kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewControllerFixture(tl common.TestLogger, kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
@@ -38,6 +37,6 @@ func NewControllerFixture(t *testing.T, kind string, adapterFactory federatedtyp
 	return f
 }
 
-func (f *ControllerFixture) TearDown(t *testing.T) {
+func (f *ControllerFixture) TearDown(tl common.TestLogger) {
 	close(f.stopChan)
 }

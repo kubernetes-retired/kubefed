@@ -17,12 +17,33 @@ limitations under the License.
 package framework
 
 import (
-	"github.com/marun/fnord/pkg/federatedtypes"
 	"github.com/marun/fnord/test/common"
-	"k8s.io/apimachinery/pkg/util/wait"
-	clientset "k8s.io/client-go/kubernetes"
 )
 
-func NewFederatedTypeCrudTester(tl common.TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients []clientset.Interface) *common.FederatedTypeCrudTester {
-	return common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, DefaultWaitInterval, wait.ForeverTestTimeout)
+type e2eLogger struct{}
+
+func NewE2ELogger() common.TestLogger {
+	return e2eLogger{}
+}
+
+func (e2eLogger) Errorf(format string, args ...interface{}) {
+	Errorf(format, args...)
+}
+
+func (e2eLogger) Fatal(args ...interface{}) {
+	// TODO(marun) Is there a nicer way to do this?
+	Failf("%v", args)
+}
+
+func (e2eLogger) Fatalf(format string, args ...interface{}) {
+	Failf(format, args...)
+}
+
+func (e2eLogger) Log(args ...interface{}) {
+	// TODO(marun) Is there a nicer way to do this?
+	Logf("%v", args)
+}
+
+func (e2eLogger) Logf(format string, args ...interface{}) {
+	Logf(format, args...)
 }
