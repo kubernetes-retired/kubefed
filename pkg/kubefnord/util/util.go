@@ -31,8 +31,12 @@ import (
 // and the joining kubernetes cluster
 type FedConfig interface {
 	PathOptions() *clientcmd.PathOptions
-	HostConfig(context, kubeconfigPath string) (*rest.Config, error)
-	ClusterConfig(context, kubeconfigPath string) (*rest.Config, error)
+	NewHostConfig(context, kubeconfigPath string) (*rest.Config, error)
+	HostConfig() *rest.Config
+	NewClusterConfig(context, kubeconfigPath string) (*rest.Config, error)
+	ClusterConfig() *rest.Config
+	NewFedConfig(context, kubeconfigPath string) (*rest.Config, error)
+	FedConfig() *rest.Config
 }
 
 // fedConfig implements the FedConfig interface.
@@ -40,6 +44,7 @@ type fedConfig struct {
 	pathOptions   *clientcmd.PathOptions
 	hostConfig    *rest.Config
 	clusterConfig *rest.Config
+	fedConfig     *rest.Config
 }
 
 // NewFedConfig creates a fedConfig for `kubefnord` commands.
@@ -54,9 +59,9 @@ func (a *fedConfig) PathOptions() *clientcmd.PathOptions {
 	return a.pathOptions
 }
 
-// HostConfig provides a rest config to talk to the host kubernetes cluster
+// NewHostConfig provides a rest config to talk to the host kubernetes cluster
 // based on the context and kubeconfig passed in.
-func (a *fedConfig) HostConfig(context, kubeconfigPath string) (*rest.Config, error) {
+func (a *fedConfig) NewHostConfig(context, kubeconfigPath string) (*rest.Config, error) {
 	hostConfig := a.getClientConfig(context, kubeconfigPath)
 	hostClientConfig, err := hostConfig.ClientConfig()
 	if err != nil {
@@ -67,9 +72,32 @@ func (a *fedConfig) HostConfig(context, kubeconfigPath string) (*rest.Config, er
 	return a.hostConfig, nil
 }
 
-// ClusterConfig provides a rest config to talk to the joining kubernetes
+// HostConfig retrieves the host kubernetes cluster config.
+func (a *fedConfig) HostConfig() *rest.Config {
+	return a.hostConfig
+}
+
+// NewFedConfig provides a rest config to talk to the federation cluster
+// based on the context and kubeconfig passed in.
+func (a *fedConfig) NewFedConfig(context, kubeconfigPath string) (*rest.Config, error) {
+	fedConfig := a.getClientConfig(context, kubeconfigPath)
+	fedClientConfig, err := fedConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	a.fedConfig = fedClientConfig
+	return a.fedConfig, nil
+}
+
+// FedConfig retrieves the host kubernetes cluster config.
+func (a *fedConfig) FedConfig() *rest.Config {
+	return a.fedConfig
+}
+
+// NewClusterConfig provides a rest config to talk to the joining kubernetes
 // cluster based on the context and kubeconfig passed in.
-func (a *fedConfig) ClusterConfig(context, kubeconfigPath string) (*rest.Config, error) {
+func (a *fedConfig) NewClusterConfig(context, kubeconfigPath string) (*rest.Config, error) {
 	clusterConfig := a.getClientConfig(context, kubeconfigPath)
 	clusterClientConfig, err := clusterConfig.ClientConfig()
 	if err != nil {
@@ -78,6 +106,11 @@ func (a *fedConfig) ClusterConfig(context, kubeconfigPath string) (*rest.Config,
 
 	a.clusterConfig = clusterClientConfig
 	return a.clusterConfig, nil
+}
+
+// ClientConfig retrieves the joining kubernetes cluster config.
+func (a *fedConfig) ClusterConfig() *rest.Config {
+	return a.clusterConfig
 }
 
 // getClientConfig is a helper method to create a client config from the
