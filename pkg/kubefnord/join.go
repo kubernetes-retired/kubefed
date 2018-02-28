@@ -35,8 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/storage/names"
 	client "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
@@ -79,7 +79,7 @@ func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.clusterContext, "cluster-context", "",
 		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
 	flags.StringVar(&o.secretName, "secret-name", "",
-		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. Defaults to cluster name if unspecified.")
+		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. If unspecified, defaults to a generated name containing the cluster name.")
 	flags.BoolVar(&o.addToRegistry, "add-to-registry", false,
 		"Add the cluster to the cluster registry that is aggregated with the kubernetes API server running in the host cluster context.")
 }
@@ -95,12 +95,12 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 		Long:    join_long,
 		Example: join_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			fedClientset, err := opts.Complete(args, config)
+			err := opts.Complete(args)
 			if err != nil {
 				glog.Fatalf("error: %v", err)
 			}
 
-			err = opts.Run(cmdOut, fedClientset, config)
+			err = opts.Run(cmdOut, config)
 			if err != nil {
 				glog.Fatalf("error: %v", err)
 			}
@@ -115,11 +115,10 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 }
 
 // Complete ensures that options are valid and marshals them if necessary.
-func (j *joinFederation) Complete(args []string,
-	config util.FedConfig) (util.FedClientset, error) {
+func (j *joinFederation) Complete(args []string) error {
 	err := j.SetName(args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if j.clusterContext == "" {
@@ -130,117 +129,109 @@ func (j *joinFederation) Complete(args []string,
 		j.Name, j.Host, j.FederationNamespace, j.Kubeconfig, j.clusterContext,
 		j.secretName, j.DryRun)
 
-	fedClientset, err := j.getClientsets(config)
-	if err != nil {
-		return nil, err
-	}
-
-	glog.V(2).Infof("Performing preflight checks.")
-	err = j.performPreflightChecks(fedClientset)
-	if err != nil {
-		return nil, err
-	}
-	return fedClientset, nil
-}
-
-// getClientsets sets up the clientsets necessary for the join operations.
-func (j *joinFederation) getClientsets(config util.FedConfig) (util.FedClientset, error) {
-	hostClientConfig, err := config.NewHostConfig(j.Host, j.Kubeconfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get host cluster config: %v", err)
-		return nil, err
-	}
-
-	clusterClientConfig, err := config.NewClusterConfig(j.clusterContext, j.Kubeconfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster config: %v", err)
-		return nil, err
-	}
-
-	fedClientset := util.NewFedClientset()
-
-	// Get host kubernetes clientset.
-	_, err = fedClientset.NewHostClientset(hostClientConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
-		return nil, err
-	}
-
-	// Get joining cluster kubernetes clientset.
-	_, err = fedClientset.NewClusterClientset(clusterClientConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
-		return nil, err
-	}
-
-	// Get the cluster registry clientset using the host cluster config.
-	if j.addToRegistry {
-		_, err = fedClientset.NewClusterRegistryClientset(hostClientConfig)
-		if err != nil {
-			glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
-			return nil, err
-		}
-	}
-
-	// Get the federation clientset using the host cluster config.
-	_, err = fedClientset.NewFedClientset(hostClientConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get federation clientset: %v", err)
-		return nil, err
-	}
-
-	return fedClientset, nil
-}
-
-// performPreflightChecks checks that the host and joining clusters are in
-// a consistent state.
-func (j *joinFederation) performPreflightChecks(fedClientset util.FedClientset) error {
-	// Make sure there is no existing service account in the joining cluster.
-	clientset := fedClientset.ClusterClientset()
-	saName := util.ClusterServiceAccountName(j.Name, j.Host)
-	sa, err := clientset.CoreV1().ServiceAccounts(j.FederationNamespace).Get(saName,
-		metav1.GetOptions{})
-
-	if errors.IsNotFound(err) {
-		return nil
-	} else if err != nil {
-		return err
-	} else if sa != nil {
-		return fmt.Errorf("service account already exists in joining cluster")
-	}
-
 	return nil
 }
 
 // Run is the implementation of the `join federation` command.
-func (j *joinFederation) Run(cmdOut io.Writer, fedClientsets util.FedClientset,
-	fedConfig util.FedConfig) error {
-	clusterContext := j.clusterContext
+func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	dryRun := j.DryRun
 	federationNamespace := j.FederationNamespace
 	host := j.Host
 	joiningClusterName := j.Name
 	secretName := j.secretName
-	if secretName == "" {
-		secretName = names.SimpleNameGenerator.GenerateName(j.Name + "-")
+
+	err := j.newClientConfigs(config)
+	if err != nil {
+		return err
 	}
 
-	hostClientset := fedClientsets.HostClientset()
-	clusterClientset := fedClientsets.ClusterClientset()
-	fedClientset := fedClientsets.FedClientset()
+	hostConfig := config.HostConfig()
+	clusterConfig := config.ClusterConfig()
+	fedConfig := config.FedConfig()
 
 	if j.addToRegistry {
-		glog.V(2).Info("Registering cluster with the cluster registry")
-
-		crClientset := fedClientsets.ClusterRegistryClientset()
-		_, err := registerCluster(crClientset, fedConfig.ClusterConfig().Host,
-			joiningClusterName, dryRun)
+		err = addToClusterRegistry(hostConfig, clusterConfig.Host, joiningClusterName, dryRun)
 		if err != nil {
-			glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
 			return err
 		}
+	} // TODO: else Verify cluster is in cluster registry
 
-		glog.V(2).Info("Registered cluster with the cluster registry")
+	err = JoinCluster(hostConfig, clusterConfig, fedConfig,
+		federationNamespace, host, joiningClusterName, secretName, dryRun)
+	if err != nil {
+		return nil
+	}
+
+	return err
+}
+
+// newClientConfigs creates the client configs necessary for the join
+// operations.
+func (j *joinFederation) newClientConfigs(config util.FedConfig) error {
+	_, err := config.NewHostConfig(j.Host, j.Kubeconfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get host cluster config: %v", err)
+		return err
+	}
+
+	_, err = config.NewClusterConfig(j.clusterContext, j.Kubeconfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get joining cluster config: %v", err)
+		return err
+	}
+
+	_, err = config.NewFedConfig(j.Host, j.Kubeconfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get federation cluster config: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// addToClusterRegistry handles adding the cluster to the cluster registry and
+// reports progress.
+func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName string,
+	dryRun bool) error {
+	fedClientset := util.NewFedClientset()
+
+	// Get the cluster registry clientset using the host cluster config.
+	crClientset, err := fedClientset.NewClusterRegistryClientset(hostConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+		return err
+	}
+
+	glog.V(2).Info("Registering cluster with the cluster registry")
+
+	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
+	if err != nil {
+		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
+		return err
+	}
+
+	glog.V(2).Info("Registered cluster with the cluster registry")
+	return nil
+}
+
+// JoinCluster performs all the necessary steps to join a cluster to the
+// federation provided the required set of parameters are passed in.
+func JoinCluster(hostConfig, clusterConfig, fedConfig *rest.Config, federationNamespace,
+	host, joiningClusterName, secretName string, dryRun bool) error {
+
+	clientsets, err := getClientsets(hostConfig, clusterConfig, fedConfig)
+	if err != nil {
+		return err
+	}
+
+	hostClientset := clientsets.HostClientset()
+	clusterClientset := clientsets.ClusterClientset()
+	fedClientset := clientsets.FedClientset()
+
+	glog.V(2).Infof("Performing preflight checks.")
+	err = performPreflightChecks(clientsets, joiningClusterName, host, federationNamespace)
+	if err != nil {
+		return err
 	}
 
 	federationName, err := getFederationName(hostClientset, federationNamespace)
@@ -257,13 +248,13 @@ func (j *joinFederation) Run(cmdOut io.Writer, fedClientsets util.FedClientset,
 			federationNamespace, err)
 		return err
 	}
-	glog.V(2).Info("Created federation system namespace in joining cluster")
+	glog.V(2).Infof("Created %s namespace in joining cluster", federationNamespace)
 
 	// Create a service account and use its credentials.
 	glog.V(2).Info("Creating cluster credentials secret")
 
-	_, _, _, err = createRBACSecret(hostClientset, clusterClientset,
-		federationNamespace, federationName, joiningClusterName, host, clusterContext,
+	secret, _, _, err := createRBACSecret(hostClientset, clusterClientset,
+		federationNamespace, federationName, joiningClusterName, host,
 		secretName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not create cluster credentials secret: %v", err)
@@ -274,46 +265,14 @@ func (j *joinFederation) Run(cmdOut io.Writer, fedClientsets util.FedClientset,
 
 	glog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createFederatedCluster(fedClientset, joiningClusterName, secretName, dryRun)
+	_, err = createFederatedCluster(fedClientset, joiningClusterName, secret.Name, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return err
 	}
 
 	glog.V(2).Info("Created federated cluster resource")
-
-	return err
-}
-
-// createFederatedCluster creates a federated cluster resource that associates
-// the cluster and secret.
-func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterName,
-	secretName string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
-	fedCluster := &fedv1a1.FederatedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: joiningClusterName,
-		},
-		Spec: fedv1a1.FederatedClusterSpec{
-			ClusterRef: corev1.LocalObjectReference{
-				Name: joiningClusterName,
-			},
-			SecretRef: &corev1.LocalObjectReference{
-				Name: secretName,
-			},
-		},
-	}
-
-	if dryRun {
-		return fedCluster, nil
-	}
-
-	fedCluster, err := fedClientset.FederationV1alpha1().FederatedClusters().Create(fedCluster)
-
-	if err != nil {
-		return fedCluster, err
-	}
-
-	return fedCluster, nil
+	return nil
 }
 
 // registerCluster registers a cluster with the cluster registry.
@@ -348,6 +307,83 @@ func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName s
 	return cluster, nil
 }
 
+// getClientsets sets up the clientsets necessary for the join operations.
+func getClientsets(hostConfig, clusterConfig, fedConfig *rest.Config) (util.FedClientset, error) {
+	fedClientset := util.NewFedClientset()
+
+	_, err := fedClientset.NewHostClientset(hostConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
+		return nil, err
+	}
+
+	_, err = fedClientset.NewClusterClientset(clusterConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
+		return nil, err
+	}
+
+	_, err = fedClientset.NewFedClientset(fedConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get federation clientset: %v", err)
+		return nil, err
+	}
+
+	return fedClientset, nil
+}
+
+// performPreflightChecks checks that the host and joining clusters are in
+// a consistent state.
+func performPreflightChecks(fedClientset util.FedClientset, name, host,
+	federationNamespace string) error {
+	// Make sure there is no existing service account in the joining cluster.
+	clientset := fedClientset.ClusterClientset()
+	saName := util.ClusterServiceAccountName(name, host)
+	sa, err := clientset.CoreV1().ServiceAccounts(federationNamespace).Get(saName,
+		metav1.GetOptions{})
+
+	if errors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return err
+	} else if sa != nil {
+		return fmt.Errorf("service account already exists in joining cluster")
+	}
+
+	return nil
+}
+
+// createFederatedCluster creates a federated cluster resource that associates
+// the cluster and secret.
+func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterName,
+	secretName string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
+	fedCluster := &fedv1a1.FederatedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: joiningClusterName,
+		},
+		Spec: fedv1a1.FederatedClusterSpec{
+			ClusterRef: corev1.LocalObjectReference{
+				Name: joiningClusterName,
+			},
+			SecretRef: &corev1.LocalObjectReference{
+				Name: secretName,
+			},
+		},
+	}
+
+	if dryRun {
+		return fedCluster, nil
+	}
+
+	fedCluster, err := fedClientset.FederationV1alpha1().FederatedClusters().Create(fedCluster)
+
+	if err != nil {
+		return fedCluster, err
+	}
+
+	return fedCluster, nil
+}
+
 // getCMDeployment retrieves the deployment in the federation namespace and
 // checks if it matches the name of the controller manager and if so, returns
 // it.
@@ -371,7 +407,8 @@ func getCMDeployment(clientset client.Interface,
 func getFederationName(hostClientSet client.Interface, fedNamespace string) (string, error) {
 	d, err := getCMDeployment(hostClientSet, fedNamespace)
 	if err != nil {
-		return "", err
+		// TODO: Figure out how to handle this for integration tests
+		return "federation", nil
 	}
 
 	return d.Name, nil
@@ -403,14 +440,13 @@ func createFederationNamespace(clusterClientset client.Interface, federationName
 // account, and populate that secret into the host cluster to allow it to
 // access the joining cluster.
 func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Interface,
-	namespace, federationName, joiningClusterName, hostClusterContext,
-	joiningClusterContext, secretName string,
-	dryRun bool) (*corev1.Secret, string, string, error) {
+	namespace, federationName, joiningClusterName, hostClusterName,
+	secretName string, dryRun bool) (*corev1.Secret, string, string, error) {
 
 	glog.V(2).Info("Creating service account in joining cluster")
 
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
-		joiningClusterName, hostClusterContext, dryRun)
+		joiningClusterName, hostClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Error creating service account in joining cluster: %v", err)
 		return nil, "", "", err
@@ -448,8 +484,8 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 // with clusterClientset with credentials that will be used by the host cluster
 // to access its API server.
 func createServiceAccount(clusterClientset client.Interface, namespace,
-	joiningClusterName, hostContext string, dryRun bool) (string, error) {
-	saName := util.ClusterServiceAccountName(joiningClusterName, hostContext)
+	joiningClusterName, hostClusterName string, dryRun bool) (string, error) {
+	saName := util.ClusterServiceAccountName(joiningClusterName, hostClusterName)
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      saName,
@@ -563,9 +599,9 @@ func populateSecretInHostCluster(clusterClientset, hostClientset client.Interfac
 		}
 
 		for _, objReference := range sa.Secrets {
-			secretName := objReference.Name
+			saSecretName := objReference.Name
 			var err error
-			secret, err = clusterClientset.CoreV1().Secrets(namespace).Get(secretName,
+			secret, err = clusterClientset.CoreV1().Secrets(namespace).Get(saSecretName,
 				metav1.GetOptions{})
 			if err != nil {
 				return false, nil
@@ -586,19 +622,23 @@ func populateSecretInHostCluster(clusterClientset, hostClientset client.Interfac
 	// Create a parallel secret in the host cluster.
 	v1Secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
 			Namespace: namespace,
 		},
 		Data: secret.Data,
 	}
 
-	glog.V(2).Infof("Creating secret in host cluster named: %s", v1Secret.Name)
+	if secretName == "" {
+		v1Secret.GenerateName = joiningClusterName + "-"
+	} else {
+		v1Secret.Name = secretName
+	}
 
-	_, err = hostClientset.CoreV1().Secrets(namespace).Create(&v1Secret)
+	v1SecretResult, err := hostClientset.CoreV1().Secrets(namespace).Create(&v1Secret)
 	if err != nil {
 		glog.V(2).Infof("Could not create secret in host cluster: %v", err)
 		return nil, err
 	}
 
-	return &v1Secret, nil
+	glog.V(2).Infof("Created secret in host cluster named: %s", v1SecretResult.Name)
+	return v1SecretResult, nil
 }
