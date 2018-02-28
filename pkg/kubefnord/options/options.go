@@ -19,13 +19,8 @@ package options
 import (
 	"fmt"
 
+	"github.com/marun/fnord/pkg/controller/util"
 	"github.com/spf13/pflag"
-)
-
-const (
-	// DefaultFederationNamespace is the namespace in which
-	// federation system components are hosted.
-	DefaultFederationNamespace = "federation"
 )
 
 // SubcommandOptions holds the configuration required by the subcommands of
@@ -42,7 +37,7 @@ type SubcommandOptions struct {
 func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.Host, "host-cluster-context", "", "Host cluster context")
-	flags.StringVar(&o.FederationNamespace, "federation-namespace", DefaultFederationNamespace, "Namespace in the host cluster where the federation system components are installed")
+	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.FederationSystemNamespace, "Namespace in the host cluster where the federation system components are installed")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
