@@ -65,10 +65,11 @@ type FederationSyncController struct {
 	informer util.FederatedInformer
 	// For updating members of federation.
 	updater util.FederatedUpdater
-	// Definitions of resources that should be federated.
-	store cache.Store
-	// Informer controller for resources that should be federated.
-	controller cache.Controller
+
+	// Store for the templates of the federated type
+	templateStore cache.Store
+	// Informer for the templates of the federated type
+	templateController cache.Controller
 
 	// Work queue allowing parallel processing of resources
 	workQueue workqueue.Interface
@@ -135,7 +136,7 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
 	// Start informer in federated API servers on the resource type that should be federated.
-	s.store, s.controller = cache.NewInformer(
+	s.templateStore, s.templateController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
 				return adapter.FedList(metav1.NamespaceAll, options)
@@ -231,7 +232,7 @@ func (s *FederationSyncController) updateObject(obj pkgruntime.Object) (pkgrunti
 }
 
 func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
-	go s.controller.Run(stopChan)
+	go s.templateController.Run(stopChan)
 	s.informer.Start()
 	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
 		s.workQueue.Add(item)
@@ -330,7 +331,7 @@ func (s *FederationSyncController) reconcileOnClusterChange() {
 	if !s.isSynced() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
-	for _, obj := range s.store.List() {
+	for _, obj := range s.templateStore.List() {
 		qualifiedName := federatedtypes.NewQualifiedName(obj.(pkgruntime.Object))
 		s.deliver(qualifiedName, s.smallDelay, false)
 	}
@@ -403,7 +404,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 }
 
 func (s *FederationSyncController) objFromCache(kind, key string) (pkgruntime.Object, error) {
-	cachedObj, exist, err := s.store.GetByKey(key)
+	cachedObj, exist, err := s.templateStore.GetByKey(key)
 	if err != nil {
 		wrappedErr := fmt.Errorf("Failed to query %s store for %q: %v", kind, key, err)
 		runtime.HandleError(wrappedErr)
