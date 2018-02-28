@@ -47,7 +47,7 @@ type FederatedCluster struct {
 
 // FederatedClusterSpec defines the desired state of FederatedCluster
 type FederatedClusterSpec struct {
-	// Name of the cluster resource indicating the
+	// Name of the cluster resource from which to source api endpoints
 	// TODO(marun) should this go away in favor of a 1:1 mapping?
 	ClusterRef apiv1.LocalObjectReference `json:"clusterRef,omitempty"`
 
