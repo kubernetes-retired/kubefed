@@ -20,43 +20,41 @@ import (
 	"fmt"
 
 	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// FederatedTypeConfig configures federation of a target type
-type FederatedTypeConfig struct {
-	Kind              string
-	ControllerName    string
-	RequiredResources []schema.GroupVersionResource
-	AdapterFactory    AdapterFactory
+// PropagationConfig configures propagation of a federated type
+type PropagationConfig struct {
+	Kind           string
+	ControllerName string
+	AdapterFactory AdapterFactory
 }
 
-var typeRegistry = make(map[string]FederatedTypeConfig)
+var typeRegistry = make(map[string]PropagationConfig)
 
 // AdapterFactory defines the function signature for factory methods
-// that create instances of a FederatedTypeAdapter.  Such methods
+// that create instances of a PropagationAdapter.  Such methods
 // should be registered with RegisterAdapterFactory to ensure the type
 // adapter is discoverable.
-type AdapterFactory func(client fedclientset.Interface) FederatedTypeAdapter
+type AdapterFactory func(client fedclientset.Interface) PropagationAdapter
 
-// RegisterFederatedType ensures that configuration for the given kind will be returned by the FederatedTypes method.
-func RegisterFederatedType(kind string, factory AdapterFactory) {
+// RegisterPropagation ensures that configuration for the given kind will be returned by the Propagations method.
+func RegisterPropagationConfig(kind string, factory AdapterFactory) {
 	_, ok := typeRegistry[kind]
 	if ok {
 		// TODO Is panicking ok given that this is part of a type-registration mechanism
 		panic(fmt.Sprintf("Type %q has already been registered", kind))
 	}
-	typeRegistry[kind] = FederatedTypeConfig{
+	typeRegistry[kind] = PropagationConfig{
 		Kind:           kind,
 		AdapterFactory: factory,
 	}
 }
 
-// FederatedTypeConfigs returns a mapping of kind (e.g. "FederatedSecret") to the
-// type information required to configure its federation.
-func FederatedTypeConfigs() map[string]FederatedTypeConfig {
+// PropagationConfigs returns a mapping of kind
+// (e.g. "FederatedSecret") to the configuration for its propagation.
+func PropagationConfigs() map[string]PropagationConfig {
 	// TODO copy to avoid accidental mutation
-	result := make(map[string]FederatedTypeConfig)
+	result := make(map[string]PropagationConfig)
 	for key, value := range typeRegistry {
 		result[key] = value
 	}

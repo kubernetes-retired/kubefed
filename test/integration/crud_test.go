@@ -26,6 +26,7 @@ import (
 	"github.com/marun/fnord/test/common"
 	"github.com/marun/fnord/test/integration/framework"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // TestCrud validates create/read/update/delete operations for federated types.
@@ -34,21 +35,21 @@ func TestCrud(t *testing.T) {
 	fedFixture := framework.SetUpFederationFixture(tl, 2)
 	defer fedFixture.TearDown(tl)
 
-	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
-	for kind, fedTypeConfig := range fedTypeConfigs {
+	propConfigs := federatedtypes.PropagationConfigs()
+	for kind, propConfig := range propConfigs {
 		t.Run(kind, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
-			fixture, crudTester, obj, _ := initCrudTest(tl, fedFixture, fedTypeConfig.AdapterFactory, kind)
+			fixture, crudTester, template, placement, _ := initCrudTest(tl, fedFixture, propConfig.AdapterFactory, kind)
 			defer fixture.TearDown(tl)
 
-			crudTester.CheckLifecycle(obj)
+			crudTester.CheckLifecycle(template, placement)
 		})
 	}
 }
 
 // initCrudTest initializes common elements of a crud test
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
-	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, federatedtypes.FederatedTypeAdapter) {
+	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, pkgruntime.Object, federatedtypes.PropagationAdapter) {
 	// TODO(marun) stop requiring user agent when creating new config or clients
 	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
@@ -61,9 +62,10 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	adapter := adapterFactory(client)
 
 	clusterClients := fedFixture.ClusterClients(tl, userAgent)
-	crudTester := framework.NewFederatedTypeCrudTester(tl, adapter, clusterClients)
+	crudTester := common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 
-	obj := federatedtypes.NewTestObject(kind, uuid.New())
+	clusterNames := fedFixture.ClusterNames()
+	template, placement := federatedtypes.NewTestObjects(kind, uuid.New(), clusterNames)
 
-	return fixture, crudTester, obj, adapter
+	return fixture, crudTester, template, placement, adapter
 }
