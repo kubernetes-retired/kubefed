@@ -46,6 +46,8 @@ type FederatedSecretPlacement struct {
 
 // FederatedSecretPlacementSpec defines the desired state of FederatedSecretPlacement
 type FederatedSecretPlacementSpec struct {
+	// Names of the clusters that a federated resource should exist in.
+	ClusterNames []string `json:"clusternames,omitempty"`
 }
 
 // FederatedSecretPlacementStatus defines the observed state of FederatedSecretPlacement
