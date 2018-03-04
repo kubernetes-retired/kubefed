@@ -60,11 +60,11 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.Pr
 	}
 }
 
-func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlacement pkgruntime.Object) {
-	template, placement := c.CheckCreate(desiredTemplate, desiredPlacement)
+func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) {
+	template, placement, override := c.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
 
-	c.CheckUpdate(template, placement)
-	c.CheckPlacementChange(template, placement)
+	c.CheckUpdate(template, placement, override)
+	c.CheckPlacementChange(template, placement, override)
 
 	// Validate the golden path - removal of dependents
 	orphanDependents := false
@@ -72,23 +72,31 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlaceme
 	c.CheckDelete(template, &orphanDependents)
 }
 
-func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
 	templateAdapter := c.adapter.Template()
-	template := c.createFederationResource(templateAdapter, desiredTemplate)
+	template := c.createFedResource(templateAdapter, desiredTemplate)
 	// Test objects may use GenerateName.  Use the name of the
 	// template resource for other resources.
 	name := templateAdapter.ObjectMeta(template).Name
 
 	placementAdapter := c.adapter.Placement()
-	placementMeta := placementAdapter.ObjectMeta(desiredPlacement)
-	placementMeta.Name = name
-	placementMeta.GenerateName = ""
-	placement := c.createFederationResource(placementAdapter, desiredPlacement)
+	c.setFedResourceName(placementAdapter, desiredPlacement, name)
+	placement := c.createFedResource(placementAdapter, desiredPlacement)
 
-	return template, placement
+	overrideAdapter := c.adapter.Override()
+	c.setFedResourceName(overrideAdapter, desiredOverride, name)
+	override := c.createFedResource(overrideAdapter, desiredOverride)
+
+	return template, placement, override
 }
 
-func (c *FederatedTypeCrudTester) createFederationResource(adapter federatedtypes.FederationTypeAdapter, desiredObj pkgruntime.Object) pkgruntime.Object {
+func (c *FederatedTypeCrudTester) setFedResourceName(adapter federatedtypes.FederationTypeAdapter, obj pkgruntime.Object, name string) {
+	meta := adapter.ObjectMeta(obj)
+	meta.Name = name
+	meta.GenerateName = ""
+}
+
+func (c *FederatedTypeCrudTester) createFedResource(adapter federatedtypes.FederationTypeAdapter, desiredObj pkgruntime.Object) pkgruntime.Object {
 	namespace := adapter.ObjectMeta(desiredObj).Namespace
 	kind := adapter.Kind()
 	resourceMsg := kind
@@ -109,15 +117,15 @@ func (c *FederatedTypeCrudTester) createFederationResource(adapter federatedtype
 	return obj
 }
 
-func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object) {
-	template, placement := c.Create(desiredTemplate, desiredPlacement)
+func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
+	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
 
-	c.CheckPropagation(template, placement)
+	c.CheckPropagation(template, placement, override)
 
-	return template, placement
+	return template, placement, override
 }
 
-func (c *FederatedTypeCrudTester) CheckUpdate(template, placement pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override pkgruntime.Object) {
 	qualifiedName := federatedtypes.NewQualifiedName(template)
 
 	adapter := c.adapter.Template()
@@ -149,13 +157,13 @@ func (c *FederatedTypeCrudTester) CheckUpdate(template, placement pkgruntime.Obj
 		c.tl.Fatalf("%s %q not mutated", kind, qualifiedName)
 	}
 
-	c.CheckPropagation(updatedTemplate, placement)
+	c.CheckPropagation(updatedTemplate, placement, override)
 }
 
 // CheckPlacementChange verifies that a change in the list of clusters
 // in a placement resource has the desired impact on member cluster
 // state.
-func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, override pkgruntime.Object) {
 	qualifiedName := federatedtypes.NewQualifiedName(placement)
 
 	adapter := c.adapter.Placement()
@@ -180,7 +188,7 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement pkgru
 		c.tl.Fatalf("%s %q not mutated", kind, qualifiedName)
 	}
 
-	c.CheckPropagation(template, updatedPlacement)
+	c.CheckPropagation(template, updatedPlacement, override)
 }
 
 func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDependents *bool) {
@@ -235,7 +243,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 }
 
 // CheckPropagation checks propagation for the crud tester's clients
-func (c *FederatedTypeCrudTester) CheckPropagation(template, propagation pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) CheckPropagation(template, propagation, override pkgruntime.Object) {
 	qualifiedName := federatedtypes.NewQualifiedName(template)
 
 	clusterNames := c.adapter.Placement().ClusterNames(propagation)
@@ -252,7 +260,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, propagation pkgrunt
 		c.tl.Logf("Waiting for %s %q %s cluster %q", c.kind, qualifiedName, operation, clusterName)
 
 		if objExpected {
-			expectedObj := c.adapter.ObjectForCluster(template, clusterName)
+			expectedObj := c.adapter.ObjectForCluster(template, override, clusterName)
 			err := c.waitForResource(client, expectedObj)
 			switch {
 			case err == wait.ErrWaitTimeout:

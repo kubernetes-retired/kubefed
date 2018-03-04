@@ -24,7 +24,7 @@ import (
 
 // NewTestObjectsFunc defines how to create the resources representing
 // a federated type for testing purposes.
-type NewTestObjectsFunc func(namespace string, clusterNames []string) (template pkgruntime.Object, placement pkgruntime.Object)
+type NewTestObjectsFunc func(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object)
 
 var newTestObjFuncRegistry = make(map[string]NewTestObjectsFunc)
 
@@ -39,7 +39,7 @@ func RegisterTestObjectsFunc(kind string, objFunc NewTestObjectsFunc) {
 	newTestObjFuncRegistry[kind] = objFunc
 }
 
-func NewTestObjects(kind, namespace string, clusterNames []string) (template pkgruntime.Object, placement pkgruntime.Object) {
+func NewTestObjects(kind, namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
 	f, ok := newTestObjFuncRegistry[kind]
 	if !ok {
 		panic(fmt.Sprintf("A test object func for %q has not been registered", kind))

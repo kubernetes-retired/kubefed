@@ -29,8 +29,9 @@ import (
 type PropagationAdapter interface {
 	Template() FederationTypeAdapter
 	Placement() PlacementAdapter
+	Override() OverrideAdapter
 	Target() TargetAdapter
-	ObjectForCluster(obj pkgruntime.Object, clusterName string) pkgruntime.Object
+	ObjectForCluster(template, override pkgruntime.Object, clusterName string) pkgruntime.Object
 }
 
 type MetaAdapter interface {
@@ -56,6 +57,10 @@ type PlacementAdapter interface {
 
 	ClusterNames(obj pkgruntime.Object) []string
 	SetClusterNames(obj pkgruntime.Object, clusterNames []string)
+}
+
+type OverrideAdapter interface {
+	FederationTypeAdapter
 }
 
 type TargetAdapter interface {
