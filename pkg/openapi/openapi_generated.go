@@ -672,21 +672,29 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"ClusterName": {
 							SchemaProps: spec.SchemaProps{
-								Type:   []string{"string"},
-								Format: "",
+								Description: "once.  Why can't maps be used so this validation is automatic?",
+								Type:        []string{"string"},
+								Format:      "",
 							},
 						},
-						"Override": {
+						"Data": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/api/core/v1.Secret"),
+								Type: []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "byte",
+										},
+									},
+								},
 							},
 						},
 					},
-					Required: []string{"ClusterName", "Override"},
+					Required: []string{"ClusterName", "Data"},
 				},
 			},
-			Dependencies: []string{
-				"k8s.io/api/core/v1.Secret"},
+			Dependencies: []string{},
 		},
 		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedSecretList": {
 			Schema: spec.Schema{
