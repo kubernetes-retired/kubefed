@@ -134,7 +134,7 @@ func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return crclientset.NewForConfigOrDie(f.Config)
 }
 
-func (f *UnmanagedFramework) ClusterClients(userAgent string) []kubeclientset.Interface {
+func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]kubeclientset.Interface {
 	// TODO(marun) Avoid having to reload configuration on every call.
 	// Clusters may be added or removed between calls, but
 	// configuration is unlikely to change.
@@ -152,13 +152,13 @@ func (f *UnmanagedFramework) ClusterClients(userAgent string) []kubeclientset.In
 
 	kubeClient := f.KubeClient(userAgent)
 	crClient := f.CrClient(userAgent)
-	clusterClients := []kubeclientset.Interface{}
+	clusterClients := make(map[string]kubeclientset.Interface)
 	for _, cluster := range clusterList.Items {
 		ClusterIsReadyOrFail(fedClient, cluster)
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
-		clusterClients = append(clusterClients, kubeclientset.NewForConfigOrDie(config))
+		clusterClients[cluster.Name] = kubeclientset.NewForConfigOrDie(config)
 	}
 	return clusterClients
 }

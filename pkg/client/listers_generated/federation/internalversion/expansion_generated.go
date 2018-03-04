@@ -54,6 +54,14 @@ type FederatedSecretOverrideListerExpansion interface{}
 // FederatedSecretOverrideNamespaceLister.
 type FederatedSecretOverrideNamespaceListerExpansion interface{}
 
+// FederatedSecretPlacementListerExpansion allows custom methods to be added to
+// FederatedSecretPlacementLister.
+type FederatedSecretPlacementListerExpansion interface{}
+
+// FederatedSecretPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedSecretPlacementNamespaceLister.
+type FederatedSecretPlacementNamespaceListerExpansion interface{}
+
 // FederationPlacementListerExpansion allows custom methods to be added to
 // FederationPlacementLister.
 type FederationPlacementListerExpansion interface{}

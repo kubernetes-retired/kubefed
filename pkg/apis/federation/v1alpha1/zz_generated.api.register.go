@@ -62,6 +62,13 @@ var (
 		func() runtime.Object { return &FederatedSecretOverrideList{} }, // Register versioned resource list
 		&FederatedSecretOverrideStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedSecretPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedSecretPlacement,
+		FederatedSecretPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedSecretPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedSecretPlacementList{} }, // Register versioned resource list
+		&FederatedSecretPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederationPlacementStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederationPlacement,
 		FederationPlacementSchemeFns{},
@@ -105,6 +112,13 @@ var (
 			func() runtime.Object { return &FederatedSecretOverride{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedSecretOverrideList{} }, // Register versioned resource list
 			&FederatedSecretOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedSecretPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedSecretPlacementStatus,
+			FederatedSecretPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedSecretPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedSecretPlacementList{} }, // Register versioned resource list
+			&FederatedSecretPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederationPlacementStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederationPlacementStatus,
@@ -261,6 +275,32 @@ type FederatedSecretOverrideList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedSecretOverride `json:"items"`
+}
+
+//
+// FederatedSecretPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedSecretPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedSecretPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedSecretPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedSecretPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedSecretPlacement `json:"items"`
 }
 
 //

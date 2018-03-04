@@ -22,15 +22,15 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// NewTestObjectFunc defines how to create a new instance of a
-// federated type for testing purposes.
-type NewTestObjectFunc func(namespace string) pkgruntime.Object
+// NewTestObjectsFunc defines how to create the resources representing
+// a federated type for testing purposes.
+type NewTestObjectsFunc func(namespace string, clusterNames []string) (template pkgruntime.Object, placement pkgruntime.Object)
 
-var newTestObjFuncRegistry = make(map[string]NewTestObjectFunc)
+var newTestObjFuncRegistry = make(map[string]NewTestObjectsFunc)
 
-// RegisterFederatedType ensures that NewTestObject() can create a
-// test object for the given kind.
-func RegisterTestObjectFunc(kind string, objFunc NewTestObjectFunc) {
+// RegisterTestObjectsFunc ensures that NewTestObjects() can create
+// test objects for the given kind.
+func RegisterTestObjectsFunc(kind string, objFunc NewTestObjectsFunc) {
 	_, ok := newTestObjFuncRegistry[kind]
 	if ok {
 		// TODO Is panicking ok given that this is part of a type-registration mechanism
@@ -39,10 +39,10 @@ func RegisterTestObjectFunc(kind string, objFunc NewTestObjectFunc) {
 	newTestObjFuncRegistry[kind] = objFunc
 }
 
-func NewTestObject(kind, namespace string) pkgruntime.Object {
+func NewTestObjects(kind, namespace string, clusterNames []string) (template pkgruntime.Object, placement pkgruntime.Object) {
 	f, ok := newTestObjFuncRegistry[kind]
 	if !ok {
 		panic(fmt.Sprintf("A test object func for %q has not been registered", kind))
 	}
-	return f(namespace)
+	return f(namespace, clusterNames)
 }

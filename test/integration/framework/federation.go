@@ -205,11 +205,18 @@ func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, cluster
 	}
 }
 
-func (f *FederationFixture) ClusterClients(tl common.TestLogger, userAgent string) []clientset.Interface {
-	clients := []clientset.Interface{}
-	for _, cluster := range f.Clusters {
-		client := cluster.NewClient(tl, userAgent)
-		clients = append(clients, client)
+func (f *FederationFixture) ClusterClients(tl common.TestLogger, userAgent string) map[string]clientset.Interface {
+	clientMap := make(map[string]clientset.Interface)
+	for name, cluster := range f.Clusters {
+		clientMap[name] = cluster.NewClient(tl, userAgent)
 	}
-	return clients
+	return clientMap
+}
+
+func (f *FederationFixture) ClusterNames() []string {
+	clusterNames := []string{}
+	for name, _ := range f.Clusters {
+		clusterNames = append(clusterNames, name)
+	}
+	return clusterNames
 }

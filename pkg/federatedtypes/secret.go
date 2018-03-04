@@ -34,30 +34,31 @@ const (
 )
 
 func init() {
-	RegisterFederatedType(FederatedSecretKind, NewFederatedSecretAdapter)
-	RegisterTestObjectFunc(FederatedSecretKind, NewFederatedSecretForTest)
+	RegisterPropagationConfig(FederatedSecretKind, NewFederatedSecretAdapter)
+	RegisterTestObjectsFunc(FederatedSecretKind, NewFederatedSecretObjectsForTest)
 }
 
 type FederatedSecretAdapter struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedSecretAdapter(client fedclientset.Interface) FederatedTypeAdapter {
+func NewFederatedSecretAdapter(client fedclientset.Interface) PropagationAdapter {
 	return &FederatedSecretAdapter{client: client}
 }
 
-func (a *FederatedSecretAdapter) FedKind() string {
-	return FederatedSecretKind
+func (a *FederatedSecretAdapter) Template() FederationTypeAdapter {
+	return NewFederatedSecretTemplate(a.client)
 }
 
-func (a *FederatedSecretAdapter) FedObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedSecret).ObjectMeta
+func (a *FederatedSecretAdapter) Placement() PlacementAdapter {
+	return NewFederatedSecretPlacement(a.client)
 }
 
-func (a *FederatedSecretAdapter) FedObjectType() pkgruntime.Object {
-	return &fedv1a1.FederatedSecret{}
+func (a *FederatedSecretAdapter) Target() TargetAdapter {
+	return SecretAdapter{}
 }
 
+// TODO(marun) Copy the whole thing
 func (a *FederatedSecretAdapter) ObjectForCluster(obj pkgruntime.Object, clusterName string) pkgruntime.Object {
 	// TODO(marun) support per-cluster overrides
 	fedSecret := obj.(*fedv1a1.FederatedSecret)
@@ -75,78 +76,161 @@ func (a *FederatedSecretAdapter) ObjectForCluster(obj pkgruntime.Object, cluster
 	return secret
 }
 
-func (a *FederatedSecretAdapter) FedCreate(obj pkgruntime.Object) (pkgruntime.Object, error) {
+type FederatedSecretTemplate struct {
+	client fedclientset.Interface
+}
+
+func NewFederatedSecretTemplate(client fedclientset.Interface) FederationTypeAdapter {
+	return &FederatedSecretTemplate{client: client}
+}
+
+func (a *FederatedSecretTemplate) Kind() string {
+	return FederatedSecretKind
+}
+
+func (a *FederatedSecretTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
+	return &obj.(*fedv1a1.FederatedSecret).ObjectMeta
+}
+
+func (a *FederatedSecretTemplate) ObjectType() pkgruntime.Object {
+	return &fedv1a1.FederatedSecret{}
+}
+
+func (a *FederatedSecretTemplate) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	fedSecret := obj.(*fedv1a1.FederatedSecret)
 	return a.client.FederationV1alpha1().FederatedSecrets(fedSecret.Namespace).Create(fedSecret)
 }
 
-func (a *FederatedSecretAdapter) FedDelete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
+func (a *FederatedSecretTemplate) Delete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
 	return a.client.FederationV1alpha1().FederatedSecrets(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
 }
 
-func (a *FederatedSecretAdapter) FedGet(qualifiedName QualifiedName) (pkgruntime.Object, error) {
+func (a *FederatedSecretTemplate) Get(qualifiedName QualifiedName) (pkgruntime.Object, error) {
 	return a.client.FederationV1alpha1().FederatedSecrets(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 }
 
-func (a *FederatedSecretAdapter) FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+func (a *FederatedSecretTemplate) List(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
 	return a.client.FederationV1alpha1().FederatedSecrets(namespace).List(options)
 }
 
-func (a *FederatedSecretAdapter) FedUpdate(obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (a *FederatedSecretTemplate) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	fedSecret := obj.(*fedv1a1.FederatedSecret)
 	return a.client.FederationV1alpha1().FederatedSecrets(fedSecret.Namespace).Update(fedSecret)
 }
 
-func (a *FederatedSecretAdapter) FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
+func (a *FederatedSecretTemplate) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return a.client.FederationV1alpha1().FederatedSecrets(namespace).Watch(options)
 }
 
-func (a *FederatedSecretAdapter) Kind() string {
+type FederatedSecretPlacement struct {
+	client fedclientset.Interface
+}
+
+func NewFederatedSecretPlacement(client fedclientset.Interface) PlacementAdapter {
+	return &FederatedSecretPlacement{client: client}
+}
+
+func (a *FederatedSecretPlacement) Kind() string {
+	return "FederatedSecretPlacement"
+}
+
+func (a *FederatedSecretPlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
+	return &obj.(*fedv1a1.FederatedSecretPlacement).ObjectMeta
+}
+
+func (a *FederatedSecretPlacement) ObjectType() pkgruntime.Object {
+	return &fedv1a1.FederatedSecretPlacement{}
+}
+
+func (a *FederatedSecretPlacement) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
+	fedSecretPlacement := obj.(*fedv1a1.FederatedSecretPlacement)
+	return a.client.FederationV1alpha1().FederatedSecretPlacements(fedSecretPlacement.Namespace).Create(fedSecretPlacement)
+}
+
+func (a *FederatedSecretPlacement) Delete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
+	return a.client.FederationV1alpha1().FederatedSecretPlacements(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
+}
+
+func (a *FederatedSecretPlacement) Get(qualifiedName QualifiedName) (pkgruntime.Object, error) {
+	return a.client.FederationV1alpha1().FederatedSecretPlacements(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+}
+
+func (a *FederatedSecretPlacement) List(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+	return a.client.FederationV1alpha1().FederatedSecretPlacements(namespace).List(options)
+}
+
+func (a *FederatedSecretPlacement) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
+	fedSecretPlacement := obj.(*fedv1a1.FederatedSecretPlacement)
+	return a.client.FederationV1alpha1().FederatedSecretPlacements(fedSecretPlacement.Namespace).Update(fedSecretPlacement)
+}
+
+func (a *FederatedSecretPlacement) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
+	return a.client.FederationV1alpha1().FederatedSecretPlacements(namespace).Watch(options)
+}
+
+func (a *FederatedSecretPlacement) ClusterNames(obj pkgruntime.Object) []string {
+	fedSecretPlacement := obj.(*fedv1a1.FederatedSecretPlacement)
+	clusterNames := []string{}
+	for _, name := range fedSecretPlacement.Spec.ClusterNames {
+		clusterNames = append(clusterNames, name)
+	}
+	return clusterNames
+}
+
+func (a *FederatedSecretPlacement) SetClusterNames(obj pkgruntime.Object, clusterNames []string) {
+	fedSecretPlacement := obj.(*fedv1a1.FederatedSecretPlacement)
+	fedSecretPlacement.Spec.ClusterNames = clusterNames
+}
+
+type SecretAdapter struct {
+}
+
+func (SecretAdapter) Kind() string {
 	return SecretKind
 }
 
-func (a *FederatedSecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
+func (SecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 	return &obj.(*apiv1.Secret).ObjectMeta
 }
 
-func (a *FederatedSecretAdapter) ObjectType() pkgruntime.Object {
+func (SecretAdapter) ObjectType() pkgruntime.Object {
 	return &corev1.Secret{}
 }
 
-func (a *FederatedSecretAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
+func (SecretAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
 	secret1 := obj1.(*corev1.Secret)
 	secret2 := obj2.(*corev1.Secret)
 	return util.SecretEquivalent(*secret1, *secret2)
 }
 
-func (a *FederatedSecretAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (SecretAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
 	secret := obj.(*corev1.Secret)
 	return client.CoreV1().Secrets(secret.Namespace).Create(secret)
 }
 
-func (a *FederatedSecretAdapter) Delete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
+func (SecretAdapter) Delete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
 	return client.CoreV1().Secrets(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
 }
 
-func (a *FederatedSecretAdapter) Get(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error) {
+func (SecretAdapter) Get(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error) {
 	return client.CoreV1().Secrets(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 }
 
-func (a *FederatedSecretAdapter) List(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+func (SecretAdapter) List(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
 	return client.CoreV1().Secrets(namespace).List(options)
 }
 
-func (a *FederatedSecretAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (SecretAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
 	secret := obj.(*corev1.Secret)
 	return client.CoreV1().Secrets(secret.Namespace).Update(secret)
 }
 
-func (a *FederatedSecretAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
+func (SecretAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().Secrets(namespace).Watch(options)
 }
 
-func NewFederatedSecretForTest(namespace string) pkgruntime.Object {
-	return &fedv1a1.FederatedSecret{
+func NewFederatedSecretObjectsForTest(namespace string, clusterNames []string) (template pkgruntime.Object, placement pkgruntime.Object) {
+	template = &fedv1a1.FederatedSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-secret-",
 			Namespace:    namespace,
@@ -160,4 +244,14 @@ func NewFederatedSecretForTest(namespace string) pkgruntime.Object {
 			},
 		},
 	}
+	placement = &fedv1a1.FederatedSecretPlacement{
+		ObjectMeta: metav1.ObjectMeta{
+			// TODO(marun) Need to set the name
+			Namespace: namespace,
+		},
+		Spec: fedv1a1.FederatedSecretPlacementSpec{
+			ClusterNames: clusterNames,
+		},
+	}
+	return template, placement
 }

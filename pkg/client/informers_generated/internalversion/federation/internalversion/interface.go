@@ -34,6 +34,8 @@ type Interface interface {
 	FederatedSecrets() FederatedSecretInformer
 	// FederatedSecretOverrides returns a FederatedSecretOverrideInformer.
 	FederatedSecretOverrides() FederatedSecretOverrideInformer
+	// FederatedSecretPlacements returns a FederatedSecretPlacementInformer.
+	FederatedSecretPlacements() FederatedSecretPlacementInformer
 	// FederationPlacements returns a FederationPlacementInformer.
 	FederationPlacements() FederationPlacementInformer
 }
@@ -72,6 +74,11 @@ func (v *version) FederatedSecrets() FederatedSecretInformer {
 // FederatedSecretOverrides returns a FederatedSecretOverrideInformer.
 func (v *version) FederatedSecretOverrides() FederatedSecretOverrideInformer {
 	return &federatedSecretOverrideInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedSecretPlacements returns a FederatedSecretPlacementInformer.
+func (v *version) FederatedSecretPlacements() FederatedSecretPlacementInformer {
+	return &federatedSecretPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederationPlacements returns a FederationPlacementInformer.
