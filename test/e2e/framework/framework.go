@@ -35,7 +35,7 @@ type FederationFramework interface {
 	KubeClient(userAgent string) kubeclientset.Interface
 	CrClient(userAgent string) crclientset.Interface
 
-	ClusterClients(userAgent string) []kubeclientset.Interface
+	ClusterClients(userAgent string) map[string]kubeclientset.Interface
 
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
@@ -94,7 +94,7 @@ func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
 	return f.framework().CrClient(userAgent)
 }
 
-func (f *frameworkWrapper) ClusterClients(userAgent string) []kubeclientset.Interface {
+func (f *frameworkWrapper) ClusterClients(userAgent string) map[string]kubeclientset.Interface {
 	return f.framework().ClusterClients(userAgent)
 }
 

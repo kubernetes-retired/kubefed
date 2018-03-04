@@ -29,26 +29,30 @@ import (
 var _ = Describe("Federated types", func() {
 	f := framework.NewFederationFramework("federated-types")
 
-	typeConfigs := federatedtypes.FederatedTypeConfigs()
-	for kind, _ := range typeConfigs {
+	propConfigs := federatedtypes.PropagationConfigs()
+	for kind, _ := range propConfigs {
 		// Bind the type config inside the loop to ensure the ginkgo
 		// closure gets a different value for every loop iteration.
 		//
 		// Reference: https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
-		typeConfig := typeConfigs[kind]
+		propConfig := propConfigs[kind]
 
 		Describe(fmt.Sprintf("%q resources", kind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
 				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(kind, typeConfig.AdapterFactory)
+				f.SetUpControllerFixture(kind, propConfig.AdapterFactory)
 
 				userAgent := fmt.Sprintf("crud-test-%s", kind)
-				adapter := typeConfig.AdapterFactory(f.FedClient(userAgent))
+				adapter := propConfig.AdapterFactory(f.FedClient(userAgent))
 				clusterClients := f.ClusterClients(userAgent)
 				crudTester := common.NewFederatedTypeCrudTester(framework.NewE2ELogger(), adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
-				obj := federatedtypes.NewTestObject(typeConfig.Kind, f.TestNamespaceName())
+				clusterNames := []string{}
+				for name, _ := range clusterClients {
+					clusterNames = append(clusterNames, name)
+				}
+				template, placement := federatedtypes.NewTestObjects(propConfig.Kind, f.TestNamespaceName(), clusterNames)
 
-				crudTester.CheckLifecycle(obj)
+				crudTester.CheckLifecycle(template, placement)
 			})
 		})
 	}
