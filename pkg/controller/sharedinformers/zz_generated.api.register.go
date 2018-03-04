@@ -56,7 +56,6 @@ func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	go si.Factory.Federation().V1alpha1().FederatedSecrets().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedSecretOverrides().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedSecretPlacements().Informer().Run(shutdown)
-	go si.Factory.Federation().V1alpha1().FederationPlacements().Informer().Run(shutdown)
 }
 
 // ControllerInitArguments are arguments provided to the Init function for a new controller.

@@ -1,5 +1,0 @@
-apiVersion: federation.k8s.io/v1alpha1
-kind: FederationPlacement
-metadata:
-  name: federationplacement-example
-spec:

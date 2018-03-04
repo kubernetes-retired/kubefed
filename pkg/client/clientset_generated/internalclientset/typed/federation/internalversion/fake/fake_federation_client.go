@@ -49,10 +49,6 @@ func (c *FakeFederation) FederatedSecretPlacements(namespace string) internalver
 	return &FakeFederatedSecretPlacements{c, namespace}
 }
 
-func (c *FakeFederation) FederationPlacements(namespace string) internalversion.FederationPlacementInterface {
-	return &FakeFederationPlacements{c, namespace}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeFederation) RESTClient() rest.Interface {
