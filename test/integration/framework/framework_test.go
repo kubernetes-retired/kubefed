@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package integration
+package framework
 
 import (
 	"testing"
 
 	"github.com/marun/fnord/pkg/controller/util"
-	"github.com/marun/fnord/test/integration/framework"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
@@ -31,7 +30,7 @@ import (
 //  TestClusterRegistration validates registration of a kube api and
 //  use of the registration details to access the cluster.
 func TestClusterRegistration(t *testing.T) {
-	f := framework.SetUpFederationFixture(t, 1)
+	f := SetUpFederationFixture(t, 1)
 	defer f.TearDown(t)
 
 	// Get the name of a cluster
