@@ -39,17 +39,17 @@ func TestCrud(t *testing.T) {
 	for kind, propConfig := range propConfigs {
 		t.Run(kind, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
-			fixture, crudTester, template, placement, _ := initCrudTest(tl, fedFixture, propConfig.AdapterFactory, kind)
+			fixture, crudTester, template, placement, override := initCrudTest(tl, fedFixture, propConfig.AdapterFactory, kind)
 			defer fixture.TearDown(tl)
 
-			crudTester.CheckLifecycle(template, placement)
+			crudTester.CheckLifecycle(template, placement, override)
 		})
 	}
 }
 
 // initCrudTest initializes common elements of a crud test
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
-	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, pkgruntime.Object, federatedtypes.PropagationAdapter) {
+	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
 	// TODO(marun) stop requiring user agent when creating new config or clients
 	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
@@ -65,7 +65,7 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	crudTester := common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 
 	clusterNames := fedFixture.ClusterNames()
-	template, placement := federatedtypes.NewTestObjects(kind, uuid.New(), clusterNames)
+	template, placement, override := federatedtypes.NewTestObjects(kind, uuid.New(), clusterNames)
 
-	return fixture, crudTester, template, placement, adapter
+	return fixture, crudTester, template, placement, override
 }

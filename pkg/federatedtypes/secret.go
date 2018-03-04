@@ -54,22 +54,41 @@ func (a *FederatedSecretAdapter) Placement() PlacementAdapter {
 	return NewFederatedSecretPlacement(a.client)
 }
 
+func (a *FederatedSecretAdapter) Override() OverrideAdapter {
+	return NewFederatedSecretOverride(a.client)
+}
+
 func (a *FederatedSecretAdapter) Target() TargetAdapter {
 	return SecretAdapter{}
 }
 
 // TODO(marun) Copy the whole thing
-func (a *FederatedSecretAdapter) ObjectForCluster(obj pkgruntime.Object, clusterName string) pkgruntime.Object {
-	// TODO(marun) support per-cluster overrides
-	fedSecret := obj.(*fedv1a1.FederatedSecret)
+func (a *FederatedSecretAdapter) ObjectForCluster(template, override pkgruntime.Object, clusterName string) pkgruntime.Object {
+	fedSecret := template.(*fedv1a1.FederatedSecret)
 	templateSecret := fedSecret.Spec.Template
+
+	data := templateSecret.Data
+	if override != nil {
+		secretOverride := override.(*fedv1a1.FederatedSecretOverride)
+		for _, clusterOverride := range secretOverride.Spec.Overrides {
+			if clusterOverride.ClusterName == clusterName {
+				data = clusterOverride.Data
+				break
+			}
+		}
+	}
+
 	secret := &apiv1.Secret{
 		ObjectMeta: util.DeepCopyRelevantObjectMeta(templateSecret.ObjectMeta),
-		Data:       templateSecret.Data,
+		Data:       data,
 		Type:       templateSecret.Type,
 	}
 
-	// Avoid having to duplicate these details in the template
+	// Avoid having to duplicate these details in the template or have
+	// the name/namespace vary between the federation api and member
+	// clusters.
+	//
+	// TODO(marun) this should be documented
 	secret.Name = fedSecret.Name
 	secret.Namespace = fedSecret.Namespace
 
@@ -182,6 +201,52 @@ func (a *FederatedSecretPlacement) SetClusterNames(obj pkgruntime.Object, cluste
 	fedSecretPlacement.Spec.ClusterNames = clusterNames
 }
 
+type FederatedSecretOverride struct {
+	client fedclientset.Interface
+}
+
+func NewFederatedSecretOverride(client fedclientset.Interface) OverrideAdapter {
+	return &FederatedSecretOverride{client: client}
+}
+
+func (a *FederatedSecretOverride) Kind() string {
+	return "FederatedSecretOverride"
+}
+
+func (a *FederatedSecretOverride) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
+	return &obj.(*fedv1a1.FederatedSecretOverride).ObjectMeta
+}
+
+func (a *FederatedSecretOverride) ObjectType() pkgruntime.Object {
+	return &fedv1a1.FederatedSecretOverride{}
+}
+
+func (a *FederatedSecretOverride) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
+	fedSecretOverride := obj.(*fedv1a1.FederatedSecretOverride)
+	return a.client.FederationV1alpha1().FederatedSecretOverrides(fedSecretOverride.Namespace).Create(fedSecretOverride)
+}
+
+func (a *FederatedSecretOverride) Delete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
+	return a.client.FederationV1alpha1().FederatedSecretOverrides(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
+}
+
+func (a *FederatedSecretOverride) Get(qualifiedName QualifiedName) (pkgruntime.Object, error) {
+	return a.client.FederationV1alpha1().FederatedSecretOverrides(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+}
+
+func (a *FederatedSecretOverride) List(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+	return a.client.FederationV1alpha1().FederatedSecretOverrides(namespace).List(options)
+}
+
+func (a *FederatedSecretOverride) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
+	fedSecretOverride := obj.(*fedv1a1.FederatedSecretOverride)
+	return a.client.FederationV1alpha1().FederatedSecretOverrides(fedSecretOverride.Namespace).Update(fedSecretOverride)
+}
+
+func (a *FederatedSecretOverride) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
+	return a.client.FederationV1alpha1().FederatedSecretOverrides(namespace).Watch(options)
+}
+
 type SecretAdapter struct {
 }
 
@@ -229,7 +294,7 @@ func (SecretAdapter) Watch(client kubeclientset.Interface, namespace string, opt
 	return client.CoreV1().Secrets(namespace).Watch(options)
 }
 
-func NewFederatedSecretObjectsForTest(namespace string, clusterNames []string) (template pkgruntime.Object, placement pkgruntime.Object) {
+func NewFederatedSecretObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
 	template = &fedv1a1.FederatedSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-secret-",
@@ -246,12 +311,33 @@ func NewFederatedSecretObjectsForTest(namespace string, clusterNames []string) (
 	}
 	placement = &fedv1a1.FederatedSecretPlacement{
 		ObjectMeta: metav1.ObjectMeta{
-			// TODO(marun) Need to set the name
+			// Name will be set to match the template by the crud tester
 			Namespace: namespace,
 		},
 		Spec: fedv1a1.FederatedSecretPlacementSpec{
 			ClusterNames: clusterNames,
 		},
 	}
-	return template, placement
+
+	s := "bar"
+	var newData []byte
+	copy(newData, s[:])
+	clusterName := clusterNames[0]
+	override = &fedv1a1.FederatedSecretOverride{
+		ObjectMeta: metav1.ObjectMeta{
+			// Name will be set to match the template by the crud tester
+			Namespace: namespace,
+		},
+		Spec: fedv1a1.FederatedSecretOverrideSpec{
+			Overrides: []fedv1a1.FederatedSecretClusterOverride{
+				{
+					ClusterName: clusterName,
+					Data: map[string][]byte{
+						"foo": newData,
+					},
+				},
+			},
+		},
+	}
+	return template, placement, override
 }

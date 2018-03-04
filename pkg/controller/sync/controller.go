@@ -77,6 +77,11 @@ type FederationSyncController struct {
 	// Informer controller for placement directives of the federated type
 	placementController cache.Controller
 
+	// Store for the override directives of the federated type
+	overrideStore cache.Store
+	// Informer controller for override directives of the federated type
+	overrideController cache.Controller
+
 	// Work queue allowing parallel processing of resources
 	workQueue workqueue.Interface
 
@@ -148,6 +153,7 @@ func newFederationSyncController(adapter federatedtypes.PropagationAdapter, fedC
 	}
 	s.templateStore, s.templateController = newFedApiInformer(templateAdapter, deliverObj)
 	s.placementStore, s.placementController = newFedApiInformer(adapter.Placement(), deliverObj)
+	s.overrideStore, s.overrideController = newFedApiInformer(adapter.Override(), deliverObj)
 
 	targetAdapter := adapter.Target()
 	// Federated informer on the resource type in members of federation.
@@ -230,6 +236,7 @@ func (s *FederationSyncController) minimizeLatency() {
 func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 	go s.templateController.Run(stopChan)
 	go s.placementController.Run(stopChan)
+	go s.overrideController.Run(stopChan)
 	s.informer.Start()
 	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
 		s.workQueue.Add(item)
@@ -386,8 +393,13 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusError
 	}
 
-	operationsAccessor := func(adapter federatedtypes.PropagationAdapter, selectedClusters, unselectedClusters []string, template, placement pkgruntime.Object) ([]util.FederatedOperation, error) {
-		operations, err := clusterOperations(adapter, selectedClusters, unselectedClusters, template, key, func(clusterName string) (interface{}, bool, error) {
+	override, err := s.objFromCache(s.overrideStore, kind, key)
+	if err != nil {
+		return statusError
+	}
+
+	operationsAccessor := func(adapter federatedtypes.PropagationAdapter, selectedClusters, unselectedClusters []string, template, placement, override pkgruntime.Object) ([]util.FederatedOperation, error) {
+		operations, err := clusterOperations(adapter, selectedClusters, unselectedClusters, template, override, key, func(clusterName string) (interface{}, bool, error) {
 			return s.informer.GetTargetStore().GetByKey(clusterName, key)
 		})
 		if err != nil {
@@ -404,6 +416,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		s.informer,
 		template,
 		placement,
+		override,
 	)
 }
 
@@ -456,11 +469,11 @@ func (s *FederationSyncController) delete(template pkgruntime.Object, kind strin
 	return nil
 }
 
-type operationsFunc func(federatedtypes.PropagationAdapter, []string, []string, pkgruntime.Object, pkgruntime.Object) ([]util.FederatedOperation, error)
+type operationsFunc func(federatedtypes.PropagationAdapter, []string, []string, pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) ([]util.FederatedOperation, error)
 type executionFunc func([]util.FederatedOperation) error
 
 // syncToClusters ensures that the state of the given object is synchronized to member clusters.
-func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.PropagationAdapter, informer util.FederatedInformer, template, placement pkgruntime.Object) reconciliationStatus {
+func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.PropagationAdapter, informer util.FederatedInformer, template, placement, override pkgruntime.Object) reconciliationStatus {
 	kind := adapter.Template().Kind()
 	key := federatedtypes.NewQualifiedName(template).String()
 
@@ -468,7 +481,7 @@ func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, ex
 
 	selectedClusters, unselectedClusters := computePlacement(adapter.Placement(), placement, clusterNames)
 
-	operations, err := operationsAccessor(adapter, selectedClusters, unselectedClusters, template, placement)
+	operations, err := operationsAccessor(adapter, selectedClusters, unselectedClusters, template, placement, override)
 	if err != nil {
 		return statusError
 	}
@@ -490,12 +503,12 @@ func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, ex
 type clusterObjectAccessorFunc func(clusterName string) (interface{}, bool, error)
 
 // clusterOperations returns the list of operations needed to synchronize the state of the given object to the provided clusters
-func clusterOperations(adapter federatedtypes.PropagationAdapter, selectedClusters, unselectedClusters []string, template pkgruntime.Object, key string, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
+func clusterOperations(adapter federatedtypes.PropagationAdapter, selectedClusters, unselectedClusters []string, template, override pkgruntime.Object, key string, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
 	operations := make([]util.FederatedOperation, 0)
 
 	kind := adapter.Target().Kind()
 	for _, clusterName := range selectedClusters {
-		desiredObj := adapter.ObjectForCluster(template, clusterName)
+		desiredObj := adapter.ObjectForCluster(template, override, clusterName)
 
 		clusterObj, found, err := accessor(clusterName)
 		if err != nil {

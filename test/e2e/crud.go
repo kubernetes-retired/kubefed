@@ -50,9 +50,9 @@ var _ = Describe("Federated types", func() {
 				for name, _ := range clusterClients {
 					clusterNames = append(clusterNames, name)
 				}
-				template, placement := federatedtypes.NewTestObjects(propConfig.Kind, f.TestNamespaceName(), clusterNames)
+				template, placement, override := federatedtypes.NewTestObjects(propConfig.Kind, f.TestNamespaceName(), clusterNames)
 
-				crudTester.CheckLifecycle(template, placement)
+				crudTester.CheckLifecycle(template, placement, override)
 			})
 		})
 	}

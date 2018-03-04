@@ -608,7 +608,7 @@ func Convert_federation_FederatedSecret_To_v1alpha1_FederatedSecret(in *federati
 
 func autoConvert_v1alpha1_FederatedSecretClusterOverride_To_federation_FederatedSecretClusterOverride(in *FederatedSecretClusterOverride, out *federation.FederatedSecretClusterOverride, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.Override = in.Override
+	out.Data = *(*map[string][]byte)(unsafe.Pointer(&in.Data))
 	return nil
 }
 
@@ -619,7 +619,7 @@ func Convert_v1alpha1_FederatedSecretClusterOverride_To_federation_FederatedSecr
 
 func autoConvert_federation_FederatedSecretClusterOverride_To_v1alpha1_FederatedSecretClusterOverride(in *federation.FederatedSecretClusterOverride, out *FederatedSecretClusterOverride, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.Override = in.Override
+	out.Data = *(*map[string][]byte)(unsafe.Pointer(&in.Data))
 	return nil
 }
 

@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -50,8 +49,10 @@ type FederatedSecretOverrideSpec struct {
 
 // FederatedSecretClusterOverride defines the overrides for a named cluster
 type FederatedSecretClusterOverride struct {
+	// TODO(marun) Need to ensure that a cluster name only appears
+	// once.  Why can't maps be used so this validation is automatic?
 	ClusterName string
-	Override    corev1.Secret
+	Data        map[string][]byte
 }
 
 // FederatedSecretOverrideStatus defines the observed state of FederatedSecretOverride
