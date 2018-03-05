@@ -28,6 +28,7 @@ type FederationInterface interface {
 	FederatedConfigMapPlacementsGetter
 	FederatedReplicaSetsGetter
 	FederatedReplicaSetOverridesGetter
+	FederatedReplicaSetPlacementsGetter
 	FederatedSecretsGetter
 	FederatedSecretOverridesGetter
 	FederatedSecretPlacementsGetter
@@ -60,6 +61,10 @@ func (c *FederationClient) FederatedReplicaSets(namespace string) FederatedRepli
 
 func (c *FederationClient) FederatedReplicaSetOverrides(namespace string) FederatedReplicaSetOverrideInterface {
 	return newFederatedReplicaSetOverrides(c, namespace)
+}
+
+func (c *FederationClient) FederatedReplicaSetPlacements(namespace string) FederatedReplicaSetPlacementInterface {
+	return newFederatedReplicaSetPlacements(c, namespace)
 }
 
 func (c *FederationClient) FederatedSecrets(namespace string) FederatedSecretInterface {

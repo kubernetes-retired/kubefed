@@ -27,6 +27,8 @@ type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}
 
+type FederatedReplicaSetPlacementExpansion interface{}
+
 type FederatedSecretExpansion interface{}
 
 type FederatedSecretOverrideExpansion interface{}
