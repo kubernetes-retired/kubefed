@@ -44,7 +44,7 @@ type FederatedConfigMapOverride struct {
 
 // FederatedConfigMapOverrideSpec defines the desired state of FederatedConfigMapOverride
 type FederatedConfigMapOverrideSpec struct {
-	Overrides []FederatedSecretClusterOverride `json:"overrides,omitempty"`
+	Overrides []FederatedConfigMapClusterOverride `json:"overrides,omitempty"`
 }
 
 // FederatedConfigMapClusterOverride defines the overrides for a named cluster
