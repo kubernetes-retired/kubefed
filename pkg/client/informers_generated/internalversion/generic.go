@@ -54,6 +54,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=federation.k8s.io, Version=internalVersion
 	case federation.SchemeGroupVersion.WithResource("federatedclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedClusters().Informer()}, nil
+	case federation.SchemeGroupVersion.WithResource("federatedconfigmaps"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedConfigMaps().Informer()}, nil
+	case federation.SchemeGroupVersion.WithResource("federatedconfigmapoverrides"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedConfigMapOverrides().Informer()}, nil
+	case federation.SchemeGroupVersion.WithResource("federatedconfigmapplacements"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedConfigMapPlacements().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedreplicasets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedReplicaSets().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedreplicasetoverrides"):

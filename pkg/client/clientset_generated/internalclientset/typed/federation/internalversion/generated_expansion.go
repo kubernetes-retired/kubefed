@@ -17,6 +17,12 @@ package internalversion
 
 type FederatedClusterExpansion interface{}
 
+type FederatedConfigMapExpansion interface{}
+
+type FederatedConfigMapOverrideExpansion interface{}
+
+type FederatedConfigMapPlacementExpansion interface{}
+
 type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}

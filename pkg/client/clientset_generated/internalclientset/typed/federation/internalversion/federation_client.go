@@ -23,6 +23,9 @@ import (
 type FederationInterface interface {
 	RESTClient() rest.Interface
 	FederatedClustersGetter
+	FederatedConfigMapsGetter
+	FederatedConfigMapOverridesGetter
+	FederatedConfigMapPlacementsGetter
 	FederatedReplicaSetsGetter
 	FederatedReplicaSetOverridesGetter
 	FederatedSecretsGetter
@@ -37,6 +40,18 @@ type FederationClient struct {
 
 func (c *FederationClient) FederatedClusters() FederatedClusterInterface {
 	return newFederatedClusters(c)
+}
+
+func (c *FederationClient) FederatedConfigMaps(namespace string) FederatedConfigMapInterface {
+	return newFederatedConfigMaps(c, namespace)
+}
+
+func (c *FederationClient) FederatedConfigMapOverrides(namespace string) FederatedConfigMapOverrideInterface {
+	return newFederatedConfigMapOverrides(c, namespace)
+}
+
+func (c *FederationClient) FederatedConfigMapPlacements(namespace string) FederatedConfigMapPlacementInterface {
+	return newFederatedConfigMapPlacements(c, namespace)
 }
 
 func (c *FederationClient) FederatedReplicaSets(namespace string) FederatedReplicaSetInterface {

@@ -22,6 +22,30 @@ package internalversion
 // FederatedClusterLister.
 type FederatedClusterListerExpansion interface{}
 
+// FederatedConfigMapListerExpansion allows custom methods to be added to
+// FederatedConfigMapLister.
+type FederatedConfigMapListerExpansion interface{}
+
+// FederatedConfigMapNamespaceListerExpansion allows custom methods to be added to
+// FederatedConfigMapNamespaceLister.
+type FederatedConfigMapNamespaceListerExpansion interface{}
+
+// FederatedConfigMapOverrideListerExpansion allows custom methods to be added to
+// FederatedConfigMapOverrideLister.
+type FederatedConfigMapOverrideListerExpansion interface{}
+
+// FederatedConfigMapOverrideNamespaceListerExpansion allows custom methods to be added to
+// FederatedConfigMapOverrideNamespaceLister.
+type FederatedConfigMapOverrideNamespaceListerExpansion interface{}
+
+// FederatedConfigMapPlacementListerExpansion allows custom methods to be added to
+// FederatedConfigMapPlacementLister.
+type FederatedConfigMapPlacementListerExpansion interface{}
+
+// FederatedConfigMapPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedConfigMapPlacementNamespaceLister.
+type FederatedConfigMapPlacementNamespaceListerExpansion interface{}
+
 // FederatedReplicaSetListerExpansion allows custom methods to be added to
 // FederatedReplicaSetLister.
 type FederatedReplicaSetListerExpansion interface{}

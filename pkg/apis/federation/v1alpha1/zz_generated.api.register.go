@@ -34,6 +34,27 @@ var (
 		func() runtime.Object { return &FederatedClusterList{} }, // Register versioned resource list
 		&FederatedClusterStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedConfigMapStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedConfigMap,
+		FederatedConfigMapSchemeFns{},
+		func() runtime.Object { return &FederatedConfigMap{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedConfigMapList{} }, // Register versioned resource list
+		&FederatedConfigMapStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedConfigMapOverrideStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedConfigMapOverride,
+		FederatedConfigMapOverrideSchemeFns{},
+		func() runtime.Object { return &FederatedConfigMapOverride{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedConfigMapOverrideList{} }, // Register versioned resource list
+		&FederatedConfigMapOverrideStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedConfigMapPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedConfigMapPlacement,
+		FederatedConfigMapPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedConfigMapPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
+		&FederatedConfigMapPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedReplicaSetStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedReplicaSet,
 		FederatedReplicaSetSchemeFns{},
@@ -77,6 +98,27 @@ var (
 			func() runtime.Object { return &FederatedCluster{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedClusterList{} }, // Register versioned resource list
 			&FederatedClusterStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedConfigMapStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedConfigMapStatus,
+			FederatedConfigMapSchemeFns{},
+			func() runtime.Object { return &FederatedConfigMap{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedConfigMapList{} }, // Register versioned resource list
+			&FederatedConfigMapStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedConfigMapOverrideStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedConfigMapOverrideStatus,
+			FederatedConfigMapOverrideSchemeFns{},
+			func() runtime.Object { return &FederatedConfigMapOverride{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedConfigMapOverrideList{} }, // Register versioned resource list
+			&FederatedConfigMapOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedConfigMapPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedConfigMapPlacementStatus,
+			FederatedConfigMapPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedConfigMapPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
+			&FederatedConfigMapPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedReplicaSetStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedReplicaSetStatus,
@@ -157,6 +199,84 @@ type FederatedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedCluster `json:"items"`
+}
+
+//
+// FederatedConfigMap Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedConfigMapList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedConfigMap `json:"items"`
+}
+
+//
+// FederatedConfigMapOverride Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapOverrideSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapOverrideStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapOverrideStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedConfigMapOverrideList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedConfigMapOverride `json:"items"`
+}
+
+//
+// FederatedConfigMapPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedConfigMapPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedConfigMapPlacement `json:"items"`
 }
 
 //

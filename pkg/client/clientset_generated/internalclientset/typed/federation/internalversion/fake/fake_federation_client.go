@@ -29,6 +29,18 @@ func (c *FakeFederation) FederatedClusters() internalversion.FederatedClusterInt
 	return &FakeFederatedClusters{c}
 }
 
+func (c *FakeFederation) FederatedConfigMaps(namespace string) internalversion.FederatedConfigMapInterface {
+	return &FakeFederatedConfigMaps{c, namespace}
+}
+
+func (c *FakeFederation) FederatedConfigMapOverrides(namespace string) internalversion.FederatedConfigMapOverrideInterface {
+	return &FakeFederatedConfigMapOverrides{c, namespace}
+}
+
+func (c *FakeFederation) FederatedConfigMapPlacements(namespace string) internalversion.FederatedConfigMapPlacementInterface {
+	return &FakeFederatedConfigMapPlacements{c, namespace}
+}
+
 func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }
