@@ -45,7 +45,7 @@ type FederatedReplicaSet struct {
 
 // FederatedReplicaSetSpec defines the desired state of FederatedReplicaSet
 type FederatedReplicaSetSpec struct {
-	Template appsv1.ReplicaSet
+	Template appsv1.ReplicaSet `json:"template,omitempty"`
 }
 
 // FederatedReplicaSetStatus defines the observed state of FederatedReplicaSet
