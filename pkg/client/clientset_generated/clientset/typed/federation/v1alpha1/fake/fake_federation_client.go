@@ -29,6 +29,10 @@ func (c *FakeFederationV1alpha1) FederatedClusters() v1alpha1.FederatedClusterIn
 	return &FakeFederatedClusters{c}
 }
 
+func (c *FakeFederationV1alpha1) FederatedConfigMaps(namespace string) v1alpha1.FederatedConfigMapInterface {
+	return &FakeFederatedConfigMaps{c, namespace}
+}
+
 func (c *FakeFederationV1alpha1) FederatedReplicaSets(namespace string) v1alpha1.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }

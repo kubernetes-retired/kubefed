@@ -17,6 +17,8 @@ package v1alpha1
 
 type FederatedClusterExpansion interface{}
 
+type FederatedConfigMapExpansion interface{}
+
 type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}

@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// FederatedClusters returns a FederatedClusterInformer.
 	FederatedClusters() FederatedClusterInformer
+	// FederatedConfigMaps returns a FederatedConfigMapInformer.
+	FederatedConfigMaps() FederatedConfigMapInformer
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
 	FederatedReplicaSets() FederatedReplicaSetInformer
 	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
@@ -52,6 +54,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // FederatedClusters returns a FederatedClusterInformer.
 func (v *version) FederatedClusters() FederatedClusterInformer {
 	return &federatedClusterInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedConfigMaps returns a FederatedConfigMapInformer.
+func (v *version) FederatedConfigMaps() FederatedConfigMapInformer {
+	return &federatedConfigMapInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.
