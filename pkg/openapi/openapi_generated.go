@@ -838,25 +838,26 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "FederatedSecretClusterOverride defines the overrides for a named cluster",
+					Description: "FederatedReplicaSetClusterOverride defines the overrides for a named cluster",
 					Properties: map[string]spec.Schema{
 						"ClusterName": {
 							SchemaProps: spec.SchemaProps{
-								Type:   []string{"string"},
-								Format: "",
+								Description: "once.  Why can't maps be used so this validation is automatic?",
+								Type:        []string{"string"},
+								Format:      "",
 							},
 						},
-						"Override": {
+						"replicas": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/api/apps/v1.ReplicaSet"),
+								Type:   []string{"integer"},
+								Format: "int32",
 							},
 						},
 					},
-					Required: []string{"ClusterName", "Override"},
+					Required: []string{"ClusterName"},
 				},
 			},
-			Dependencies: []string{
-				"k8s.io/api/apps/v1.ReplicaSet"},
+			Dependencies: []string{},
 		},
 		"github.com/marun/fnord/pkg/apis/federation/v1alpha1.FederatedReplicaSetList": {
 			Schema: spec.Schema{

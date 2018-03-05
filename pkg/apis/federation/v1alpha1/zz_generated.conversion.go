@@ -778,7 +778,7 @@ func Convert_federation_FederatedReplicaSet_To_v1alpha1_FederatedReplicaSet(in *
 
 func autoConvert_v1alpha1_FederatedReplicaSetClusterOverride_To_federation_FederatedReplicaSetClusterOverride(in *FederatedReplicaSetClusterOverride, out *federation.FederatedReplicaSetClusterOverride, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.Override = in.Override
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	return nil
 }
 
@@ -789,7 +789,7 @@ func Convert_v1alpha1_FederatedReplicaSetClusterOverride_To_federation_Federated
 
 func autoConvert_federation_FederatedReplicaSetClusterOverride_To_v1alpha1_FederatedReplicaSetClusterOverride(in *federation.FederatedReplicaSetClusterOverride, out *FederatedReplicaSetClusterOverride, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.Override = in.Override
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	return nil
 }
 
