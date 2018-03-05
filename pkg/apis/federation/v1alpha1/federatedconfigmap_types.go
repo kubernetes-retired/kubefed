@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
@@ -24,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -46,6 +45,8 @@ type FederatedConfigMap struct {
 
 // FederatedConfigMapSpec defines the desired state of FederatedConfigMap
 type FederatedConfigMapSpec struct {
+	// Template to derive per-cluster configmap from
+	Template corev1.ConfigMap `json:"status,omitempty"`
 }
 
 // FederatedConfigMapStatus defines the observed state of FederatedConfigMap
