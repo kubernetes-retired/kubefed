@@ -33,6 +33,10 @@ func (c *FakeFederationV1alpha1) FederatedConfigMaps(namespace string) v1alpha1.
 	return &FakeFederatedConfigMaps{c, namespace}
 }
 
+func (c *FakeFederationV1alpha1) FederatedConfigMapOverrides(namespace string) v1alpha1.FederatedConfigMapOverrideInterface {
+	return &FakeFederatedConfigMapOverrides{c, namespace}
+}
+
 func (c *FakeFederationV1alpha1) FederatedConfigMapPlacements(namespace string) v1alpha1.FederatedConfigMapPlacementInterface {
 	return &FakeFederatedConfigMapPlacements{c, namespace}
 }

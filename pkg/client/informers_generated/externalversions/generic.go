@@ -56,6 +56,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedClusters().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmaps"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedConfigMaps().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapoverrides"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedConfigMapOverrides().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedConfigMapPlacements().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasets"):

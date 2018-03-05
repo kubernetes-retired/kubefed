@@ -52,6 +52,7 @@ func NewSharedInformers(config *rest.Config, shutdown <-chan struct{}) *SharedIn
 // startInformers starts all of the informers
 func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	go si.Factory.Federation().V1alpha1().FederatedConfigMaps().Informer().Run(shutdown)
+	go si.Factory.Federation().V1alpha1().FederatedConfigMapOverrides().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedConfigMapPlacements().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedReplicaSets().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedReplicaSetOverrides().Informer().Run(shutdown)

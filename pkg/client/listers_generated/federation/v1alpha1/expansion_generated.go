@@ -30,6 +30,14 @@ type FederatedConfigMapListerExpansion interface{}
 // FederatedConfigMapNamespaceLister.
 type FederatedConfigMapNamespaceListerExpansion interface{}
 
+// FederatedConfigMapOverrideListerExpansion allows custom methods to be added to
+// FederatedConfigMapOverrideLister.
+type FederatedConfigMapOverrideListerExpansion interface{}
+
+// FederatedConfigMapOverrideNamespaceListerExpansion allows custom methods to be added to
+// FederatedConfigMapOverrideNamespaceLister.
+type FederatedConfigMapOverrideNamespaceListerExpansion interface{}
+
 // FederatedConfigMapPlacementListerExpansion allows custom methods to be added to
 // FederatedConfigMapPlacementLister.
 type FederatedConfigMapPlacementListerExpansion interface{}
