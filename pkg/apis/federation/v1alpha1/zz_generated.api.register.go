@@ -41,6 +41,13 @@ var (
 		func() runtime.Object { return &FederatedConfigMapList{} }, // Register versioned resource list
 		&FederatedConfigMapStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedConfigMapPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedConfigMapPlacement,
+		FederatedConfigMapPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedConfigMapPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
+		&FederatedConfigMapPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedReplicaSetStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedReplicaSet,
 		FederatedReplicaSetSchemeFns{},
@@ -91,6 +98,13 @@ var (
 			func() runtime.Object { return &FederatedConfigMap{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedConfigMapList{} }, // Register versioned resource list
 			&FederatedConfigMapStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedConfigMapPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedConfigMapPlacementStatus,
+			FederatedConfigMapPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedConfigMapPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
+			&FederatedConfigMapPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedReplicaSetStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedReplicaSetStatus,
@@ -197,6 +211,32 @@ type FederatedConfigMapList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedConfigMap `json:"items"`
+}
+
+//
+// FederatedConfigMapPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedConfigMapPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedConfigMapPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedConfigMapPlacement `json:"items"`
 }
 
 //

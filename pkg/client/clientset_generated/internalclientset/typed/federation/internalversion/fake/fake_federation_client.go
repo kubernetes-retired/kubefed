@@ -33,6 +33,10 @@ func (c *FakeFederation) FederatedConfigMaps(namespace string) internalversion.F
 	return &FakeFederatedConfigMaps{c, namespace}
 }
 
+func (c *FakeFederation) FederatedConfigMapPlacements(namespace string) internalversion.FederatedConfigMapPlacementInterface {
+	return &FakeFederatedConfigMapPlacements{c, namespace}
+}
+
 func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }

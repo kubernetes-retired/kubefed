@@ -19,6 +19,8 @@ type FederatedClusterExpansion interface{}
 
 type FederatedConfigMapExpansion interface{}
 
+type FederatedConfigMapPlacementExpansion interface{}
+
 type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}

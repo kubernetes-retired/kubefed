@@ -28,6 +28,8 @@ type Interface interface {
 	FederatedClusters() FederatedClusterInformer
 	// FederatedConfigMaps returns a FederatedConfigMapInformer.
 	FederatedConfigMaps() FederatedConfigMapInformer
+	// FederatedConfigMapPlacements returns a FederatedConfigMapPlacementInformer.
+	FederatedConfigMapPlacements() FederatedConfigMapPlacementInformer
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
 	FederatedReplicaSets() FederatedReplicaSetInformer
 	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
@@ -59,6 +61,11 @@ func (v *version) FederatedClusters() FederatedClusterInformer {
 // FederatedConfigMaps returns a FederatedConfigMapInformer.
 func (v *version) FederatedConfigMaps() FederatedConfigMapInformer {
 	return &federatedConfigMapInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedConfigMapPlacements returns a FederatedConfigMapPlacementInformer.
+func (v *version) FederatedConfigMapPlacements() FederatedConfigMapPlacementInformer {
+	return &federatedConfigMapPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.
