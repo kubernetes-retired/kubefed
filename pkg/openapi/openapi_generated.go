@@ -1251,13 +1251,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetSpec defines the desired state of FederatedReplicaSet",
 					Properties: map[string]spec.Schema{
-						"Template": {
+						"template": {
 							SchemaProps: spec.SchemaProps{
 								Ref: ref("k8s.io/api/apps/v1.ReplicaSet"),
 							},
 						},
 					},
-					Required: []string{"Template"},
 				},
 			},
 			Dependencies: []string{
