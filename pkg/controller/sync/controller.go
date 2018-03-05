@@ -575,7 +575,10 @@ func newFedApiInformer(typeAdapter federatedtypes.FederationTypeAdapter, trigger
 
 func computePlacement(adapter federatedtypes.PlacementAdapter, placement pkgruntime.Object, clusterNames []string) ([]string, []string) {
 	clusterSet := sets.NewString(clusterNames...)
-	selectedClusters := adapter.ClusterNames(placement)
-	selectedClusterSet := sets.NewString(selectedClusters...)
+	selectedClusterSet := sets.String{}
+	if placement != nil {
+		selectedClusters := adapter.ClusterNames(placement)
+		selectedClusterSet.Insert(selectedClusters...)
+	}
 	return clusterSet.Intersection(selectedClusterSet).List(), clusterSet.Difference(selectedClusterSet).List()
 }
