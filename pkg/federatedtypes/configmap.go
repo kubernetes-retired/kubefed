@@ -34,7 +34,7 @@ const (
 )
 
 func init() {
-	RegisterPropagationConfig(FederatedConfigMapKind, NewFederatedConfigMapAdapter)
+	RegisterFederatedTypeConfig(FederatedConfigMapKind, NewFederatedConfigMapAdapter)
 	RegisterTestObjectsFunc(FederatedConfigMapKind, NewFederatedConfigMapObjectsForTest)
 }
 
@@ -42,11 +42,11 @@ type FederatedConfigMapAdapter struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedConfigMapAdapter(client fedclientset.Interface) PropagationAdapter {
+func NewFederatedConfigMapAdapter(client fedclientset.Interface) FederatedTypeAdapter {
 	return &FederatedConfigMapAdapter{client: client}
 }
 
-func (a *FederatedConfigMapAdapter) Template() FederationTypeAdapter {
+func (a *FederatedConfigMapAdapter) Template() FedApiAdapter {
 	return NewFederatedConfigMapTemplate(a.client)
 }
 
@@ -98,7 +98,7 @@ type FederatedConfigMapTemplate struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedConfigMapTemplate(client fedclientset.Interface) FederationTypeAdapter {
+func NewFederatedConfigMapTemplate(client fedclientset.Interface) FedApiAdapter {
 	return &FederatedConfigMapTemplate{client: client}
 }
 

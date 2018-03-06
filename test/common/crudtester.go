@@ -39,7 +39,7 @@ const (
 // members of a federation.
 type FederatedTypeCrudTester struct {
 	tl             TestLogger
-	adapter        federatedtypes.PropagationAdapter
+	adapter        federatedtypes.FederatedTypeAdapter
 	kind           string
 	clusterClients map[string]clientset.Interface
 	waitInterval   time.Duration
@@ -49,7 +49,7 @@ type FederatedTypeCrudTester struct {
 	clusterWaitTimeout time.Duration
 }
 
-func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.PropagationAdapter, clusterClients map[string]clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) *FederatedTypeCrudTester {
+func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients map[string]clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) *FederatedTypeCrudTester {
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		adapter:            adapter,
@@ -90,13 +90,13 @@ func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desi
 	return template, placement, override
 }
 
-func (c *FederatedTypeCrudTester) setFedResourceName(adapter federatedtypes.FederationTypeAdapter, obj pkgruntime.Object, name string) {
+func (c *FederatedTypeCrudTester) setFedResourceName(adapter federatedtypes.FedApiAdapter, obj pkgruntime.Object, name string) {
 	meta := adapter.ObjectMeta(obj)
 	meta.Name = name
 	meta.GenerateName = ""
 }
 
-func (c *FederatedTypeCrudTester) createFedResource(adapter federatedtypes.FederationTypeAdapter, desiredObj pkgruntime.Object) pkgruntime.Object {
+func (c *FederatedTypeCrudTester) createFedResource(adapter federatedtypes.FedApiAdapter, desiredObj pkgruntime.Object) pkgruntime.Object {
 	namespace := adapter.ObjectMeta(desiredObj).Namespace
 	kind := adapter.Kind()
 	resourceMsg := kind
@@ -243,10 +243,10 @@ func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 }
 
 // CheckPropagation checks propagation for the crud tester's clients
-func (c *FederatedTypeCrudTester) CheckPropagation(template, propagation, override pkgruntime.Object) {
+func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override pkgruntime.Object) {
 	qualifiedName := federatedtypes.NewQualifiedName(template)
 
-	clusterNames := c.adapter.Placement().ClusterNames(propagation)
+	clusterNames := c.adapter.Placement().ClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
 
 	// TODO(marun) run checks in parallel
@@ -310,7 +310,7 @@ func (c *FederatedTypeCrudTester) waitForResourceDeletion(client clientset.Inter
 	return err
 }
 
-func (c *FederatedTypeCrudTester) updateFedObject(adapter federatedtypes.FederationTypeAdapter, obj pkgruntime.Object, mutateResourceFunc func(pkgruntime.Object)) (pkgruntime.Object, error) {
+func (c *FederatedTypeCrudTester) updateFedObject(adapter federatedtypes.FedApiAdapter, obj pkgruntime.Object, mutateResourceFunc func(pkgruntime.Object)) (pkgruntime.Object, error) {
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		mutateResourceFunc(obj)
 

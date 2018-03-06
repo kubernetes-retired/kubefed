@@ -99,7 +99,7 @@ type FederationSyncController struct {
 	smallDelay              time.Duration
 	updateTimeout           time.Duration
 
-	adapter federatedtypes.PropagationAdapter
+	adapter federatedtypes.FederatedTypeAdapter
 }
 
 // StartFederationSyncController starts a new sync controller for a type adapter
@@ -125,7 +125,7 @@ func StartFederationSyncController(kind string, adapterFactory federatedtypes.Ad
 }
 
 // newFederationSyncController returns a new sync controller for the given client and type adapter
-func newFederationSyncController(adapter federatedtypes.PropagationAdapter, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) *FederationSyncController {
+func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) *FederationSyncController {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("%v-controller", adapter.Template().Kind())})
@@ -398,7 +398,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusError
 	}
 
-	operationsAccessor := func(adapter federatedtypes.PropagationAdapter, selectedClusters, unselectedClusters []string, template, placement, override pkgruntime.Object) ([]util.FederatedOperation, error) {
+	operationsAccessor := func(adapter federatedtypes.FederatedTypeAdapter, selectedClusters, unselectedClusters []string, template, placement, override pkgruntime.Object) ([]util.FederatedOperation, error) {
 		operations, err := clusterOperations(adapter, selectedClusters, unselectedClusters, template, override, key, func(clusterName string) (interface{}, bool, error) {
 			return s.informer.GetTargetStore().GetByKey(clusterName, key)
 		})
@@ -469,11 +469,11 @@ func (s *FederationSyncController) delete(template pkgruntime.Object, kind strin
 	return nil
 }
 
-type operationsFunc func(federatedtypes.PropagationAdapter, []string, []string, pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) ([]util.FederatedOperation, error)
+type operationsFunc func(federatedtypes.FederatedTypeAdapter, []string, []string, pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) ([]util.FederatedOperation, error)
 type executionFunc func([]util.FederatedOperation) error
 
 // syncToClusters ensures that the state of the given object is synchronized to member clusters.
-func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.PropagationAdapter, informer util.FederatedInformer, template, placement, override pkgruntime.Object) reconciliationStatus {
+func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.FederatedTypeAdapter, informer util.FederatedInformer, template, placement, override pkgruntime.Object) reconciliationStatus {
 	kind := adapter.Template().Kind()
 	key := federatedtypes.NewQualifiedName(template).String()
 
@@ -503,7 +503,7 @@ func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, ex
 type clusterObjectAccessorFunc func(clusterName string) (interface{}, bool, error)
 
 // clusterOperations returns the list of operations needed to synchronize the state of the given object to the provided clusters
-func clusterOperations(adapter federatedtypes.PropagationAdapter, selectedClusters, unselectedClusters []string, template, override pkgruntime.Object, key string, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
+func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClusters, unselectedClusters []string, template, override pkgruntime.Object, key string, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
 	operations := make([]util.FederatedOperation, 0)
 
 	kind := adapter.Target().Kind()
@@ -557,7 +557,7 @@ func clusterOperations(adapter federatedtypes.PropagationAdapter, selectedCluste
 	return operations, nil
 }
 
-func newFedApiInformer(typeAdapter federatedtypes.FederationTypeAdapter, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
+func newFedApiInformer(typeAdapter federatedtypes.FedApiAdapter, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
 	return cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
