@@ -23,11 +23,11 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
 
-// PropagationAdapter provides a common interface for interacting with
+// FederatedTypeAdapter provides a common interface for interacting with
 // the component resources of a federated type and its non-federated
 // target resource in member clusters.
-type PropagationAdapter interface {
-	Template() FederationTypeAdapter
+type FederatedTypeAdapter interface {
+	Template() FedApiAdapter
 	Placement() PlacementAdapter
 	Override() OverrideAdapter
 	Target() TargetAdapter
@@ -40,7 +40,7 @@ type MetaAdapter interface {
 	ObjectType() pkgruntime.Object
 }
 
-type FederationTypeAdapter interface {
+type FedApiAdapter interface {
 	MetaAdapter
 
 	// Client methods for accessing the type in the federation api
@@ -53,14 +53,14 @@ type FederationTypeAdapter interface {
 }
 
 type PlacementAdapter interface {
-	FederationTypeAdapter
+	FedApiAdapter
 
 	ClusterNames(obj pkgruntime.Object) []string
 	SetClusterNames(obj pkgruntime.Object, clusterNames []string)
 }
 
 type OverrideAdapter interface {
-	FederationTypeAdapter
+	FedApiAdapter
 }
 
 type TargetAdapter interface {

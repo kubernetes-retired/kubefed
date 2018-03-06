@@ -35,11 +35,11 @@ func TestCrud(t *testing.T) {
 	fedFixture := framework.SetUpFederationFixture(tl, 2)
 	defer fedFixture.TearDown(tl)
 
-	propConfigs := federatedtypes.PropagationConfigs()
-	for kind, propConfig := range propConfigs {
+	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
+	for kind, fedTypeConfig := range fedTypeConfigs {
 		t.Run(kind, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
-			fixture, crudTester, template, placement, override := initCrudTest(tl, fedFixture, propConfig.AdapterFactory, kind)
+			fixture, crudTester, template, placement, override := initCrudTest(tl, fedFixture, fedTypeConfig.AdapterFactory, kind)
 			defer fixture.TearDown(tl)
 
 			crudTester.CheckLifecycle(template, placement, override)

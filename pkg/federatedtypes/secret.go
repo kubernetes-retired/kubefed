@@ -33,7 +33,7 @@ const (
 )
 
 func init() {
-	RegisterPropagationConfig(FederatedSecretKind, NewFederatedSecretAdapter)
+	RegisterFederatedTypeConfig(FederatedSecretKind, NewFederatedSecretAdapter)
 	RegisterTestObjectsFunc(FederatedSecretKind, NewFederatedSecretObjectsForTest)
 }
 
@@ -41,11 +41,11 @@ type FederatedSecretAdapter struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedSecretAdapter(client fedclientset.Interface) PropagationAdapter {
+func NewFederatedSecretAdapter(client fedclientset.Interface) FederatedTypeAdapter {
 	return &FederatedSecretAdapter{client: client}
 }
 
-func (a *FederatedSecretAdapter) Template() FederationTypeAdapter {
+func (a *FederatedSecretAdapter) Template() FedApiAdapter {
 	return NewFederatedSecretTemplate(a.client)
 }
 
@@ -98,7 +98,7 @@ type FederatedSecretTemplate struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedSecretTemplate(client fedclientset.Interface) FederationTypeAdapter {
+func NewFederatedSecretTemplate(client fedclientset.Interface) FedApiAdapter {
 	return &FederatedSecretTemplate{client: client}
 }
 

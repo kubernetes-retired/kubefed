@@ -34,7 +34,7 @@ const (
 )
 
 func init() {
-	RegisterPropagationConfig(FederatedReplicaSetKind, NewFederatedReplicaSetAdapter)
+	RegisterFederatedTypeConfig(FederatedReplicaSetKind, NewFederatedReplicaSetAdapter)
 	RegisterTestObjectsFunc(FederatedReplicaSetKind, NewFederatedReplicaSetObjectsForTest)
 }
 
@@ -42,11 +42,11 @@ type FederatedReplicaSetAdapter struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedReplicaSetAdapter(client fedclientset.Interface) PropagationAdapter {
+func NewFederatedReplicaSetAdapter(client fedclientset.Interface) FederatedTypeAdapter {
 	return &FederatedReplicaSetAdapter{client: client}
 }
 
-func (a *FederatedReplicaSetAdapter) Template() FederationTypeAdapter {
+func (a *FederatedReplicaSetAdapter) Template() FedApiAdapter {
 	return NewFederatedReplicaSetTemplate(a.client)
 }
 
@@ -97,7 +97,7 @@ type FederatedReplicaSetTemplate struct {
 	client fedclientset.Interface
 }
 
-func NewFederatedReplicaSetTemplate(client fedclientset.Interface) FederationTypeAdapter {
+func NewFederatedReplicaSetTemplate(client fedclientset.Interface) FedApiAdapter {
 	return &FederatedReplicaSetTemplate{client: client}
 }
 

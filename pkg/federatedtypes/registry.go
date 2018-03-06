@@ -22,39 +22,39 @@ import (
 	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 )
 
-// PropagationConfig configures propagation of a federated type
-type PropagationConfig struct {
+// FederatedTypeConfig configures propagation of a federated type
+type FederatedTypeConfig struct {
 	Kind           string
 	ControllerName string
 	AdapterFactory AdapterFactory
 }
 
-var typeRegistry = make(map[string]PropagationConfig)
+var typeRegistry = make(map[string]FederatedTypeConfig)
 
 // AdapterFactory defines the function signature for factory methods
-// that create instances of a PropagationAdapter.  Such methods
+// that create instances of a FederatedTypeAdapter.  Such methods
 // should be registered with RegisterAdapterFactory to ensure the type
 // adapter is discoverable.
-type AdapterFactory func(client fedclientset.Interface) PropagationAdapter
+type AdapterFactory func(client fedclientset.Interface) FederatedTypeAdapter
 
-// RegisterPropagation ensures that configuration for the given kind will be returned by the Propagations method.
-func RegisterPropagationConfig(kind string, factory AdapterFactory) {
+// RegisterFederatedTypeConfig ensures that configuration for the given kind will be returned by the Propagations method.
+func RegisterFederatedTypeConfig(kind string, factory AdapterFactory) {
 	_, ok := typeRegistry[kind]
 	if ok {
 		// TODO Is panicking ok given that this is part of a type-registration mechanism
 		panic(fmt.Sprintf("Type %q has already been registered", kind))
 	}
-	typeRegistry[kind] = PropagationConfig{
+	typeRegistry[kind] = FederatedTypeConfig{
 		Kind:           kind,
 		AdapterFactory: factory,
 	}
 }
 
-// PropagationConfigs returns a mapping of kind
-// (e.g. "FederatedSecret") to the configuration for its propagation.
-func PropagationConfigs() map[string]PropagationConfig {
+// FederatedTypeConfigs returns a mapping of kind
+// (e.g. "FederatedSecret") to its configuration.
+func FederatedTypeConfigs() map[string]FederatedTypeConfig {
 	// TODO copy to avoid accidental mutation
-	result := make(map[string]PropagationConfig)
+	result := make(map[string]FederatedTypeConfig)
 	for key, value := range typeRegistry {
 		result[key] = value
 	}
