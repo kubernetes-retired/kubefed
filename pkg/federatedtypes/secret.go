@@ -20,7 +20,6 @@ import (
 	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 	"github.com/marun/fnord/pkg/controller/util"
-	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -78,7 +77,7 @@ func (a *FederatedSecretAdapter) ObjectForCluster(template, override pkgruntime.
 		}
 	}
 
-	secret := &apiv1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: util.DeepCopyRelevantObjectMeta(templateSecret.ObjectMeta),
 		Data:       data,
 		Type:       templateSecret.Type,
@@ -255,7 +254,7 @@ func (SecretAdapter) Kind() string {
 }
 
 func (SecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*apiv1.Secret).ObjectMeta
+	return &obj.(*corev1.Secret).ObjectMeta
 }
 
 func (SecretAdapter) ObjectType() pkgruntime.Object {

@@ -38,5 +38,8 @@ func NewControllerFixture(tl common.TestLogger, kind string, adapterFactory fede
 }
 
 func (f *ControllerFixture) TearDown(tl common.TestLogger) {
-	close(f.stopChan)
+	if f.stopChan != nil {
+		close(f.stopChan)
+		f.stopChan = nil
+	}
 }

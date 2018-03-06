@@ -74,8 +74,10 @@ func (f *ManagedFramework) BeforeEach() {
 
 func (f *ManagedFramework) AfterEach() {
 	RemoveCleanupAction(f.cleanupHandle)
-	for _, fixture := range f.fixtures {
+	for len(f.fixtures) > 0 {
+		fixture := f.fixtures[0]
 		fixture.TearDown(f.logger)
+		f.fixtures = append(f.fixtures[:0], f.fixtures[1:]...)
 	}
 }
 

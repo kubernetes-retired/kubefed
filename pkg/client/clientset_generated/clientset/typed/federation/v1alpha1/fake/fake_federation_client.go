@@ -49,6 +49,10 @@ func (c *FakeFederationV1alpha1) FederatedReplicaSetOverrides(namespace string) 
 	return &FakeFederatedReplicaSetOverrides{c, namespace}
 }
 
+func (c *FakeFederationV1alpha1) FederatedReplicaSetPlacements(namespace string) v1alpha1.FederatedReplicaSetPlacementInterface {
+	return &FakeFederatedReplicaSetPlacements{c, namespace}
+}
+
 func (c *FakeFederationV1alpha1) FederatedSecrets(namespace string) v1alpha1.FederatedSecretInterface {
 	return &FakeFederatedSecrets{c, namespace}
 }

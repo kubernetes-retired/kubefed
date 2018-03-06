@@ -36,6 +36,8 @@ type Interface interface {
 	FederatedReplicaSets() FederatedReplicaSetInformer
 	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
 	FederatedReplicaSetOverrides() FederatedReplicaSetOverrideInformer
+	// FederatedReplicaSetPlacements returns a FederatedReplicaSetPlacementInformer.
+	FederatedReplicaSetPlacements() FederatedReplicaSetPlacementInformer
 	// FederatedSecrets returns a FederatedSecretInformer.
 	FederatedSecrets() FederatedSecretInformer
 	// FederatedSecretOverrides returns a FederatedSecretOverrideInformer.
@@ -83,6 +85,11 @@ func (v *version) FederatedReplicaSets() FederatedReplicaSetInformer {
 // FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
 func (v *version) FederatedReplicaSetOverrides() FederatedReplicaSetOverrideInformer {
 	return &federatedReplicaSetOverrideInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedReplicaSetPlacements returns a FederatedReplicaSetPlacementInformer.
+func (v *version) FederatedReplicaSetPlacements() FederatedReplicaSetPlacementInformer {
+	return &federatedReplicaSetPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedSecrets returns a FederatedSecretInformer.

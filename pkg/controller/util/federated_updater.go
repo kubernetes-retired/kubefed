@@ -81,9 +81,12 @@ func NewFederatedUpdater(federation FederationView, kind string, timeout time.Du
 	}
 }
 
-func (fu *federatedUpdaterImpl) recordEvent(obj runtime.Object, eventType, eventVerb string, args ...interface{}) {
-	messageFmt := eventVerb + " %s %q in cluster %s"
-	fu.eventRecorder.Eventf(obj, apiv1.EventTypeNormal, eventType, messageFmt, args...)
+func (fu *federatedUpdaterImpl) recordEvent(obj runtime.Object, eventType, reason, eventVerb string, args ...interface{}) {
+	// TODO(marun) Ensure the federated updater is logging events to
+	// objects in the federation api.  'Obj' is intended to appear in
+	// the member cluser, not the federation api.
+	//messageFmt := eventVerb + " %s %q in cluster %s"
+	//fu.eventRecorder.Eventf(obj, eventType, reason, eventType, messageFmt, args...)
 }
 
 // Update executes the given set of operations within the timeout specified for
@@ -113,13 +116,13 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
 				baseEventType = "create"
 				eventType := "CreateInCluster"
 
-				fu.recordEvent(op.Obj, eventType, "Creating", eventArgs...)
+				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Creating", eventArgs...)
 				err = fu.addFunction(clientset, op.Obj)
 			case OperationTypeUpdate:
-				fu.recordEvent(op.Obj, eventType, "Updating", eventArgs...)
+				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Updating", eventArgs...)
 				err = fu.updateFunction(clientset, op.Obj)
 			case OperationTypeDelete:
-				fu.recordEvent(op.Obj, eventType, "Deleting", eventArgs...)
+				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Deleting", eventArgs...)
 				err = fu.deleteFunction(clientset, op.Obj)
 				// IsNotFound error is fine since that means the object is deleted already.
 				if errors.IsNotFound(err) {
@@ -131,7 +134,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
 				eventType := eventType + "Failed"
 				messageFmt := "Failed to " + baseEventType + " %s %q in cluster %s: %v"
 				eventArgs = append(eventArgs, err)
-				fu.eventRecorder.Eventf(op.Obj, apiv1.EventTypeWarning, eventType, messageFmt, eventArgs...)
+				fu.recordEvent(op.Obj, apiv1.EventTypeWarning, eventType, messageFmt, eventArgs...)
 			}
 
 			done <- err

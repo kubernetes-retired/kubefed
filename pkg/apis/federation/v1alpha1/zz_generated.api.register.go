@@ -69,6 +69,13 @@ var (
 		func() runtime.Object { return &FederatedReplicaSetOverrideList{} }, // Register versioned resource list
 		&FederatedReplicaSetOverrideStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedReplicaSetPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedReplicaSetPlacement,
+		FederatedReplicaSetPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedReplicaSetPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedReplicaSetPlacementList{} }, // Register versioned resource list
+		&FederatedReplicaSetPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedSecretStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedSecret,
 		FederatedSecretSchemeFns{},
@@ -133,6 +140,13 @@ var (
 			func() runtime.Object { return &FederatedReplicaSetOverride{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedReplicaSetOverrideList{} }, // Register versioned resource list
 			&FederatedReplicaSetOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedReplicaSetPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedReplicaSetPlacementStatus,
+			FederatedReplicaSetPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedReplicaSetPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedReplicaSetPlacementList{} }, // Register versioned resource list
+			&FederatedReplicaSetPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedSecretStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedSecretStatus,
@@ -329,6 +343,32 @@ type FederatedReplicaSetOverrideList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedReplicaSetOverride `json:"items"`
+}
+
+//
+// FederatedReplicaSetPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedReplicaSetPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSetPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedReplicaSetPlacement `json:"items"`
 }
 
 //
