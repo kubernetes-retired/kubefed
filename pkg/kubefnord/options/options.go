@@ -26,7 +26,7 @@ import (
 // SubcommandOptions holds the configuration required by the subcommands of
 // `kubefnord`.
 type SubcommandOptions struct {
-	Name                string
+	ClusterName         string
 	Host                string
 	FederationNamespace string
 	Kubeconfig          string
@@ -49,6 +49,6 @@ func (o *SubcommandOptions) SetName(args []string) error {
 		return fmt.Errorf("NAME is required")
 	}
 
-	o.Name = args[0]
+	o.ClusterName = args[0]
 	return nil
 }

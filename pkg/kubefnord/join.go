@@ -122,11 +122,11 @@ func (j *joinFederation) Complete(args []string) error {
 	}
 
 	if j.clusterContext == "" {
-		j.clusterContext = j.Name
+		j.clusterContext = j.ClusterName
 	}
 
 	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
-		j.Name, j.Host, j.FederationNamespace, j.Kubeconfig, j.clusterContext,
+		j.ClusterName, j.Host, j.FederationNamespace, j.Kubeconfig, j.clusterContext,
 		j.secretName, j.DryRun)
 
 	return nil
@@ -134,12 +134,6 @@ func (j *joinFederation) Complete(args []string) error {
 
 // Run is the implementation of the `join federation` command.
 func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
-	dryRun := j.DryRun
-	federationNamespace := j.FederationNamespace
-	host := j.Host
-	joiningClusterName := j.Name
-	secretName := j.secretName
-
 	err := j.newClientConfigs(config)
 	if err != nil {
 		return err
@@ -149,20 +143,13 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	clusterConfig := config.ClusterConfig()
 	fedConfig := config.FedConfig()
 
-	if j.addToRegistry {
-		err = addToClusterRegistry(hostConfig, clusterConfig.Host, joiningClusterName, dryRun)
-		if err != nil {
-			return err
-		}
-	} // TODO: else Verify cluster is in cluster registry
-
-	err = JoinCluster(hostConfig, clusterConfig, fedConfig,
-		federationNamespace, host, joiningClusterName, secretName, dryRun)
+	err = JoinCluster(hostConfig, clusterConfig, fedConfig, j.FederationNamespace,
+		j.Host, j.ClusterName, j.secretName, j.addToRegistry, j.DryRun)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // newClientConfigs creates the client configs necessary for the join
@@ -189,35 +176,10 @@ func (j *joinFederation) newClientConfigs(config util.FedConfig) error {
 	return nil
 }
 
-// addToClusterRegistry handles adding the cluster to the cluster registry and
-// reports progress.
-func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName string,
-	dryRun bool) error {
-	fedClientset := util.NewFedClientset()
-
-	// Get the cluster registry clientset using the host cluster config.
-	crClientset, err := fedClientset.NewClusterRegistryClientset(hostConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
-		return err
-	}
-
-	glog.V(2).Info("Registering cluster with the cluster registry")
-
-	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
-		return err
-	}
-
-	glog.V(2).Info("Registered cluster with the cluster registry")
-	return nil
-}
-
 // JoinCluster performs all the necessary steps to join a cluster to the
 // federation provided the required set of parameters are passed in.
 func JoinCluster(hostConfig, clusterConfig, fedConfig *rest.Config, federationNamespace,
-	host, joiningClusterName, secretName string, dryRun bool) error {
+	host, joiningClusterName, secretName string, addToRegistry, dryRun bool) error {
 
 	clientsets, err := getClientsets(hostConfig, clusterConfig, fedConfig)
 	if err != nil {
@@ -232,6 +194,18 @@ func JoinCluster(hostConfig, clusterConfig, fedConfig *rest.Config, federationNa
 	err = performPreflightChecks(clientsets, joiningClusterName, host, federationNamespace)
 	if err != nil {
 		return err
+	}
+
+	if addToRegistry {
+		err = addToClusterRegistry(hostConfig, clusterConfig.Host, joiningClusterName, dryRun)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = verifyExistsInClusterRegistry(hostConfig, joiningClusterName)
+		if err != nil {
+			return err
+		}
 	}
 
 	federationName, err := getFederationName(hostClientset, federationNamespace)
@@ -272,6 +246,84 @@ func JoinCluster(hostConfig, clusterConfig, fedConfig *rest.Config, federationNa
 	}
 
 	glog.V(2).Info("Created federated cluster resource")
+	return nil
+}
+
+// performPreflightChecks checks that the host and joining clusters are in
+// a consistent state.
+func performPreflightChecks(fedClientset util.FedClientset, name, host,
+	federationNamespace string) error {
+	// Make sure there is no existing service account in the joining cluster.
+	clientset := fedClientset.ClusterClientset()
+	saName := util.ClusterServiceAccountName(name, host)
+	sa, err := clientset.CoreV1().ServiceAccounts(federationNamespace).Get(saName,
+		metav1.GetOptions{})
+
+	if errors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return err
+	} else if sa != nil {
+		return fmt.Errorf("service account already exists in joining cluster")
+	}
+
+	return nil
+}
+
+// addToClusterRegistry handles adding the cluster to the cluster registry and
+// reports progress.
+func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName string,
+	dryRun bool) error {
+	fedClientset := util.NewFedClientset()
+
+	// Get the cluster registry clientset using the host cluster config.
+	crClientset, err := fedClientset.NewClusterRegistryClientset(hostConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+		return err
+	}
+
+	glog.V(2).Info("Registering cluster with the cluster registry.")
+
+	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
+	if err != nil {
+		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
+		return err
+	}
+
+	glog.V(2).Info("Registered cluster with the cluster registry.")
+	return nil
+}
+
+// verifyExistsInClusterRegistry verifies that the given joining cluster name exists
+// in the cluster registry.
+func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName string) error {
+	fedClientset := util.NewFedClientset()
+
+	// Get the cluster registry clientset using the host cluster config.
+	crClientset, err := fedClientset.NewClusterRegistryClientset(hostConfig)
+	if err != nil {
+		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+		return err
+	}
+
+	glog.V(2).Infof("Verifying cluster %s exists in the cluster registry.",
+		joiningClusterName)
+
+	_, err = crClientset.ClusterregistryV1alpha1().Clusters().Get(joiningClusterName,
+		metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("Cluster %s does not exist in the cluster registry.",
+				joiningClusterName)
+		}
+
+		glog.V(2).Infof("Could not retrieve cluster %s from the cluster registry: %v",
+			joiningClusterName, err)
+		return err
+	}
+
+	glog.V(2).Infof("Verified cluster %s exists in the cluster registry.", joiningClusterName)
 	return nil
 }
 
@@ -330,27 +382,6 @@ func getClientsets(hostConfig, clusterConfig, fedConfig *rest.Config) (util.FedC
 	}
 
 	return fedClientset, nil
-}
-
-// performPreflightChecks checks that the host and joining clusters are in
-// a consistent state.
-func performPreflightChecks(fedClientset util.FedClientset, name, host,
-	federationNamespace string) error {
-	// Make sure there is no existing service account in the joining cluster.
-	clientset := fedClientset.ClusterClientset()
-	saName := util.ClusterServiceAccountName(name, host)
-	sa, err := clientset.CoreV1().ServiceAccounts(federationNamespace).Get(saName,
-		metav1.GetOptions{})
-
-	if errors.IsNotFound(err) {
-		return nil
-	} else if err != nil {
-		return err
-	} else if sa != nil {
-		return fmt.Errorf("service account already exists in joining cluster")
-	}
-
-	return nil
 }
 
 // createFederatedCluster creates a federated cluster resource that associates
@@ -430,7 +461,7 @@ func createFederationNamespace(clusterClientset client.Interface, federationName
 
 	_, err := clusterClientset.CoreV1().Namespaces().Create(federationNS)
 	if err != nil && !errors.IsAlreadyExists(err) {
-		glog.V(2).Infof("Could not create federation-system namespace in client: %v", err)
+		glog.V(2).Infof("Could not create %s namespace in client: %v", federationNamespace, err)
 		return nil, err
 	}
 	return federationNS, nil
