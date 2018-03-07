@@ -36,7 +36,7 @@ import (
 
 const (
 	// TODO(marun) this should be discovered rather than hard-coded
-	FederationSystemNamespace = "federation-system"
+	FederationSystemNamespace = "federation"
 	KubeAPIQPS                = 20.0
 	KubeAPIBurst              = 30
 	KubeconfigSecretDataKey   = "kubeconfig"
