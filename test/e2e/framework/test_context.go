@@ -34,14 +34,14 @@ var TestContext TestContextType
 
 func registerFlags(t *TestContextType) {
 	flag.BoolVar(&t.TestManagedFederation, "test-managed-federation", false, "Whether the test run should rely on a test-managed federation.")
-	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", true, "Whether federation controllers should be started in memory.  Ignored if test-managed-cluster is false")
-	flag.StringVar(&t.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-cluster is true")
-	flag.StringVar(&t.KubeContext, "context", "", "kubeconfig context to use/override. If unset, will use value from 'current-context'")
+	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", true, "Whether federation controllers should be started in memory.  Ignored if test-managed-federation is false.")
+	flag.StringVar(&t.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-federation is true.")
+	flag.StringVar(&t.KubeContext, "context", "", "kubeconfig context to use/override. If unset, will use value from 'current-context'.")
 }
 
 func validateFlags(t *TestContextType) {
 	if len(t.KubeConfig) == 0 {
-		glog.Warning("kubeconfig not provided - enabling test-managed federation.")
+		glog.Warning("kubeconfig not provided - enabling test-managed-federation.")
 		t.TestManagedFederation = true
 	} else if t.TestManagedFederation {
 		glog.Warningf("kubeconfig %q will be ignored due to test-managed-federation being true.", t.KubeConfig)
