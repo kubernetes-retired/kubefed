@@ -21,6 +21,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/glog"
 	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,8 +31,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -92,9 +91,20 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 			return nil, err
 		}
 
-		// TODO(marun) Use a service account instead of a serialized kubeconfig
-		kubeconfigGetter := KubeconfigGetterForSecret(secret)
-		clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(serverAddress, kubeconfigGetter)
+		token, tokenFound := secret.Data["token"]
+		ca, caFound := secret.Data["ca.crt"]
+
+		if tokenFound != caFound {
+			return nil, fmt.Errorf("secret should have values for either both 'ca.crt' and 'token' in its Data, or neither: %v", secret)
+		} else if tokenFound && caFound {
+			clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
+			clusterConfig.CAData = ca
+			clusterConfig.BearerToken = string(token)
+		} else {
+			kubeconfigGetter := KubeconfigGetterForSecret(secret)
+			clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(serverAddress, kubeconfigGetter)
+		}
+
 		if err != nil {
 			return nil, err
 		}
