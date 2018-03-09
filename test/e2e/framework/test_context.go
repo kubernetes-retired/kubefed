@@ -33,10 +33,14 @@ type TestContextType struct {
 var TestContext TestContextType
 
 func registerFlags(t *TestContextType) {
-	flag.BoolVar(&t.TestManagedFederation, "test-managed-federation", false, "Whether the test run should rely on a test-managed federation.")
-	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", true, "Whether federation controllers should be started in memory.  Ignored if test-managed-federation is false.")
-	flag.StringVar(&t.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-federation is true.")
-	flag.StringVar(&t.KubeContext, "context", "", "kubeconfig context to use/override. If unset, will use value from 'current-context'.")
+	flag.BoolVar(&t.TestManagedFederation, "test-managed-federation",
+		false, "Whether the test run should rely on a test-managed federation.")
+	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", false,
+		"Whether federation controllers should be started in memory. This works like a hybrid setup if test-managed-federation is false by launching the federation controllers outside the unmanaged cluster.")
+	flag.StringVar(&t.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"),
+		"Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-federation is true.")
+	flag.StringVar(&t.KubeContext, "context", "",
+		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
 }
 
 func validateFlags(t *TestContextType) {
@@ -48,8 +52,7 @@ func validateFlags(t *TestContextType) {
 	}
 
 	if !t.TestManagedFederation && t.InMemoryControllers {
-		glog.Info("in-memory-controllers require test-managed-federation=true - disabling.")
-		t.InMemoryControllers = false
+		glog.Info("in-memory-controllers=true while test-managed-federation=false - this will launch the federation controllers outside the unmanaged cluster.")
 	}
 }
 

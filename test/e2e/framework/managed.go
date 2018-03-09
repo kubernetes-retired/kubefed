@@ -29,7 +29,6 @@ import (
 
 var (
 	fedFixture *framework.FederationFixture
-	logger     common.TestLogger
 )
 
 func SetUpManagedFederation() {
@@ -106,6 +105,6 @@ func (f *ManagedFramework) SetUpControllerFixture(kind string, adapterFactory fe
 	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
 	crConfig := fedFixture.CrApi.NewConfig(f.logger)
-	fixture := framework.NewControllerFixture(f.logger, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(f.logger, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
 	f.fixtures = append(f.fixtures, fixture)
 }
