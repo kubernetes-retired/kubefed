@@ -17,6 +17,9 @@ limitations under the License.
 package framework
 
 import (
+	"time"
+
+	"github.com/marun/federation-v2/pkg/controller/federatedcluster"
 	"github.com/marun/federation-v2/pkg/controller/sync"
 	"github.com/marun/federation-v2/pkg/federatedtypes"
 	"github.com/marun/federation-v2/test/common"
@@ -28,8 +31,8 @@ type ControllerFixture struct {
 	stopChan chan struct{}
 }
 
-// NewControllerFixture initializes a new controller fixture
-func NewControllerFixture(tl common.TestLogger, kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+// NewSyncControllerFixture initializes a new sync controller fixture.
+func NewSyncControllerFixture(tl common.TestLogger, kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
@@ -37,6 +40,17 @@ func NewControllerFixture(tl common.TestLogger, kind string, adapterFactory fede
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
+	return f
+}
+
+// NewClusterControllerFixture initializes a new cluster controller fixture.
+func NewClusterControllerFixture(fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+	f := &ControllerFixture{
+		stopChan: make(chan struct{}),
+	}
+	monitorPeriod := 1 * time.Second
+	federatedcluster.StartClusterController(fedConfig, kubeConfig, crConfig,
+		f.stopChan, monitorPeriod)
 	return f
 }
 
