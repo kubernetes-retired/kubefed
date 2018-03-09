@@ -21,7 +21,6 @@ import (
 	"time"
 
 	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
-	"github.com/marun/federation-v2/pkg/controller/federatedcluster"
 	"github.com/marun/federation-v2/pkg/controller/util"
 	"github.com/marun/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
@@ -41,13 +40,11 @@ const userAgent = "federation-framework"
 // FederationFixture manages servers for kube, cluster registry and
 // federation along with a set of member clusters.
 type FederationFixture struct {
-	stopChan chan struct{}
-
-	KubeApi *KubernetesApiFixture
-	CrApi   *ClusterRegistryApiFixture
-	FedApi  *FederationApiFixture
-
-	Clusters map[string]*KubernetesApiFixture
+	KubeApi           *KubernetesApiFixture
+	CrApi             *ClusterRegistryApiFixture
+	FedApi            *FederationApiFixture
+	Clusters          map[string]*KubernetesApiFixture
+	ClusterController *ControllerFixture
 }
 
 func SetUpFederationFixture(tl common.TestLogger, clusterCount int) *FederationFixture {
@@ -74,25 +71,20 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
-	f.stopChan = make(chan struct{})
-	monitorPeriod := 1 * time.Second
 	tl.Logf("Starting cluster controller")
-	federatedcluster.StartClusterController(f.FedApi.NewConfig(tl), f.KubeApi.NewConfig(tl), f.CrApi.NewConfig(tl), f.stopChan, monitorPeriod)
-
+	f.ClusterController = NewClusterControllerFixture(f.FedApi.NewConfig(tl),
+		f.KubeApi.NewConfig(tl), f.CrApi.NewConfig(tl))
 	tl.Log("Federation started.")
 }
 
 func (f *FederationFixture) TearDown(tl common.TestLogger) {
 	// Stop the cluster controller first to avoid spurious connection
 	// errors when the target urls become unavailable.
-	if f.stopChan != nil {
-		close(f.stopChan)
-		f.stopChan = nil
-	}
 	fixtures := []TestFixture{
-		// KubeApi will be torn down via f.Clusters
+		f.ClusterController,
 		f.CrApi,
 		f.FedApi,
+		// KubeApi will be torn down via f.Clusters
 	}
 	for _, cluster := range f.Clusters {
 		fixtures = append(fixtures, cluster)
