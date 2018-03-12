@@ -46,6 +46,10 @@ func NewFederatedReplicaSetAdapter(client fedclientset.Interface) FederatedTypeA
 	return &FederatedReplicaSetAdapter{client: client}
 }
 
+func (a *FederatedReplicaSetAdapter) FedClient() fedclientset.Interface {
+	return a.client
+}
+
 func (a *FederatedReplicaSetAdapter) Template() FedApiAdapter {
 	return NewFederatedReplicaSetTemplate(a.client)
 }
@@ -132,7 +136,8 @@ func (a *FederatedReplicaSetTemplate) List(namespace string, options metav1.List
 
 func (a *FederatedReplicaSetTemplate) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	fedReplicaSet := obj.(*fedv1a1.FederatedReplicaSet)
-	return a.client.FederationV1alpha1().FederatedReplicaSets(fedReplicaSet.Namespace).Update(fedReplicaSet)
+	updatedObj, err := a.client.FederationV1alpha1().FederatedReplicaSets(fedReplicaSet.Namespace).Update(fedReplicaSet)
+	return updatedObj, err
 }
 
 func (a *FederatedReplicaSetTemplate) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
@@ -260,10 +265,6 @@ func (ReplicaSetAdapter) ObjectType() pkgruntime.Object {
 	return &appsv1.ReplicaSet{}
 }
 
-func (ReplicaSetAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
-	return util.ObjectMetaAndSpecEquivalent(obj1, obj2)
-}
-
 func (ReplicaSetAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
 	replicaSet := obj.(*appsv1.ReplicaSet)
 	createdObj, err := client.AppsV1().ReplicaSets(replicaSet.Namespace).Create(replicaSet)
@@ -315,10 +316,6 @@ func NewFederatedReplicaSetObjectsForTest(namespace string, clusterNames []strin
 		},
 		Spec: fedv1a1.FederatedReplicaSetSpec{
 			Template: appsv1.ReplicaSet{
-				// Defaulted (to Labels from the PodTemplateSpec)
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
 				Spec: appsv1.ReplicaSetSpec{
 					Replicas: &replicas,
 					Selector: &metav1.LabelSelector{
@@ -334,22 +331,8 @@ func NewFederatedReplicaSetObjectsForTest(namespace string, clusterNames []strin
 								{
 									Name:  "nginx",
 									Image: "nginx",
-									// Defaulted
-									ImagePullPolicy: apiv1.PullAlways,
-									// Defaulted
-									TerminationMessagePath: "/dev/termination-log",
-									// Defaulted
-									TerminationMessagePolicy: apiv1.TerminationMessageReadFile,
 								},
 							},
-							// Defaulted
-							RestartPolicy: apiv1.RestartPolicyAlways,
-							// Defaulted
-							DNSPolicy: apiv1.DNSClusterFirst,
-							// Defaulted
-							SchedulerName: "default-scheduler",
-							// Defaulted
-							SecurityContext: &apiv1.PodSecurityContext{},
 						},
 					},
 				},

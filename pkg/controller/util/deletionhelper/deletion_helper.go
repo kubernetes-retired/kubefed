@@ -152,9 +152,9 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object) (
 			Key:         objName,
 		})
 	}
-	err = dh.updater.Update(operations)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute updates for obj %s: %v", objName, err)
+	_, errors := dh.updater.Update(operations)
+	if len(errors) > 0 {
+		return nil, fmt.Errorf("failed to execute deletions for obj %s: %v", objName, errors)
 	}
 	if len(operations) > 0 {
 		// We have deleted a bunch of resources.

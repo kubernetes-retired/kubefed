@@ -38,6 +38,12 @@ const (
 	OperationTypeDelete = "delete"
 )
 
+type operationResult struct {
+	clusterName     string
+	resourceVersion string
+	err             error
+}
+
 // FederatedOperation definition contains type (add/update/delete) and the object itself.
 type FederatedOperation struct {
 	Type        FederatedOperationType
@@ -49,11 +55,11 @@ type FederatedOperation struct {
 // A helper that executes the given set of updates on federation, in parallel.
 type FederatedUpdater interface {
 	// Executes the given set of operations.
-	Update([]FederatedOperation) error
+	Update([]FederatedOperation) (map[string]string, []error)
 }
 
 // A function that executes some operation using the passed client and object.
-type FederatedOperationHandler func(kubeclientset.Interface, pkgruntime.Object) error
+type FederatedOperationHandler func(kubeclientset.Interface, pkgruntime.Object) (string, error)
 
 type federatedUpdaterImpl struct {
 	federation FederationView
@@ -93,8 +99,8 @@ func (fu *federatedUpdaterImpl) recordEvent(obj runtime.Object, eventType, reaso
 // the instance. Timeout is best-effort. There is no guarantee that the
 // underlying operations are stopped when it is reached. However the function
 // will return after the timeout with a non-nil error.
-func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
-	done := make(chan error, len(ops))
+func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]string, []error) {
+	done := make(chan operationResult, len(ops))
 	for _, op := range ops {
 		go func(op FederatedOperation) {
 			clusterName := op.ClusterName
@@ -102,13 +108,15 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
 			// TODO: Ensure that the clientset has reasonable timeout.
 			clientset, err := fu.federation.GetClientsetForCluster(clusterName)
 			if err != nil {
-				done <- err
+				done <- operationResult{err: err}
 				return
 			}
 
 			eventArgs := []interface{}{fu.kind, op.Key, clusterName}
 			baseEventType := fmt.Sprintf("%s", op.Type)
 			eventType := fmt.Sprintf("%sInCluster", strings.Title(baseEventType))
+
+			resourceVersion := ""
 
 			switch op.Type {
 			case OperationTypeAdd:
@@ -117,13 +125,13 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
 				eventType := "CreateInCluster"
 
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Creating", eventArgs...)
-				err = fu.addFunction(clientset, op.Obj)
+				resourceVersion, err = fu.addFunction(clientset, op.Obj)
 			case OperationTypeUpdate:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Updating", eventArgs...)
-				err = fu.updateFunction(clientset, op.Obj)
+				resourceVersion, err = fu.updateFunction(clientset, op.Obj)
 			case OperationTypeDelete:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Deleting", eventArgs...)
-				err = fu.deleteFunction(clientset, op.Obj)
+				_, err = fu.deleteFunction(clientset, op.Obj)
 				// IsNotFound error is fine since that means the object is deleted already.
 				if errors.IsNotFound(err) {
 					err = nil
@@ -134,27 +142,45 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) error {
 				eventType := eventType + "Failed"
 				messageFmt := "Failed to " + baseEventType + " %s %q in cluster %s: %v"
 				eventArgs = append(eventArgs, err)
+				err = fmt.Errorf(messageFmt, eventArgs...)
 				fu.recordEvent(op.Obj, apiv1.EventTypeWarning, eventType, messageFmt, eventArgs...)
 			}
 
-			done <- err
+			done <- operationResult{
+				clusterName:     clusterName,
+				resourceVersion: resourceVersion,
+				err:             err,
+			}
 		}(op)
 	}
+
+	versions := make(map[string]string)
+	errors := []error{}
+	timedOut := false
+
 	start := time.Now()
 	for i := 0; i < len(ops); i++ {
 		now := time.Now()
 		if !now.Before(start.Add(fu.timeout)) {
-			return fmt.Errorf("failed to finish all operations in %v", fu.timeout)
+			timedOut = true
+			break
 		}
 		select {
-		case err := <-done:
-			if err != nil {
-				return err
+		case result := <-done:
+			if result.err != nil {
+				errors = append(errors, result.err)
+				break
 			}
+			versions[result.clusterName] = result.resourceVersion
 		case <-time.After(start.Add(fu.timeout).Sub(now)):
-			return fmt.Errorf("failed to finish all operations in %v", fu.timeout)
+			timedOut = true
+			break
 		}
 	}
-	// All operations finished in time.
-	return nil
+
+	if timedOut {
+		errors = append(errors, fmt.Errorf("Failed to finish all operations in %v", fu.timeout))
+	}
+
+	return versions, errors
 }

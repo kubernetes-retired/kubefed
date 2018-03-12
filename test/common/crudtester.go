@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/marun/fnord/pkg/apis/federation/common"
+	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
 	"github.com/marun/fnord/pkg/federatedtypes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,6 +65,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.Fe
 func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) {
 	template, placement, override := c.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
 
+	// TOOD(marun) Make sure these next steps work!!
 	c.CheckUpdate(template, placement, override)
 	c.CheckPlacementChange(template, placement, override)
 
@@ -75,9 +78,32 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlaceme
 func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
 	templateAdapter := c.adapter.Template()
 	template := c.createFedResource(templateAdapter, desiredTemplate)
+	templateMeta := templateAdapter.ObjectMeta(template)
+
 	// Test objects may use GenerateName.  Use the name of the
 	// template resource for other resources.
-	name := templateAdapter.ObjectMeta(template).Name
+	name := templateMeta.Name
+
+	// qualifiedName := federatedtypes.NewQualifiedName(template)
+	// resourceVersion := templateMeta.ResourceVersion
+	// // Wait for the controller to add a finalizer to the template
+	// err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+	// 	template, err := templateAdapter.Get(qualifiedName)
+	// 	if errors.IsNotFound(err) {
+	// 		return false, nil
+	// 	}
+	// 	if err == nil {
+	// 		version := templateAdapter.ObjectMeta(template).ResourceVersion
+	// 		// Updated version indicates the finalizer has been added
+	// 		if resourceVersion != version {
+	// 			return true, nil
+	// 		}
+	// 	}
+	// 	return false, err
+	// })
+	// if err != nil {
+	// 	c.tl.Fatalf("Error waiting for deletion finalizer to be added for %s %q: %v", c.kind, qualifiedName, err)
+	// }
 
 	placementAdapter := c.adapter.Placement()
 	c.setFedResourceName(placementAdapter, desiredPlacement, name)
@@ -119,6 +145,13 @@ func (c *FederatedTypeCrudTester) createFedResource(adapter federatedtypes.FedAp
 
 func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
 	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
+
+	c.tl.Logf("Resource versions for %s: template %q, placement %q, override %q",
+		federatedtypes.NewQualifiedName(template),
+		c.adapter.Template().ObjectMeta(template).ResourceVersion,
+		c.adapter.Placement().ObjectMeta(placement).ResourceVersion,
+		c.adapter.Override().ObjectMeta(override).ResourceVersion,
+	)
 
 	c.CheckPropagation(template, placement, override)
 
@@ -224,6 +257,13 @@ func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 		c.tl.Fatalf("Error deleting %s %q: %v", c.kind, qualifiedName, err)
 	}
 
+	// Version tracker should also be removed
+	versionName := c.versionName(qualifiedName.Name)
+	_, err = c.adapter.FedClient().FederationV1alpha1().PropagatedVersions(qualifiedName.Namespace).Get(versionName, metav1.GetOptions{})
+	if !errors.IsNotFound(err) {
+		c.tl.Fatalf("Expecting PropagatedVersion %s to be deleted", versionName)
+	}
+
 	var stateMsg string = "present"
 	if deletingInCluster {
 		stateMsg = "not present"
@@ -249,6 +289,11 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	clusterNames := c.adapter.Placement().ClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
 
+	version, err := c.waitForPropagatedVersion(template, placement, override)
+	if err != nil {
+		c.tl.Fatalf("Error waiting for propagated version for %s %q: %v", c.kind, qualifiedName, err)
+	}
+
 	// TODO(marun) run checks in parallel
 	for clusterName, client := range c.clusterClients {
 		objExpected := selectedClusters.Has(clusterName)
@@ -259,9 +304,12 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		}
 		c.tl.Logf("Waiting for %s %q %s cluster %q", c.kind, qualifiedName, operation, clusterName)
 
+		expectedVersion := propagatedVersion(version, clusterName)
 		if objExpected {
-			expectedObj := c.adapter.ObjectForCluster(template, override, clusterName)
-			err := c.waitForResource(client, expectedObj)
+			if expectedVersion == "" {
+				c.tl.Fatalf("Failed to determine expected resource version of %s %q in cluster %q.", c.kind, qualifiedName, clusterName)
+			}
+			err := c.waitForResource(client, qualifiedName, expectedVersion)
 			switch {
 			case err == wait.ErrWaitTimeout:
 				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", c.kind, qualifiedName, clusterName, err)
@@ -269,7 +317,12 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", c.kind, qualifiedName, clusterName, err)
 			}
 		} else {
+			if expectedVersion != "" {
+				c.tl.Fatalf("Expected resource version for %s %q in cluster %q to be removed", c.kind, qualifiedName, clusterName)
+			}
 			err := c.waitForResourceDeletion(client, qualifiedName)
+			// Once resource deletion is complete, wait for the status to reflect the deletion
+
 			switch {
 			case err == wait.ErrWaitTimeout:
 				if objExpected {
@@ -283,12 +336,11 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client clientset.Interface, expectedObj pkgruntime.Object) error {
-	qualifiedName := federatedtypes.NewQualifiedName(expectedObj)
+func (c *FederatedTypeCrudTester) waitForResource(client clientset.Interface, qualifiedName federatedtypes.QualifiedName, expectedVersion string) error {
 	targetAdapter := c.adapter.Target()
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		clusterObj, err := targetAdapter.Get(client, qualifiedName)
-		if err == nil && targetAdapter.Equivalent(clusterObj, expectedObj) {
+		if err == nil && targetAdapter.ObjectMeta(clusterObj).ResourceVersion == expectedVersion {
 			return true, nil
 		}
 		if errors.IsNotFound(err) {
@@ -329,4 +381,64 @@ func (c *FederatedTypeCrudTester) updateFedObject(adapter federatedtypes.FedApiA
 		return (err == nil), err
 	})
 	return obj, err
+}
+
+func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override pkgruntime.Object) (*fedv1a1.PropagatedVersion, error) {
+	templateMeta := c.adapter.Template().ObjectMeta(template)
+	templateQualifiedName := federatedtypes.NewQualifiedName(template)
+	overrideMeta := c.adapter.Override().ObjectMeta(override)
+	overrideVersion := overrideMeta.ResourceVersion
+
+	client := c.adapter.FedClient()
+	namespace := templateMeta.Namespace
+	name := c.versionName(templateMeta.Name)
+
+	clusterNames := c.adapter.Placement().ClusterNames(placement)
+	selectedClusters := sets.NewString(clusterNames...)
+
+	var version *fedv1a1.PropagatedVersion
+	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+		var err error
+		version, err = client.FederationV1alpha1().PropagatedVersions(namespace).Get(name, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		template, err := c.adapter.Template().Get(templateQualifiedName)
+		if err != nil {
+			return false, err
+		}
+		templateVersion := c.adapter.Template().ObjectMeta(template).ResourceVersion
+		if version.Status.TemplateVersion == templateVersion && version.Status.OverrideVersion == overrideVersion {
+			// Check that the list of clusters propagated to matches the list of selected clusters
+			propagatedClusters := sets.String{}
+			for _, clusterVersion := range version.Status.ClusterVersions {
+				propagatedClusters.Insert(clusterVersion.ClusterName)
+			}
+			if propagatedClusters.Equal(selectedClusters) {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return version, nil
+}
+
+func (c *FederatedTypeCrudTester) versionName(resourceName string) string {
+	targetKind := c.adapter.Target().Kind()
+	return common.PropagatedVersionName(targetKind, resourceName)
+}
+
+func propagatedVersion(version *fedv1a1.PropagatedVersion, clusterName string) string {
+	for _, clusterVersion := range version.Status.ClusterVersions {
+		if clusterVersion.ClusterName == clusterName {
+			return clusterVersion.ResourceVersion
+		}
+	}
+	return ""
 }

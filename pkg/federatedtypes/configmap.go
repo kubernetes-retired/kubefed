@@ -46,6 +46,10 @@ func NewFederatedConfigMapAdapter(client fedclientset.Interface) FederatedTypeAd
 	return &FederatedConfigMapAdapter{client: client}
 }
 
+func (a *FederatedConfigMapAdapter) FedClient() fedclientset.Interface {
+	return a.client
+}
+
 func (a *FederatedConfigMapAdapter) Template() FedApiAdapter {
 	return NewFederatedConfigMapTemplate(a.client)
 }
@@ -259,12 +263,6 @@ func (ConfigMapAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (ConfigMapAdapter) ObjectType() pkgruntime.Object {
 	return &corev1.ConfigMap{}
-}
-
-func (ConfigMapAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
-	configMap1 := obj1.(*corev1.ConfigMap)
-	configMap2 := obj2.(*corev1.ConfigMap)
-	return util.ConfigMapEquivalent(configMap1, configMap2)
 }
 
 func (ConfigMapAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
