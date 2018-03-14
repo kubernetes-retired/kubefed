@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
 	"log"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
@@ -47,6 +46,8 @@ type FederatedNamespace struct {
 
 // FederatedNamespaceSpec defines the desired state of FederatedNamespace
 type FederatedNamespaceSpec struct {
+	// Template to derive per-cluster namespace from
+	Template corev1.Namespace `json:"status,omitempty"`
 }
 
 // FederatedNamespaceStatus defines the observed state of FederatedNamespace
