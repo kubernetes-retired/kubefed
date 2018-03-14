@@ -1,0 +1,5 @@
+apiVersion: federation.k8s.io/v1alpha1
+kind: FederatedNamespacePlacement
+metadata:
+  name: federatednamespaceplacement-example
+spec:
