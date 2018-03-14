@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -14,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 
 package v1alpha1
 
@@ -47,6 +45,8 @@ type FederatedNamespacePlacement struct {
 
 // FederatedNamespacePlacementSpec defines the desired state of FederatedNamespacePlacement
 type FederatedNamespacePlacementSpec struct {
+	// Names of the clusters that a federated resource should exist in.
+	ClusterNames []string `json:"clusternames,omitempty"`
 }
 
 // FederatedNamespacePlacementStatus defines the observed state of FederatedNamespacePlacement
