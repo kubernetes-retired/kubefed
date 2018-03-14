@@ -46,6 +46,10 @@ type FederatedConfigMapPlacementListerExpansion interface{}
 // FederatedConfigMapPlacementNamespaceLister.
 type FederatedConfigMapPlacementNamespaceListerExpansion interface{}
 
+// FederatedNamespaceListerExpansion allows custom methods to be added to
+// FederatedNamespaceLister.
+type FederatedNamespaceListerExpansion interface{}
+
 // FederatedReplicaSetListerExpansion allows custom methods to be added to
 // FederatedReplicaSetLister.
 type FederatedReplicaSetListerExpansion interface{}

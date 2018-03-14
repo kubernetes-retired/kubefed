@@ -23,6 +23,8 @@ type FederatedConfigMapOverrideExpansion interface{}
 
 type FederatedConfigMapPlacementExpansion interface{}
 
+type FederatedNamespaceExpansion interface{}
+
 type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}
