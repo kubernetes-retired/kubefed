@@ -83,9 +83,12 @@ func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desi
 	c.setFedResourceName(placementAdapter, desiredPlacement, name)
 	placement := c.createFedResource(placementAdapter, desiredPlacement)
 
+	var override pkgruntime.Object
 	overrideAdapter := c.adapter.Override()
-	c.setFedResourceName(overrideAdapter, desiredOverride, name)
-	override := c.createFedResource(overrideAdapter, desiredOverride)
+	if overrideAdapter != nil {
+		c.setFedResourceName(overrideAdapter, desiredOverride, name)
+		override = c.createFedResource(overrideAdapter, desiredOverride)
+	}
 
 	return template, placement, override
 }
