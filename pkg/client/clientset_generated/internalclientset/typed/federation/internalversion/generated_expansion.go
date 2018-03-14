@@ -29,6 +29,8 @@ type FederatedDeploymentOverrideExpansion interface{}
 
 type FederatedDeploymentPlacementExpansion interface{}
 
+type FederatedNamespacePlacementExpansion interface{}
+
 type FederatedReplicaSetExpansion interface{}
 
 type FederatedReplicaSetOverrideExpansion interface{}
