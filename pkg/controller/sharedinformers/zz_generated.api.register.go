@@ -55,6 +55,7 @@ func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	go si.Factory.Federation().V1alpha1().FederatedConfigMapOverrides().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedConfigMapPlacements().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedNamespaces().Informer().Run(shutdown)
+	go si.Factory.Federation().V1alpha1().FederatedNamespacePlacements().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedReplicaSets().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedReplicaSetOverrides().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedReplicaSetPlacements().Informer().Run(shutdown)
