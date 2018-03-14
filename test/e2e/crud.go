@@ -44,6 +44,10 @@ var _ = Describe("Federated types", func() {
 
 				userAgent := fmt.Sprintf("crud-test-%s", kind)
 				adapter := fedTypeConfig.AdapterFactory(f.FedClient(userAgent))
+				namespaceAdapter, ok := adapter.(*federatedtypes.FederatedNamespaceAdapter)
+				if ok {
+					namespaceAdapter.SetKubeClient(f.KubeClient(userAgent))
+				}
 				clusterClients := f.ClusterClients(userAgent)
 				crudTester := common.NewFederatedTypeCrudTester(framework.NewE2ELogger(), adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
 				clusterNames := []string{}
