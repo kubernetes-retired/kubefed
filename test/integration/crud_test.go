@@ -37,6 +37,12 @@ func TestCrud(t *testing.T) {
 
 	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
 	for kind, fedTypeConfig := range fedTypeConfigs {
+		// TODO (font): integration tests for FederatedNamespace does not work
+		// until namespace controller is added.
+		if kind == federatedtypes.FederatedNamespaceKind {
+			continue
+		}
+
 		t.Run(kind, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
 			fixture, crudTester, template, placement, override := initCrudTest(tl, fedFixture, fedTypeConfig.AdapterFactory, kind)
