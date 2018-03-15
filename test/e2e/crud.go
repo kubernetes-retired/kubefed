@@ -39,6 +39,14 @@ var _ = Describe("Federated types", func() {
 
 		Describe(fmt.Sprintf("%q resources", kind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
+				// TODO (font): e2e tests for federated Namespace using a
+				// test managed federation does not work until k8s
+				// namespace controller is added.
+				if framework.TestContext.TestManagedFederation &&
+					kind == federatedtypes.NamespaceKind {
+					framework.Skipf("%s not supported for test managed federation", kind)
+				}
+
 				// Initialize an in-memory controller if configuration requires
 				f.SetUpControllerFixture(kind, fedTypeConfig.AdapterFactory)
 
