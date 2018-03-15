@@ -26,34 +26,43 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("Federated types", func() {
-	f := framework.NewFederationFramework("federated-types")
+func addE2ECrudTests() {
+	Describe("Federated types", func() {
+		f := framework.NewFederationFramework("federated-types")
 
-	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
-	for kind, _ := range fedTypeConfigs {
-		// Bind the type config inside the loop to ensure the ginkgo
-		// closure gets a different value for every loop iteration.
-		//
-		// Reference: https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
-		fedTypeConfig := fedTypeConfigs[kind]
+		fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
+		for kind, _ := range fedTypeConfigs {
+			// TODO (font): e2e tests for FederatedNamespace using a test managed
+			// federation does not work until namespace controller is added.
+			if framework.TestContext.TestManagedFederation &&
+				kind == federatedtypes.FederatedNamespaceKind {
+				continue
+			}
 
-		Describe(fmt.Sprintf("%q resources", kind), func() {
-			It("should be created, read, updated and deleted successfully", func() {
-				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(kind, fedTypeConfig.AdapterFactory)
+			// Bind the type config inside the loop to ensure the ginkgo
+			// closure gets a different value for every loop iteration.
+			//
+			// Reference: https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
+			fedTypeConfig := fedTypeConfigs[kind]
 
-				userAgent := fmt.Sprintf("crud-test-%s", kind)
-				adapter := fedTypeConfig.AdapterFactory(f.FedClient(userAgent))
-				clusterClients := f.ClusterClients(userAgent)
-				crudTester := common.NewFederatedTypeCrudTester(framework.NewE2ELogger(), adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
-				clusterNames := []string{}
-				for name, _ := range clusterClients {
-					clusterNames = append(clusterNames, name)
-				}
-				template, placement, override := federatedtypes.NewTestObjects(fedTypeConfig.Kind, f.TestNamespaceName(), clusterNames)
+			Describe(fmt.Sprintf("%q resources", kind), func() {
+				It("should be created, read, updated and deleted successfully", func() {
+					// Initialize an in-memory controller if configuration requires
+					f.SetUpControllerFixture(kind, fedTypeConfig.AdapterFactory)
 
-				crudTester.CheckLifecycle(template, placement, override)
+					userAgent := fmt.Sprintf("crud-test-%s", kind)
+					adapter := fedTypeConfig.AdapterFactory(f.FedClient(userAgent))
+					clusterClients := f.ClusterClients(userAgent)
+					crudTester := common.NewFederatedTypeCrudTester(framework.NewE2ELogger(), adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
+					clusterNames := []string{}
+					for name, _ := range clusterClients {
+						clusterNames = append(clusterNames, name)
+					}
+					template, placement, override := federatedtypes.NewTestObjects(fedTypeConfig.Kind, f.TestNamespaceName(), clusterNames)
+
+					crudTester.CheckLifecycle(template, placement, override)
+				})
 			})
-		})
-	}
-})
+		}
+	})
+}
