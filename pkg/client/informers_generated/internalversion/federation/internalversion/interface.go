@@ -32,6 +32,10 @@ type Interface interface {
 	FederatedConfigMapOverrides() FederatedConfigMapOverrideInformer
 	// FederatedConfigMapPlacements returns a FederatedConfigMapPlacementInformer.
 	FederatedConfigMapPlacements() FederatedConfigMapPlacementInformer
+	// FederatedNamespaces returns a FederatedNamespaceInformer.
+	FederatedNamespaces() FederatedNamespaceInformer
+	// FederatedNamespacePlacements returns a FederatedNamespacePlacementInformer.
+	FederatedNamespacePlacements() FederatedNamespacePlacementInformer
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
 	FederatedReplicaSets() FederatedReplicaSetInformer
 	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
@@ -75,6 +79,16 @@ func (v *version) FederatedConfigMapOverrides() FederatedConfigMapOverrideInform
 // FederatedConfigMapPlacements returns a FederatedConfigMapPlacementInformer.
 func (v *version) FederatedConfigMapPlacements() FederatedConfigMapPlacementInformer {
 	return &federatedConfigMapPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedNamespaces returns a FederatedNamespaceInformer.
+func (v *version) FederatedNamespaces() FederatedNamespaceInformer {
+	return &federatedNamespaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedNamespacePlacements returns a FederatedNamespacePlacementInformer.
+func (v *version) FederatedNamespacePlacements() FederatedNamespacePlacementInformer {
+	return &federatedNamespacePlacementInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.
