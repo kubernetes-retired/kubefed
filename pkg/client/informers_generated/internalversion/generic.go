@@ -60,10 +60,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedConfigMapOverrides().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedconfigmapplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedConfigMapPlacements().Informer()}, nil
-	case federation.SchemeGroupVersion.WithResource("federatednamespaces"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedNamespaces().Informer()}, nil
-	case federation.SchemeGroupVersion.WithResource("federatednamespaceplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedNamespacePlacements().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedreplicasets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedReplicaSets().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedreplicasetoverrides"):
