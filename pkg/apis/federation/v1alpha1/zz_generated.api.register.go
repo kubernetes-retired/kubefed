@@ -55,20 +55,6 @@ var (
 		func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
 		&FederatedConfigMapPlacementStrategy{builders.StorageStrategySingleton},
 	)
-	federationFederatedNamespaceStorage = builders.NewApiResource( // Resource status endpoint
-		federation.InternalFederatedNamespace,
-		FederatedNamespaceSchemeFns{},
-		func() runtime.Object { return &FederatedNamespace{} },     // Register versioned resource
-		func() runtime.Object { return &FederatedNamespaceList{} }, // Register versioned resource list
-		&FederatedNamespaceStrategy{builders.StorageStrategySingleton},
-	)
-	federationFederatedNamespacePlacementStorage = builders.NewApiResource( // Resource status endpoint
-		federation.InternalFederatedNamespacePlacement,
-		FederatedNamespacePlacementSchemeFns{},
-		func() runtime.Object { return &FederatedNamespacePlacement{} },     // Register versioned resource
-		func() runtime.Object { return &FederatedNamespacePlacementList{} }, // Register versioned resource list
-		&FederatedNamespacePlacementStrategy{builders.StorageStrategySingleton},
-	)
 	federationFederatedReplicaSetStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedReplicaSet,
 		FederatedReplicaSetSchemeFns{},
@@ -140,20 +126,6 @@ var (
 			func() runtime.Object { return &FederatedConfigMapPlacement{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
 			&FederatedConfigMapPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
-		), federationFederatedNamespaceStorage,
-		builders.NewApiResource( // Resource status endpoint
-			federation.InternalFederatedNamespaceStatus,
-			FederatedNamespaceSchemeFns{},
-			func() runtime.Object { return &FederatedNamespace{} },     // Register versioned resource
-			func() runtime.Object { return &FederatedNamespaceList{} }, // Register versioned resource list
-			&FederatedNamespaceStatusStrategy{builders.StatusStorageStrategySingleton},
-		), federationFederatedNamespacePlacementStorage,
-		builders.NewApiResource( // Resource status endpoint
-			federation.InternalFederatedNamespacePlacementStatus,
-			FederatedNamespacePlacementSchemeFns{},
-			func() runtime.Object { return &FederatedNamespacePlacement{} },     // Register versioned resource
-			func() runtime.Object { return &FederatedNamespacePlacementList{} }, // Register versioned resource list
-			&FederatedNamespacePlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedReplicaSetStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedReplicaSetStatus,
@@ -319,58 +291,6 @@ type FederatedConfigMapPlacementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedConfigMapPlacement `json:"items"`
-}
-
-//
-// FederatedNamespace Functions and Structs
-//
-// +k8s:deepcopy-gen=false
-type FederatedNamespaceSchemeFns struct {
-	builders.DefaultSchemeFns
-}
-
-// +k8s:deepcopy-gen=false
-type FederatedNamespaceStrategy struct {
-	builders.DefaultStorageStrategy
-}
-
-// +k8s:deepcopy-gen=false
-type FederatedNamespaceStatusStrategy struct {
-	builders.DefaultStatusStorageStrategy
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedNamespaceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederatedNamespace `json:"items"`
-}
-
-//
-// FederatedNamespacePlacement Functions and Structs
-//
-// +k8s:deepcopy-gen=false
-type FederatedNamespacePlacementSchemeFns struct {
-	builders.DefaultSchemeFns
-}
-
-// +k8s:deepcopy-gen=false
-type FederatedNamespacePlacementStrategy struct {
-	builders.DefaultStorageStrategy
-}
-
-// +k8s:deepcopy-gen=false
-type FederatedNamespacePlacementStatusStrategy struct {
-	builders.DefaultStatusStorageStrategy
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedNamespacePlacementList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederatedNamespacePlacement `json:"items"`
 }
 
 //

@@ -24,7 +24,6 @@ import (
 
 func init() {
 	framework.ParseFlags()
-	addE2ECrudTests()
 }
 
 func TestE2E(t *testing.T) {

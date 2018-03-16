@@ -41,8 +41,6 @@ var federationApiGroup = builders.NewApiGroupBuilder(
 	).
 	WithRootScopedKinds(
 		"FederatedCluster",
-		"FederatedNamespace",
-		"FederatedNamespacePlacement",
 	)
 
 func GetFederationAPIBuilder() *builders.APIGroupBuilder {
