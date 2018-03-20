@@ -17,6 +17,7 @@ limitations under the License.
 package federatedtypes
 
 import (
+	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -27,6 +28,7 @@ import (
 // the component resources of a federated type and its non-federated
 // target resource in member clusters.
 type FederatedTypeAdapter interface {
+	FedClient() fedclientset.Interface
 	Template() FedApiAdapter
 	Placement() PlacementAdapter
 	Override() OverrideAdapter
@@ -65,8 +67,6 @@ type OverrideAdapter interface {
 
 type TargetAdapter interface {
 	MetaAdapter
-
-	Equivalent(obj1, obj2 pkgruntime.Object) bool
 
 	// Client methods for accessing the type in member clusters
 	Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error)

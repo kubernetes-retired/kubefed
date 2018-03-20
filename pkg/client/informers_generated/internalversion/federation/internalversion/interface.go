@@ -44,6 +44,8 @@ type Interface interface {
 	FederatedSecretOverrides() FederatedSecretOverrideInformer
 	// FederatedSecretPlacements returns a FederatedSecretPlacementInformer.
 	FederatedSecretPlacements() FederatedSecretPlacementInformer
+	// PropagatedVersions returns a PropagatedVersionInformer.
+	PropagatedVersions() PropagatedVersionInformer
 }
 
 type version struct {
@@ -105,4 +107,9 @@ func (v *version) FederatedSecretOverrides() FederatedSecretOverrideInformer {
 // FederatedSecretPlacements returns a FederatedSecretPlacementInformer.
 func (v *version) FederatedSecretPlacements() FederatedSecretPlacementInformer {
 	return &federatedSecretPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// PropagatedVersions returns a PropagatedVersionInformer.
+func (v *version) PropagatedVersions() PropagatedVersionInformer {
+	return &propagatedVersionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

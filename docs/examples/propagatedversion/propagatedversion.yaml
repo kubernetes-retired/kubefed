@@ -1,0 +1,7 @@
+note: PropagatedVersion Example
+sample: |
+  apiVersion: federation.k8s.io/v1alpha1
+  kind: PropagatedVersion
+  metadata:
+    name: propagatedversion-example
+  spec:

@@ -34,3 +34,5 @@ type FederatedSecretExpansion interface{}
 type FederatedSecretOverrideExpansion interface{}
 
 type FederatedSecretPlacementExpansion interface{}
+
+type PropagatedVersionExpansion interface{}

@@ -45,6 +45,10 @@ func NewFederatedSecretAdapter(client fedclientset.Interface) FederatedTypeAdapt
 	return &FederatedSecretAdapter{client: client}
 }
 
+func (a *FederatedSecretAdapter) FedClient() fedclientset.Interface {
+	return a.client
+}
+
 func (a *FederatedSecretAdapter) Template() FedApiAdapter {
 	return NewFederatedSecretTemplate(a.client)
 }
@@ -259,12 +263,6 @@ func (SecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (SecretAdapter) ObjectType() pkgruntime.Object {
 	return &corev1.Secret{}
-}
-
-func (SecretAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
-	secret1 := obj1.(*corev1.Secret)
-	secret2 := obj2.(*corev1.Secret)
-	return util.SecretEquivalent(*secret1, *secret2)
 }
 
 func (SecretAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

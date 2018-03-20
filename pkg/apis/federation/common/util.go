@@ -13,26 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package v1alpha1
 
-type FederatedClusterExpansion interface{}
+package common
 
-type FederatedConfigMapExpansion interface{}
+import (
+	"fmt"
+	"strings"
+)
 
-type FederatedConfigMapOverrideExpansion interface{}
-
-type FederatedConfigMapPlacementExpansion interface{}
-
-type FederatedReplicaSetExpansion interface{}
-
-type FederatedReplicaSetOverrideExpansion interface{}
-
-type FederatedReplicaSetPlacementExpansion interface{}
-
-type FederatedSecretExpansion interface{}
-
-type FederatedSecretOverrideExpansion interface{}
-
-type FederatedSecretPlacementExpansion interface{}
-
-type PropagatedVersionExpansion interface{}
+func PropagatedVersionName(kind, resourceName string) string {
+	return fmt.Sprintf("%s-%s", strings.ToLower(kind), resourceName)
+}
