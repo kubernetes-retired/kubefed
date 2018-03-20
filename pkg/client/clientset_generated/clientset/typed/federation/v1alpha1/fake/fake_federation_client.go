@@ -65,6 +65,10 @@ func (c *FakeFederationV1alpha1) FederatedSecretPlacements(namespace string) v1a
 	return &FakeFederatedSecretPlacements{c, namespace}
 }
 
+func (c *FakeFederationV1alpha1) PropagatedVersions(namespace string) v1alpha1.PropagatedVersionInterface {
+	return &FakePropagatedVersions{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeFederationV1alpha1) RESTClient() rest.Interface {

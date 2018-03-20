@@ -32,6 +32,7 @@ type FederationInterface interface {
 	FederatedSecretsGetter
 	FederatedSecretOverridesGetter
 	FederatedSecretPlacementsGetter
+	PropagatedVersionsGetter
 }
 
 // FederationClient is used to interact with features provided by the federation.k8s.io group.
@@ -77,6 +78,10 @@ func (c *FederationClient) FederatedSecretOverrides(namespace string) FederatedS
 
 func (c *FederationClient) FederatedSecretPlacements(namespace string) FederatedSecretPlacementInterface {
 	return newFederatedSecretPlacements(c, namespace)
+}
+
+func (c *FederationClient) PropagatedVersions(namespace string) PropagatedVersionInterface {
+	return newPropagatedVersions(c, namespace)
 }
 
 // NewForConfig creates a new FederationClient for the given config.

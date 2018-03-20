@@ -34,6 +34,7 @@ type FederationV1alpha1Interface interface {
 	FederatedSecretsGetter
 	FederatedSecretOverridesGetter
 	FederatedSecretPlacementsGetter
+	PropagatedVersionsGetter
 }
 
 // FederationV1alpha1Client is used to interact with features provided by the federation.k8s.io group.
@@ -79,6 +80,10 @@ func (c *FederationV1alpha1Client) FederatedSecretOverrides(namespace string) Fe
 
 func (c *FederationV1alpha1Client) FederatedSecretPlacements(namespace string) FederatedSecretPlacementInterface {
 	return newFederatedSecretPlacements(c, namespace)
+}
+
+func (c *FederationV1alpha1Client) PropagatedVersions(namespace string) PropagatedVersionInterface {
+	return newPropagatedVersions(c, namespace)
 }
 
 // NewForConfig creates a new FederationV1alpha1Client for the given config.
