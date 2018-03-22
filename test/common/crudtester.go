@@ -207,11 +207,27 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 
 	clusterNames := adapter.ClusterNames(placement)
 
+	// TODO (font): Also check to see if this single cluster is the host
+	// cluster as that's really the only time we want to skip when there's only
+	// 1 cluster. Skipping avoids deleting the namespace from the entire
+	// federation by removing this single cluster from the placement, because
+	// if deleted, this fails the next CheckDelete test.
+	if kind == federatedtypes.FederatedNamespacePlacementKind && len(clusterNames) == 1 {
+		c.tl.Logf("Skipping %s placement update for %q due to single primary cluster",
+			kind, qualifiedName)
+		return
+	}
+
 	c.tl.Logf("Updating %s %q", kind, qualifiedName)
 	updatedPlacement, err := c.updateFedObject(adapter, placement, func(placement pkgruntime.Object) {
 		clusterNames := adapter.ClusterNames(placement)
 		// Remove a cluster name
-		clusterNames = append(clusterNames[:0], clusterNames[1:]...)
+		// TODO (font): Make sure to not remove the host cluster when testing
+		// namespaces. We assume the host cluster is first in the list so
+		// instead we always keep it and remove the last value. If we remove
+		// the host cluster when testing namespaces, it will delete the
+		// namespace from the entire federation.
+		clusterNames = clusterNames[:len(clusterNames)-1]
 		adapter.SetClusterNames(placement, clusterNames)
 	})
 	if err != nil {
