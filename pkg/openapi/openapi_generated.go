@@ -763,7 +763,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapSpec defines the desired state of FederatedConfigMap",
 					Properties: map[string]spec.Schema{
-						"status": {
+						"template": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Template to derive per-cluster configmap from",
 								Ref:         ref("k8s.io/api/core/v1.ConfigMap"),
