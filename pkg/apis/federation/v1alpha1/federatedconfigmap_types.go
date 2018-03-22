@@ -46,7 +46,7 @@ type FederatedConfigMap struct {
 // FederatedConfigMapSpec defines the desired state of FederatedConfigMap
 type FederatedConfigMapSpec struct {
 	// Template to derive per-cluster configmap from
-	Template corev1.ConfigMap `json:"status,omitempty"`
+	Template corev1.ConfigMap `json:"template,omitempty"`
 }
 
 // FederatedConfigMapStatus defines the observed state of FederatedConfigMap
