@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,17 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
 	"log"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/marun/fnord/pkg/apis/federation"
 )
@@ -46,6 +44,7 @@ type FederatedDeployment struct {
 
 // FederatedDeploymentSpec defines the desired state of FederatedDeployment
 type FederatedDeploymentSpec struct {
+	Template appsv1.Deployment `json:"template,omitempty"`
 }
 
 // FederatedDeploymentStatus defines the observed state of FederatedDeployment
