@@ -25,6 +25,7 @@ import (
 	"github.com/marun/fnord/pkg/controller/federatedconfigmapplacement"
 	"github.com/marun/fnord/pkg/controller/federateddeployment"
 	"github.com/marun/fnord/pkg/controller/federateddeploymentoverride"
+	"github.com/marun/fnord/pkg/controller/federateddeploymentplacement"
 	"github.com/marun/fnord/pkg/controller/federatedreplicaset"
 	"github.com/marun/fnord/pkg/controller/federatedreplicasetoverride"
 	"github.com/marun/fnord/pkg/controller/federatedreplicasetplacement"
@@ -45,6 +46,7 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 		federatedconfigmapplacement.NewFederatedConfigMapPlacementController(config, si),
 		federateddeployment.NewFederatedDeploymentController(config, si),
 		federateddeploymentoverride.NewFederatedDeploymentOverrideController(config, si),
+		federateddeploymentplacement.NewFederatedDeploymentPlacementController(config, si),
 		federatedreplicaset.NewFederatedReplicaSetController(config, si),
 		federatedreplicasetoverride.NewFederatedReplicaSetOverrideController(config, si),
 		federatedreplicasetplacement.NewFederatedReplicaSetPlacementController(config, si),

@@ -62,6 +62,14 @@ type FederatedDeploymentOverrideListerExpansion interface{}
 // FederatedDeploymentOverrideNamespaceLister.
 type FederatedDeploymentOverrideNamespaceListerExpansion interface{}
 
+// FederatedDeploymentPlacementListerExpansion allows custom methods to be added to
+// FederatedDeploymentPlacementLister.
+type FederatedDeploymentPlacementListerExpansion interface{}
+
+// FederatedDeploymentPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedDeploymentPlacementNamespaceLister.
+type FederatedDeploymentPlacementNamespaceListerExpansion interface{}
+
 // FederatedReplicaSetListerExpansion allows custom methods to be added to
 // FederatedReplicaSetLister.
 type FederatedReplicaSetListerExpansion interface{}
