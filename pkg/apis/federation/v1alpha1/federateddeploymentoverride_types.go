@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -14,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 
 package v1alpha1
 
@@ -46,6 +44,15 @@ type FederatedDeploymentOverride struct {
 
 // FederatedDeploymentOverrideSpec defines the desired state of FederatedDeploymentOverride
 type FederatedDeploymentOverrideSpec struct {
+	Overrides []FederatedDeploymentClusterOverride
+}
+
+// FederatedReplicaSetClusterOverride defines the overrides for a named cluster
+type FederatedDeploymentClusterOverride struct {
+	// TODO(marun) Need to ensure that a cluster name only appears
+	// once.  Why can't maps be used so this validation is automatic?
+	ClusterName string
+	Replicas    *int32 `json:"replicas,omitempty"`
 }
 
 // FederatedDeploymentOverrideStatus defines the observed state of FederatedDeploymentOverride
