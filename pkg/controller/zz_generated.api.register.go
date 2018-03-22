@@ -23,6 +23,7 @@ import (
 	"github.com/marun/fnord/pkg/controller/federatedconfigmap"
 	"github.com/marun/fnord/pkg/controller/federatedconfigmapoverride"
 	"github.com/marun/fnord/pkg/controller/federatedconfigmapplacement"
+	"github.com/marun/fnord/pkg/controller/federateddeployment"
 	"github.com/marun/fnord/pkg/controller/federatedreplicaset"
 	"github.com/marun/fnord/pkg/controller/federatedreplicasetoverride"
 	"github.com/marun/fnord/pkg/controller/federatedreplicasetplacement"
@@ -41,6 +42,7 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 		federatedconfigmap.NewFederatedConfigMapController(config, si),
 		federatedconfigmapoverride.NewFederatedConfigMapOverrideController(config, si),
 		federatedconfigmapplacement.NewFederatedConfigMapPlacementController(config, si),
+		federateddeployment.NewFederatedDeploymentController(config, si),
 		federatedreplicaset.NewFederatedReplicaSetController(config, si),
 		federatedreplicasetoverride.NewFederatedReplicaSetOverrideController(config, si),
 		federatedreplicasetplacement.NewFederatedReplicaSetPlacementController(config, si),

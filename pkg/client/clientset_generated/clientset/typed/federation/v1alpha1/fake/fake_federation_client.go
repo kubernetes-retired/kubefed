@@ -41,6 +41,10 @@ func (c *FakeFederationV1alpha1) FederatedConfigMapPlacements(namespace string) 
 	return &FakeFederatedConfigMapPlacements{c, namespace}
 }
 
+func (c *FakeFederationV1alpha1) FederatedDeployments(namespace string) v1alpha1.FederatedDeploymentInterface {
+	return &FakeFederatedDeployments{c, namespace}
+}
+
 func (c *FakeFederationV1alpha1) FederatedReplicaSets(namespace string) v1alpha1.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }
