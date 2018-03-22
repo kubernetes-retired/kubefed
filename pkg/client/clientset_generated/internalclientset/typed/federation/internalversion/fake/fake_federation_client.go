@@ -45,6 +45,10 @@ func (c *FakeFederation) FederatedDeployments(namespace string) internalversion.
 	return &FakeFederatedDeployments{c, namespace}
 }
 
+func (c *FakeFederation) FederatedDeploymentOverrides(namespace string) internalversion.FederatedDeploymentOverrideInterface {
+	return &FakeFederatedDeploymentOverrides{c, namespace}
+}
+
 func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }

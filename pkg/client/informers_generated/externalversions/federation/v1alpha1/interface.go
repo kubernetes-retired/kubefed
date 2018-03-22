@@ -34,6 +34,8 @@ type Interface interface {
 	FederatedConfigMapPlacements() FederatedConfigMapPlacementInformer
 	// FederatedDeployments returns a FederatedDeploymentInformer.
 	FederatedDeployments() FederatedDeploymentInformer
+	// FederatedDeploymentOverrides returns a FederatedDeploymentOverrideInformer.
+	FederatedDeploymentOverrides() FederatedDeploymentOverrideInformer
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
 	FederatedReplicaSets() FederatedReplicaSetInformer
 	// FederatedReplicaSetOverrides returns a FederatedReplicaSetOverrideInformer.
@@ -84,6 +86,11 @@ func (v *version) FederatedConfigMapPlacements() FederatedConfigMapPlacementInfo
 // FederatedDeployments returns a FederatedDeploymentInformer.
 func (v *version) FederatedDeployments() FederatedDeploymentInformer {
 	return &federatedDeploymentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedDeploymentOverrides returns a FederatedDeploymentOverrideInformer.
+func (v *version) FederatedDeploymentOverrides() FederatedDeploymentOverrideInformer {
+	return &federatedDeploymentOverrideInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.
