@@ -46,7 +46,7 @@ type FederatedSecret struct {
 // FederatedSecretSpec defines the desired state of FederatedSecret
 type FederatedSecretSpec struct {
 	// Template to derive per-cluster secret from
-	Template corev1.Secret
+	Template corev1.Secret `json:"template,omitempty"`
 }
 
 // FederatedSecretStatus defines the observed state of FederatedSecret
