@@ -1369,14 +1369,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretClusterOverride defines the overrides for a named cluster",
 					Properties: map[string]spec.Schema{
-						"ClusterName": {
+						"clustername": {
 							SchemaProps: spec.SchemaProps{
 								Description: "once.  Why can't maps be used so this validation is automatic?",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
-						"Data": {
+						"data": {
 							SchemaProps: spec.SchemaProps{
 								Type: []string{"object"},
 								AdditionalProperties: &spec.SchemaOrBool{
@@ -1390,7 +1390,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"ClusterName", "Data"},
 				},
 			},
 			Dependencies: []string{},
@@ -1787,14 +1786,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretSpec defines the desired state of FederatedSecret",
 					Properties: map[string]spec.Schema{
-						"Template": {
+						"template": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Template to derive per-cluster secret from",
 								Ref:         ref("k8s.io/api/core/v1.Secret"),
 							},
 						},
 					},
-					Required: []string{"Template"},
 				},
 			},
 			Dependencies: []string{
