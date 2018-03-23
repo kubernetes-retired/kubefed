@@ -51,8 +51,8 @@ type FederatedSecretOverrideSpec struct {
 type FederatedSecretClusterOverride struct {
 	// TODO(marun) Need to ensure that a cluster name only appears
 	// once.  Why can't maps be used so this validation is automatic?
-	ClusterName string
-	Data        map[string][]byte
+	ClusterName string            `json:"clustername,omitempty"`
+	Data        map[string][]byte `json:"data,omitempty"`
 }
 
 // FederatedSecretOverrideStatus defines the observed state of FederatedSecretOverride
