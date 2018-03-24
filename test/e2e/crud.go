@@ -43,14 +43,14 @@ var _ = Describe("Federated types", func() {
 				// test managed federation does not work until k8s
 				// namespace controller is added.
 				if framework.TestContext.TestManagedFederation &&
-					kind == federatedtypes.NamespaceKind {
-					framework.Skipf("%s not supported for test managed federation", kind)
+					fedTypeConfig.Kind == federatedtypes.NamespaceKind {
+					framework.Skipf("%s not supported for test managed federation.", fedTypeConfig.Kind)
 				}
 
 				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(kind, fedTypeConfig.AdapterFactory)
+				f.SetUpControllerFixture(fedTypeConfig.Kind, fedTypeConfig.AdapterFactory)
 
-				userAgent := fmt.Sprintf("crud-test-%s", kind)
+				userAgent := fmt.Sprintf("crud-test-%s", fedTypeConfig.Kind)
 				adapter := fedTypeConfig.AdapterFactory(f.FedClient(userAgent))
 				namespaceAdapter, ok := adapter.(*federatedtypes.FederatedNamespaceAdapter)
 				if ok {
