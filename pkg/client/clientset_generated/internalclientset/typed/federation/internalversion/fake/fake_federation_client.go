@@ -41,6 +41,18 @@ func (c *FakeFederation) FederatedConfigMapPlacements(namespace string) internal
 	return &FakeFederatedConfigMapPlacements{c, namespace}
 }
 
+func (c *FakeFederation) FederatedDeployments(namespace string) internalversion.FederatedDeploymentInterface {
+	return &FakeFederatedDeployments{c, namespace}
+}
+
+func (c *FakeFederation) FederatedDeploymentOverrides(namespace string) internalversion.FederatedDeploymentOverrideInterface {
+	return &FakeFederatedDeploymentOverrides{c, namespace}
+}
+
+func (c *FakeFederation) FederatedDeploymentPlacements(namespace string) internalversion.FederatedDeploymentPlacementInterface {
+	return &FakeFederatedDeploymentPlacements{c, namespace}
+}
+
 func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }

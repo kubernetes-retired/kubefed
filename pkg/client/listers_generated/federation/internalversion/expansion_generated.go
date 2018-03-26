@@ -46,6 +46,30 @@ type FederatedConfigMapPlacementListerExpansion interface{}
 // FederatedConfigMapPlacementNamespaceLister.
 type FederatedConfigMapPlacementNamespaceListerExpansion interface{}
 
+// FederatedDeploymentListerExpansion allows custom methods to be added to
+// FederatedDeploymentLister.
+type FederatedDeploymentListerExpansion interface{}
+
+// FederatedDeploymentNamespaceListerExpansion allows custom methods to be added to
+// FederatedDeploymentNamespaceLister.
+type FederatedDeploymentNamespaceListerExpansion interface{}
+
+// FederatedDeploymentOverrideListerExpansion allows custom methods to be added to
+// FederatedDeploymentOverrideLister.
+type FederatedDeploymentOverrideListerExpansion interface{}
+
+// FederatedDeploymentOverrideNamespaceListerExpansion allows custom methods to be added to
+// FederatedDeploymentOverrideNamespaceLister.
+type FederatedDeploymentOverrideNamespaceListerExpansion interface{}
+
+// FederatedDeploymentPlacementListerExpansion allows custom methods to be added to
+// FederatedDeploymentPlacementLister.
+type FederatedDeploymentPlacementListerExpansion interface{}
+
+// FederatedDeploymentPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedDeploymentPlacementNamespaceLister.
+type FederatedDeploymentPlacementNamespaceListerExpansion interface{}
+
 // FederatedReplicaSetListerExpansion allows custom methods to be added to
 // FederatedReplicaSetLister.
 type FederatedReplicaSetListerExpansion interface{}

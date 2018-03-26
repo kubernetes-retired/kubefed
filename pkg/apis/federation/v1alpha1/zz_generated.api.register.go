@@ -55,6 +55,27 @@ var (
 		func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
 		&FederatedConfigMapPlacementStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedDeploymentStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedDeployment,
+		FederatedDeploymentSchemeFns{},
+		func() runtime.Object { return &FederatedDeployment{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedDeploymentList{} }, // Register versioned resource list
+		&FederatedDeploymentStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedDeploymentOverrideStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedDeploymentOverride,
+		FederatedDeploymentOverrideSchemeFns{},
+		func() runtime.Object { return &FederatedDeploymentOverride{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedDeploymentOverrideList{} }, // Register versioned resource list
+		&FederatedDeploymentOverrideStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedDeploymentPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedDeploymentPlacement,
+		FederatedDeploymentPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedDeploymentPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedDeploymentPlacementList{} }, // Register versioned resource list
+		&FederatedDeploymentPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedReplicaSetStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedReplicaSet,
 		FederatedReplicaSetSchemeFns{},
@@ -133,6 +154,27 @@ var (
 			func() runtime.Object { return &FederatedConfigMapPlacement{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedConfigMapPlacementList{} }, // Register versioned resource list
 			&FederatedConfigMapPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedDeploymentStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedDeploymentStatus,
+			FederatedDeploymentSchemeFns{},
+			func() runtime.Object { return &FederatedDeployment{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedDeploymentList{} }, // Register versioned resource list
+			&FederatedDeploymentStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedDeploymentOverrideStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedDeploymentOverrideStatus,
+			FederatedDeploymentOverrideSchemeFns{},
+			func() runtime.Object { return &FederatedDeploymentOverride{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedDeploymentOverrideList{} }, // Register versioned resource list
+			&FederatedDeploymentOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedDeploymentPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedDeploymentPlacementStatus,
+			FederatedDeploymentPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedDeploymentPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedDeploymentPlacementList{} }, // Register versioned resource list
+			&FederatedDeploymentPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedReplicaSetStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedReplicaSetStatus,
@@ -305,6 +347,84 @@ type FederatedConfigMapPlacementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedConfigMapPlacement `json:"items"`
+}
+
+//
+// FederatedDeployment Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedDeploymentList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedDeployment `json:"items"`
+}
+
+//
+// FederatedDeploymentOverride Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentOverrideSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentOverrideStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentOverrideStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedDeploymentOverrideList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedDeploymentOverride `json:"items"`
+}
+
+//
+// FederatedDeploymentPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedDeploymentPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedDeploymentPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedDeploymentPlacement `json:"items"`
 }
 
 //

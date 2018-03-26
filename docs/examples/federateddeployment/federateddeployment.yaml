@@ -1,0 +1,7 @@
+note: FederatedDeployment Example
+sample: |
+  apiVersion: federation.k8s.io/v1alpha1
+  kind: FederatedDeployment
+  metadata:
+    name: federateddeployment-example
+  spec:
