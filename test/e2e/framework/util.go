@@ -66,6 +66,12 @@ func FailfWithOffset(offset int, format string, args ...interface{}) {
 	ginkgowrapper.Fail(nowStamp()+": "+msg, 1+offset)
 }
 
+func Skipf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	log("INFO", msg)
+	ginkgowrapper.Skip(nowStamp() + ": " + msg)
+}
+
 func ExpectNoError(err error, explain ...interface{}) {
 	ExpectNoErrorWithOffset(1, err, explain...)
 }

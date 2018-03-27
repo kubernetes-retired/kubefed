@@ -124,6 +124,10 @@ func StartFederationSyncController(kind string, adapterFactory federatedtypes.Ad
 	restclient.AddUserAgent(crConfig, userAgent)
 	crClient := crclientset.NewForConfigOrDie(crConfig)
 	adapter := adapterFactory(fedClient)
+	namespaceAdapter, ok := adapter.(*federatedtypes.FederatedNamespaceAdapter)
+	if ok {
+		namespaceAdapter.SetKubeClient(kubeClient)
+	}
 	controller := newFederationSyncController(adapter, fedClient, kubeClient, crClient)
 	if minimizeLatency {
 		controller.minimizeLatency()
@@ -162,7 +166,11 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	}
 	s.templateStore, s.templateController = newFedApiInformer(templateAdapter, deliverObj)
 	s.placementStore, s.placementController = newFedApiInformer(adapter.Placement(), deliverObj)
-	s.overrideStore, s.overrideController = newFedApiInformer(adapter.Override(), deliverObj)
+
+	override := adapter.Override()
+	if override != nil {
+		s.overrideStore, s.overrideController = newFedApiInformer(adapter.Override(), deliverObj)
+	}
 
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
 		&cache.ListWatch{
@@ -270,7 +278,9 @@ func (s *FederationSyncController) minimizeLatency() {
 func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 	go s.templateController.Run(stopChan)
 	go s.placementController.Run(stopChan)
-	go s.overrideController.Run(stopChan)
+	if s.overrideController != nil {
+		go s.overrideController.Run(stopChan)
+	}
 	go s.propagatedVersionController.Run(stopChan)
 	s.informer.Start()
 	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
@@ -399,7 +409,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 
 	meta := templateAdapter.ObjectMeta(template)
 	if meta.DeletionTimestamp != nil {
-		err := s.delete(template, kind, qualifiedName)
+		err := s.delete(template, meta, kind, qualifiedName)
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
 			args := []interface{}{kind, qualifiedName, err}
@@ -428,9 +438,12 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusError
 	}
 
-	override, err := s.objFromCache(s.overrideStore, s.adapter.Override().Kind(), key)
-	if err != nil {
-		return statusError
+	var override pkgruntime.Object
+	if s.overrideStore != nil {
+		override, err = s.objFromCache(s.overrideStore, s.adapter.Override().Kind(), key)
+		if err != nil {
+			return statusError
+		}
 	}
 
 	propagatedVersionKey := federatedtypes.QualifiedName{
@@ -515,14 +528,19 @@ func (s *FederationSyncController) clusterNames() ([]string, error) {
 }
 
 // delete deletes the given resource or returns error if the deletion was not complete.
-func (s *FederationSyncController) delete(template pkgruntime.Object, kind string, qualifiedName federatedtypes.QualifiedName) error {
+func (s *FederationSyncController) delete(template pkgruntime.Object, meta *metav1.ObjectMeta,
+	kind string, qualifiedName federatedtypes.QualifiedName) error {
 	glog.V(3).Infof("Handling deletion of %s %q", kind, qualifiedName)
 
-	// TOD(marun) Perform pre-deletion cleanup for the namespace adapter
-
-	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(template)
+	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(template, meta, kind)
 	if err != nil {
 		return err
+	}
+
+	if kind == federatedtypes.NamespaceKind {
+		// Return immediately if we are a namespace as it will be deleted
+		// simply by removing its finalizers.
+		return nil
 	}
 
 	versionName := s.versionName(qualifiedName.Name)
@@ -764,12 +782,28 @@ func newFedApiInformer(typeAdapter federatedtypes.FedApiAdapter, triggerFunc fun
 	)
 }
 
+// computePlacement computes and returns two arrays of strings containing the
+// set of selected clusters and unselected clusters for the placement adapter
+// type passed in.
 func computePlacement(adapter federatedtypes.PlacementAdapter, placement pkgruntime.Object, clusterNames []string) ([]string, []string) {
 	clusterSet := sets.NewString(clusterNames...)
 	selectedClusterSet := sets.String{}
 	if placement != nil {
+		// If the placement exists, compute the set of selected clusters.
 		selectedClusters := adapter.ClusterNames(placement)
 		selectedClusterSet.Insert(selectedClusters...)
+	} else {
+		// Else, if we are a FederatedNamespacePlacement adapter, process the
+		// placement clusters for this namespace.
+		_, ok := adapter.(*federatedtypes.FederatedNamespacePlacement)
+		if ok {
+			// TODO (font): If other federated resource types exist that
+			// specify this namespace, put this namespace where those resources
+			// are going.
+			// Else, if no other federated resource types exist,
+			// assume all clusters for the namespace placement.
+			selectedClusterSet = clusterSet
+		}
 	}
 	return clusterSet.Intersection(selectedClusterSet).List(), clusterSet.Difference(selectedClusterSet).List()
 }

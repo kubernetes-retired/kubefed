@@ -39,11 +39,23 @@ var _ = Describe("Federated types", func() {
 
 		Describe(fmt.Sprintf("%q resources", kind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(kind, fedTypeConfig.AdapterFactory)
+				// TODO (font): e2e tests for federated Namespace using a
+				// test managed federation does not work until k8s
+				// namespace controller is added.
+				if framework.TestContext.TestManagedFederation &&
+					fedTypeConfig.Kind == federatedtypes.NamespaceKind {
+					framework.Skipf("%s not supported for test managed federation.", fedTypeConfig.Kind)
+				}
 
-				userAgent := fmt.Sprintf("crud-test-%s", kind)
+				// Initialize an in-memory controller if configuration requires
+				f.SetUpControllerFixture(fedTypeConfig.Kind, fedTypeConfig.AdapterFactory)
+
+				userAgent := fmt.Sprintf("crud-test-%s", fedTypeConfig.Kind)
 				adapter := fedTypeConfig.AdapterFactory(f.FedClient(userAgent))
+				namespaceAdapter, ok := adapter.(*federatedtypes.FederatedNamespaceAdapter)
+				if ok {
+					namespaceAdapter.SetKubeClient(f.KubeClient(userAgent))
+				}
 				clusterClients := f.ClusterClients(userAgent)
 				crudTester := common.NewFederatedTypeCrudTester(framework.NewE2ELogger(), adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
 				clusterNames := []string{}

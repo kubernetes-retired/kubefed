@@ -53,6 +53,10 @@ func (c *FakeFederation) FederatedDeploymentPlacements(namespace string) interna
 	return &FakeFederatedDeploymentPlacements{c, namespace}
 }
 
+func (c *FakeFederation) FederatedNamespacePlacements() internalversion.FederatedNamespacePlacementInterface {
+	return &FakeFederatedNamespacePlacements{c}
+}
+
 func (c *FakeFederation) FederatedReplicaSets(namespace string) internalversion.FederatedReplicaSetInterface {
 	return &FakeFederatedReplicaSets{c, namespace}
 }

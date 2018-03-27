@@ -25,6 +25,8 @@ import (
 
 	"github.com/marun/fnord/pkg/controller/util"
 	finalizersutil "github.com/marun/fnord/pkg/controller/util/finalizers"
+	"github.com/marun/fnord/pkg/federatedtypes"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -103,7 +105,8 @@ func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (
 // when done.
 // Callers are expected to keep calling this (with appropriate backoff) until
 // it succeeds.
-func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object) (
+func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object,
+	meta *metav1.ObjectMeta, kind string) (
 	runtime.Object, error) {
 	objName := dh.objNameFunc(obj)
 	glog.V(2).Infof("Handling deletion of federated dependents for object: %s", objName)
@@ -145,6 +148,14 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object) (
 	}
 	operations := make([]util.FederatedOperation, 0)
 	for _, clusterNsObj := range clusterNsObjs {
+		// Skip the update if this object is for the primary cluster as that
+		// namespace will simply be removed after removing its finalizers.
+		if kind == federatedtypes.NamespaceKind {
+			clusterObjUID := clusterNsObj.Object.(*corev1.Namespace).UID
+			if meta.UID == clusterObjUID {
+				continue
+			}
+		}
 		operations = append(operations, util.FederatedOperation{
 			Type:        util.OperationTypeDelete,
 			ClusterName: clusterNsObj.ClusterName,
