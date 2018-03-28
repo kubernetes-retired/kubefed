@@ -36,6 +36,7 @@ type KubernetesApiFixture struct {
 	Host                string
 	SecureConfigFixture *SecureConfigFixture
 	ApiServer           *integration.APIServer
+	IsPrimary           bool
 }
 
 func SetUpKubernetesApiFixture(tl common.TestLogger) *KubernetesApiFixture {

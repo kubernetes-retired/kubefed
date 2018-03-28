@@ -45,7 +45,7 @@ type FederatedTypeCrudTester struct {
 	adapter          federatedtypes.FederatedTypeAdapter
 	kind             string
 	comparisonHelper util.ComparisonHelper
-	clusterClients   map[string]clientset.Interface
+	testClusters     map[string]TestCluster
 	waitInterval     time.Duration
 	// Federation operations will use wait.ForeverTestTimeout.  Any
 	// operation that involves member clusters may take longer due to
@@ -53,7 +53,12 @@ type FederatedTypeCrudTester struct {
 	clusterWaitTimeout time.Duration
 }
 
-func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients map[string]clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
+type TestCluster struct {
+	Client    clientset.Interface
+	IsPrimary bool
+}
+
+func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
 	compare, err := util.NewComparisonHelper(adapter.Target().VersionCompareType())
 	if err != nil {
 		return nil, err
@@ -64,7 +69,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.Fe
 		adapter:            adapter,
 		kind:               adapter.Template().Kind(),
 		comparisonHelper:   compare,
-		clusterClients:     clusterClients,
+		testClusters:       testClusters,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
 	}, nil
@@ -158,7 +163,6 @@ func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override pkgr
 	qualifiedName := federatedtypes.NewQualifiedName(template)
 
 	adapter := c.adapter.Template()
-	kind := adapter.Kind()
 
 	var initialAnnotation string
 	meta := adapter.ObjectMeta(template)
@@ -166,7 +170,7 @@ func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override pkgr
 		initialAnnotation = meta.Annotations[AnnotationTestFederationCrudUpdate]
 	}
 
-	c.tl.Logf("Updating %s %q", kind, qualifiedName)
+	c.tl.Logf("Updating %s %q", c.kind, qualifiedName)
 	updatedTemplate, err := c.updateFedObject(adapter, template, func(template pkgruntime.Object) {
 		// Target the metadata for simplicity (it's type-agnostic)
 		meta := adapter.ObjectMeta(template)
@@ -176,14 +180,14 @@ func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override pkgr
 		meta.Annotations[AnnotationTestFederationCrudUpdate] = "updated"
 	})
 	if err != nil {
-		c.tl.Fatalf("Error updating %s %q: %v", kind, qualifiedName, err)
+		c.tl.Fatalf("Error updating %s %q: %v", c.kind, qualifiedName, err)
 	}
 
 	// updateFedObject is expected to have changed the value of the annotation
 	meta = adapter.ObjectMeta(updatedTemplate)
 	updatedAnnotation := meta.Annotations[AnnotationTestFederationCrudUpdate]
 	if updatedAnnotation == initialAnnotation {
-		c.tl.Fatalf("%s %q not mutated", kind, qualifiedName)
+		c.tl.Fatalf("%s %q not mutated", c.kind, qualifiedName)
 	}
 
 	c.CheckPropagation(updatedTemplate, placement, override)
@@ -200,12 +204,12 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 
 	clusterNames := adapter.ClusterNames(placement)
 
-	// TODO (font): Also check to see if this single cluster is the host
-	// cluster as that's really the only time we want to skip when there's only
-	// 1 cluster. Skipping avoids deleting the namespace from the entire
+	// Skip if we're a namespace, we only have one cluster, and it's the
+	// primary cluster. Skipping avoids deleting the namespace from the entire
 	// federation by removing this single cluster from the placement, because
 	// if deleted, this fails the next CheckDelete test.
-	if kind == federatedtypes.FederatedNamespacePlacementKind && len(clusterNames) == 1 {
+	if kind == federatedtypes.FederatedNamespacePlacementKind && len(clusterNames) == 1 &&
+		clusterNames[0] == c.getPrimaryClusterName() {
 		c.tl.Logf("Skipping %s placement update for %q due to single primary cluster",
 			kind, qualifiedName)
 		return
@@ -214,13 +218,7 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 	c.tl.Logf("Updating %s %q", kind, qualifiedName)
 	updatedPlacement, err := c.updateFedObject(adapter, placement, func(placement pkgruntime.Object) {
 		clusterNames := adapter.ClusterNames(placement)
-		// Remove a cluster name
-		// TODO (font): Make sure to not remove the host cluster when testing
-		// namespaces. We assume the host cluster is first in the list so
-		// instead we always keep it and remove the last value. If we remove
-		// the host cluster when testing namespaces, it will delete the
-		// namespace from the entire federation.
-		clusterNames = clusterNames[:len(clusterNames)-1]
+		c.deleteOneNonPrimaryCluster(&clusterNames)
 		adapter.SetClusterNames(placement, clusterNames)
 	})
 	if err != nil {
@@ -271,7 +269,11 @@ func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 
 	// Version tracker should also be removed
 	versionName := c.versionName(qualifiedName.Name)
-	_, err = c.adapter.FedClient().FederationV1alpha1().PropagatedVersions(qualifiedName.Namespace).Get(versionName, metav1.GetOptions{})
+	if c.kind == federatedtypes.NamespaceKind {
+		_, err = c.adapter.FedClient().FederationV1alpha1().PropagatedVersions(qualifiedName.Name).Get(versionName, metav1.GetOptions{})
+	} else {
+		_, err = c.adapter.FedClient().FederationV1alpha1().PropagatedVersions(qualifiedName.Namespace).Get(versionName, metav1.GetOptions{})
+	}
 	if !errors.IsNotFound(err) {
 		c.tl.Fatalf("Expecting PropagatedVersion %s to be deleted", versionName)
 	}
@@ -281,8 +283,8 @@ func (c *FederatedTypeCrudTester) CheckDelete(obj pkgruntime.Object, orphanDepen
 		stateMsg = "not present"
 	}
 	targetAdapter := c.adapter.Target()
-	for _, client := range c.clusterClients {
-		_, err := targetAdapter.Get(client, qualifiedName)
+	for _, testCluster := range c.testClusters {
+		_, err := targetAdapter.Get(testCluster.Client, qualifiedName)
 		switch {
 		case !deletingInCluster && errors.IsNotFound(err):
 			c.tl.Fatalf("%s %q was unexpectedly deleted from a member cluster", c.kind, qualifiedName)
@@ -301,13 +303,21 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	clusterNames := c.adapter.Placement().ClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
 
+	// If we are a namespace, there is only one cluster, and the cluster is the
+	// host cluster, then do not check for PropagatedVersion as it will never
+	// be created.
+	if c.kind == federatedtypes.NamespaceKind && len(clusterNames) == 1 &&
+		clusterNames[0] == c.getPrimaryClusterName() {
+		return
+	}
+
 	version, err := c.waitForPropagatedVersion(template, placement, override)
 	if err != nil {
 		c.tl.Fatalf("Error waiting for propagated version for %s %q: %v", c.kind, qualifiedName, err)
 	}
 
 	// TODO(marun) run checks in parallel
-	for clusterName, client := range c.clusterClients {
+	for clusterName, testCluster := range c.testClusters {
 		objExpected := selectedClusters.Has(clusterName)
 
 		operation := "to be deleted from"
@@ -316,12 +326,12 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		}
 		c.tl.Logf("Waiting for %s %q %s cluster %q", c.kind, qualifiedName, operation, clusterName)
 
-		expectedVersion := propagatedVersion(version, clusterName)
+		expectedVersion := c.propagatedVersion(version, clusterName)
 		if objExpected {
 			if expectedVersion == "" {
 				c.tl.Fatalf("Failed to determine expected resource version of %s %q in cluster %q.", c.kind, qualifiedName, clusterName)
 			}
-			err := c.waitForResource(client, qualifiedName, expectedVersion)
+			err := c.waitForResource(testCluster.Client, qualifiedName, expectedVersion)
 			switch {
 			case err == wait.ErrWaitTimeout:
 				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", c.kind, qualifiedName, clusterName, err)
@@ -332,7 +342,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 			if expectedVersion != "" {
 				c.tl.Fatalf("Expected resource version for %s %q in cluster %q to be removed", c.kind, qualifiedName, clusterName)
 			}
-			err := c.waitForResourceDeletion(client, qualifiedName)
+			err := c.waitForResourceDeletion(testCluster.Client, qualifiedName)
 			// Once resource deletion is complete, wait for the status to reflect the deletion
 
 			switch {
@@ -343,7 +353,6 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 			case err != nil:
 				c.tl.Fatalf("Failed to verify deletion of %s %q in cluster %q: %v", c.kind, qualifiedName, clusterName, err)
 			}
-
 		}
 	}
 }
@@ -400,10 +409,11 @@ func (c *FederatedTypeCrudTester) updateFedObject(adapter federatedtypes.FedApiA
 func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override pkgruntime.Object) (*fedv1a1.PropagatedVersion, error) {
 	templateMeta := c.adapter.Template().ObjectMeta(template)
 	templateQualifiedName := federatedtypes.NewQualifiedName(template)
+
 	overrideVersion := ""
-	if c.adapter.Override() != nil {
-		overrideMeta := c.adapter.Override().ObjectMeta(override)
-		overrideVersion = overrideMeta.ResourceVersion
+	overrideAdapter := c.adapter.Override()
+	if overrideAdapter != nil {
+		overrideVersion = overrideAdapter.ObjectMeta(override).ResourceVersion
 	}
 
 	client := c.adapter.FedClient()
@@ -412,11 +422,20 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 
 	clusterNames := c.adapter.Placement().ClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
+	if c.kind == federatedtypes.NamespaceKind {
+		// Delete the primary cluster as it will never be included in
+		// PropagatedVersion's list of cluster versions.
+		selectedClusters.Delete(c.getPrimaryClusterName())
+	}
 
 	var version *fedv1a1.PropagatedVersion
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		var err error
-		version, err = client.FederationV1alpha1().PropagatedVersions(namespace).Get(name, metav1.GetOptions{})
+		if c.kind == federatedtypes.NamespaceKind {
+			version, err = client.FederationV1alpha1().PropagatedVersions(templateMeta.Name).Get(name, metav1.GetOptions{})
+		} else {
+			version, err = client.FederationV1alpha1().PropagatedVersions(namespace).Get(name, metav1.GetOptions{})
+		}
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
@@ -451,7 +470,36 @@ func (c *FederatedTypeCrudTester) versionName(resourceName string) string {
 	return common.PropagatedVersionName(targetKind, resourceName)
 }
 
-func propagatedVersion(version *fedv1a1.PropagatedVersion, clusterName string) string {
+func (c *FederatedTypeCrudTester) getPrimaryClusterName() string {
+	for name, testCluster := range c.testClusters {
+		if testCluster.IsPrimary {
+			return name
+		}
+	}
+	return ""
+}
+
+func (c *FederatedTypeCrudTester) deleteOneNonPrimaryCluster(clusterNames *[]string) {
+	primaryClusterName := c.getPrimaryClusterName()
+
+	for i, name := range *clusterNames {
+		if name == primaryClusterName {
+			continue
+		} else {
+			*clusterNames = append((*clusterNames)[:i], (*clusterNames)[i+1:]...)
+			break
+		}
+	}
+}
+
+func (c *FederatedTypeCrudTester) propagatedVersion(version *fedv1a1.PropagatedVersion, clusterName string) string {
+	// For namespaces, since we do not store the primary cluster's namespace
+	// version in PropagatedVersion's ClusterVersions slice, grab it from the
+	// TemplateVersion field instead.
+	if c.kind == federatedtypes.NamespaceKind && clusterName == c.getPrimaryClusterName() {
+		return version.Status.TemplateVersion
+	}
+
 	for _, clusterVersion := range version.Status.ClusterVersions {
 		if clusterVersion.ClusterName == clusterName {
 			return clusterVersion.Version

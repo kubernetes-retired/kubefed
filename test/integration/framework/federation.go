@@ -26,7 +26,6 @@ import (
 	"github.com/marun/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
@@ -111,12 +110,14 @@ func (f *FederationFixture) TearDown(tl common.TestLogger) {
 func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 	kubeApi := SetUpKubernetesApiFixture(tl)
 
+	clusterName := f.registerCluster(tl, kubeApi.Host)
+
 	// Pick the first added cluster to be the primary
 	if f.KubeApi == nil {
 		f.KubeApi = kubeApi
+		f.KubeApi.IsPrimary = true
 	}
 
-	clusterName := f.registerCluster(tl, kubeApi.Host)
 	secretName := f.createSecret(tl, kubeApi, clusterName)
 	f.createFederatedCluster(tl, clusterName, secretName)
 
@@ -210,10 +211,13 @@ func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, cluster
 	}
 }
 
-func (f *FederationFixture) ClusterClients(tl common.TestLogger, userAgent string) map[string]clientset.Interface {
-	clientMap := make(map[string]clientset.Interface)
+func (f *FederationFixture) ClusterClients(tl common.TestLogger, userAgent string) map[string]common.TestCluster {
+	clientMap := make(map[string]common.TestCluster)
 	for name, cluster := range f.Clusters {
-		clientMap[name] = cluster.NewClient(tl, userAgent)
+		clientMap[name] = common.TestCluster{
+			cluster.NewClient(tl, userAgent),
+			cluster.IsPrimary,
+		}
 	}
 	return clientMap
 }
