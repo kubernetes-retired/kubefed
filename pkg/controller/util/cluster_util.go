@@ -129,3 +129,11 @@ var KubeconfigGetterForSecret = func(secret *apiv1.Secret) clientcmd.KubeconfigG
 		return clientcmd.Load(data)
 	}
 }
+
+// IsPrimaryCluster checks if the caller is working with objects for the
+// primary cluster by checking if the UIDs match for both ObjectMetas passed
+// in.
+// TODO (font): Need to revisit this when cluster ID is available.
+func IsPrimaryCluster(federatedMeta, clusterMeta *metav1.ObjectMeta) bool {
+	return federatedMeta.UID == clusterMeta.UID
+}

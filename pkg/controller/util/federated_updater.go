@@ -33,7 +33,7 @@ import (
 type FederatedOperationType string
 
 const (
-	OperationTypeAdd    = "add"
+	OperationTypeCreate = "create"
 	OperationTypeUpdate = "update"
 	OperationTypeDelete = "delete"
 )
@@ -70,18 +70,19 @@ type federatedUpdaterImpl struct {
 
 	eventRecorder record.EventRecorder
 
-	addFunction    FederatedOperationHandler
+	createFunction FederatedOperationHandler
 	updateFunction FederatedOperationHandler
 	deleteFunction FederatedOperationHandler
 }
 
-func NewFederatedUpdater(federation FederationView, kind string, timeout time.Duration, recorder record.EventRecorder, add, update, del FederatedOperationHandler) FederatedUpdater {
+func NewFederatedUpdater(federation FederationView, kind string, timeout time.Duration,
+	recorder record.EventRecorder, create, update, del FederatedOperationHandler) FederatedUpdater {
 	return &federatedUpdaterImpl{
 		federation:     federation,
 		kind:           kind,
 		timeout:        timeout,
 		eventRecorder:  recorder,
-		addFunction:    add,
+		createFunction: create,
 		updateFunction: update,
 		deleteFunction: del,
 	}
@@ -119,13 +120,9 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 			resourceVersion := ""
 
 			switch op.Type {
-			case OperationTypeAdd:
-				// TODO s+OperationTypeAdd+OperationTypeCreate+
-				baseEventType = "create"
-				eventType := "CreateInCluster"
-
+			case OperationTypeCreate:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Creating", eventArgs...)
-				resourceVersion, err = fu.addFunction(clientset, op.Obj)
+				resourceVersion, err = fu.createFunction(clientset, op.Obj)
 			case OperationTypeUpdate:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Updating", eventArgs...)
 				resourceVersion, err = fu.updateFunction(clientset, op.Obj)

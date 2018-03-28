@@ -18,6 +18,7 @@ package sync
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -89,6 +90,9 @@ type FederationSyncController struct {
 	propagatedVersionController cache.Controller
 	// Map of keys to resource versions for pending updates
 	pendingVersionUpdates sets.String
+	// Mutex to safely access map of keys containing resource versions for
+	// pending updates.
+	mutex sync.Mutex
 
 	// Work queue allowing parallel processing of resources
 	workQueue workqueue.Interface
@@ -190,10 +194,11 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 				// Clear the indication of a pending version update for the object's key
 				version := cur.(*fedv1a1.PropagatedVersion)
 				key := federatedtypes.NewQualifiedName(version).String()
-				// TODO(marun) LOCK!
+				s.mutex.Lock()
 				if s.pendingVersionUpdates.Has(key) {
 					s.pendingVersionUpdates.Delete(key)
 				}
+				s.mutex.Unlock()
 			},
 		},
 	)
@@ -394,6 +399,14 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 	templateAdapter := s.adapter.Template()
 	kind := templateAdapter.Kind()
 	key := qualifiedName.String()
+	namespace := qualifiedName.Namespace
+
+	if isNamespaceKind(kind) {
+		namespace = qualifiedName.Name
+		if isSystemNamespace(namespace) {
+			return statusAllOK
+		}
+	}
 
 	glog.V(4).Infof("Starting to reconcile %v %v", kind, key)
 	startTime := time.Now()
@@ -447,14 +460,16 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 	}
 
 	propagatedVersionKey := federatedtypes.QualifiedName{
-		Namespace: qualifiedName.Namespace,
+		Namespace: namespace,
 		Name:      s.versionName(qualifiedName.Name),
 	}.String()
-	// TODO(marun) LOCK!
+	s.mutex.Lock()
 	if s.pendingVersionUpdates.Has(propagatedVersionKey) {
 		// A status update is pending
+		s.mutex.Unlock()
 		return statusNeedsRecheck
 	}
+	s.mutex.Unlock()
 	propagatedVersiongFromCache, err := s.objFromCache(s.propagatedVersionStore, "PropagatedVersion", propagatedVersionKey)
 	if err != nil {
 		return statusError
@@ -497,7 +512,8 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		placement,
 		override,
 		propagatedVersion,
-		s.pendingVersionUpdates,
+		&s.pendingVersionUpdates,
+		&s.mutex,
 	)
 }
 
@@ -537,7 +553,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object, meta *meta
 		return err
 	}
 
-	if kind == federatedtypes.NamespaceKind {
+	if isNamespaceKind(kind) {
 		// Return immediately if we are a namespace as it will be deleted
 		// simply by removing its finalizers.
 		return nil
@@ -570,7 +586,10 @@ type operationsFunc func(federatedtypes.FederatedTypeAdapter, []string, []string
 type executionFunc func([]util.FederatedOperation) (map[string]string, []error)
 
 // syncToClusters ensures that the state of the given object is synchronized to member clusters.
-func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.FederatedTypeAdapter, informer util.FederatedInformer, template, placement, override pkgruntime.Object, version *fedv1a1.PropagatedVersion, pendingVersionUpdates sets.String) reconciliationStatus {
+func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc,
+	adapter federatedtypes.FederatedTypeAdapter, informer util.FederatedInformer, template,
+	placement, override pkgruntime.Object, version *fedv1a1.PropagatedVersion,
+	pendingVersionUpdates *sets.String, mutex *sync.Mutex) reconciliationStatus {
 	kind := adapter.Template().Kind()
 	key := federatedtypes.NewQualifiedName(template).String()
 
@@ -589,7 +608,8 @@ func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, ex
 
 	clusterVersions, operationErrors := execute(operations)
 
-	err = updatePropagatedVersion(adapter, clusterVersions, template, override, version, selectedClusters, pendingVersionUpdates)
+	err = updatePropagatedVersion(adapter, clusterVersions, template, override, version,
+		selectedClusters, pendingVersionUpdates, mutex)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v", kind, key, err))
 		// Don't return an error - failure to record the propagated
@@ -605,7 +625,9 @@ func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, ex
 	return statusAllOK
 }
 
-func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versions map[string]string, template, override pkgruntime.Object, version *fedv1a1.PropagatedVersion, selectedClusters []string, pendingVersionUpdates sets.String) error {
+func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versions map[string]string,
+	template, override pkgruntime.Object, version *fedv1a1.PropagatedVersion,
+	selectedClusters []string, pendingVersionUpdates *sets.String, mutex *sync.Mutex) error {
 	templateMeta := adapter.Template().ObjectMeta(template)
 	overrideVersion := ""
 	if override != nil {
@@ -614,16 +636,23 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versio
 
 	if version == nil {
 		version := newVersion(versions, templateMeta, adapter.Target().Kind(), overrideVersion)
+
 		_, err := adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
 		}
+
 		key := federatedtypes.NewQualifiedName(version).String()
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
+		mutex.Lock()
 		pendingVersionUpdates.Insert(key)
+		mutex.Unlock()
+
 		_, err = adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 		if err != nil {
+			mutex.Lock()
 			pendingVersionUpdates.Delete(key)
+			mutex.Unlock()
 		}
 		return err
 	}
@@ -640,10 +669,15 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versio
 	}
 	version.Status.ClusterVersions = clusterVersions(versions, existingVersions, selectedClusters)
 	key := federatedtypes.NewQualifiedName(version).String()
+	mutex.Lock()
 	pendingVersionUpdates.Insert(key)
+	mutex.Unlock()
+
 	_, err := adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 	if err != nil {
+		mutex.Lock()
 		pendingVersionUpdates.Delete(key)
+		mutex.Unlock()
 	}
 	return err
 }
@@ -658,13 +692,23 @@ func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMe
 		})
 	}
 
+	var namespace, templateVersion string
+	if isNamespaceKind(targetKind) {
+		namespace = templateMeta.Name
+		// We do not track template resource version for namespaces.
+		templateVersion = ""
+	} else {
+		namespace = templateMeta.Namespace
+		templateVersion = templateMeta.ResourceVersion
+	}
+
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: templateMeta.Namespace,
+			Namespace: namespace,
 			Name:      common.PropagatedVersionName(targetKind, templateMeta.Name),
 		},
 		Status: fedv1a1.PropagatedVersionStatus{
-			TemplateVersion: templateMeta.ResourceVersion,
+			TemplateVersion: templateVersion,
 			OverrideVersion: overrideVersion,
 			ClusterVersions: versions,
 		},
@@ -718,9 +762,25 @@ func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClus
 		}
 
 		var operationType util.FederatedOperationType = ""
+
+		// If this is an object for the primary cluster and we're a namespace
+		// kind, then skip the resource version comparison check as we do not
+		// track the template version for namespaces. This avoids an
+		// unnecessary update that triggers an infinite loop of continually
+		// updating finalizers and then removing finalizers, causing
+		// propagatedversion to not keep up with the template resourceVersions
+		// being updated.
+		if isNamespaceKind(kind) {
+			clusterObj := clusterObj.(pkgruntime.Object)
+			templateMeta := adapter.Template().ObjectMeta(template)
+			clusterMeta := adapter.Target().ObjectMeta(clusterObj)
+			if util.IsPrimaryCluster(templateMeta, clusterMeta) {
+				continue
+			}
+		}
+
 		if found {
 			clusterObj := clusterObj.(pkgruntime.Object)
-
 			resourceVersion, ok := clusterVersions[clusterName]
 			if !ok {
 				// No target version recorded for template+override version
@@ -733,7 +793,7 @@ func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClus
 				}
 			}
 		} else {
-			operationType = util.OperationTypeAdd
+			operationType = util.OperationTypeCreate
 		}
 
 		if len(operationType) > 0 {
@@ -806,4 +866,19 @@ func computePlacement(adapter federatedtypes.PlacementAdapter, placement pkgrunt
 		}
 	}
 	return clusterSet.Intersection(selectedClusterSet).List(), clusterSet.Difference(selectedClusterSet).List()
+}
+
+func isNamespaceKind(kind string) bool {
+	return kind == federatedtypes.NamespaceKind
+}
+
+// TODO (font): Externalize this list to a package var to allow it to be
+// configurable.
+func isSystemNamespace(namespace string) bool {
+	switch namespace {
+	case "kube-system", util.FederationSystemNamespace:
+		return true
+	default:
+		return false
+	}
 }
