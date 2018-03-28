@@ -426,6 +426,17 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 	templateAdapter := s.adapter.Template()
 	kind := templateAdapter.Kind()
 	key := qualifiedName.String()
+	namespace := qualifiedName.Namespace
+
+	if isNamespaceKind(kind) {
+		namespace = qualifiedName.Name
+		// TODO(font): Need a configurable or discoverable list of namespaces
+		// to not propagate beyond just the default system namespaces e.g.
+		// clusterregistry.
+		if isSystemNamespace(namespace) {
+			return statusAllOK
+		}
+	}
 
 	glog.V(4).Infof("Starting to reconcile %v %v", kind, key)
 	startTime := time.Now()
@@ -480,7 +491,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 	}
 
 	propagatedVersionKey := federatedtypes.QualifiedName{
-		Namespace: qualifiedName.Namespace,
+		Namespace: namespace,
 		Name:      s.versionName(qualifiedName.Name),
 	}.String()
 	// TODO(marun) LOCK!
@@ -537,7 +548,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object, meta *meta
 		return err
 	}
 
-	if kind == federatedtypes.NamespaceKind {
+	if isNamespaceKind(kind) {
 		// Return immediately if we are a namespace as it will be deleted
 		// simply by removing its finalizers.
 		return nil
@@ -658,9 +669,11 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 		if err != nil {
 			return err
 		}
+
 		key := federatedtypes.NewQualifiedName(version).String()
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
 		pendingVersionUpdates.Insert(key)
+
 		_, err = adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 		if err != nil {
 			pendingVersionUpdates.Delete(key)
@@ -688,6 +701,7 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 
 	key := federatedtypes.NewQualifiedName(version).String()
 	pendingVersionUpdates.Insert(key)
+
 	_, err := adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 	if err != nil {
 		pendingVersionUpdates.Delete(key)
@@ -708,9 +722,16 @@ func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMe
 	}
 
 	util.SortClusterVersions(versions)
+	var namespace string
+	if isNamespaceKind(targetKind) {
+		namespace = templateMeta.Name
+	} else {
+		namespace = templateMeta.Namespace
+	}
+
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: templateMeta.Namespace,
+			Namespace: namespace,
 			Name:      common.PropagatedVersionName(targetKind, templateMeta.Name),
 		},
 		Status: fedv1a1.PropagatedVersionStatus{
@@ -772,8 +793,25 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		}
 
 		var operationType util.FederatedOperationType = ""
+
 		if found {
 			clusterObj := clusterObj.(pkgruntime.Object)
+
+			// If we're a namespace kind and this is an object for the primary
+			// cluster, then skip the version comparison check as we do not
+			// track the cluster version for namespaces in the primary cluster.
+			// This avoids unnecessary updates that triggers an infinite loop
+			// of continually adding finalizers and then removing finalizers,
+			// causing PropagatedVersion to not keep up with the
+			// ResourceVersions being updated.
+			if isNamespaceKind(kind) {
+				templateMeta := s.adapter.Template().ObjectMeta(template)
+				clusterMeta := s.adapter.Target().ObjectMeta(clusterObj)
+				if util.IsPrimaryCluster(templateMeta, clusterMeta) {
+					continue
+				}
+			}
+
 			desiredObj = s.adapter.ObjectForUpdateOp(desiredObj, clusterObj)
 
 			version, ok := clusterVersions[clusterName]
@@ -843,4 +881,20 @@ func newFedApiInformer(typeAdapter federatedtypes.FedApiAdapter, triggerFunc fun
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(triggerFunc),
 	)
+}
+
+// TODO (font): Make this part of a more common package to be used elsewhere.
+func isNamespaceKind(kind string) bool {
+	return kind == federatedtypes.NamespaceKind
+}
+
+// TODO (font): Externalize this list to a package var to allow it to be
+// configurable.
+func isSystemNamespace(namespace string) bool {
+	switch namespace {
+	case "kube-system", util.FederationSystemNamespace:
+		return true
+	default:
+		return false
+	}
 }
