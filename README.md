@@ -49,7 +49,7 @@ accomplished as follows:
 # Bootstrap and commit a new type
 $ apiserver-boot create group version resource --group federation --version v1alpha1 --kind <your-kind>
 $ git add .
-$ git commit -m 'Bootstrap a new api resource federation.k8s.io./v1alpha1/<your-kind>'
+$ git commit -m 'Bootstrapped a new api resource federation.k8s.io./v1alpha1/<your-kind>'
 
 # Modify and commit the bootstrapped type
 $ vi pkg/apis/federation/v1alpha1/<your-kind>_types.go
@@ -57,6 +57,8 @@ $ git commit -a -m 'Added fields to <your-kind>'
 
 # Update the generated code and commit
 $ apiserver-boot build generated
+$ git add .
+$ git commit -m 'Updated generated code'
 ```
 
 The generated code will need to be updated whenever the code for a
