@@ -32,7 +32,7 @@ const (
 	// transient failures from failing tests.
 	// TODO: client should not apply this timeout to Watch calls. Increased from 30s until that is fixed.
 	PollInterval      = 2 * time.Second
-	SingleCallTimeout = 5 * time.Minute
+	SingleCallTimeout = 30 * time.Second
 )
 
 // unique identifier of the e2e run
