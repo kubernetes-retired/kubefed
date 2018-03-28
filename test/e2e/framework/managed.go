@@ -93,7 +93,7 @@ func (f *ManagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return fedFixture.CrApi.NewClient(f.logger, userAgent)
 }
 
-func (f *ManagedFramework) ClusterClients(userAgent string) map[string]kubeclientset.Interface {
+func (f *ManagedFramework) ClusterClients(userAgent string) map[string]common.TestCluster {
 	return fedFixture.ClusterClients(f.logger, userAgent)
 }
 

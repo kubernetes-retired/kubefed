@@ -26,6 +26,7 @@ import (
 	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/marun/federation-v2/pkg/controller/util"
 	"github.com/marun/federation-v2/pkg/federatedtypes"
+	"github.com/marun/federation-v2/test/common"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +34,7 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 
 	. "github.com/onsi/ginkgo"
@@ -50,7 +52,8 @@ type UnmanagedFramework struct {
 
 	testNamespaceName string
 
-	Config *restclient.Config
+	Config     *restclient.Config
+	Kubeconfig *clientcmdapi.Config
 
 	BaseName string
 }
@@ -74,7 +77,7 @@ func (f *UnmanagedFramework) BeforeEach() {
 			Failf("--kubeconfig or KUBECONFIG must be specified to load client config")
 		}
 		var err error
-		f.Config, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
+		f.Config, f.Kubeconfig, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 		Expect(err).NotTo(HaveOccurred())
 	}
 
@@ -134,7 +137,7 @@ func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return crclientset.NewForConfigOrDie(f.Config)
 }
 
-func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]kubeclientset.Interface {
+func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]common.TestCluster {
 	// TODO(marun) Avoid having to reload configuration on every call.
 	// Clusters may be added or removed between calls, but
 	// configuration is unlikely to change.
@@ -152,15 +155,24 @@ func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]kubecli
 
 	kubeClient := f.KubeClient(userAgent)
 	crClient := f.CrClient(userAgent)
-	clusterClients := make(map[string]kubeclientset.Interface)
+	testClusters := make(map[string]common.TestCluster)
+	// Assume host cluster name is the same as the current context name.
+	hostClusterName := f.Kubeconfig.CurrentContext
 	for _, cluster := range clusterList.Items {
 		ClusterIsReadyOrFail(fedClient, cluster)
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
-		clusterClients[cluster.Name] = kubeclientset.NewForConfigOrDie(config)
+
+		// Check if this cluster is the same name as the host cluster name to
+		// make it the primary cluster.
+		testClusters[cluster.Name] = common.TestCluster{
+			kubeclientset.NewForConfigOrDie(config),
+			(cluster.Name == hostClusterName),
+		}
 	}
-	return clusterClients
+
+	return testClusters
 }
 
 func (f *UnmanagedFramework) TestNamespaceName() string {
@@ -234,11 +246,11 @@ func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	}
 }
 
-func loadConfig(configPath, context string) (*restclient.Config, error) {
+func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.Config, error) {
 	Logf(">>> kubeConfig: %s", configPath)
 	c, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("error loading kubeConfig %s: %v", configPath, err.Error())
+		return nil, nil, fmt.Errorf("error loading kubeConfig %s: %v", configPath, err.Error())
 	}
 	if context != "" {
 		Logf(">>> kubeContext: %s", context)
@@ -246,9 +258,9 @@ func loadConfig(configPath, context string) (*restclient.Config, error) {
 	}
 	cfg, err := clientcmd.NewDefaultClientConfig(*c, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error creating default client config: %v", err.Error())
+		return nil, nil, fmt.Errorf("error creating default client config: %v", err.Error())
 	}
-	return cfg, nil
+	return cfg, c, nil
 }
 
 // waitForApiserver waits for the apiserver to be ready.  It tests the
