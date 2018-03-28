@@ -151,8 +151,8 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object,
 		// Skip the update if this object is for the primary cluster as that
 		// namespace will simply be removed after removing its finalizers.
 		if kind == federatedtypes.NamespaceKind {
-			clusterObjUID := clusterNsObj.Object.(*corev1.Namespace).UID
-			if meta.UID == clusterObjUID {
+			clusterObjMeta := &clusterNsObj.Object.(*corev1.Namespace).ObjectMeta
+			if util.IsPrimaryCluster(meta, clusterObjMeta) {
 				continue
 			}
 		}
