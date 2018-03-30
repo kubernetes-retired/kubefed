@@ -44,7 +44,8 @@ var _ = Describe("Federated types", func() {
 				// namespace controller is added.
 				if framework.TestContext.TestManagedFederation &&
 					fedTypeConfig.Kind == federatedtypes.NamespaceKind {
-					framework.Skipf("%s not supported for test managed federation.", fedTypeConfig.Kind)
+					framework.Skipf("%s not supported for test managed federation.",
+						fedTypeConfig.Kind)
 				}
 
 				// Initialize an in-memory controller if configuration requires

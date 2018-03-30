@@ -97,28 +97,38 @@ func (f *UnmanagedFramework) AfterEach() {
 
 	userAgent := fmt.Sprintf("%s-teardown", f.BaseName)
 
-	// DeleteNamespace at the very end in defer, to avoid any
-	// expectation failures preventing deleting the namespace.
+	// Cleanup needs to remain as a defer function because
+	// DumpEventsInNamespace contains assertions that could exit the function.
 	defer func() {
+		// DeleteNamespace at the very end but before tearing down the namespace
+		// sync controller to avoid any expectation failures preventing deleting
+		// the namespace.
 		if f.testNamespaceName == "" {
 			return
 		}
-		// Clear the name first to ensure other tests always get a
-		// fresh namespace even if namespace deletion fails
+		// Clear the name first to ensure other tests always get a fresh namespace
+		// even if namespace deletion fails.
 		namespaceName := f.testNamespaceName
 		f.testNamespaceName = ""
 
 		client := f.KubeClient(userAgent)
 		deleteNamespace(client, namespaceName)
+
+		for len(f.fixtures) > 0 {
+			fixture := f.fixtures[0]
+			fixture.TearDown(f.logger)
+			f.fixtures = append(f.fixtures[:0], f.fixtures[1:]...)
+		}
 	}()
 
-	// Print events if the test failed and ran in a namep.
+	// Print events if the test failed and ran in a namespace.
 	if CurrentGinkgoTestDescription().Failed && f.testNamespaceName != "" {
 		kubeClient := f.KubeClient(userAgent)
 		DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
 			return kubeClient.Core().Events(ns).List(opts)
 		}, f.testNamespaceName)
 	}
+
 }
 
 func (f *UnmanagedFramework) FedClient(userAgent string) fedclientset.Interface {
