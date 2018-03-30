@@ -42,10 +42,20 @@ var _ = Describe("Federated types", func() {
 				// TODO (font): e2e tests for federated Namespace using a
 				// test managed federation does not work until k8s
 				// namespace controller is added.
-				if framework.TestContext.TestManagedFederation &&
-					fedTypeConfig.Kind == federatedtypes.NamespaceKind {
-					framework.Skipf("%s not supported for test managed federation.",
-						fedTypeConfig.Kind)
+				if framework.TestContext.TestManagedFederation {
+					if fedTypeConfig.Kind == federatedtypes.NamespaceKind {
+						framework.Skipf("%s not supported for test managed federation.",
+							fedTypeConfig.Kind)
+					}
+				} else {
+					// TODO (font): e2e tests for federated replicasets and
+					// deployments using a test unmanaged federation do not
+					// work until comparison issues due to defaulting are
+					// resolved.
+					if fedTypeConfig.Kind == federatedtypes.FederatedReplicaSetKind ||
+						fedTypeConfig.Kind == federatedtypes.FederatedDeploymentKind {
+						framework.Skipf("%s not supported for test unmanaged federation.", fedTypeConfig.Kind)
+					}
 				}
 
 				// Initialize an in-memory controller if configuration requires
