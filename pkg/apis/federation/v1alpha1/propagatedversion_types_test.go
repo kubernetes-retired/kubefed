@@ -24,8 +24,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
+	. "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
+	. "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
 )
 
 var _ = Describe("PropagatedVersion", func() {

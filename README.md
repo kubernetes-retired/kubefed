@@ -73,24 +73,24 @@ the following steps:
 
  - add a new template type (as per the [instructions](#adding-a-new-type) for adding a new type)
    - Ensure the spec of the new type has a `Template` field of the target Kubernetes type.
-   - e.g. [FederatedSecret](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecret_types.go#L49)
+   - e.g. [FederatedSecret](https://github.com/marun/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecret_types.go#L49)
 
  - add a new placement type
    - Ensure the spec of the new type has the `ClusterNames` field of type `[]string`
-   - e.g. [FederatedSecretPlacement](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretplacement_types.go)
+   - e.g. [FederatedSecretPlacement](https://github.com/marun/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretplacement_types.go)
 
  - (optionally) add a new override type
    - Ensure the new type contains fields that should be overridable
-   - e.g. [FederatedSecretOverride](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretoverride_types.go)
+   - e.g. [FederatedSecretOverride](https://github.com/marun/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretoverride_types.go)
 
  - Add a new propagation adapter
    - the [push
-     reconciler](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/controller/sync/controller.go)
+     reconciler](https://github.com/marun/federation-v2/blob/master/pkg/controller/sync/controller.go)
      targets an [adapter
-     interface](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/federatedtypes/adapter.go),
+     interface](https://github.com/marun/federation-v2/blob/master/pkg/federatedtypes/adapter.go),
      and any logical federated type implementing the interface can be
      propagated by the reconciler to member clusters.
-   - e.g. [FederatedSecretAdapter](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/federatedtypes/secret.go)
+   - e.g. [FederatedSecretAdapter](https://github.com/marun/federation-v2/blob/master/pkg/federatedtypes/secret.go)
 
 ### Testing
 
@@ -99,7 +99,7 @@ the following steps:
 The integration tests will spin up a federation consisting of kube
 api + cluster registry api + federation api + 2 member clusters and
 run [CRUD (create-read-update-delete)
-checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/integration/crud_test.go)
+checks](https://github.com/marun/federation-v2/blob/master/test/integration/crud_test.go)
 for federated types against that federation.  To run:
 
  - ensure binaries for `etcd`, `kube-apiserver` and `clusterregistry` are in the path

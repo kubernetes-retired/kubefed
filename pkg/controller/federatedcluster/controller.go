@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
+	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/marun/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

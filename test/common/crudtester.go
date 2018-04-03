@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/marun/federation-v2/pkg/apis/federation/common"
+	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/marun/federation-v2/pkg/federatedtypes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
