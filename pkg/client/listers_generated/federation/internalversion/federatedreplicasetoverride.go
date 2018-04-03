@@ -19,7 +19,7 @@ limitations under the License.
 package internalversion
 
 import (
-	federation "github.com/marun/fnord/pkg/apis/federation"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

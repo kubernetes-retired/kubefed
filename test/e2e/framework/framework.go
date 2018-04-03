@@ -17,8 +17,8 @@ limitations under the License.
 package framework
 
 import (
-	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	"github.com/marun/fnord/pkg/federatedtypes"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 

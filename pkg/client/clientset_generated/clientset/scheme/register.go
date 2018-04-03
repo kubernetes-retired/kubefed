@@ -16,7 +16,7 @@ limitations under the License.
 package scheme
 
 import (
-	federationv1alpha1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

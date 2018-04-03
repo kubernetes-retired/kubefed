@@ -19,7 +19,7 @@ limitations under the License.
 package install
 
 import (
-	"github.com/marun/fnord/pkg/apis"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"

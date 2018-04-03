@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/marun/fnord/test/e2e/framework/ginkgowrapper"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

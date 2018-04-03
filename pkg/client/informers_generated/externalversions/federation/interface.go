@@ -19,8 +19,8 @@ limitations under the License.
 package federation
 
 import (
-	v1alpha1 "github.com/marun/fnord/pkg/client/informers_generated/externalversions/federation/v1alpha1"
-	internalinterfaces "github.com/marun/fnord/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/federation/v1alpha1"
+	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

@@ -1,22 +1,23 @@
-## `fnord`
+## Kubernetes Federation v2
 
 This repo contains an in-progress prototype of some of the
-foundational aspects of V2 of Kubernetes Federation.  fnord builds on the
-sync controller (a.k.a. push reconciler) from [Federation
-V1](https://github.com/kubernetes/federation/) to iterate on the API
-concepts laid down in the [brainstorming
+foundational aspects of V2 of Kubernetes Federation.  The prototype
+builds on the sync controller (a.k.a. push reconciler) from
+[Federation v1](https://github.com/kubernetes/federation/) to iterate
+on the API concepts laid down in the [brainstorming
 doc](https://docs.google.com/document/d/159cQGlfgXo6O4WxXyWzjZiPoIuiHVl933B43xhmqPEE/edit#)
 and further refined in the [architecture
 doc](https://docs.google.com/document/d/1ihWETo-zE8U_QNuzw5ECxOWX0Df_2BVfO3lC4OesKRQ/edit#).
 Access to both documents is available to members of the
-[kubernetes-sig-multicluster google group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
+[kubernetes-sig-multicluster google
+group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
 <p align="center"><img src="docs/images/propagation.png" width="711"></p>
 
 ## Concepts
 
-fnord uses the following abstractions to support the propagation of a
-logical federated type:
+The following abstractions support the propagation of a logical
+federated type:
 
 - Template: defines the representation of the resource common across clusters
 - Placement: defines which clusters the resource is intended to appear in
@@ -29,10 +30,10 @@ well-suited to serve as the glue between any given propagation
 mechanism and higher-order behaviors like policy-based placement and
 dynamic scheduling.
 
-## Working with fnord
+## Getting started
 
 ### Required: `apiserver-builder`
-fnord depends on
+This repo depends on
 [apiserver-builder](https://github.com/kubernetes-incubator/apiserver-builder)
 to generate code and build binaries.  Download a [recent
 release](https://github.com/kubernetes-incubator/apiserver-builder/releases)
@@ -42,7 +43,7 @@ and install it in your `PATH`.
 
 As per the
 [docs](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/tools_user_guide.md#create-an-api-resource)
-for apiserver-builder, bootstrapping a new fnord API type can be
+for apiserver-builder, bootstrapping a new federation v2 API type can be
 accomplished as follows:
 
 ```
@@ -72,33 +73,33 @@ the following steps:
 
  - add a new template type (as per the [instructions](#adding-a-new-type) for adding a new type)
    - Ensure the spec of the new type has a `Template` field of the target Kubernetes type.
-   - e.g. [FederatedSecret](https://github.com/marun/fnord/blob/master/pkg/apis/federation/v1alpha1/federatedsecret_types.go#L49)
+   - e.g. [FederatedSecret](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecret_types.go#L49)
 
  - add a new placement type
    - Ensure the spec of the new type has the `ClusterNames` field of type `[]string`
-   - e.g. [FederatedSecretPlacement](https://github.com/marun/fnord/blob/master/pkg/apis/federation/v1alpha1/federatedsecretplacement_types.go)
+   - e.g. [FederatedSecretPlacement](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretplacement_types.go)
 
  - (optionally) add a new override type
    - Ensure the new type contains fields that should be overridable
-   - e.g. [FederatedSecretOverride](https://github.com/marun/fnord/blob/master/pkg/apis/federation/v1alpha1/federatedsecretoverride_types.go)
+   - e.g. [FederatedSecretOverride](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretoverride_types.go)
 
  - Add a new propagation adapter
-   - fnord's [push
-     reconciler](https://github.com/marun/fnord/blob/master/pkg/controller/sync/controller.go)
+   - the [push
+     reconciler](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/controller/sync/controller.go)
      targets an [adapter
-     interface](https://github.com/marun/fnord/blob/master/pkg/federatedtypes/adapter.go),
+     interface](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/federatedtypes/adapter.go),
      and any logical federated type implementing the interface can be
      propagated by the reconciler to member clusters.
-   - e.g. [FederatedSecretAdapter](https://github.com/marun/fnord/blob/master/pkg/federatedtypes/secret.go)
+   - e.g. [FederatedSecretAdapter](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/federatedtypes/secret.go)
 
 ### Testing
 
 #### Integration
 
-The fnord integration tests will spin up a federation consisting of
-kube api + cluster registry api + federation api + 2 member clusters
-and run [CRUD (create-read-update-delete)
-checks](https://github.com/marun/fnord/blob/master/test/integration/crud_test.go)
+The integration tests will spin up a federation consisting of kube
+api + cluster registry api + federation api + 2 member clusters and
+run [CRUD (create-read-update-delete)
+checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/integration/crud_test.go)
 for federated types against that federation.  To run:
 
  - ensure binaries for `etcd`, `kube-apiserver` and `clusterregistry` are in the path

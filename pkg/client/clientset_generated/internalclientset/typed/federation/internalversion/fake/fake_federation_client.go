@@ -16,7 +16,7 @@ limitations under the License.
 package fake
 
 import (
-	internalversion "github.com/marun/fnord/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
+	internalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

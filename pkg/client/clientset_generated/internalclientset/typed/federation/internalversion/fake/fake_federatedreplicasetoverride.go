@@ -16,7 +16,7 @@ limitations under the License.
 package fake
 
 import (
-	federation "github.com/marun/fnord/pkg/apis/federation"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

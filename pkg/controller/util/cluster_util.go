@@ -21,7 +21,7 @@ import (
 	"net"
 	"time"
 
-	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"

@@ -20,7 +20,7 @@ package v1alpha1
 
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-	"github.com/marun/fnord/pkg/apis/federation"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

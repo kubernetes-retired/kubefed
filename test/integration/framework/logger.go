@@ -19,7 +19,7 @@ package framework
 import (
 	"testing"
 
-	"github.com/marun/fnord/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 )
 
 type integrationLogger struct {

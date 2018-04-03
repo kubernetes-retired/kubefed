@@ -20,8 +20,8 @@ package sharedinformers
 
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-	"github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	"github.com/marun/fnord/pkg/client/informers_generated/externalversions"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"time"

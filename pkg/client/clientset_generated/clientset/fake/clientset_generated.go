@@ -16,9 +16,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	federationv1alpha1 "github.com/marun/fnord/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
-	fakefederationv1alpha1 "github.com/marun/fnord/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1/fake"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
+	fakefederationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

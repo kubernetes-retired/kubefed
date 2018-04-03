@@ -19,7 +19,7 @@ package e2e
 import (
 	"testing"
 
-	"github.com/marun/fnord/test/e2e/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 )
 
 func init() {

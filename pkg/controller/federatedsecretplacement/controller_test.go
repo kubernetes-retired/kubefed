@@ -21,8 +21,8 @@ package federatedsecretplacement_test
 import (
 	"time"
 
-	. "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
-	. "github.com/marun/fnord/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
+	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

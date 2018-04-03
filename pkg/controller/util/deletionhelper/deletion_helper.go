@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/marun/fnord/pkg/controller/util"
-	finalizersutil "github.com/marun/fnord/pkg/controller/util/finalizers"
-	"github.com/marun/fnord/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

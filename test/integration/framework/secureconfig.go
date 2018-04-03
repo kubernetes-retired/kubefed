@@ -24,7 +24,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/marun/fnord/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"

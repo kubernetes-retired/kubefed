@@ -20,7 +20,7 @@ package internalversion
 
 import (
 	"fmt"
-	federation "github.com/marun/fnord/pkg/apis/federation"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

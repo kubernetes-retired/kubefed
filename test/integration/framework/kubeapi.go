@@ -25,7 +25,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-sig-testing/frameworks/integration"
-	"github.com/marun/fnord/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )

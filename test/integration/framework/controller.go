@@ -17,9 +17,9 @@ limitations under the License.
 package framework
 
 import (
-	"github.com/marun/fnord/pkg/controller/sync"
-	"github.com/marun/fnord/pkg/federatedtypes"
-	"github.com/marun/fnord/test/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
 )
 

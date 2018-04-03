@@ -21,8 +21,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	federation "github.com/marun/fnord/pkg/apis/federation"
-	common "github.com/marun/fnord/pkg/apis/federation/common"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
+	common "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"

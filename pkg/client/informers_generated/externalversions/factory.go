@@ -19,9 +19,9 @@ limitations under the License.
 package externalversions
 
 import (
-	clientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	federation "github.com/marun/fnord/pkg/client/informers_generated/externalversions/federation"
-	internalinterfaces "github.com/marun/fnord/pkg/client/informers_generated/externalversions/internalinterfaces"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/federation"
+	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
