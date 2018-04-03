@@ -23,7 +23,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 
-	"github.com/marun/fnord/pkg/controller/federatedcluster"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	restclient "k8s.io/client-go/rest"
 )
 

@@ -20,7 +20,7 @@ import (
 	"flag"
 	"io"
 
-	"github.com/marun/fnord/pkg/kubefnord/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	apiserverflag "k8s.io/apiserver/pkg/util/flag"

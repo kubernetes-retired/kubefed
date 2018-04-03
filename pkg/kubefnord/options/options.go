@@ -19,7 +19,7 @@ package options
 import (
 	"fmt"
 
-	"github.com/marun/fnord/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/spf13/pflag"
 )
 
