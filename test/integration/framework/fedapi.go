@@ -24,10 +24,10 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
-	"github.com/marun/fnord/pkg/apis"
-	"github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	"github.com/marun/fnord/pkg/openapi"
-	"github.com/marun/fnord/test/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/openapi"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"k8s.io/client-go/rest"
 )
 

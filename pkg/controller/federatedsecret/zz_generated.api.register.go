@@ -21,7 +21,7 @@ package federatedsecret
 import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-	"github.com/marun/fnord/pkg/controller/sharedinformers"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"

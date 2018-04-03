@@ -19,7 +19,7 @@ limitations under the License.
 package internalversion
 
 import (
-	internalinterfaces "github.com/marun/fnord/pkg/client/informers_generated/internalversion/internalinterfaces"
+	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

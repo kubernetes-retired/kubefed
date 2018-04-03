@@ -26,8 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/marun/fnord/pkg/apis/federation"
-	"github.com/marun/fnord/pkg/apis/federation/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
 )
 
 // +genclient

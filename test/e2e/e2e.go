@@ -19,8 +19,8 @@ package e2e
 import (
 	"testing"
 
-	"github.com/marun/fnord/test/e2e/framework"
-	"github.com/marun/fnord/test/e2e/framework/ginkgowrapper"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
 
 	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"

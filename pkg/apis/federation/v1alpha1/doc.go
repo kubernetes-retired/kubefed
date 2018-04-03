@@ -22,8 +22,8 @@ limitations under the License.
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/marun/fnord/pkg/apis/federation
+// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/federation
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=federation.k8s.io
-package v1alpha1 // import "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 

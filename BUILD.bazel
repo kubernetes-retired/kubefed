@@ -6,7 +6,7 @@ load("@io_bazel_rules_go//go:def.bzl", "gazelle")
 gazelle(
     name = "gazelle",
     command = "fix",
-    prefix = "github.com/marun/fnord",
+    prefix = "github.com/kubernetes-sigs/federation-v2",
     external = "vendored",
     args = [
         "-build_file_name",

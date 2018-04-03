@@ -19,9 +19,9 @@ package e2e
 import (
 	"fmt"
 
-	"github.com/marun/fnord/pkg/federatedtypes"
-	"github.com/marun/fnord/test/common"
-	"github.com/marun/fnord/test/e2e/framework"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )

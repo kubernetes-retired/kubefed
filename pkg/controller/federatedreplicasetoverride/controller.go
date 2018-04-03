@@ -23,9 +23,9 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
-	"github.com/marun/fnord/pkg/apis/federation/v1alpha1"
-	"github.com/marun/fnord/pkg/controller/sharedinformers"
-	listers "github.com/marun/fnord/pkg/client/listers_generated/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
+	listers "github.com/kubernetes-sigs/federation-v2/pkg/client/listers_generated/federation/v1alpha1"
 )
 
 // +controller:group=federation,version=v1alpha1,kind=FederatedReplicaSetOverride,resource=federatedreplicasetoverrides

@@ -17,7 +17,7 @@ limitations under the License.
 package federatedtypes
 
 import (
-	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"

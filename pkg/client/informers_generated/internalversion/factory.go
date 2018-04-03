@@ -19,9 +19,9 @@ limitations under the License.
 package internalversion
 
 import (
-	internalclientset "github.com/marun/fnord/pkg/client/clientset_generated/internalclientset"
-	federation "github.com/marun/fnord/pkg/client/informers_generated/internalversion/federation"
-	internalinterfaces "github.com/marun/fnord/pkg/client/informers_generated/internalversion/internalinterfaces"
+	internalclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/federation"
+	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

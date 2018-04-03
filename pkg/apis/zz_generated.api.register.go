@@ -20,8 +20,8 @@ package apis
 
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-	"github.com/marun/fnord/pkg/apis/federation"
-	federationv1alpha1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
+	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 )
 
 // GetAllApiBuilders returns all known APIGroupBuilders
@@ -34,7 +34,7 @@ func GetAllApiBuilders() []*builders.APIGroupBuilder {
 
 var federationApiGroup = builders.NewApiGroupBuilder(
 	"federation.k8s.io",
-	"github.com/marun/fnord/pkg/apis/federation").
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation").
 	WithUnVersionedApi(federation.ApiVersion).
 	WithVersionedApis(
 		federationv1alpha1.ApiVersion,

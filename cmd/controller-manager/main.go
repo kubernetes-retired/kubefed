@@ -22,9 +22,9 @@ import (
 	"time"
 
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-	"github.com/marun/fnord/pkg/controller/federatedcluster"
-	"github.com/marun/fnord/pkg/controller/sync"
-	"github.com/marun/fnord/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 )
 
 var kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig")

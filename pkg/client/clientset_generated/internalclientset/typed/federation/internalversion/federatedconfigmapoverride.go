@@ -16,8 +16,8 @@ limitations under the License.
 package internalversion
 
 import (
-	federation "github.com/marun/fnord/pkg/apis/federation"
-	scheme "github.com/marun/fnord/pkg/client/clientset_generated/internalclientset/scheme"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
+	scheme "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

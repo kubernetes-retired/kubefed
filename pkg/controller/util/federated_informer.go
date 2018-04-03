@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	fedcommon "github.com/marun/fnord/pkg/apis/federation/common"
-	fedv1a1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
+	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"

@@ -26,9 +26,9 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 	"k8s.io/client-go/rest"
 
-	"github.com/marun/fnord/pkg/apis"
-	"github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	"github.com/marun/fnord/pkg/openapi"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/openapi"
 )
 
 var testenv *test.TestEnvironment

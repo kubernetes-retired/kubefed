@@ -17,7 +17,7 @@ package clientset
 
 import (
 	glog "github.com/golang/glog"
-	federationv1alpha1 "github.com/marun/fnord/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
+	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

@@ -16,8 +16,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
-	"github.com/marun/fnord/pkg/client/clientset_generated/clientset/scheme"
+	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 )

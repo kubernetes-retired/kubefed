@@ -19,7 +19,7 @@ limitations under the License.
 package internalinterfaces
 
 import (
-	clientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"

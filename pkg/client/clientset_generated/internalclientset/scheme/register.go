@@ -16,7 +16,7 @@ limitations under the License.
 package scheme
 
 import (
-	federation "github.com/marun/fnord/pkg/apis/federation/install"
+	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

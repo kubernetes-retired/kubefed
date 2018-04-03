@@ -17,7 +17,7 @@ package internalclientset
 
 import (
 	glog "github.com/golang/glog"
-	federationinternalversion "github.com/marun/fnord/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
+	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

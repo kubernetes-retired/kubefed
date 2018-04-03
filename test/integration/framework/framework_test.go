@@ -19,7 +19,7 @@ package framework
 import (
 	"testing"
 
-	"github.com/marun/fnord/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"

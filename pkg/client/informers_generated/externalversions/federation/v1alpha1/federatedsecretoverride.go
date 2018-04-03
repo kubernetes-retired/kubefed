@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	federation_v1alpha1 "github.com/marun/fnord/pkg/apis/federation/v1alpha1"
-	clientset "github.com/marun/fnord/pkg/client/clientset_generated/clientset"
-	internalinterfaces "github.com/marun/fnord/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "github.com/marun/fnord/pkg/client/listers_generated/federation/v1alpha1"
+	federation_v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/listers_generated/federation/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
