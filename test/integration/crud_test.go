@@ -60,7 +60,7 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
 	crConfig := fedFixture.CrApi.NewConfig(tl)
-	fixture := framework.NewControllerFixture(tl, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(tl, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
 
 	userAgent := fmt.Sprintf("crud-test-%s", kind)
 

@@ -4,7 +4,6 @@ Copyright 2018 The Kubernetes Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
@@ -26,6 +25,9 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +35,7 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 
 	. "github.com/onsi/ginkgo"
@@ -40,7 +43,41 @@ import (
 )
 
 // Only check that the api is available once
-var checkedApi bool
+var (
+	clusterControllerFixture *framework.ControllerFixture
+	checkedApi               bool
+)
+
+func SetUpUnManagedFederation() {
+	if clusterControllerFixture != nil {
+		return
+	}
+
+	if TestContext.KubeConfig == "" {
+		Failf("--kubeconfig or KUBECONFIG must be specified to load client config")
+	}
+
+	config, kubeConfig, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
+	Expect(err).NotTo(HaveOccurred())
+
+	clusterControllerFixture = framework.NewClusterControllerFixture(config, config, config)
+
+	// TODO(font): Support joining multiple clusters.
+	hostClusterName := kubeConfig.CurrentContext
+	err = kubefnord.JoinCluster(config, config, config,
+		util.FederationSystemNamespace, hostClusterName, hostClusterName, "", true, false)
+	if err != nil {
+		Failf("Failed to join cluster %s: %v", hostClusterName, err)
+	}
+}
+
+func TearDownUnManagedFederation() {
+	if clusterControllerFixture != nil {
+		clusterControllerFixture.TearDown(NewE2ELogger())
+		clusterControllerFixture = nil
+	}
+	// TODO(font): Unjoin clusters.
+}
 
 type UnmanagedFramework struct {
 	// To make sure that this framework cleans up after itself, no matter what,
@@ -53,11 +90,18 @@ type UnmanagedFramework struct {
 	Config *restclient.Config
 
 	BaseName string
+
+	logger common.TestLogger
+
+	// Fixtures to cleanup after each test
+	fixtures []framework.TestFixture
 }
 
 func NewUnmanagedFramework(baseName string) FederationFramework {
 	f := &UnmanagedFramework{
 		BaseName: baseName,
+		logger:   NewE2ELogger(),
+		fixtures: []framework.TestFixture{},
 	}
 	return f
 }
@@ -74,7 +118,7 @@ func (f *UnmanagedFramework) BeforeEach() {
 			Failf("--kubeconfig or KUBECONFIG must be specified to load client config")
 		}
 		var err error
-		f.Config, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
+		f.Config, _, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 		Expect(err).NotTo(HaveOccurred())
 	}
 
@@ -95,27 +139,32 @@ func (f *UnmanagedFramework) AfterEach() {
 
 	userAgent := fmt.Sprintf("%s-teardown", f.BaseName)
 
-	// DeleteNamespace at the very end in defer, to avoid any
-	// expectation failures preventing deleting the namespace.
-	defer func() {
-		if f.testNamespaceName == "" {
-			return
-		}
-		// Clear the name first to ensure other tests always get a
-		// fresh namespace even if namespace deletion fails
-		namespaceName := f.testNamespaceName
-		f.testNamespaceName = ""
-
-		client := f.KubeClient(userAgent)
-		deleteNamespace(client, namespaceName)
-	}()
-
-	// Print events if the test failed and ran in a namep.
+	// Print events if the test failed and ran in a namespace.
 	if CurrentGinkgoTestDescription().Failed && f.testNamespaceName != "" {
 		kubeClient := f.KubeClient(userAgent)
 		DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
 			return kubeClient.Core().Events(ns).List(opts)
 		}, f.testNamespaceName)
+	}
+
+	// DeleteNamespace at the very end but before tearing down the namespace
+	// sync controller to avoid any expectation failures preventing deleting
+	// the namespace.
+	if f.testNamespaceName == "" {
+		return
+	}
+	// Clear the name first to ensure other tests always get a fresh namespace
+	// even if namespace deletion fails.
+	namespaceName := f.testNamespaceName
+	f.testNamespaceName = ""
+
+	client := f.KubeClient(userAgent)
+	deleteNamespace(client, namespaceName)
+
+	for len(f.fixtures) > 0 {
+		fixture := f.fixtures[0]
+		fixture.TearDown(f.logger)
+		f.fixtures = append(f.fixtures[:0], f.fixtures[1:]...)
 	}
 }
 
@@ -176,7 +225,14 @@ func (f *UnmanagedFramework) TestNamespaceName() string {
 }
 
 func (f *UnmanagedFramework) SetUpControllerFixture(kind string, adapterFactory federatedtypes.AdapterFactory) {
-	// Not supported
+	// Hybrid setup where just the sync controller is run and we do not rely on
+	// the already deployed (unmanaged) controller manager. Only do this if
+	// in-memory-controllers is true.
+	if TestContext.InMemoryControllers {
+		fixture := framework.NewSyncControllerFixture(f.logger, kind, adapterFactory, f.Config,
+			f.Config, f.Config)
+		f.fixtures = append(f.fixtures, fixture)
+	}
 }
 
 func createNamespace(client kubeclientset.Interface, baseName string) (string, error) {
@@ -234,11 +290,11 @@ func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	}
 }
 
-func loadConfig(configPath, context string) (*restclient.Config, error) {
+func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.Config, error) {
 	Logf(">>> kubeConfig: %s", configPath)
 	c, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("error loading kubeConfig %s: %v", configPath, err.Error())
+		return nil, nil, fmt.Errorf("error loading kubeConfig %s: %v", configPath, err.Error())
 	}
 	if context != "" {
 		Logf(">>> kubeContext: %s", context)
@@ -246,9 +302,9 @@ func loadConfig(configPath, context string) (*restclient.Config, error) {
 	}
 	cfg, err := clientcmd.NewDefaultClientConfig(*c, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error creating default client config: %v", err.Error())
+		return nil, nil, fmt.Errorf("error creating default client config: %v", err.Error())
 	}
-	return cfg, nil
+	return cfg, c, nil
 }
 
 // waitForApiserver waits for the apiserver to be ready.  It tests the
@@ -306,14 +362,15 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster fedv1a1.Federat
 	clusterName := cluster.Name
 	By(fmt.Sprintf("Checking readiness of cluster %q", clusterName))
 	err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
+		cluster, err := client.FederationV1alpha1().FederatedClusters().Get(clusterName,
+			metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
 		for _, condition := range cluster.Status.Conditions {
 			if condition.Type == fedcommon.ClusterReady && condition.Status == corev1.ConditionTrue {
 				return true, nil
 			}
-		}
-		_, err := client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
 		}
 		return false, nil
 	})
