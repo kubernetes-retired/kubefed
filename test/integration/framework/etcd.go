@@ -18,7 +18,7 @@ package framework
 
 import (
 	"github.com/kubernetes-sig-testing/frameworks/integration"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/marun/federation-v2/test/common"
 )
 
 var (

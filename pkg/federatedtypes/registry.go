@@ -19,7 +19,7 @@ package federatedtypes
 import (
 	"fmt"
 
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
 )
 
 // FederatedTypeConfig configures propagation of a federated type

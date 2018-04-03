@@ -16,7 +16,7 @@ limitations under the License.
 package internalversion
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/scheme"
+	"github.com/marun/federation-v2/pkg/client/clientset_generated/internalclientset/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
