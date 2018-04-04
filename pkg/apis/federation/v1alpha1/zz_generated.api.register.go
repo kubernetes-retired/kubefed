@@ -83,6 +83,13 @@ var (
 		func() runtime.Object { return &FederatedJobList{} }, // Register versioned resource list
 		&FederatedJobStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedJobOverrideStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedJobOverride,
+		FederatedJobOverrideSchemeFns{},
+		func() runtime.Object { return &FederatedJobOverride{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedJobOverrideList{} }, // Register versioned resource list
+		&FederatedJobOverrideStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedJobPlacementStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedJobPlacement,
 		FederatedJobPlacementSchemeFns{},
@@ -203,6 +210,13 @@ var (
 			func() runtime.Object { return &FederatedJob{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedJobList{} }, // Register versioned resource list
 			&FederatedJobStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedJobOverrideStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedJobOverrideStatus,
+			FederatedJobOverrideSchemeFns{},
+			func() runtime.Object { return &FederatedJobOverride{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedJobOverrideList{} }, // Register versioned resource list
+			&FederatedJobOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedJobPlacementStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedJobPlacementStatus,
@@ -493,6 +507,32 @@ type FederatedJobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedJob `json:"items"`
+}
+
+//
+// FederatedJobOverride Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedJobOverrideSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobOverrideStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobOverrideStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJobOverrideList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedJobOverride `json:"items"`
 }
 
 //
