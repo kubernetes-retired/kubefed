@@ -24,6 +24,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -56,6 +57,10 @@ func (a *FederatedReplicaSetAdapter) Template() FedApiAdapter {
 
 func (a *FederatedReplicaSetAdapter) Placement() PlacementAdapter {
 	return NewFederatedReplicaSetPlacement(a.client)
+}
+
+func (a *FederatedReplicaSetAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
+	return groupVersionResource("federatedreplicasetplacements")
 }
 
 func (a *FederatedReplicaSetAdapter) Override() OverrideAdapter {

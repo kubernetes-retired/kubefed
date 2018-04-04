@@ -23,6 +23,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -60,6 +61,10 @@ func (a *FederatedNamespaceAdapter) Template() FedApiAdapter {
 
 func (a *FederatedNamespaceAdapter) Placement() PlacementAdapter {
 	return NewFederatedNamespacePlacement(a.fedClient)
+}
+
+func (a *FederatedNamespaceAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
+	return groupVersionResource("federatednamespaceplacements")
 }
 
 func (a *FederatedNamespaceAdapter) Override() OverrideAdapter {

@@ -20,6 +20,7 @@ import (
 	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -30,7 +31,9 @@ import (
 type FederatedTypeAdapter interface {
 	FedClient() fedclientset.Interface
 	Template() FedApiAdapter
+	// TODO - Remove
 	Placement() PlacementAdapter
+	PlacementGroupVersionResource() schema.GroupVersionResource
 	Override() OverrideAdapter
 	Target() TargetAdapter
 	ObjectForCluster(template, override pkgruntime.Object, clusterName string) pkgruntime.Object
