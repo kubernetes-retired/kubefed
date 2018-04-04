@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"log"
 
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
@@ -52,7 +53,7 @@ type FederatedReplicaSetClusterOverride struct {
 	// TODO(marun) Need to ensure that a cluster name only appears
 	// once.  Why can't maps be used so this validation is automatic?
 	ClusterName string
-	Replicas    *int32 `json:"replicas,omitempty"`
+	Override    appsv1.ReplicaSetSpec `json:"override,omitempty"`
 }
 
 // FederatedReplicaSetOverrideStatus defines the observed state of FederatedReplicaSetOverride
