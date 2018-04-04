@@ -1539,17 +1539,17 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
-						"replicas": {
+						"override": {
 							SchemaProps: spec.SchemaProps{
-								Type:   []string{"integer"},
-								Format: "int32",
+								Ref: ref("k8s.io/api/apps/v1.ReplicaSetSpec"),
 							},
 						},
 					},
 					Required: []string{"ClusterName"},
 				},
 			},
-			Dependencies: []string{},
+			Dependencies: []string{
+				"k8s.io/api/apps/v1.ReplicaSetSpec"},
 		},
 		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetList": {
 			Schema: spec.Schema{
