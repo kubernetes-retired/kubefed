@@ -83,6 +83,13 @@ var (
 		func() runtime.Object { return &FederatedJobList{} }, // Register versioned resource list
 		&FederatedJobStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedJobPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedJobPlacement,
+		FederatedJobPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedJobPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedJobPlacementList{} }, // Register versioned resource list
+		&FederatedJobPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedNamespacePlacementStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedNamespacePlacement,
 		FederatedNamespacePlacementSchemeFns{},
@@ -196,6 +203,13 @@ var (
 			func() runtime.Object { return &FederatedJob{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedJobList{} }, // Register versioned resource list
 			&FederatedJobStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedJobPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedJobPlacementStatus,
+			FederatedJobPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedJobPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedJobPlacementList{} }, // Register versioned resource list
+			&FederatedJobPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedNamespacePlacementStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedNamespacePlacementStatus,
@@ -479,6 +493,32 @@ type FederatedJobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedJob `json:"items"`
+}
+
+//
+// FederatedJobPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedJobPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJobPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedJobPlacement `json:"items"`
 }
 
 //

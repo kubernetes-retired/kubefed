@@ -57,6 +57,10 @@ func (c *FakeFederation) FederatedJobs(namespace string) internalversion.Federat
 	return &FakeFederatedJobs{c, namespace}
 }
 
+func (c *FakeFederation) FederatedJobPlacements(namespace string) internalversion.FederatedJobPlacementInterface {
+	return &FakeFederatedJobPlacements{c, namespace}
+}
+
 func (c *FakeFederation) FederatedNamespacePlacements() internalversion.FederatedNamespacePlacementInterface {
 	return &FakeFederatedNamespacePlacements{c}
 }

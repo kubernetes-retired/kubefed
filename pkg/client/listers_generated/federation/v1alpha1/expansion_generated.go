@@ -78,6 +78,14 @@ type FederatedJobListerExpansion interface{}
 // FederatedJobNamespaceLister.
 type FederatedJobNamespaceListerExpansion interface{}
 
+// FederatedJobPlacementListerExpansion allows custom methods to be added to
+// FederatedJobPlacementLister.
+type FederatedJobPlacementListerExpansion interface{}
+
+// FederatedJobPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedJobPlacementNamespaceLister.
+type FederatedJobPlacementNamespaceListerExpansion interface{}
+
 // FederatedNamespacePlacementListerExpansion allows custom methods to be added to
 // FederatedNamespacePlacementLister.
 type FederatedNamespacePlacementListerExpansion interface{}

@@ -31,6 +31,8 @@ type FederatedDeploymentPlacementExpansion interface{}
 
 type FederatedJobExpansion interface{}
 
+type FederatedJobPlacementExpansion interface{}
+
 type FederatedNamespacePlacementExpansion interface{}
 
 type FederatedReplicaSetExpansion interface{}
