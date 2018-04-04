@@ -70,6 +70,14 @@ type FederatedDeploymentPlacementListerExpansion interface{}
 // FederatedDeploymentPlacementNamespaceLister.
 type FederatedDeploymentPlacementNamespaceListerExpansion interface{}
 
+// FederatedJobListerExpansion allows custom methods to be added to
+// FederatedJobLister.
+type FederatedJobListerExpansion interface{}
+
+// FederatedJobNamespaceListerExpansion allows custom methods to be added to
+// FederatedJobNamespaceLister.
+type FederatedJobNamespaceListerExpansion interface{}
+
 // FederatedNamespacePlacementListerExpansion allows custom methods to be added to
 // FederatedNamespacePlacementLister.
 type FederatedNamespacePlacementListerExpansion interface{}
