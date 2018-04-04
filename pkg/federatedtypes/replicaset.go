@@ -17,6 +17,7 @@ limitations under the License.
 package federatedtypes
 
 import (
+	"github.com/imdario/mergo"
 	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/marun/federation-v2/pkg/controller/util"
@@ -71,19 +72,23 @@ func (a *FederatedReplicaSetAdapter) ObjectForCluster(template, override pkgrunt
 	fedReplicaSet := template.(*fedv1a1.FederatedReplicaSet)
 	templateReplicaSet := fedReplicaSet.Spec.Template
 
-	replicaSet := &appsv1.ReplicaSet{
-		ObjectMeta: util.DeepCopyRelevantObjectMeta(templateReplicaSet.ObjectMeta),
-		Spec:       *templateReplicaSet.Spec.DeepCopy(),
-	}
-
+	replicaSetSpec := templateReplicaSet.Spec.DeepCopy()
 	if override != nil {
 		replicaSetOverride := override.(*fedv1a1.FederatedReplicaSetOverride)
 		for _, clusterOverride := range replicaSetOverride.Spec.Overrides {
 			if clusterOverride.ClusterName == clusterName {
-				replicaSet.Spec.Replicas = clusterOverride.Replicas
+				overrideSpec := clusterOverride.Override.DeepCopy()
+				// Merge override with the template
+				mergo.Merge(overrideSpec, *replicaSetSpec)
+				replicaSetSpec = overrideSpec
 				break
 			}
 		}
+	}
+
+	replicaSet := &appsv1.ReplicaSet{
+		ObjectMeta: util.DeepCopyRelevantObjectMeta(templateReplicaSet.ObjectMeta),
+		Spec:       *replicaSetSpec,
 	}
 
 	// Avoid having to duplicate these details in the template or have
@@ -360,7 +365,26 @@ func NewFederatedReplicaSetObjectsForTest(namespace string, clusterNames []strin
 			Overrides: []fedv1a1.FederatedReplicaSetClusterOverride{
 				{
 					ClusterName: clusterName,
-					Replicas:    &clusterReplicas,
+					Override: appsv1.ReplicaSetSpec{
+						Replicas: &clusterReplicas,
+						Selector: &metav1.LabelSelector{
+							MatchLabels: labels,
+						},
+						Template: apiv1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Labels: labels,
+							},
+							Spec: apiv1.PodSpec{
+								TerminationGracePeriodSeconds: &zero,
+								Containers: []apiv1.Container{
+									{
+										Name:  "nginx-override",
+										Image: "nginx2",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
