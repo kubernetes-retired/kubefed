@@ -48,14 +48,14 @@ type PropagatedVersionSpec struct {
 
 // PropagatedVersionStatus defines the observed state of PropagatedVersion
 type PropagatedVersionStatus struct {
-	TemplateVersion string                   `json:"templateversion,omitempty"`
-	OverrideVersion string                   `json:"overrideversion,omitempty"`
-	ClusterVersions []ClusterResourceVersion `json:"clusterversions,omitempty"`
+	TemplateVersion string                 `json:"templateversion,omitempty"`
+	OverrideVersion string                 `json:"overrideversion,omitempty"`
+	ClusterVersions []ClusterObjectVersion `json:"clusterversions,omitempty"`
 }
 
-type ClusterResourceVersion struct {
-	ClusterName     string `json:"clustername,omitempty"`
-	ResourceVersion string `json:"resourceversion,omitempty"`
+type ClusterObjectVersion struct {
+	ClusterName string `json:"clustername,omitempty"`
+	Version     string `json:"version,omitempty"`
 }
 
 // Validate checks that an instance of PropagatedVersion is well formed
