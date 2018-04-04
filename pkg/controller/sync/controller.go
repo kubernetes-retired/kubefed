@@ -24,6 +24,7 @@ import (
 	"github.com/marun/federation-v2/pkg/apis/federation/common"
 	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/marun/federation-v2/pkg/controller/sync/placement"
 	"github.com/marun/federation-v2/pkg/controller/util"
 	"github.com/marun/federation-v2/pkg/controller/util/deletionhelper"
 	"github.com/marun/federation-v2/pkg/federatedtypes"
@@ -73,15 +74,12 @@ type FederationSyncController struct {
 	// Informer for the templates of the federated type
 	templateController cache.Controller
 
-	// Store for the placement directives of the federated type
-	placementStore cache.Store
-	// Informer controller for placement directives of the federated type
-	placementController cache.Controller
-
 	// Store for the override directives of the federated type
 	overrideStore cache.Store
 	// Informer controller for override directives of the federated type
 	overrideController cache.Controller
+
+	placementPlugin placement.PlacementPlugin
 
 	// Store for propagated versions
 	propagatedVersionStore cache.Store
@@ -165,11 +163,16 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 		s.deliverObj(obj, 0, false)
 	}
 	s.templateStore, s.templateController = newFedApiInformer(templateAdapter, deliverObj)
-	s.placementStore, s.placementController = newFedApiInformer(adapter.Placement(), deliverObj)
 
 	override := adapter.Override()
 	if override != nil {
 		s.overrideStore, s.overrideController = newFedApiInformer(adapter.Override(), deliverObj)
+	}
+
+	if adapter.Template().Kind() == federatedtypes.NamespaceKind {
+		s.placementPlugin = placement.NewNamespacePlacementPlugin(adapter.Placement(), deliverObj)
+	} else {
+		s.placementPlugin = placement.NewResourcePlacementPlugin(adapter.Placement(), deliverObj)
 	}
 
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
@@ -277,11 +280,11 @@ func (s *FederationSyncController) minimizeLatency() {
 
 func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 	go s.templateController.Run(stopChan)
-	go s.placementController.Run(stopChan)
 	if s.overrideController != nil {
 		go s.overrideController.Run(stopChan)
 	}
 	go s.propagatedVersionController.Run(stopChan)
+	go s.placementPlugin.Run(stopChan)
 	s.informer.Start()
 	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
 		s.workQueue.Add(item)
@@ -363,6 +366,11 @@ func (s *FederationSyncController) isSynced() bool {
 		glog.V(2).Infof("Cluster list not synced")
 		return false
 	}
+	if !s.placementPlugin.HasSynced() {
+		glog.V(2).Infof("Placement not synced")
+		return false
+	}
+
 	// TODO(marun) set clusters as ready in the test fixture?
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
@@ -433,8 +441,9 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusNotSynced
 	}
 
-	placement, err := s.objFromCache(s.placementStore, s.adapter.Placement().Kind(), key)
+	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(key, clusterNames)
 	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to compute placement: %v", err))
 		return statusError
 	}
 
@@ -465,7 +474,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		propagatedVersion = propagatedVersionFromCache.(*fedv1a1.PropagatedVersion)
 	}
 
-	return s.syncToClusters(clusterNames, template, placement, override, propagatedVersion)
+	return s.syncToClusters(selectedClusters, unselectedClusters, template, override, propagatedVersion)
 }
 
 func (s *FederationSyncController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
@@ -535,17 +544,13 @@ func (s *FederationSyncController) versionName(resourceName string) string {
 
 // syncToClusters ensures that the state of the given object is synchronized to
 // member clusters.
-func (s *FederationSyncController) syncToClusters(clusterNames []string,
-	template, placement, override pkgruntime.Object,
-	propagatedVersion *fedv1a1.PropagatedVersion) reconciliationStatus {
+func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedClusters []string,
+	template, override pkgruntime.Object, propagatedVersion *fedv1a1.PropagatedVersion) reconciliationStatus {
 
 	kind := s.adapter.Template().Kind()
 	key := federatedtypes.NewQualifiedName(template).String()
 
 	glog.V(3).Infof("Syncing %s %q in underlying clusters", kind, key)
-
-	selectedClusters, unselectedClusters := computePlacement(s.adapter.Placement(), placement,
-		clusterNames)
 
 	propagatedClusterVersions := getClusterVersions(s.adapter, template, override, propagatedVersion)
 
@@ -796,30 +801,4 @@ func newFedApiInformer(typeAdapter federatedtypes.FedApiAdapter, triggerFunc fun
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(triggerFunc),
 	)
-}
-
-// computePlacement computes and returns two arrays of strings containing the
-// set of selected clusters and unselected clusters for the placement adapter
-// type passed in.
-func computePlacement(adapter federatedtypes.PlacementAdapter, placement pkgruntime.Object, clusterNames []string) ([]string, []string) {
-	clusterSet := sets.NewString(clusterNames...)
-	selectedClusterSet := sets.String{}
-	if placement != nil {
-		// If the placement exists, compute the set of selected clusters.
-		selectedClusters := adapter.ClusterNames(placement)
-		selectedClusterSet.Insert(selectedClusters...)
-	} else {
-		// Else, if we are a FederatedNamespacePlacement adapter, process the
-		// placement clusters for this namespace.
-		_, ok := adapter.(*federatedtypes.FederatedNamespacePlacement)
-		if ok {
-			// TODO (font): If other federated resource types exist that
-			// specify this namespace, put this namespace where those resources
-			// are going.
-			// Else, if no other federated resource types exist,
-			// assume all clusters for the namespace placement.
-			selectedClusterSet = clusterSet
-		}
-	}
-	return clusterSet.Intersection(selectedClusterSet).List(), clusterSet.Difference(selectedClusterSet).List()
 }
