@@ -26,6 +26,7 @@ import (
 	"github.com/marun/federation-v2/pkg/controller/federateddeployment"
 	"github.com/marun/federation-v2/pkg/controller/federateddeploymentoverride"
 	"github.com/marun/federation-v2/pkg/controller/federateddeploymentplacement"
+	"github.com/marun/federation-v2/pkg/controller/federatedjob"
 	"github.com/marun/federation-v2/pkg/controller/federatednamespaceplacement"
 	"github.com/marun/federation-v2/pkg/controller/federatedreplicaset"
 	"github.com/marun/federation-v2/pkg/controller/federatedreplicasetoverride"
@@ -48,6 +49,7 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 		federateddeployment.NewFederatedDeploymentController(config, si),
 		federateddeploymentoverride.NewFederatedDeploymentOverrideController(config, si),
 		federateddeploymentplacement.NewFederatedDeploymentPlacementController(config, si),
+		federatedjob.NewFederatedJobController(config, si),
 		federatednamespaceplacement.NewFederatedNamespacePlacementController(config, si),
 		federatedreplicaset.NewFederatedReplicaSetController(config, si),
 		federatedreplicasetoverride.NewFederatedReplicaSetOverrideController(config, si),

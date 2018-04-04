@@ -29,6 +29,9 @@ type FederationInterface interface {
 	FederatedDeploymentsGetter
 	FederatedDeploymentOverridesGetter
 	FederatedDeploymentPlacementsGetter
+	FederatedJobsGetter
+	FederatedJobOverridesGetter
+	FederatedJobPlacementsGetter
 	FederatedNamespacePlacementsGetter
 	FederatedReplicaSetsGetter
 	FederatedReplicaSetOverridesGetter
@@ -70,6 +73,18 @@ func (c *FederationClient) FederatedDeploymentOverrides(namespace string) Federa
 
 func (c *FederationClient) FederatedDeploymentPlacements(namespace string) FederatedDeploymentPlacementInterface {
 	return newFederatedDeploymentPlacements(c, namespace)
+}
+
+func (c *FederationClient) FederatedJobs(namespace string) FederatedJobInterface {
+	return newFederatedJobs(c, namespace)
+}
+
+func (c *FederationClient) FederatedJobOverrides(namespace string) FederatedJobOverrideInterface {
+	return newFederatedJobOverrides(c, namespace)
+}
+
+func (c *FederationClient) FederatedJobPlacements(namespace string) FederatedJobPlacementInterface {
+	return newFederatedJobPlacements(c, namespace)
 }
 
 func (c *FederationClient) FederatedNamespacePlacements() FederatedNamespacePlacementInterface {

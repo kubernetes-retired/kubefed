@@ -76,6 +76,27 @@ var (
 		func() runtime.Object { return &FederatedDeploymentPlacementList{} }, // Register versioned resource list
 		&FederatedDeploymentPlacementStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedJobStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedJob,
+		FederatedJobSchemeFns{},
+		func() runtime.Object { return &FederatedJob{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedJobList{} }, // Register versioned resource list
+		&FederatedJobStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedJobOverrideStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedJobOverride,
+		FederatedJobOverrideSchemeFns{},
+		func() runtime.Object { return &FederatedJobOverride{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedJobOverrideList{} }, // Register versioned resource list
+		&FederatedJobOverrideStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedJobPlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedJobPlacement,
+		FederatedJobPlacementSchemeFns{},
+		func() runtime.Object { return &FederatedJobPlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedJobPlacementList{} }, // Register versioned resource list
+		&FederatedJobPlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationFederatedNamespacePlacementStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalFederatedNamespacePlacement,
 		FederatedNamespacePlacementSchemeFns{},
@@ -182,6 +203,27 @@ var (
 			func() runtime.Object { return &FederatedDeploymentPlacement{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedDeploymentPlacementList{} }, // Register versioned resource list
 			&FederatedDeploymentPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedJobStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedJobStatus,
+			FederatedJobSchemeFns{},
+			func() runtime.Object { return &FederatedJob{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedJobList{} }, // Register versioned resource list
+			&FederatedJobStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedJobOverrideStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedJobOverrideStatus,
+			FederatedJobOverrideSchemeFns{},
+			func() runtime.Object { return &FederatedJobOverride{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedJobOverrideList{} }, // Register versioned resource list
+			&FederatedJobOverrideStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedJobPlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedJobPlacementStatus,
+			FederatedJobPlacementSchemeFns{},
+			func() runtime.Object { return &FederatedJobPlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedJobPlacementList{} }, // Register versioned resource list
+			&FederatedJobPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationFederatedNamespacePlacementStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalFederatedNamespacePlacementStatus,
@@ -439,6 +481,84 @@ type FederatedDeploymentPlacementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedDeploymentPlacement `json:"items"`
+}
+
+//
+// FederatedJob Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedJobSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJobList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedJob `json:"items"`
+}
+
+//
+// FederatedJobOverride Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedJobOverrideSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobOverrideStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobOverrideStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJobOverrideList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedJobOverride `json:"items"`
+}
+
+//
+// FederatedJobPlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedJobPlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobPlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedJobPlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJobPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedJobPlacement `json:"items"`
 }
 
 //

@@ -38,6 +38,12 @@ type Interface interface {
 	FederatedDeploymentOverrides() FederatedDeploymentOverrideInformer
 	// FederatedDeploymentPlacements returns a FederatedDeploymentPlacementInformer.
 	FederatedDeploymentPlacements() FederatedDeploymentPlacementInformer
+	// FederatedJobs returns a FederatedJobInformer.
+	FederatedJobs() FederatedJobInformer
+	// FederatedJobOverrides returns a FederatedJobOverrideInformer.
+	FederatedJobOverrides() FederatedJobOverrideInformer
+	// FederatedJobPlacements returns a FederatedJobPlacementInformer.
+	FederatedJobPlacements() FederatedJobPlacementInformer
 	// FederatedNamespacePlacements returns a FederatedNamespacePlacementInformer.
 	FederatedNamespacePlacements() FederatedNamespacePlacementInformer
 	// FederatedReplicaSets returns a FederatedReplicaSetInformer.
@@ -100,6 +106,21 @@ func (v *version) FederatedDeploymentOverrides() FederatedDeploymentOverrideInfo
 // FederatedDeploymentPlacements returns a FederatedDeploymentPlacementInformer.
 func (v *version) FederatedDeploymentPlacements() FederatedDeploymentPlacementInformer {
 	return &federatedDeploymentPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedJobs returns a FederatedJobInformer.
+func (v *version) FederatedJobs() FederatedJobInformer {
+	return &federatedJobInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedJobOverrides returns a FederatedJobOverrideInformer.
+func (v *version) FederatedJobOverrides() FederatedJobOverrideInformer {
+	return &federatedJobOverrideInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedJobPlacements returns a FederatedJobPlacementInformer.
+func (v *version) FederatedJobPlacements() FederatedJobPlacementInformer {
+	return &federatedJobPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedNamespacePlacements returns a FederatedNamespacePlacementInformer.
