@@ -455,50 +455,17 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		// A status update is pending
 		return statusNeedsRecheck
 	}
-	propagatedVersiongFromCache, err := s.objFromCache(s.propagatedVersionStore, "PropagatedVersion", propagatedVersionKey)
+	propagatedVersionFromCache, err := s.objFromCache(s.propagatedVersionStore,
+		"PropagatedVersion", propagatedVersionKey)
 	if err != nil {
 		return statusError
 	}
 	var propagatedVersion *fedv1a1.PropagatedVersion
-	if propagatedVersiongFromCache != nil {
-		propagatedVersion = propagatedVersiongFromCache.(*fedv1a1.PropagatedVersion)
+	if propagatedVersionFromCache != nil {
+		propagatedVersion = propagatedVersionFromCache.(*fedv1a1.PropagatedVersion)
 	}
 
-	operationsAccessor := func(adapter federatedtypes.FederatedTypeAdapter, selectedClusters, unselectedClusters []string, template, placement, override pkgruntime.Object) ([]util.FederatedOperation, error) {
-		clusterVersions := make(map[string]string)
-		if propagatedVersion != nil {
-			templateVersion := adapter.Template().ObjectMeta(template).ResourceVersion
-			overrideVersion := ""
-			if override != nil {
-				overrideVersion = adapter.Override().ObjectMeta(override).ResourceVersion
-			}
-			if templateVersion == propagatedVersion.Status.TemplateVersion && overrideVersion == propagatedVersion.Status.OverrideVersion {
-				for _, versions := range propagatedVersion.Status.ClusterVersions {
-					clusterVersions[versions.ClusterName] = versions.ResourceVersion
-				}
-			}
-		}
-		operations, err := clusterOperations(adapter, selectedClusters, unselectedClusters, template, override, key, clusterVersions, func(clusterName string) (interface{}, bool, error) {
-			return s.informer.GetTargetStore().GetByKey(clusterName, key)
-		})
-		if err != nil {
-			s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "FedClusterOperationsError", "Error obtaining sync operations for %s: %s error: %s", kind, key, err.Error())
-		}
-		return operations, err
-	}
-
-	return syncToClusters(
-		operationsAccessor,
-		clusterNames,
-		s.updater.Update,
-		s.adapter,
-		s.informer,
-		template,
-		placement,
-		override,
-		propagatedVersion,
-		s.pendingVersionUpdates,
-	)
+	return s.syncToClusters(clusterNames, template, placement, override, propagatedVersion)
 }
 
 func (s *FederationSyncController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
@@ -566,20 +533,27 @@ func (s *FederationSyncController) versionName(resourceName string) string {
 	return common.PropagatedVersionName(targetKind, resourceName)
 }
 
-type operationsFunc func(federatedtypes.FederatedTypeAdapter, []string, []string, pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) ([]util.FederatedOperation, error)
-type executionFunc func([]util.FederatedOperation) (map[string]string, []error)
+// syncToClusters ensures that the state of the given object is synchronized to
+// member clusters.
+func (s *FederationSyncController) syncToClusters(clusterNames []string,
+	template, placement, override pkgruntime.Object,
+	propagatedVersion *fedv1a1.PropagatedVersion) reconciliationStatus {
 
-// syncToClusters ensures that the state of the given object is synchronized to member clusters.
-func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, execute executionFunc, adapter federatedtypes.FederatedTypeAdapter, informer util.FederatedInformer, template, placement, override pkgruntime.Object, version *fedv1a1.PropagatedVersion, pendingVersionUpdates sets.String) reconciliationStatus {
-	kind := adapter.Template().Kind()
+	kind := s.adapter.Template().Kind()
 	key := federatedtypes.NewQualifiedName(template).String()
 
 	glog.V(3).Infof("Syncing %s %q in underlying clusters", kind, key)
 
-	selectedClusters, unselectedClusters := computePlacement(adapter.Placement(), placement, clusterNames)
+	selectedClusters, unselectedClusters := computePlacement(s.adapter.Placement(), placement,
+		clusterNames)
 
-	operations, err := operationsAccessor(adapter, selectedClusters, unselectedClusters, template, placement, override)
+	propagatedClusterVersions := getClusterVersions(s.adapter, template, override, propagatedVersion)
+
+	operations, err := s.clusterOperations(selectedClusters, unselectedClusters, template,
+		override, key, propagatedClusterVersions)
 	if err != nil {
+		s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "FedClusterOperationsError",
+			"Error obtaining sync operations for %s: %s error: %s", kind, key, err.Error())
 		return statusError
 	}
 
@@ -587,25 +561,62 @@ func syncToClusters(operationsAccessor operationsFunc, clusterNames []string, ex
 		return statusAllOK
 	}
 
-	clusterVersions, operationErrors := execute(operations)
+	updatedClusterVersions, operationErrors := s.updater.Update(operations)
 
-	err = updatePropagatedVersion(adapter, clusterVersions, template, override, version, selectedClusters, pendingVersionUpdates)
+	err = updatePropagatedVersion(s.adapter, updatedClusterVersions, template, override,
+		propagatedVersion, selectedClusters, s.pendingVersionUpdates)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v", kind, key, err))
+		runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v", kind,
+			key, err))
 		// Don't return an error - failure to record the propagated
 		// version does not imply that propagation for the resource
 		// needs to be attempted again.
 	}
 
 	if len(operationErrors) > 0 {
-		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", kind, key, operationErrors))
+		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", kind,
+			key, operationErrors))
 		return statusError
 	}
 
 	return statusAllOK
 }
 
-func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versions map[string]string, template, override pkgruntime.Object, version *fedv1a1.PropagatedVersion, selectedClusters []string, pendingVersionUpdates sets.String) error {
+// getClusterVersions returns the cluster versions populated in the current
+// propagated version object if it exists.
+func getClusterVersions(adapter federatedtypes.FederatedTypeAdapter, template,
+	override pkgruntime.Object, propagatedVersion *fedv1a1.PropagatedVersion) map[string]string {
+
+	clusterVersions := make(map[string]string)
+
+	if propagatedVersion == nil {
+		return clusterVersions
+	}
+
+	templateVersion := adapter.Template().ObjectMeta(template).ResourceVersion
+	overrideVersion := ""
+
+	if override != nil {
+		overrideVersion = adapter.Override().ObjectMeta(override).ResourceVersion
+	}
+
+	if templateVersion == propagatedVersion.Status.TemplateVersion &&
+		overrideVersion == propagatedVersion.Status.OverrideVersion {
+		for _, versions := range propagatedVersion.Status.ClusterVersions {
+			clusterVersions[versions.ClusterName] = versions.ResourceVersion
+		}
+	}
+
+	return clusterVersions
+}
+
+// updatePropagatedVersion handles creating or updating the propagated version
+// resource in the federation API.
+func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
+	updatedVersions map[string]string, template, override pkgruntime.Object,
+	version *fedv1a1.PropagatedVersion, selectedClusters []string,
+	pendingVersionUpdates sets.String) error {
+
 	templateMeta := adapter.Template().ObjectMeta(template)
 	overrideVersion := ""
 	if override != nil {
@@ -613,7 +624,7 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versio
 	}
 
 	if version == nil {
-		version := newVersion(versions, templateMeta, adapter.Target().Kind(), overrideVersion)
+		version := newVersion(updatedVersions, templateMeta, adapter.Target().Kind(), overrideVersion)
 		_, err := adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
@@ -638,7 +649,7 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versio
 		version.Status.OverrideVersion = overrideVersion
 		existingVersions = []fedv1a1.ClusterResourceVersion{}
 	}
-	version.Status.ClusterVersions = clusterVersions(versions, existingVersions, selectedClusters)
+	version.Status.ClusterVersions = clusterVersions(updatedVersions, existingVersions, selectedClusters)
 	key := federatedtypes.NewQualifiedName(version).String()
 	pendingVersionUpdates.Insert(key)
 	_, err := adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
@@ -648,8 +659,10 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter, versio
 	return err
 }
 
-// newVersion initializes a new version resource for the given cluster versions and template and override
-func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMeta, targetKind, overrideVersion string) *fedv1a1.PropagatedVersion {
+// newVersion initializes a new propagated version resource for the given
+// cluster versions and template and override.
+func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMeta, targetKind,
+	overrideVersion string) *fedv1a1.PropagatedVersion {
 	versions := []fedv1a1.ClusterResourceVersion{}
 	for clusterName, resourceVersion := range clusterVersions {
 		versions = append(versions, fedv1a1.ClusterResourceVersion{
@@ -671,8 +684,9 @@ func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMe
 	}
 }
 
-// clusterVersions updates the resource versions for the given status
-func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.ClusterResourceVersion, selectedClusters []string) []fedv1a1.ClusterResourceVersion {
+// clusterVersions updates the resource versions for the given status.
+func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.ClusterResourceVersion,
+	selectedClusters []string) []fedv1a1.ClusterResourceVersion {
 	// Retain versions for selected clusters that were not changed
 	selectedClusterSet := sets.NewString(selectedClusters...)
 	for _, oldVersion := range oldVersions {
@@ -700,17 +714,19 @@ func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.Cluste
 	return versions
 }
 
-type clusterObjectAccessorFunc func(clusterName string) (interface{}, bool, error)
+// clusterOperations returns the list of operations needed to synchronize the
+// state of the given object to the provided clusters.
+func (s *FederationSyncController) clusterOperations(selectedClusters, unselectedClusters []string,
+	template, override pkgruntime.Object, key string,
+	clusterVersions map[string]string) ([]util.FederatedOperation, error) {
 
-// clusterOperations returns the list of operations needed to synchronize the state of the given object to the provided clusters
-func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClusters, unselectedClusters []string, template, override pkgruntime.Object, key string, clusterVersions map[string]string, accessor clusterObjectAccessorFunc) ([]util.FederatedOperation, error) {
 	operations := make([]util.FederatedOperation, 0)
 
-	kind := adapter.Target().Kind()
+	kind := s.adapter.Target().Kind()
 	for _, clusterName := range selectedClusters {
-		desiredObj := adapter.ObjectForCluster(template, override, clusterName)
+		desiredObj := s.adapter.ObjectForCluster(template, override, clusterName)
 
-		clusterObj, found, err := accessor(clusterName)
+		clusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
 			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, clusterName, err)
 			runtime.HandleError(wrappedErr)
@@ -726,7 +742,7 @@ func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClus
 				// No target version recorded for template+override version
 				operationType = util.OperationTypeUpdate
 			} else {
-				targetVersion := adapter.Target().ObjectMeta(clusterObj).ResourceVersion
+				targetVersion := s.adapter.Target().ObjectMeta(clusterObj).ResourceVersion
 				// Versions don't match
 				if resourceVersion != targetVersion {
 					operationType = util.OperationTypeUpdate
@@ -747,7 +763,7 @@ func clusterOperations(adapter federatedtypes.FederatedTypeAdapter, selectedClus
 	}
 
 	for _, clusterName := range unselectedClusters {
-		clusterObj, found, err := accessor(clusterName)
+		clusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
 			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, clusterName, err)
 			runtime.HandleError(wrappedErr)
