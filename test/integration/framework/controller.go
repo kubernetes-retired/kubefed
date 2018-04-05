@@ -33,7 +33,10 @@ func NewControllerFixture(tl common.TestLogger, kind string, adapterFactory fede
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	sync.StartFederationSyncController(kind, adapterFactory, fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	err := sync.StartFederationSyncController(kind, adapterFactory, fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	if err != nil {
+		tl.Fatalf("Error starting sync controller: %v", err)
+	}
 	return f
 }
 
