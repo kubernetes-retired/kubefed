@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -109,7 +110,7 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type adapter
-func StartFederationSyncController(kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) {
+func StartFederationSyncController(kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
 	// TODO(marun) should there be a unified client rather than
 	// requiring separate clients for fed and kube apis?  In an
 	// aggregated scenario one config can drive both of them, but it
@@ -126,16 +127,20 @@ func StartFederationSyncController(kind string, adapterFactory federatedtypes.Ad
 	if ok {
 		namespaceAdapter.SetKubeClient(kubeClient)
 	}
-	controller := newFederationSyncController(adapter, fedClient, kubeClient, crClient)
+	controller, err := newFederationSyncController(adapter, fedConfig, fedClient, kubeClient, crClient)
+	if err != nil {
+		return err
+	}
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
 	glog.Infof(fmt.Sprintf("Starting sync controller for %s resources", kind))
 	controller.Run(stopChan)
+	return nil
 }
 
 // newFederationSyncController returns a new sync controller for the given client and type adapter
-func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) *FederationSyncController {
+func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fedConfig *restclient.Config, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*FederationSyncController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("%v-controller", adapter.Template().Kind())})
@@ -169,10 +174,21 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 		s.overrideStore, s.overrideController = newFedApiInformer(adapter.Override(), deliverObj)
 	}
 
+	deliverUnstructured := func(obj *unstructured.Unstructured) {
+		qualifiedName := federatedtypes.QualifiedName{
+			Namespace: obj.GetNamespace(),
+			Name:      obj.GetName(),
+		}
+		s.deliver(qualifiedName, 0, false)
+	}
 	if adapter.Template().Kind() == federatedtypes.NamespaceKind {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(adapter.Placement(), deliverObj)
 	} else {
-		s.placementPlugin = placement.NewResourcePlacementPlugin(adapter.Placement(), deliverObj)
+		var err error
+		s.placementPlugin, err = placement.NewResourcePlacementPlugin(fedConfig, adapter.PlacementGroupVersionResource(), deliverUnstructured)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
@@ -266,7 +282,7 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 		s.updater,
 	)
 
-	return s
+	return s, nil
 }
 
 // minimizeLatency reduces delays and timeouts to make the controller more responsive (useful for testing).
@@ -443,7 +459,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 
 	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(key, clusterNames)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to compute placement: %v", err))
+		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", kind, key, err))
 		return statusError
 	}
 
