@@ -82,7 +82,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterResourceVersion": {
+		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -92,7 +92,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format: "",
 							},
 						},
-						"resourceversion": {
+						"version": {
 							SchemaProps: spec.SchemaProps{
 								Type:   []string{"string"},
 								Format: "",
@@ -3469,7 +3469,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterResourceVersion"),
+											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion"),
 										},
 									},
 								},
@@ -3479,7 +3479,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterResourceVersion"},
+				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion"},
 		},
 		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatusStrategy": {
 			Schema: spec.Schema{
