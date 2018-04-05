@@ -39,9 +39,9 @@ const (
 )
 
 type operationResult struct {
-	clusterName     string
-	resourceVersion string
-	err             error
+	clusterName string
+	version     string
+	err         error
 }
 
 // FederatedOperation definition contains type (add/update/delete) and the object itself.
@@ -116,7 +116,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 			baseEventType := fmt.Sprintf("%s", op.Type)
 			eventType := fmt.Sprintf("%sInCluster", strings.Title(baseEventType))
 
-			resourceVersion := ""
+			version := ""
 
 			switch op.Type {
 			case OperationTypeAdd:
@@ -125,10 +125,10 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 				eventType := "CreateInCluster"
 
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Creating", eventArgs...)
-				resourceVersion, err = fu.addFunction(clientset, op.Obj)
+				version, err = fu.addFunction(clientset, op.Obj)
 			case OperationTypeUpdate:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Updating", eventArgs...)
-				resourceVersion, err = fu.updateFunction(clientset, op.Obj)
+				version, err = fu.updateFunction(clientset, op.Obj)
 			case OperationTypeDelete:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Deleting", eventArgs...)
 				_, err = fu.deleteFunction(clientset, op.Obj)
@@ -147,9 +147,9 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 			}
 
 			done <- operationResult{
-				clusterName:     clusterName,
-				resourceVersion: resourceVersion,
-				err:             err,
+				clusterName: clusterName,
+				version:     version,
+				err:         err,
 			}
 		}(op)
 	}
@@ -171,7 +171,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 				errors = append(errors, result.err)
 				break
 			}
-			versions[result.clusterName] = result.resourceVersion
+			versions[result.clusterName] = result.version
 		case <-time.After(start.Add(fu.timeout).Sub(now)):
 			timedOut = true
 			break

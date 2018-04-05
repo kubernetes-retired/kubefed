@@ -18,6 +18,7 @@ package federatedtypes
 
 import (
 	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/marun/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -71,6 +72,8 @@ type OverrideAdapter interface {
 
 type TargetAdapter interface {
 	MetaAdapter
+
+	VersionCompareType() util.VersionCompareType
 
 	// Client methods for accessing the type in member clusters
 	Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error)

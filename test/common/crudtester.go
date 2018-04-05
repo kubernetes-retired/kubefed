@@ -22,6 +22,7 @@ import (
 
 	"github.com/marun/federation-v2/pkg/apis/federation/common"
 	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/marun/federation-v2/pkg/controller/util"
 	"github.com/marun/federation-v2/pkg/federatedtypes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,26 +41,33 @@ const (
 // results of those operations are propagated to clusters that are
 // members of a federation.
 type FederatedTypeCrudTester struct {
-	tl             TestLogger
-	adapter        federatedtypes.FederatedTypeAdapter
-	kind           string
-	clusterClients map[string]clientset.Interface
-	waitInterval   time.Duration
+	tl               TestLogger
+	adapter          federatedtypes.FederatedTypeAdapter
+	kind             string
+	comparisonHelper util.ComparisonHelper
+	clusterClients   map[string]clientset.Interface
+	waitInterval     time.Duration
 	// Federation operations will use wait.ForeverTestTimeout.  Any
 	// operation that involves member clusters may take longer due to
 	// propagation latency.
 	clusterWaitTimeout time.Duration
 }
 
-func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients map[string]clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) *FederatedTypeCrudTester {
+func NewFederatedTypeCrudTester(testLogger TestLogger, adapter federatedtypes.FederatedTypeAdapter, clusterClients map[string]clientset.Interface, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
+	compare, err := util.NewComparisonHelper(adapter.Target().VersionCompareType())
+	if err != nil {
+		return nil, err
+	}
+
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		adapter:            adapter,
 		kind:               adapter.Template().Kind(),
+		comparisonHelper:   compare,
 		clusterClients:     clusterClients,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
-	}
+	}, nil
 }
 
 func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) {
@@ -83,28 +91,6 @@ func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desi
 	// Test objects may use GenerateName.  Use the name of the
 	// template resource for other resources.
 	name := templateMeta.Name
-
-	// qualifiedName := federatedtypes.NewQualifiedName(template)
-	// resourceVersion := templateMeta.ResourceVersion
-	// // Wait for the controller to add a finalizer to the template
-	// err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-	// 	template, err := templateAdapter.Get(qualifiedName)
-	// 	if errors.IsNotFound(err) {
-	// 		return false, nil
-	// 	}
-	// 	if err == nil {
-	// 		version := templateAdapter.ObjectMeta(template).ResourceVersion
-	// 		// Updated version indicates the finalizer has been added
-	// 		if resourceVersion != version {
-	// 			return true, nil
-	// 		}
-	// 	}
-	// 	return false, err
-	// })
-	// if err != nil {
-	// 	c.tl.Fatalf("Error waiting for deletion finalizer to be added for %s %q: %v", c.kind, qualifiedName, err)
-	// }
-
 	placementAdapter := c.adapter.Placement()
 	c.setFedResourceName(placementAdapter, desiredPlacement, name)
 	placement := c.createFedResource(placementAdapter, desiredPlacement)
@@ -364,9 +350,11 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 
 func (c *FederatedTypeCrudTester) waitForResource(client clientset.Interface, qualifiedName federatedtypes.QualifiedName, expectedVersion string) error {
 	targetAdapter := c.adapter.Target()
+
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		clusterObj, err := targetAdapter.Get(client, qualifiedName)
-		if err == nil && targetAdapter.ObjectMeta(clusterObj).ResourceVersion == expectedVersion {
+		targetMeta := targetAdapter.ObjectMeta(clusterObj)
+		if err == nil && c.comparisonHelper.GetVersion(targetMeta) == expectedVersion {
 			return true, nil
 		}
 		if errors.IsNotFound(err) {
@@ -466,7 +454,7 @@ func (c *FederatedTypeCrudTester) versionName(resourceName string) string {
 func propagatedVersion(version *fedv1a1.PropagatedVersion, clusterName string) string {
 	for _, clusterVersion := range version.Status.ClusterVersions {
 		if clusterVersion.ClusterName == clusterName {
-			return clusterVersion.ResourceVersion
+			return clusterVersion.Version
 		}
 	}
 	return ""

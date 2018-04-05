@@ -94,7 +94,7 @@ func (a *FederatedNamespaceAdapter) ObjectForCluster(template, override pkgrunti
 	return namespace
 }
 
-func (a *FederatedNamespaceAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+func (a *FederatedNamespaceAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
 	return desiredObj
 }
 
@@ -219,8 +219,8 @@ func (NamespaceAdapter) ObjectType() pkgruntime.Object {
 	return &apiv1.Namespace{}
 }
 
-func (NamespaceAdapter) Equivalent(obj1, obj2 pkgruntime.Object) bool {
-	return util.ObjectMetaAndSpecEquivalent(obj1, obj2)
+func (NamespaceAdapter) VersionCompareType() util.VersionCompareType {
+	return util.ResourceVersion
 }
 
 func (NamespaceAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

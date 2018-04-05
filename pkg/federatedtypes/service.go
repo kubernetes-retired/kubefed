@@ -235,6 +235,10 @@ func (ServiceAdapter) ObjectType() pkgruntime.Object {
 	return &corev1.Service{}
 }
 
+func (ServiceAdapter) VersionCompareType() util.VersionCompareType {
+	return util.Generation
+}
+
 func (ServiceAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
 	service := obj.(*corev1.Service)
 	return client.CoreV1().Services(service.Namespace).Create(service)

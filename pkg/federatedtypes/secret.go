@@ -103,7 +103,7 @@ func (a *FederatedSecretAdapter) ObjectForCluster(template, override pkgruntime.
 	return secret
 }
 
-func (a *FederatedSecretAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+func (a *FederatedSecretAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
 	return desiredObj
 }
 
@@ -272,6 +272,10 @@ func (SecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (SecretAdapter) ObjectType() pkgruntime.Object {
 	return &corev1.Secret{}
+}
+
+func (SecretAdapter) VersionCompareType() util.VersionCompareType {
+	return util.ResourceVersion
 }
 
 func (SecretAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

@@ -102,7 +102,7 @@ func (a *FederatedReplicaSetAdapter) ObjectForCluster(template, override pkgrunt
 	return replicaSet
 }
 
-func (a *FederatedReplicaSetAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+func (a *FederatedReplicaSetAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
 	return desiredObj
 }
 
@@ -272,6 +272,10 @@ func (ReplicaSetAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (ReplicaSetAdapter) ObjectType() pkgruntime.Object {
 	return &appsv1.ReplicaSet{}
+}
+
+func (ReplicaSetAdapter) VersionCompareType() util.VersionCompareType {
+	return util.Generation
 }
 
 func (ReplicaSetAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
