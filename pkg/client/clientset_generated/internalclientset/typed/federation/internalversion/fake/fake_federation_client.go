@@ -93,6 +93,10 @@ func (c *FakeFederation) FederatedSecretPlacements(namespace string) internalver
 	return &FakeFederatedSecretPlacements{c, namespace}
 }
 
+func (c *FakeFederation) FederatedServices(namespace string) internalversion.FederatedServiceInterface {
+	return &FakeFederatedServices{c, namespace}
+}
+
 func (c *FakeFederation) PropagatedVersions(namespace string) internalversion.PropagatedVersionInterface {
 	return &FakePropagatedVersions{c, namespace}
 }

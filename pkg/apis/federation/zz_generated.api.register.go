@@ -238,6 +238,18 @@ var (
 		func() runtime.Object { return &FederatedSecretPlacement{} },
 		func() runtime.Object { return &FederatedSecretPlacementList{} },
 	)
+	InternalFederatedService = builders.NewInternalResource(
+		"federatedservices",
+		"FederatedService",
+		func() runtime.Object { return &FederatedService{} },
+		func() runtime.Object { return &FederatedServiceList{} },
+	)
+	InternalFederatedServiceStatus = builders.NewInternalResourceStatus(
+		"federatedservices",
+		"FederatedServiceStatus",
+		func() runtime.Object { return &FederatedService{} },
+		func() runtime.Object { return &FederatedServiceList{} },
+	)
 	InternalPropagatedVersion = builders.NewInternalResource(
 		"propagatedversions",
 		"PropagatedVersion",
@@ -286,6 +298,8 @@ var (
 		InternalFederatedSecretOverrideStatus,
 		InternalFederatedSecretPlacement,
 		InternalFederatedSecretPlacementStatus,
+		InternalFederatedService,
+		InternalFederatedServiceStatus,
 		InternalPropagatedVersion,
 		InternalPropagatedVersionStatus,
 	)
@@ -313,66 +327,59 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type FederatedReplicaSetOverride struct {
+type FederatedJobOverride struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	Spec   FederatedReplicaSetOverrideSpec
-	Status FederatedReplicaSetOverrideStatus
+	Spec   FederatedJobOverrideSpec
+	Status FederatedJobOverrideStatus
 }
 
 // +genclient
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type PropagatedVersion struct {
+type FederatedService struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	Spec   PropagatedVersionSpec
-	Status PropagatedVersionStatus
+	Spec   FederatedServiceSpec
+	Status FederatedServiceStatus
 }
 
-type FederatedReplicaSetOverrideStatus struct {
+type FederatedJobOverrideStatus struct {
 }
 
-type PropagatedVersionStatus struct {
-	TemplateVersion string
-	OverrideVersion string
-	ClusterVersions []ClusterResourceVersion
+type FederatedServiceStatus struct {
 }
 
-type PropagatedVersionSpec struct {
+type FederatedServiceSpec struct {
+	Template corev1.Service
 }
 
-type ClusterResourceVersion struct {
-	ClusterName     string
-	ResourceVersion string
-}
-
-type FederatedReplicaSetOverrideSpec struct {
-	Overrides []FederatedReplicaSetClusterOverride
+type FederatedJobOverrideSpec struct {
+	Overrides []FederatedJobClusterOverride
 }
 
 // +genclient
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type FederatedDeploymentPlacement struct {
+type FederatedConfigMap struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	Spec   FederatedDeploymentPlacementSpec
-	Status FederatedDeploymentPlacementStatus
+	Spec   FederatedConfigMapSpec
+	Status FederatedConfigMapStatus
 }
 
-type FederatedReplicaSetClusterOverride struct {
+type FederatedJobClusterOverride struct {
 	ClusterName string
-	Replicas    *int32
+	Parallelism *int32
 }
 
-type FederatedDeploymentPlacementStatus struct {
+type FederatedConfigMapStatus struct {
 }
 
-type FederatedDeploymentPlacementSpec struct {
-	ClusterNames []string
+type FederatedConfigMapSpec struct {
+	Template corev1.ConfigMap
 }
 
 // +genclient
@@ -390,125 +397,30 @@ type FederatedSecret struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type FederatedReplicaSet struct {
+type FederatedDeploymentOverride struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	Spec   FederatedReplicaSetSpec
-	Status FederatedReplicaSetStatus
+	Spec   FederatedDeploymentOverrideSpec
+	Status FederatedDeploymentOverrideStatus
 }
 
 type FederatedSecretStatus struct {
 }
 
-type FederatedReplicaSetStatus struct {
+type FederatedDeploymentOverrideStatus struct {
 }
 
-type FederatedReplicaSetSpec struct {
-	Template appsv1.ReplicaSet
+type FederatedDeploymentOverrideSpec struct {
+	Overrides []FederatedDeploymentClusterOverride
 }
 
 type FederatedSecretSpec struct {
 	Template corev1.Secret
 }
 
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedJob struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedJobSpec
-	Status FederatedJobStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedJobOverride struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedJobOverrideSpec
-	Status FederatedJobOverrideStatus
-}
-
-type FederatedJobStatus struct {
-}
-
-type FederatedJobOverrideStatus struct {
-}
-
-type FederatedJobOverrideSpec struct {
-	Overrides []FederatedJobClusterOverride
-}
-
-type FederatedJobSpec struct {
-	Template batchv1.Job
-}
-
-type FederatedJobClusterOverride struct {
+type FederatedDeploymentClusterOverride struct {
 	ClusterName string
-	Parallelism *int32
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedConfigMapOverride struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedConfigMapOverrideSpec
-	Status FederatedConfigMapOverrideStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedConfigMap struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedConfigMapSpec
-	Status FederatedConfigMapStatus
-}
-
-type FederatedConfigMapOverrideStatus struct {
-}
-
-type FederatedConfigMapStatus struct {
-}
-
-type FederatedConfigMapSpec struct {
-	Template corev1.ConfigMap
-}
-
-type FederatedConfigMapOverrideSpec struct {
-	Overrides []FederatedConfigMapClusterOverride
-}
-
-// +genclient
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedNamespacePlacement struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedNamespacePlacementSpec
-	Status FederatedNamespacePlacementStatus
-}
-
-type FederatedConfigMapClusterOverride struct {
-	ClusterName string
-	Data        map[string]string
-}
-
-type FederatedNamespacePlacementStatus struct {
-}
-
-type FederatedNamespacePlacementSpec struct {
-	ClusterNames []string
+	Replicas    *int32
 }
 
 // +genclient
@@ -526,11 +438,11 @@ type FederatedCluster struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type FederatedJobPlacement struct {
+type FederatedReplicaSetPlacement struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	Spec   FederatedJobPlacementSpec
-	Status FederatedJobPlacementStatus
+	Spec   FederatedReplicaSetPlacementSpec
+	Status FederatedReplicaSetPlacementStatus
 }
 
 type FederatedClusterStatus struct {
@@ -539,7 +451,7 @@ type FederatedClusterStatus struct {
 	Region     string
 }
 
-type FederatedJobPlacementStatus struct {
+type FederatedReplicaSetPlacementStatus struct {
 }
 
 type ClusterCondition struct {
@@ -551,13 +463,85 @@ type ClusterCondition struct {
 	Message            string
 }
 
-type FederatedJobPlacementSpec struct {
+type FederatedReplicaSetPlacementSpec struct {
 	ClusterNames []string
 }
 
 type FederatedClusterSpec struct {
 	ClusterRef corev1.LocalObjectReference
 	SecretRef  *corev1.LocalObjectReference
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJobPlacement struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedJobPlacementSpec
+	Status FederatedJobPlacementStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedJob struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedJobSpec
+	Status FederatedJobStatus
+}
+
+type FederatedJobPlacementStatus struct {
+}
+
+type FederatedJobStatus struct {
+}
+
+type FederatedJobSpec struct {
+	Template batchv1.Job
+}
+
+type FederatedJobPlacementSpec struct {
+	ClusterNames []string
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedDeploymentPlacement struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedDeploymentPlacementSpec
+	Status FederatedDeploymentPlacementStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedSecretPlacement struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedSecretPlacementSpec
+	Status FederatedSecretPlacementStatus
+}
+
+type FederatedDeploymentPlacementStatus struct {
+}
+
+type FederatedSecretPlacementStatus struct {
+}
+
+type FederatedSecretPlacementSpec struct {
+	ClusterNames []string
+}
+
+type FederatedDeploymentPlacementSpec struct {
+	ClusterNames []string
 }
 
 // +genclient
@@ -575,66 +559,73 @@ type FederatedConfigMapPlacement struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type FederatedSecretPlacement struct {
+type FederatedConfigMapOverride struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
-	Spec   FederatedSecretPlacementSpec
-	Status FederatedSecretPlacementStatus
+	Spec   FederatedConfigMapOverrideSpec
+	Status FederatedConfigMapOverrideStatus
 }
 
 type FederatedConfigMapPlacementStatus struct {
 }
 
-type FederatedSecretPlacementStatus struct {
+type FederatedConfigMapOverrideStatus struct {
 }
 
-type FederatedSecretPlacementSpec struct {
-	ClusterNames []string
+type FederatedConfigMapOverrideSpec struct {
+	Overrides []FederatedConfigMapClusterOverride
 }
 
 type FederatedConfigMapPlacementSpec struct {
 	ClusterNames []string
 }
 
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedReplicaSetPlacement struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedReplicaSetPlacementSpec
-	Status FederatedReplicaSetPlacementStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type FederatedDeploymentOverride struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FederatedDeploymentOverrideSpec
-	Status FederatedDeploymentOverrideStatus
-}
-
-type FederatedReplicaSetPlacementStatus struct {
-}
-
-type FederatedDeploymentOverrideStatus struct {
-}
-
-type FederatedDeploymentOverrideSpec struct {
-	Overrides []FederatedDeploymentClusterOverride
-}
-
-type FederatedReplicaSetPlacementSpec struct {
-	ClusterNames []string
-}
-
-type FederatedDeploymentClusterOverride struct {
+type FederatedConfigMapClusterOverride struct {
 	ClusterName string
-	Replicas    *int32
+	Data        map[string]string
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type PropagatedVersion struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   PropagatedVersionSpec
+	Status PropagatedVersionStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSet struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedReplicaSetSpec
+	Status FederatedReplicaSetStatus
+}
+
+type PropagatedVersionStatus struct {
+	TemplateVersion string
+	OverrideVersion string
+	ClusterVersions []ClusterResourceVersion
+}
+
+type FederatedReplicaSetStatus struct {
+}
+
+type ClusterResourceVersion struct {
+	ClusterName     string
+	ResourceVersion string
+}
+
+type FederatedReplicaSetSpec struct {
+	Template appsv1.ReplicaSet
+}
+
+type PropagatedVersionSpec struct {
 }
 
 // +genclient
@@ -649,6 +640,31 @@ type FederatedDeployment struct {
 }
 
 // +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedNamespacePlacement struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedNamespacePlacementSpec
+	Status FederatedNamespacePlacementStatus
+}
+
+type FederatedDeploymentStatus struct {
+}
+
+type FederatedNamespacePlacementStatus struct {
+}
+
+type FederatedNamespacePlacementSpec struct {
+	ClusterNames []string
+}
+
+type FederatedDeploymentSpec struct {
+	Template appsv1.Deployment
+}
+
+// +genclient
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -659,18 +675,34 @@ type FederatedSecretOverride struct {
 	Status FederatedSecretOverrideStatus
 }
 
-type FederatedDeploymentStatus struct {
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedReplicaSetOverride struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FederatedReplicaSetOverrideSpec
+	Status FederatedReplicaSetOverrideStatus
 }
 
 type FederatedSecretOverrideStatus struct {
+}
+
+type FederatedReplicaSetOverrideStatus struct {
+}
+
+type FederatedReplicaSetOverrideSpec struct {
+	Overrides []FederatedReplicaSetClusterOverride
 }
 
 type FederatedSecretOverrideSpec struct {
 	Overrides []FederatedSecretClusterOverride
 }
 
-type FederatedDeploymentSpec struct {
-	Template appsv1.Deployment
+type FederatedReplicaSetClusterOverride struct {
+	ClusterName string
+	Replicas    *int32
 }
 
 type FederatedSecretClusterOverride struct {
@@ -2713,6 +2745,126 @@ func (s *storageFederatedSecretPlacement) UpdateFederatedSecretPlacement(ctx req
 }
 
 func (s *storageFederatedSecretPlacement) DeleteFederatedSecretPlacement(ctx request.Context, id string) (bool, error) {
+	st := s.GetStandardStorage()
+	_, sync, err := st.Delete(ctx, id, nil)
+	return sync, err
+}
+
+//
+// FederatedService Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedServiceStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedServiceStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedServiceList struct {
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []FederatedService
+}
+
+func (FederatedService) NewStatus() interface{} {
+	return FederatedServiceStatus{}
+}
+
+func (pc *FederatedService) GetStatus() interface{} {
+	return pc.Status
+}
+
+func (pc *FederatedService) SetStatus(s interface{}) {
+	pc.Status = s.(FederatedServiceStatus)
+}
+
+func (pc *FederatedService) GetSpec() interface{} {
+	return pc.Spec
+}
+
+func (pc *FederatedService) SetSpec(s interface{}) {
+	pc.Spec = s.(FederatedServiceSpec)
+}
+
+func (pc *FederatedService) GetObjectMeta() *metav1.ObjectMeta {
+	return &pc.ObjectMeta
+}
+
+func (pc *FederatedService) SetGeneration(generation int64) {
+	pc.ObjectMeta.Generation = generation
+}
+
+func (pc FederatedService) GetGeneration() int64 {
+	return pc.ObjectMeta.Generation
+}
+
+// Registry is an interface for things that know how to store FederatedService.
+// +k8s:deepcopy-gen=false
+type FederatedServiceRegistry interface {
+	ListFederatedServices(ctx request.Context, options *internalversion.ListOptions) (*FederatedServiceList, error)
+	GetFederatedService(ctx request.Context, id string, options *metav1.GetOptions) (*FederatedService, error)
+	CreateFederatedService(ctx request.Context, id *FederatedService) (*FederatedService, error)
+	UpdateFederatedService(ctx request.Context, id *FederatedService) (*FederatedService, error)
+	DeleteFederatedService(ctx request.Context, id string) (bool, error)
+}
+
+// NewRegistry returns a new Registry interface for the given Storage. Any mismatched types will panic.
+func NewFederatedServiceRegistry(sp builders.StandardStorageProvider) FederatedServiceRegistry {
+	return &storageFederatedService{sp}
+}
+
+// Implement Registry
+// storage puts strong typing around storage calls
+// +k8s:deepcopy-gen=false
+type storageFederatedService struct {
+	builders.StandardStorageProvider
+}
+
+func (s *storageFederatedService) ListFederatedServices(ctx request.Context, options *internalversion.ListOptions) (*FederatedServiceList, error) {
+	if options != nil && options.FieldSelector != nil && !options.FieldSelector.Empty() {
+		return nil, fmt.Errorf("field selector not supported yet")
+	}
+	st := s.GetStandardStorage()
+	obj, err := st.List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedServiceList), err
+}
+
+func (s *storageFederatedService) GetFederatedService(ctx request.Context, id string, options *metav1.GetOptions) (*FederatedService, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Get(ctx, id, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedService), nil
+}
+
+func (s *storageFederatedService) CreateFederatedService(ctx request.Context, object *FederatedService) (*FederatedService, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Create(ctx, object, nil, true)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedService), nil
+}
+
+func (s *storageFederatedService) UpdateFederatedService(ctx request.Context, object *FederatedService) (*FederatedService, error) {
+	st := s.GetStandardStorage()
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*FederatedService), nil
+}
+
+func (s *storageFederatedService) DeleteFederatedService(ctx request.Context, id string) (bool, error) {
 	st := s.GetStandardStorage()
 	_, sync, err := st.Delete(ctx, id, nil)
 	return sync, err
