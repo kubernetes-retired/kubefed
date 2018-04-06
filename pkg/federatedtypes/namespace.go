@@ -94,6 +94,10 @@ func (a *FederatedNamespaceAdapter) ObjectForCluster(template, override pkgrunti
 	return namespace
 }
 
+func (a *FederatedNamespaceAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	return desiredObj
+}
+
 type FederatedNamespaceTemplate struct {
 	client kubeclientset.Interface
 }

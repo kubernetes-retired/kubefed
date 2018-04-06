@@ -102,6 +102,10 @@ func (a *FederatedDeploymentAdapter) ObjectForCluster(template, override pkgrunt
 	return deployment
 }
 
+func (a *FederatedDeploymentAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	return desiredObj
+}
+
 type FederatedDeploymentTemplate struct {
 	client fedclientset.Interface
 }

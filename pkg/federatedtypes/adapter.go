@@ -37,6 +37,7 @@ type FederatedTypeAdapter interface {
 	Override() OverrideAdapter
 	Target() TargetAdapter
 	ObjectForCluster(template, override pkgruntime.Object, clusterName string) pkgruntime.Object
+	ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object
 }
 
 type MetaAdapter interface {

@@ -92,6 +92,28 @@ func (a *FederatedServiceAdapter) ObjectForCluster(template, override pkgruntime
 	return service
 }
 
+// TODO(shashi) Avoid the need for this adapter method by handling the scenario generically
+// for cases where the field in spec is updated by controllers instead of status.
+func (a *FederatedServiceAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	desiredService := desiredObj.(*corev1.Service)
+	clusterService := clusterObj.(*corev1.Service)
+
+	// ClusterIP and NodePort are allocated to Service by cluster, so retain the same if any while updating
+	desiredService.Spec.ClusterIP = clusterService.Spec.ClusterIP
+	for i, fPort := range desiredService.Spec.Ports {
+		for _, cPort := range clusterService.Spec.Ports {
+			if fPort.Name == cPort.Name && fPort.Protocol == cPort.Protocol && fPort.Port == cPort.Port {
+				desiredService.Spec.Ports[i].NodePort = cPort.NodePort
+			}
+		}
+	}
+
+	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
+	desiredService.ResourceVersion = clusterService.ResourceVersion
+
+	return desiredService
+}
+
 type FederatedServiceTemplate struct {
 	client fedclientset.Interface
 }

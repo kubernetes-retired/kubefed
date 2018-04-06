@@ -103,6 +103,10 @@ func (a *FederatedSecretAdapter) ObjectForCluster(template, override pkgruntime.
 	return secret
 }
 
+func (a *FederatedSecretAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	return desiredObj
+}
+
 type FederatedSecretTemplate struct {
 	client fedclientset.Interface
 }
