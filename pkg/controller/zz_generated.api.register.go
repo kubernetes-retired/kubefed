@@ -35,6 +35,7 @@ import (
 	"github.com/marun/federation-v2/pkg/controller/federatedsecretoverride"
 	"github.com/marun/federation-v2/pkg/controller/federatedsecretplacement"
 	"github.com/marun/federation-v2/pkg/controller/federatedservice"
+	"github.com/marun/federation-v2/pkg/controller/federatedserviceplacement"
 	"github.com/marun/federation-v2/pkg/controller/propagatedversion"
 	"github.com/marun/federation-v2/pkg/controller/sharedinformers"
 	"k8s.io/client-go/rest"
@@ -59,6 +60,7 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 		federatedsecretoverride.NewFederatedSecretOverrideController(config, si),
 		federatedsecretplacement.NewFederatedSecretPlacementController(config, si),
 		federatedservice.NewFederatedServiceController(config, si),
+		federatedserviceplacement.NewFederatedServicePlacementController(config, si),
 		propagatedversion.NewPropagatedVersionController(config, si),
 	}, shutdown
 }

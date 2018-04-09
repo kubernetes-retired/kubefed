@@ -40,6 +40,7 @@ type FederationInterface interface {
 	FederatedSecretOverridesGetter
 	FederatedSecretPlacementsGetter
 	FederatedServicesGetter
+	FederatedServicePlacementsGetter
 	PropagatedVersionsGetter
 }
 
@@ -118,6 +119,10 @@ func (c *FederationClient) FederatedSecretPlacements(namespace string) Federated
 
 func (c *FederationClient) FederatedServices(namespace string) FederatedServiceInterface {
 	return newFederatedServices(c, namespace)
+}
+
+func (c *FederationClient) FederatedServicePlacements(namespace string) FederatedServicePlacementInterface {
+	return newFederatedServicePlacements(c, namespace)
 }
 
 func (c *FederationClient) PropagatedVersions(namespace string) PropagatedVersionInterface {

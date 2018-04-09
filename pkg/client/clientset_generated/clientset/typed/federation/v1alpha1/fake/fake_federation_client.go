@@ -97,6 +97,10 @@ func (c *FakeFederationV1alpha1) FederatedServices(namespace string) v1alpha1.Fe
 	return &FakeFederatedServices{c, namespace}
 }
 
+func (c *FakeFederationV1alpha1) FederatedServicePlacements(namespace string) v1alpha1.FederatedServicePlacementInterface {
+	return &FakeFederatedServicePlacements{c, namespace}
+}
+
 func (c *FakeFederationV1alpha1) PropagatedVersions(namespace string) v1alpha1.PropagatedVersionInterface {
 	return &FakePropagatedVersions{c, namespace}
 }

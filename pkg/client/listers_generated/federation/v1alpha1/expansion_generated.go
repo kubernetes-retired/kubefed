@@ -154,6 +154,14 @@ type FederatedServiceListerExpansion interface{}
 // FederatedServiceNamespaceLister.
 type FederatedServiceNamespaceListerExpansion interface{}
 
+// FederatedServicePlacementListerExpansion allows custom methods to be added to
+// FederatedServicePlacementLister.
+type FederatedServicePlacementListerExpansion interface{}
+
+// FederatedServicePlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedServicePlacementNamespaceLister.
+type FederatedServicePlacementNamespaceListerExpansion interface{}
+
 // PropagatedVersionListerExpansion allows custom methods to be added to
 // PropagatedVersionLister.
 type PropagatedVersionListerExpansion interface{}
