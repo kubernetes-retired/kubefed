@@ -1,0 +1,7 @@
+note: ReplicaPlacementPreferences Example
+sample: |
+  apiVersion: federatedscheduling.k8s.io/v1alpha1
+  kind: ReplicaPlacementPreferences
+  metadata:
+    name: replicaplacementpreferences-example
+  spec:
