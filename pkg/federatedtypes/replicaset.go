@@ -102,6 +102,10 @@ func (a *FederatedReplicaSetAdapter) ObjectForCluster(template, override pkgrunt
 	return replicaSet
 }
 
+func (a *FederatedReplicaSetAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	return desiredObj
+}
+
 type FederatedReplicaSetTemplate struct {
 	client fedclientset.Interface
 }

@@ -102,6 +102,10 @@ func (a *FederatedJobAdapter) ObjectForCluster(template, override pkgruntime.Obj
 	return job
 }
 
+func (a *FederatedJobAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	return desiredObj
+}
+
 type FederatedJobTemplate struct {
 	client fedclientset.Interface
 }

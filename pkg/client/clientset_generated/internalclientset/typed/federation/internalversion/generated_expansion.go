@@ -49,4 +49,8 @@ type FederatedSecretOverrideExpansion interface{}
 
 type FederatedSecretPlacementExpansion interface{}
 
+type FederatedServiceExpansion interface{}
+
+type FederatedServicePlacementExpansion interface{}
+
 type PropagatedVersionExpansion interface{}

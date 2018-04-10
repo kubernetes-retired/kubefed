@@ -149,12 +149,19 @@ func (c *FederatedTypeCrudTester) createFedResource(adapter federatedtypes.FedAp
 func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
 	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
 
-	c.tl.Logf("Resource versions for %s: template %q, placement %q, override %q",
-		federatedtypes.NewQualifiedName(template),
-		c.adapter.Template().ObjectMeta(template).ResourceVersion,
-		c.adapter.Placement().ObjectMeta(placement).ResourceVersion,
-		c.adapter.Override().ObjectMeta(override).ResourceVersion,
-	)
+	overrideAdapter := c.adapter.Override()
+	if overrideAdapter != nil {
+		c.tl.Logf("Resource versions for %s: template %q, placement %q, override %q",
+			federatedtypes.NewQualifiedName(template),
+			c.adapter.Template().ObjectMeta(template).ResourceVersion,
+			c.adapter.Placement().ObjectMeta(placement).ResourceVersion,
+			overrideAdapter.ObjectMeta(override).ResourceVersion)
+	} else {
+		c.tl.Logf("Resource versions for %s: template %q, placement %q",
+			federatedtypes.NewQualifiedName(template),
+			c.adapter.Template().ObjectMeta(template).ResourceVersion,
+			c.adapter.Placement().ObjectMeta(placement).ResourceVersion)
+	}
 
 	c.CheckPropagation(template, placement, override)
 
@@ -405,8 +412,11 @@ func (c *FederatedTypeCrudTester) updateFedObject(adapter federatedtypes.FedApiA
 func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override pkgruntime.Object) (*fedv1a1.PropagatedVersion, error) {
 	templateMeta := c.adapter.Template().ObjectMeta(template)
 	templateQualifiedName := federatedtypes.NewQualifiedName(template)
-	overrideMeta := c.adapter.Override().ObjectMeta(override)
-	overrideVersion := overrideMeta.ResourceVersion
+	overrideVersion := ""
+	if c.adapter.Override() != nil {
+		overrideMeta := c.adapter.Override().ObjectMeta(override)
+		overrideVersion = overrideMeta.ResourceVersion
+	}
 
 	client := c.adapter.FedClient()
 	namespace := templateMeta.Namespace

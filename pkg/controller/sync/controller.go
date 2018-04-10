@@ -757,6 +757,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		var operationType util.FederatedOperationType = ""
 		if found {
 			clusterObj := clusterObj.(pkgruntime.Object)
+			desiredObj = s.adapter.ObjectForUpdateOp(desiredObj, clusterObj)
 
 			resourceVersion, ok := clusterVersions[clusterName]
 			if !ok {

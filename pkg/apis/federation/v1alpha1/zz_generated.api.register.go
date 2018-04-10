@@ -146,6 +146,20 @@ var (
 		func() runtime.Object { return &FederatedSecretPlacementList{} }, // Register versioned resource list
 		&FederatedSecretPlacementStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedServiceStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedService,
+		FederatedServiceSchemeFns{},
+		func() runtime.Object { return &FederatedService{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedServiceList{} }, // Register versioned resource list
+		&FederatedServiceStrategy{builders.StorageStrategySingleton},
+	)
+	federationFederatedServicePlacementStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedServicePlacement,
+		FederatedServicePlacementSchemeFns{},
+		func() runtime.Object { return &FederatedServicePlacement{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedServicePlacementList{} }, // Register versioned resource list
+		&FederatedServicePlacementStrategy{builders.StorageStrategySingleton},
+	)
 	federationPropagatedVersionStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalPropagatedVersion,
 		PropagatedVersionSchemeFns{},
@@ -273,6 +287,20 @@ var (
 			func() runtime.Object { return &FederatedSecretPlacement{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedSecretPlacementList{} }, // Register versioned resource list
 			&FederatedSecretPlacementStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedServiceStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedServiceStatus,
+			FederatedServiceSchemeFns{},
+			func() runtime.Object { return &FederatedService{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedServiceList{} }, // Register versioned resource list
+			&FederatedServiceStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedServicePlacementStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedServicePlacementStatus,
+			FederatedServicePlacementSchemeFns{},
+			func() runtime.Object { return &FederatedServicePlacement{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedServicePlacementList{} }, // Register versioned resource list
+			&FederatedServicePlacementStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationPropagatedVersionStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalPropagatedVersionStatus,
@@ -741,6 +769,58 @@ type FederatedSecretPlacementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedSecretPlacement `json:"items"`
+}
+
+//
+// FederatedService Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedServiceSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedServiceStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedServiceStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedServiceList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedService `json:"items"`
+}
+
+//
+// FederatedServicePlacement Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedServicePlacementSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedServicePlacementStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedServicePlacementStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedServicePlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedServicePlacement `json:"items"`
 }
 
 //

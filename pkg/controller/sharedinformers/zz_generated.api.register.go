@@ -65,6 +65,8 @@ func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	go si.Factory.Federation().V1alpha1().FederatedSecrets().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedSecretOverrides().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedSecretPlacements().Informer().Run(shutdown)
+	go si.Factory.Federation().V1alpha1().FederatedServices().Informer().Run(shutdown)
+	go si.Factory.Federation().V1alpha1().FederatedServicePlacements().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().PropagatedVersions().Informer().Run(shutdown)
 }
 

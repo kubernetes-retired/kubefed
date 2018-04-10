@@ -103,6 +103,10 @@ func (a *FederatedConfigMapAdapter) ObjectForCluster(template, override pkgrunti
 	return configMap
 }
 
+func (a *FederatedConfigMapAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+	return desiredObj
+}
+
 type FederatedConfigMapTemplate struct {
 	client fedclientset.Interface
 }
