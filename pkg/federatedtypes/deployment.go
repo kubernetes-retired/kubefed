@@ -102,7 +102,7 @@ func (a *FederatedDeploymentAdapter) ObjectForCluster(template, override pkgrunt
 	return deployment
 }
 
-func (a *FederatedDeploymentAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+func (a *FederatedDeploymentAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
 	return desiredObj
 }
 
@@ -272,6 +272,10 @@ func (DeploymentAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (DeploymentAdapter) ObjectType() pkgruntime.Object {
 	return &appsv1.Deployment{}
+}
+
+func (DeploymentAdapter) VersionCompareType() util.VersionCompareType {
+	return util.Generation
 }
 
 func (DeploymentAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

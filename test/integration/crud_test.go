@@ -68,7 +68,10 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	adapter := adapterFactory(client)
 
 	clusterClients := fedFixture.ClusterClients(tl, userAgent)
-	crudTester := common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
+	crudTester, err := common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
+	if err != nil {
+		tl.Fatalf("Error creating crudtester for %q: %v", kind, err)
+	}
 
 	clusterNames := fedFixture.ClusterNames()
 	template, placement, override := federatedtypes.NewTestObjects(kind, uuid.New(), clusterNames)

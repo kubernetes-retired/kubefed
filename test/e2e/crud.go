@@ -57,7 +57,12 @@ var _ = Describe("Federated types", func() {
 					namespaceAdapter.SetKubeClient(f.KubeClient(userAgent))
 				}
 				clusterClients := f.ClusterClients(userAgent)
-				crudTester := common.NewFederatedTypeCrudTester(framework.NewE2ELogger(), adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
+				testLogger := framework.NewE2ELogger()
+				crudTester, err := common.NewFederatedTypeCrudTester(testLogger, adapter, clusterClients, framework.PollInterval, framework.SingleCallTimeout)
+				if err != nil {
+					testLogger.Fatalf("Error creating crudtester for %q: %v", kind, err)
+				}
+
 				clusterNames := []string{}
 				for name, _ := range clusterClients {
 					clusterNames = append(clusterNames, name)

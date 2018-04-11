@@ -102,7 +102,7 @@ func (a *FederatedJobAdapter) ObjectForCluster(template, override pkgruntime.Obj
 	return job
 }
 
-func (a *FederatedJobAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+func (a *FederatedJobAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
 	return desiredObj
 }
 
@@ -272,6 +272,10 @@ func (JobAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (JobAdapter) ObjectType() pkgruntime.Object {
 	return &batchv1.Job{}
+}
+
+func (JobAdapter) VersionCompareType() util.VersionCompareType {
+	return util.Generation
 }
 
 func (JobAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

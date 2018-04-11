@@ -86,8 +86,10 @@ type FederationSyncController struct {
 	propagatedVersionStore cache.Store
 	// Informer for propagated versions
 	propagatedVersionController cache.Controller
-	// Map of keys to resource versions for pending updates
+	// Map of keys to versions for pending updates
 	pendingVersionUpdates sets.String
+	// Helper for propagated version comparison for resource types.
+	comparisonHelper util.ComparisonHelper
 
 	// Work queue allowing parallel processing of resources
 	workQueue workqueue.Interface
@@ -218,6 +220,12 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	)
 
 	targetAdapter := adapter.Target()
+	var err error
+	s.comparisonHelper, err = util.NewComparisonHelper(targetAdapter.VersionCompareType())
+	if err != nil {
+		return nil, err
+	}
+
 	// Federated informer on the resource type in members of federation.
 	s.informer = util.NewFederatedInformer(
 		fedClient,
@@ -260,11 +268,11 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	s.updater = util.NewFederatedUpdater(s.informer, templateAdapter.Kind(), s.updateTimeout, s.eventRecorder, // non-federated
 		func(client kubeclientset.Interface, obj pkgruntime.Object) (string, error) {
 			createdObj, err := targetAdapter.Create(client, obj)
-			return targetAdapter.ObjectMeta(createdObj).ResourceVersion, err
+			return s.comparisonHelper.GetVersion(targetAdapter.ObjectMeta(createdObj)), err
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) (string, error) {
 			updatedObj, err := targetAdapter.Update(client, obj)
-			return targetAdapter.ObjectMeta(updatedObj).ResourceVersion, err
+			return s.comparisonHelper.GetVersion(targetAdapter.ObjectMeta(updatedObj)), err
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) (string, error) {
 			qualifiedName := federatedtypes.NewQualifiedName(obj)
@@ -624,7 +632,7 @@ func getClusterVersions(adapter federatedtypes.FederatedTypeAdapter, template,
 	if templateVersion == propagatedVersion.Status.TemplateVersion &&
 		overrideVersion == propagatedVersion.Status.OverrideVersion {
 		for _, versions := range propagatedVersion.Status.ClusterVersions {
-			clusterVersions[versions.ClusterName] = versions.ResourceVersion
+			clusterVersions[versions.ClusterName] = versions.Version
 		}
 	}
 
@@ -660,17 +668,24 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 		return err
 	}
 
-	// TODO(marun) Only update the version if versions have changed
+	oldVersionStatus := version.Status
 	templateVersion := templateMeta.ResourceVersion
-	var existingVersions []fedv1a1.ClusterResourceVersion
+	var existingVersions []fedv1a1.ClusterObjectVersion
 	if version.Status.TemplateVersion == templateVersion && version.Status.OverrideVersion == overrideVersion {
 		existingVersions = version.Status.ClusterVersions
 	} else {
 		version.Status.TemplateVersion = templateVersion
 		version.Status.OverrideVersion = overrideVersion
-		existingVersions = []fedv1a1.ClusterResourceVersion{}
+		existingVersions = []fedv1a1.ClusterObjectVersion{}
 	}
 	version.Status.ClusterVersions = clusterVersions(updatedVersions, existingVersions, selectedClusters)
+
+	if util.PropagatedVersionStatusEquivalent(&oldVersionStatus, &version.Status) {
+		glog.V(4).Infof("No PropagatedVersion update necessary for %s %q",
+			adapter.Template().Kind(), federatedtypes.NewQualifiedName(template).String())
+		return nil
+	}
+
 	key := federatedtypes.NewQualifiedName(version).String()
 	pendingVersionUpdates.Insert(key)
 	_, err := adapter.FedClient().FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
@@ -684,14 +699,15 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 // cluster versions and template and override.
 func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMeta, targetKind,
 	overrideVersion string) *fedv1a1.PropagatedVersion {
-	versions := []fedv1a1.ClusterResourceVersion{}
-	for clusterName, resourceVersion := range clusterVersions {
-		versions = append(versions, fedv1a1.ClusterResourceVersion{
-			ClusterName:     clusterName,
-			ResourceVersion: resourceVersion,
+	versions := []fedv1a1.ClusterObjectVersion{}
+	for clusterName, version := range clusterVersions {
+		versions = append(versions, fedv1a1.ClusterObjectVersion{
+			ClusterName: clusterName,
+			Version:     version,
 		})
 	}
 
+	util.SortClusterVersions(versions)
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: templateMeta.Namespace,
@@ -705,9 +721,9 @@ func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMe
 	}
 }
 
-// clusterVersions updates the resource versions for the given status.
-func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.ClusterResourceVersion,
-	selectedClusters []string) []fedv1a1.ClusterResourceVersion {
+// clusterVersions updates the versions for the given status.
+func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.ClusterObjectVersion,
+	selectedClusters []string) []fedv1a1.ClusterObjectVersion {
 	// Retain versions for selected clusters that were not changed
 	selectedClusterSet := sets.NewString(selectedClusters...)
 	for _, oldVersion := range oldVersions {
@@ -715,23 +731,24 @@ func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.Cluste
 			continue
 		}
 		if _, ok := newVersions[oldVersion.ClusterName]; !ok {
-			newVersions[oldVersion.ClusterName] = oldVersion.ResourceVersion
+			newVersions[oldVersion.ClusterName] = oldVersion.Version
 		}
 	}
 
 	// Convert map to slice
-	versions := []fedv1a1.ClusterResourceVersion{}
-	for clusterName, resourceVersion := range newVersions {
-		// Lack of resource version indicates deletion
-		if resourceVersion == "" {
+	versions := []fedv1a1.ClusterObjectVersion{}
+	for clusterName, version := range newVersions {
+		// Lack of version indicates deletion
+		if version == "" {
 			continue
 		}
-		versions = append(versions, fedv1a1.ClusterResourceVersion{
-			ClusterName:     clusterName,
-			ResourceVersion: resourceVersion,
+		versions = append(versions, fedv1a1.ClusterObjectVersion{
+			ClusterName: clusterName,
+			Version:     version,
 		})
 	}
 
+	util.SortClusterVersions(versions)
 	return versions
 }
 
@@ -759,14 +776,22 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 			clusterObj := clusterObj.(pkgruntime.Object)
 			desiredObj = s.adapter.ObjectForUpdateOp(desiredObj, clusterObj)
 
-			resourceVersion, ok := clusterVersions[clusterName]
+			version, ok := clusterVersions[clusterName]
 			if !ok {
 				// No target version recorded for template+override version
 				operationType = util.OperationTypeUpdate
 			} else {
-				targetVersion := s.adapter.Target().ObjectMeta(clusterObj).ResourceVersion
-				// Versions don't match
-				if resourceVersion != targetVersion {
+				clusterObjMeta := s.adapter.Target().ObjectMeta(clusterObj)
+				desiredObjMeta := s.adapter.Target().ObjectMeta(desiredObj)
+				targetVersion := s.comparisonHelper.GetVersion(clusterObjMeta)
+
+				// Check if versions don't match. If they match then check its
+				// ObjectMeta which only applies to resources where Generation
+				// is used to track versions because Generation is only updated
+				// when Spec changes.
+				if version != targetVersion {
+					operationType = util.OperationTypeUpdate
+				} else if !s.comparisonHelper.Equivalent(desiredObjMeta, clusterObjMeta) {
 					operationType = util.OperationTypeUpdate
 				}
 			}

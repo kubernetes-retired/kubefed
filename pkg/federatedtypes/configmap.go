@@ -103,7 +103,7 @@ func (a *FederatedConfigMapAdapter) ObjectForCluster(template, override pkgrunti
 	return configMap
 }
 
-func (a *FederatedConfigMapAdapter)ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
+func (a *FederatedConfigMapAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
 	return desiredObj
 }
 
@@ -272,6 +272,10 @@ func (ConfigMapAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
 
 func (ConfigMapAdapter) ObjectType() pkgruntime.Object {
 	return &corev1.ConfigMap{}
+}
+
+func (ConfigMapAdapter) VersionCompareType() util.VersionCompareType {
+	return util.ResourceVersion
 }
 
 func (ConfigMapAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
