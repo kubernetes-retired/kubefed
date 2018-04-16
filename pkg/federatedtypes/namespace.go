@@ -38,6 +38,10 @@ func init() {
 	RegisterTestObjectsFunc(NamespaceKind, NewFederatedNamespaceObjectsForTest)
 }
 
+func IsNamespaceKind(kind string) bool {
+	return kind == NamespaceKind
+}
+
 type FederatedNamespaceAdapter struct {
 	client    kubeclientset.Interface
 	fedClient fedclientset.Interface

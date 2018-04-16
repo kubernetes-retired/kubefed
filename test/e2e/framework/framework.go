@@ -19,6 +19,7 @@ package framework
 import (
 	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/marun/federation-v2/pkg/federatedtypes"
+	"github.com/marun/federation-v2/test/common"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 
@@ -35,7 +36,7 @@ type FederationFramework interface {
 	KubeClient(userAgent string) kubeclientset.Interface
 	CrClient(userAgent string) crclientset.Interface
 
-	ClusterClients(userAgent string) map[string]kubeclientset.Interface
+	ClusterClients(userAgent string) map[string]common.TestCluster
 
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
@@ -94,7 +95,7 @@ func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
 	return f.framework().CrClient(userAgent)
 }
 
-func (f *frameworkWrapper) ClusterClients(userAgent string) map[string]kubeclientset.Interface {
+func (f *frameworkWrapper) ClusterClients(userAgent string) map[string]common.TestCluster {
 	return f.framework().ClusterClients(userAgent)
 }
 
