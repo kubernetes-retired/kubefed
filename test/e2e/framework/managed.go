@@ -76,7 +76,7 @@ func (f *ManagedFramework) AfterEach() {
 	for len(f.fixtures) > 0 {
 		fixture := f.fixtures[0]
 		fixture.TearDown(f.logger)
-		f.fixtures = append(f.fixtures[:0], f.fixtures[1:]...)
+		f.fixtures = f.fixtures[1:]
 	}
 }
 
