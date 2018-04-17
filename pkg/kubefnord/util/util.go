@@ -211,6 +211,6 @@ func ClusterServiceAccountName(joiningClusterName, hostClusterName string) strin
 // ClusterRoleName returns the name of a ClusterRole and its associated
 // ClusterRoleBinding that are used to allow the service account to
 // access necessary resources on the cluster.
-func ClusterRoleName(federationName, serviceAccountName string) string {
-	return fmt.Sprintf("federation-controller-manager:%s-%s", federationName, serviceAccountName)
+func ClusterRoleName(serviceAccountName string) string {
+	return fmt.Sprintf("federation-controller-manager:%s", serviceAccountName)
 }

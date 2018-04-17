@@ -19,7 +19,6 @@ package kubefnord
 import (
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,7 +28,6 @@ import (
 	"github.com/marun/federation-v2/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +40,6 @@ import (
 )
 
 const (
-	CMNameSuffix                = "federation"
 	serviceAccountSecretTimeout = 30 * time.Second
 )
 
@@ -212,12 +209,6 @@ func JoinCluster(hostConfig, clusterConfig, fedConfig *rest.Config, federationNa
 		}
 	}
 
-	federationName, err := getFederationName(hostClientset, federationNamespace)
-	if err != nil {
-		glog.V(2).Infof("Failed to get the federation name: %v", err)
-		return err
-	}
-
 	glog.V(2).Infof("Creating %s namespace in joining cluster", federationNamespace)
 	_, err = createFederationNamespace(clusterClientset, federationNamespace,
 		joiningClusterName, dryRun)
@@ -232,7 +223,7 @@ func JoinCluster(hostConfig, clusterConfig, fedConfig *rest.Config, federationNa
 	glog.V(2).Info("Creating cluster credentials secret")
 
 	secret, err := createRBACSecret(hostClientset, clusterClientset,
-		federationNamespace, federationName, joiningClusterName, host,
+		federationNamespace, joiningClusterName, host,
 		secretName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not create cluster credentials secret: %v", err)
@@ -419,36 +410,6 @@ func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterNam
 	return fedCluster, nil
 }
 
-// getCMDeployment retrieves the deployment in the federation namespace and
-// checks if it matches the name of the controller manager and if so, returns
-// it.
-func getCMDeployment(clientset client.Interface,
-	fedNamespace string) (*appsv1.Deployment, error) {
-	depList, err := clientset.AppsV1().Deployments(fedNamespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, dep := range depList.Items {
-		if strings.HasSuffix(dep.Name, CMNameSuffix) {
-			return &dep, nil
-		}
-	}
-	return nil, fmt.Errorf("could not find the deployment for federation controller manager in host cluster")
-}
-
-// getFederationName gets the federation name from the federation
-// deployment.
-func getFederationName(hostClientSet client.Interface, fedNamespace string) (string, error) {
-	d, err := getCMDeployment(hostClientSet, fedNamespace)
-	if err != nil {
-		// TODO: Figure out how to handle this for integration tests.
-		return "", err
-	}
-
-	return d.Name, nil
-}
-
 // createFederationNamespace creates the federation namespace in the cluster
 // associated with clusterClientset, if it doesn't already exist.
 func createFederationNamespace(clusterClientset client.Interface, federationNamespace,
@@ -475,7 +436,7 @@ func createFederationNamespace(clusterClientset client.Interface, federationName
 // account, and populate that secret into the host cluster to allow it to
 // access the joining cluster.
 func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Interface,
-	namespace, federationName, joiningClusterName, hostClusterName,
+	namespace, joiningClusterName, hostClusterName,
 	secretName string, dryRun bool) (*corev1.Secret, error) {
 
 	glog.V(2).Info("Creating service account in joining cluster")
@@ -492,7 +453,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 	glog.V(2).Info("Creating role binding for service account in joining cluster")
 
 	_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
-		federationName, joiningClusterName, dryRun)
+		joiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Error creating role binding for service account in joining cluster: %v",
 			err)
@@ -545,10 +506,9 @@ func createServiceAccount(clusterClientset client.Interface, namespace,
 // allows the service account identified by saName to access all resources in
 // all namespaces in the cluster associated with clusterClientset.
 func createClusterRoleBinding(clusterClientset client.Interface, saName, namespace,
-	federationName, joiningClusterName string,
-	dryRun bool) (*rbacv1.ClusterRoleBinding, error) {
+	joiningClusterName string, dryRun bool) (*rbacv1.ClusterRoleBinding, error) {
 
-	roleName := util.ClusterRoleName(federationName, saName)
+	roleName := util.ClusterRoleName(saName)
 
 	rules := []rbacv1.PolicyRule{
 		{
