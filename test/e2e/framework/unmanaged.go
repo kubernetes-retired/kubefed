@@ -201,7 +201,7 @@ func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]common.
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
 	for _, cluster := range clusterList.Items {
-		ClusterIsReadyOrFail(fedClient, cluster)
+		ClusterIsReadyOrFail(fedClient, &cluster)
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
@@ -363,7 +363,7 @@ func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
 // marked as ready by the federated cluster controller.  The cluster
 // controller records the results of health checks on member clusters
 // in the status of federated clusters.
-func ClusterIsReadyOrFail(client fedclientset.Interface, cluster fedv1a1.FederatedCluster) {
+func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.FederatedCluster) {
 	clusterName := cluster.Name
 	By(fmt.Sprintf("Checking readiness of cluster %q", clusterName))
 	err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
@@ -372,7 +372,8 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster fedv1a1.Federat
 				return true, nil
 			}
 		}
-		_, err := client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		var err error
+		cluster, err = client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
