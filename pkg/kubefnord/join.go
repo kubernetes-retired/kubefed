@@ -539,9 +539,9 @@ func populateSecretInHostCluster(clusterClientset, hostClientset client.Interfac
 	saName, namespace, joiningClusterName, secretName string,
 	dryRun bool) (*corev1.Secret, error) {
 	if dryRun {
-		// The secret is created indirectly with the service account, and so
-		// there is no local copy to return in a dry run.
-		return nil, nil
+		dryRunSecret := &corev1.Secret{}
+		dryRunSecret.Name = secretName
+		return dryRunSecret, nil
 	}
 
 	// Get the secret from the joining cluster.
