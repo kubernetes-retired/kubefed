@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclient "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/marun/federation-v2/pkg/kubefnord/options"
@@ -49,7 +50,7 @@ var (
 
 		Current context is assumed to be a Kubernetes cluster
 		with an aggregated federation API server. Please use
-		the --host-context flag otherwise.`
+		the --host-cluster-context flag otherwise.`
 	join_example = `
 		# Join a cluster to a federation by specifying the
 		# cluster name and the context name of the federation
