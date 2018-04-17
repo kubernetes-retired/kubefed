@@ -121,3 +121,8 @@ the components involved in the test:
 ``
 cd test/integration && dlv test -- -test.run ^TestCrud$
 ``
+
+### Code of Conduct
+
+Participation in the Kubernetes community is governed by the
+[Kubernetes Code of Conduct](./code-of-conduct.md).
