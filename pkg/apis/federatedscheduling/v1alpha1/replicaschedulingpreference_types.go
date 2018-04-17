@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Federation v2 Authors.
 
@@ -14,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 
 package v1alpha1
 
@@ -44,8 +42,56 @@ type ReplicaSchedulingPreference struct {
 	Status ReplicaSchedulingPreferenceStatus `json:"status,omitempty"`
 }
 
+// ObjectReference contains enough information to let you identify the referred resource.
+// Currently supported kinds for this type in federation will be FederatedDeployments
+// and FederatedReplicasets
+type ObjectReference struct {
+	// Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
+	Kind string
+	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
+	Name string
+}
+
 // ReplicaSchedulingPreferenceSpec defines the desired state of ReplicaSchedulingPreference
 type ReplicaSchedulingPreferenceSpec struct {
+	//TODO (@irfanurrehman); upgrade this to label selector if need be.
+	PreferenceTargetRef ObjectReference
+
+	// Total number of pods desired across federated clusters.
+	// Replicas specified in the spec for target deployment template or replicaset
+	// template will be discarded/overridden when scheduling preferences are
+	// specified.
+	TotalReplicas int32
+
+	// If set to true then already scheduled and running replicas may be moved to other clusters
+	// in order to match current state to the specified preferences. Otherwise, if set to false,
+	// up and running replicas will not be moved.
+	// +optional
+	Rebalance bool
+
+	// A mapping between cluster names and preferences regarding a local workload object (dep, rs, .. ) in
+	// these clusters.
+	// "*" (if provided) applies to all clusters if an explicit mapping is not provided.
+	// If omitted, clusters without explicit preferences should not have any replicas scheduled.
+	// +optional
+	Clusters map[string]ClusterPreferences
+}
+
+// Preferences regarding number of replicas assigned to a cluster workload object (dep, rs, ..) within
+// a federated workload object.
+type ClusterPreferences struct {
+	// Minimum number of replicas that should be assigned to this cluster workload object. 0 by default.
+	// +optional
+	MinReplicas int64
+
+	// Maximum number of replicas that should be assigned to this cluster workload object.
+	// Unbounded if no value provided (default).
+	// +optional
+	MaxReplicas *int64
+
+	// A number expressing the preference to put an additional replica to this cluster workload object.
+	// 0 by default.
+	Weight int64
 }
 
 // ReplicaSchedulingPreferenceStatus defines the observed state of ReplicaSchedulingPreference
