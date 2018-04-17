@@ -27,24 +27,16 @@ import (
 )
 
 // FedConfig provides a rest config based on the filesystem kubeconfig (via
-// `PathOptions()`) and context in order to talk to the host kubernetes cluster
-// and the joining kubernetes cluster
+// pathOptions) and context in order to talk to the host kubernetes cluster
+// and the joining kubernetes cluster.
 type FedConfig interface {
-	PathOptions() *clientcmd.PathOptions
-	NewHostConfig(context, kubeconfigPath string) (*rest.Config, error)
-	HostConfig() *rest.Config
-	NewClusterConfig(context, kubeconfigPath string) (*rest.Config, error)
-	ClusterConfig() *rest.Config
-	NewFedConfig(context, kubeconfigPath string) (*rest.Config, error)
-	FedConfig() *rest.Config
+	HostConfig(context, kubeconfigPath string) (*rest.Config, error)
+	ClusterConfig(context, kubeconfigPath string) (*rest.Config, error)
 }
 
 // fedConfig implements the FedConfig interface.
 type fedConfig struct {
-	pathOptions   *clientcmd.PathOptions
-	hostConfig    *rest.Config
-	clusterConfig *rest.Config
-	fedConfig     *rest.Config
+	pathOptions *clientcmd.PathOptions
 }
 
 // NewFedConfig creates a fedConfig for `kubefnord` commands.
@@ -54,63 +46,28 @@ func NewFedConfig(pathOptions *clientcmd.PathOptions) FedConfig {
 	}
 }
 
-// PathOptions provides filesystem based kubeconfig access.
-func (a *fedConfig) PathOptions() *clientcmd.PathOptions {
-	return a.pathOptions
-}
-
-// NewHostConfig provides a rest config to talk to the host kubernetes cluster
+// HostConfig provides a rest config to talk to the host kubernetes cluster
 // based on the context and kubeconfig passed in.
-func (a *fedConfig) NewHostConfig(context, kubeconfigPath string) (*rest.Config, error) {
+func (a *fedConfig) HostConfig(context, kubeconfigPath string) (*rest.Config, error) {
 	hostConfig := a.getClientConfig(context, kubeconfigPath)
 	hostClientConfig, err := hostConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	a.hostConfig = hostClientConfig
-	return a.hostConfig, nil
+	return hostClientConfig, nil
 }
 
-// HostConfig retrieves the host kubernetes cluster config.
-func (a *fedConfig) HostConfig() *rest.Config {
-	return a.hostConfig
-}
-
-// NewFedConfig provides a rest config to talk to the federation cluster
-// based on the context and kubeconfig passed in.
-func (a *fedConfig) NewFedConfig(context, kubeconfigPath string) (*rest.Config, error) {
-	fedConfig := a.getClientConfig(context, kubeconfigPath)
-	fedClientConfig, err := fedConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	a.fedConfig = fedClientConfig
-	return a.fedConfig, nil
-}
-
-// FedConfig retrieves the host kubernetes cluster config.
-func (a *fedConfig) FedConfig() *rest.Config {
-	return a.fedConfig
-}
-
-// NewClusterConfig provides a rest config to talk to the joining kubernetes
+// ClusterConfig provides a rest config to talk to the joining kubernetes
 // cluster based on the context and kubeconfig passed in.
-func (a *fedConfig) NewClusterConfig(context, kubeconfigPath string) (*rest.Config, error) {
+func (a *fedConfig) ClusterConfig(context, kubeconfigPath string) (*rest.Config, error) {
 	clusterConfig := a.getClientConfig(context, kubeconfigPath)
 	clusterClientConfig, err := clusterConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	a.clusterConfig = clusterClientConfig
-	return a.clusterConfig, nil
-}
-
-// ClientConfig retrieves the joining kubernetes cluster config.
-func (a *fedConfig) ClusterConfig() *rest.Config {
-	return a.clusterConfig
+	return clusterClientConfig, nil
 }
 
 // getClientConfig is a helper method to create a client config from the
@@ -126,80 +83,28 @@ func (a *fedConfig) getClientConfig(context, kubeconfigPath string) clientcmd.Cl
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&loadingRules, overrides)
 }
 
-// FedClientset provides the clients to talk to the kubernetes
-// API server, the cluster registry API server, and the federation API server.
-type FedClientset interface {
-	NewHostClientset(config *rest.Config) (*client.Clientset, error)
-	HostClientset() *client.Clientset
-	NewClusterClientset(config *rest.Config) (*client.Clientset, error)
-	ClusterClientset() *client.Clientset
-	NewClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error)
-	ClusterRegistryClientset() *crclient.Clientset
-	NewFedClientset(config *rest.Config) (*fedclient.Clientset, error)
-	FedClientset() *fedclient.Clientset
-}
-
-// fedClientset implements the NewFedClientset interface.
-type fedClientset struct {
-	hostClientset    *client.Clientset
-	clusterClientset *client.Clientset
-	crClientset      *crclient.Clientset
-	fedClientset     *fedclient.Clientset
-}
-
-// NewFedClientset creates a fedClientset for `kubefnord` operations.
-func NewFedClientset() FedClientset {
-	return &fedClientset{}
-}
-
-// NewHostClientset provides a kubernetes API compliant clientset to
+// HostClientset provides a kubernetes API compliant clientset to
 // communicate with the host cluster's kubernetes API server.
-func (a *fedClientset) NewHostClientset(config *rest.Config) (*client.Clientset, error) {
-	a.hostClientset = client.NewForConfigOrDie(config)
-	return a.hostClientset, nil
+func HostClientset(config *rest.Config) (*client.Clientset, error) {
+	return client.NewForConfigOrDie(config), nil
 }
 
-// HostClientset retrieves the host cluster's kubernetes API compliant
-// clientset.
-func (a *fedClientset) HostClientset() *client.Clientset {
-	return a.hostClientset
-}
-
-// NewClusterClientset provides a kubernetes API compliant clientset to
+// ClusterClientset provides a kubernetes API compliant clientset to
 // communicate with the joining cluster's kubernetes API server.
-func (a *fedClientset) NewClusterClientset(config *rest.Config) (*client.Clientset, error) {
-	a.clusterClientset = client.NewForConfigOrDie(config)
-	return a.clusterClientset, nil
+func ClusterClientset(config *rest.Config) (*client.Clientset, error) {
+	return client.NewForConfigOrDie(config), nil
 }
 
-// ClusterClientset retrieves the joining cluster's kubernetes API compliant
-// clientset.
-func (a *fedClientset) ClusterClientset() *client.Clientset {
-	return a.clusterClientset
-}
-
-// NewClusterRegistryClientset provides a cluster registry API compliant
+// ClusterRegistryClientset provides a cluster registry API compliant
 // clientset to communicate with the cluster registry.
-func (a *fedClientset) NewClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error) {
-	a.crClientset = crclient.NewForConfigOrDie(config)
-	return a.crClientset, nil
+func ClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error) {
+	return crclient.NewForConfigOrDie(config), nil
 }
 
-// ClusterRegistryClientset retrieves the cluster registry clientset.
-func (a *fedClientset) ClusterRegistryClientset() *crclient.Clientset {
-	return a.crClientset
-}
-
-// NewFedClientset provides a federation API compliant clientset
+// FedClientset provides a federation API compliant clientset
 // to communicate with the federation API server.
-func (a *fedClientset) NewFedClientset(config *rest.Config) (*fedclient.Clientset, error) {
-	a.fedClientset = fedclient.NewForConfigOrDie(config)
-	return a.fedClientset, nil
-}
-
-// FedClientset retrieves the federation API compliant clientset.
-func (a *fedClientset) FedClientset() *fedclient.Clientset {
-	return a.fedClientset
+func FedClientset(config *rest.Config) (*fedclient.Clientset, error) {
+	return fedclient.NewForConfigOrDie(config), nil
 }
 
 // ClusterServiceAccountName returns the name of a service account whose
