@@ -120,6 +120,7 @@ func (j *joinFederation) Complete(args []string) error {
 	}
 
 	if j.clusterContext == "" {
+		glog.V(2).Infof("Defaulting cluster context to joining cluster name %s", j.ClusterName)
 		j.clusterContext = j.ClusterName
 	}
 
