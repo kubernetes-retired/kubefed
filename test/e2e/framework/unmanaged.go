@@ -375,14 +375,14 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster fedv1a1.Federat
 	clusterName := cluster.Name
 	By(fmt.Sprintf("Checking readiness of cluster %q", clusterName))
 	err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
+		cluster, err := client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
 		for _, condition := range cluster.Status.Conditions {
 			if condition.Type == fedcommon.ClusterReady && condition.Status == corev1.ConditionTrue {
 				return true, nil
 			}
-		}
-		_, err := client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
 		}
 		return false, nil
 	})
