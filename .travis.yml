@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - "1.10.1"
+
+# Install must be set to prevent default `go get` to run.
+# The dependencies have already been vendored by `dep` so
+# we don't need to fetch them.
+install:
+  -
+
+script:
+  - ./scripts/pre-commit.sh
+
+# TBD. Suppressing for now.
+notifications:
+  email: false
