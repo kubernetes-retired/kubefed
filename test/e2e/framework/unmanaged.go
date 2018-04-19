@@ -27,6 +27,7 @@ import (
 	"github.com/marun/federation-v2/pkg/controller/util"
 	"github.com/marun/federation-v2/pkg/federatedtypes"
 	"github.com/marun/federation-v2/test/common"
+	"github.com/marun/federation-v2/test/integration/framework"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +43,28 @@ import (
 )
 
 // Only check that the api is available once
-var checkedApi bool
+var (
+	clusterControllerFixture *framework.ControllerFixture
+	checkedApi               bool
+)
+
+func SetUpUnmanagedFederation() {
+	if clusterControllerFixture != nil {
+		return
+	}
+
+	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
+	Expect(err).NotTo(HaveOccurred())
+
+	clusterControllerFixture = framework.NewClusterControllerFixture(config, config, config)
+}
+
+func TearDownUnmanagedFederation() {
+	if clusterControllerFixture != nil {
+		clusterControllerFixture.TearDown(NewE2ELogger())
+		clusterControllerFixture = nil
+	}
+}
 
 type UnmanagedFramework struct {
 	// To make sure that this framework cleans up after itself, no matter what,
@@ -56,11 +78,18 @@ type UnmanagedFramework struct {
 	Kubeconfig *clientcmdapi.Config
 
 	BaseName string
+
+	logger common.TestLogger
+
+	// Fixtures to cleanup after each test
+	fixtures []framework.TestFixture
 }
 
 func NewUnmanagedFramework(baseName string) FederationFramework {
 	f := &UnmanagedFramework{
 		BaseName: baseName,
+		logger:   NewE2ELogger(),
+		fixtures: []framework.TestFixture{},
 	}
 	return f
 }
@@ -73,9 +102,6 @@ func (f *UnmanagedFramework) BeforeEach() {
 
 	if f.Config == nil {
 		By("Reading cluster configuration")
-		if TestContext.KubeConfig == "" {
-			Failf("--kubeconfig or KUBECONFIG must be specified to load client config")
-		}
 		var err error
 		f.Config, f.Kubeconfig, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 		Expect(err).NotTo(HaveOccurred())
@@ -98,9 +124,13 @@ func (f *UnmanagedFramework) AfterEach() {
 
 	userAgent := fmt.Sprintf("%s-teardown", f.BaseName)
 
-	// DeleteNamespace at the very end in defer, to avoid any
-	// expectation failures preventing deleting the namespace.
+	// Cleanup needs to remain as a defer function because
+	// DumpEventsInNamespace contains assertions that could exit the function.
 	defer func() {
+		// DeleteNamespace at the very end in defer, but before tearing down
+		// the namespace sync controller to avoid any expectation failures
+		// preventing deleting the namespace due to finalizers no longer able
+		// to be removed.
 		if f.testNamespaceName == "" {
 			return
 		}
@@ -111,9 +141,21 @@ func (f *UnmanagedFramework) AfterEach() {
 
 		client := f.KubeClient(userAgent)
 		deleteNamespace(client, namespaceName)
+
+		// TODO(font): Delete the namespace finalizer manually rather than
+		// relying on the federated namespace sync controller. This would
+		// remove the dependency of namespace removal on fixture teardown,
+		// which allows the teardown to be moved outside the defer, but before
+		// the DumpEventsInNamespace that may contain assertions that could
+		// exit the function.
+		for len(f.fixtures) > 0 {
+			fixture := f.fixtures[0]
+			fixture.TearDown(f.logger)
+			f.fixtures = f.fixtures[1:]
+		}
 	}()
 
-	// Print events if the test failed and ran in a namep.
+	// Print events if the test failed and ran in a namespace.
 	if CurrentGinkgoTestDescription().Failed && f.testNamespaceName != "" {
 		kubeClient := f.KubeClient(userAgent)
 		DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
@@ -159,7 +201,7 @@ func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]common.
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
 	for _, cluster := range clusterList.Items {
-		ClusterIsReadyOrFail(fedClient, cluster)
+		ClusterIsReadyOrFail(fedClient, &cluster)
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
@@ -188,7 +230,14 @@ func (f *UnmanagedFramework) TestNamespaceName() string {
 }
 
 func (f *UnmanagedFramework) SetUpControllerFixture(kind string, adapterFactory federatedtypes.AdapterFactory) {
-	// Not supported
+	// Hybrid setup where just the sync controller is run and we do not rely on
+	// the already deployed (unmanaged) controller manager. Only do this if
+	// in-memory-controllers is true.
+	if TestContext.InMemoryControllers {
+		fixture := framework.NewSyncControllerFixture(f.logger, kind, adapterFactory, f.Config,
+			f.Config, f.Config)
+		f.fixtures = append(f.fixtures, fixture)
+	}
 }
 
 func createNamespace(client kubeclientset.Interface, baseName string) (string, error) {
@@ -314,7 +363,7 @@ func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
 // marked as ready by the federated cluster controller.  The cluster
 // controller records the results of health checks on member clusters
 // in the status of federated clusters.
-func ClusterIsReadyOrFail(client fedclientset.Interface, cluster fedv1a1.FederatedCluster) {
+func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.FederatedCluster) {
 	clusterName := cluster.Name
 	By(fmt.Sprintf("Checking readiness of cluster %q", clusterName))
 	err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
@@ -323,7 +372,8 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster fedv1a1.Federat
 				return true, nil
 			}
 		}
-		_, err := client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		var err error
+		cluster, err = client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
