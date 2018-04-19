@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Federation v2 Authors.
 
@@ -14,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 
 package v1alpha1_test
 
@@ -34,7 +32,11 @@ var _ = Describe("ReplicaSchedulingPreference", func() {
 	var client ReplicaSchedulingPreferenceInterface
 
 	BeforeEach(func() {
-		instance = ReplicaSchedulingPreference{}
+		instance = ReplicaSchedulingPreference{
+			Spec: ReplicaSchedulingPreferenceSpec{
+				TotalReplicas: 1,
+			},
+		}
 		instance.Name = "instance-1"
 
 		expected = instance

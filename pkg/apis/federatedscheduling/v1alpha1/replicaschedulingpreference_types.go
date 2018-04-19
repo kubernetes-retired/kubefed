@@ -103,6 +103,9 @@ func (ReplicaSchedulingPreferenceStrategy) Validate(ctx request.Context, obj run
 	o := obj.(*federatedscheduling.ReplicaSchedulingPreference)
 	log.Printf("Validating fields for ReplicaSchedulingPreference %s\n", o.Name)
 	errors := field.ErrorList{}
+	if o.Spec.TotalReplicas < 1 {
+		errors = append(errors, field.Invalid(field.NewPath("replicaschedulingpreference.totalreplicas"), o.Spec.TotalReplicas, ""))
+	}
 	// perform validation here and add to errors using field.Invalid
 	return errors
 }
