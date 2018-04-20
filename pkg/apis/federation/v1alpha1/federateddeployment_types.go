@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/marun/federation-v2/pkg/apis/federation"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
 
 // +genclient

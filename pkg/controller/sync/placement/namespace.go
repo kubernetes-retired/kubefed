@@ -17,8 +17,8 @@ limitations under the License.
 package placement
 
 import (
-	"github.com/marun/federation-v2/pkg/controller/util"
-	"github.com/marun/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
