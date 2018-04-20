@@ -30,7 +30,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterCondition describes current state of a cluster.",
@@ -82,7 +82,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -103,7 +103,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedCluster": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedCluster": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedCluster",
@@ -129,21 +129,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -172,7 +172,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedCluster"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedCluster"),
 										},
 									},
 								},
@@ -183,9 +183,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedCluster", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedCluster", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedCluster Functions and Structs",
@@ -202,7 +202,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedClusterSpec defines the desired state of FederatedCluster",
@@ -225,7 +225,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.LocalObjectReference"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedClusterStatus is information about the current status of a cluster updated by cluster controller periodically.",
@@ -237,7 +237,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition"),
 										},
 									},
 								},
@@ -268,9 +268,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -286,7 +286,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedClusterStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -302,7 +302,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMap": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMap": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMap",
@@ -328,21 +328,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapClusterOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapClusterOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapClusterOverride defines the overrides for a named cluster",
@@ -372,7 +372,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -401,7 +401,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMap"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMap"),
 										},
 									},
 								},
@@ -412,9 +412,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMap", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMap", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapOverride",
@@ -440,21 +440,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -483,7 +483,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverride"),
 										},
 									},
 								},
@@ -494,9 +494,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapOverride Functions and Structs",
@@ -513,7 +513,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapOverrideSpec defines the desired state of FederatedConfigMapOverride",
@@ -524,7 +524,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapClusterOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapClusterOverride"),
 										},
 									},
 								},
@@ -534,9 +534,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapClusterOverride"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapClusterOverride"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapOverrideStatus defines the observed state of FederatedConfigMapOverride",
@@ -545,7 +545,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -561,7 +561,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapOverrideStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -577,7 +577,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapPlacement",
@@ -603,21 +603,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -646,7 +646,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacement"),
 										},
 									},
 								},
@@ -657,9 +657,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapPlacement Functions and Structs",
@@ -676,7 +676,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapPlacementSpec defines the desired state of FederatedConfigMapPlacement",
@@ -700,7 +700,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapPlacementStatus defines the observed state of FederatedConfigMapPlacement",
@@ -709,7 +709,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -725,7 +725,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapPlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -741,7 +741,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMap Functions and Structs",
@@ -758,7 +758,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapSpec defines the desired state of FederatedConfigMap",
@@ -775,7 +775,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ConfigMap"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedConfigMapStatus defines the observed state of FederatedConfigMap",
@@ -784,7 +784,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -800,7 +800,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedConfigMapStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -816,7 +816,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeployment": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeployment": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeployment",
@@ -842,21 +842,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentClusterOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentClusterOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetClusterOverride defines the overrides for a named cluster",
@@ -880,7 +880,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -909,7 +909,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeployment"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeployment"),
 										},
 									},
 								},
@@ -920,9 +920,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeployment", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeployment", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentOverride",
@@ -948,21 +948,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -991,7 +991,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverride"),
 										},
 									},
 								},
@@ -1002,9 +1002,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentOverride Functions and Structs",
@@ -1021,7 +1021,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentOverrideSpec defines the desired state of FederatedDeploymentOverride",
@@ -1032,7 +1032,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentClusterOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentClusterOverride"),
 										},
 									},
 								},
@@ -1043,9 +1043,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentClusterOverride"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentClusterOverride"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentOverrideStatus defines the observed state of FederatedDeploymentOverride",
@@ -1054,7 +1054,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1070,7 +1070,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentOverrideStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1086,7 +1086,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentPlacement",
@@ -1112,21 +1112,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1155,7 +1155,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacement"),
 										},
 									},
 								},
@@ -1166,9 +1166,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentPlacement Functions and Structs",
@@ -1185,7 +1185,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentPlacementSpec defines the desired state of FederatedDeploymentPlacement",
@@ -1208,7 +1208,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentPlacementStatus defines the observed state of FederatedDeploymentPlacement",
@@ -1217,7 +1217,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1233,7 +1233,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentPlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1249,7 +1249,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeployment Functions and Structs",
@@ -1266,7 +1266,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentSpec defines the desired state of FederatedDeployment",
@@ -1282,7 +1282,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/apps/v1.Deployment"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentStatus defines the observed state of FederatedDeployment",
@@ -1291,7 +1291,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1307,7 +1307,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedDeploymentStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1323,7 +1323,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJob": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJob": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJob",
@@ -1349,21 +1349,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobClusterOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobClusterOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobClusterOverride defines the overrides for a named cluster",
@@ -1387,7 +1387,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1416,7 +1416,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJob"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJob"),
 										},
 									},
 								},
@@ -1427,9 +1427,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJob", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJob", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobOverride",
@@ -1455,21 +1455,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1498,7 +1498,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverride"),
 										},
 									},
 								},
@@ -1509,9 +1509,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobOverride Functions and Structs",
@@ -1528,7 +1528,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobOverrideSpec defines the desired state of FederatedJobOverride",
@@ -1539,7 +1539,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobClusterOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobClusterOverride"),
 										},
 									},
 								},
@@ -1550,9 +1550,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobClusterOverride"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobClusterOverride"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobOverrideStatus defines the observed state of FederatedJobOverride",
@@ -1561,7 +1561,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1577,7 +1577,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobOverrideStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1593,7 +1593,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobPlacement",
@@ -1619,21 +1619,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1662,7 +1662,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacement"),
 										},
 									},
 								},
@@ -1673,9 +1673,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobPlacement Functions and Structs",
@@ -1692,7 +1692,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobPlacementSpec defines the desired state of FederatedJobPlacement",
@@ -1715,7 +1715,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobPlacementStatus defines the observed state of FederatedJobPlacement",
@@ -1724,7 +1724,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1740,7 +1740,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobPlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1756,7 +1756,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJob Functions and Structs",
@@ -1773,7 +1773,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobSpec defines the desired state of FederatedJob",
@@ -1789,7 +1789,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/batch/v1.Job"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobStatus defines the observed state of FederatedJob",
@@ -1798,7 +1798,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1814,7 +1814,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedJobStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1830,7 +1830,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedNamespacePlacement",
@@ -1856,21 +1856,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1899,7 +1899,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacement"),
 										},
 									},
 								},
@@ -1910,9 +1910,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedNamespacePlacement Functions and Structs",
@@ -1929,7 +1929,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedNamespacePlacementSpec defines the desired state of FederatedNamespacePlacement",
@@ -1953,7 +1953,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedNamespacePlacementStatus defines the observed state of FederatedNamespacePlacement",
@@ -1962,7 +1962,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1978,7 +1978,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedNamespacePlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -1994,7 +1994,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSet": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSet",
@@ -2020,21 +2020,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetClusterOverride defines the overrides for a named cluster",
@@ -2058,7 +2058,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2087,7 +2087,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSet"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSet"),
 										},
 									},
 								},
@@ -2098,9 +2098,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetOverride",
@@ -2126,21 +2126,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2169,7 +2169,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverride"),
 										},
 									},
 								},
@@ -2180,9 +2180,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetOverride Functions and Structs",
@@ -2199,7 +2199,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetOverrideSpec defines the desired state of FederatedReplicaSetOverride",
@@ -2210,7 +2210,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride"),
 										},
 									},
 								},
@@ -2221,9 +2221,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetClusterOverride"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetOverrideStatus defines the observed state of FederatedReplicaSetOverride",
@@ -2232,7 +2232,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2248,7 +2248,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetOverrideStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2264,7 +2264,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetPlacement",
@@ -2290,21 +2290,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2333,7 +2333,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacement"),
 										},
 									},
 								},
@@ -2344,9 +2344,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetPlacement Functions and Structs",
@@ -2363,7 +2363,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetPlacementSpec defines the desired state of FederatedReplicaSetPlacement",
@@ -2387,7 +2387,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetPlacementStatus defines the observed state of FederatedReplicaSetPlacement",
@@ -2396,7 +2396,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2412,7 +2412,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetPlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2428,7 +2428,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSet Functions and Structs",
@@ -2445,7 +2445,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetSpec defines the desired state of FederatedReplicaSet",
@@ -2461,7 +2461,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/apps/v1.ReplicaSet"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetStatus defines the observed state of FederatedReplicaSet",
@@ -2470,7 +2470,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2486,7 +2486,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedReplicaSetStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2502,7 +2502,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecret": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecret": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecret",
@@ -2528,21 +2528,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretClusterOverride defines the overrides for a named cluster",
@@ -2572,7 +2572,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2601,7 +2601,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecret"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecret"),
 										},
 									},
 								},
@@ -2612,9 +2612,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecret", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecret", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverride": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverride": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretOverride",
@@ -2640,21 +2640,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2683,7 +2683,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverride"),
 										},
 									},
 								},
@@ -2694,9 +2694,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverride", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretOverride Functions and Structs",
@@ -2713,7 +2713,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretOverrideSpec defines the desired state of FederatedSecretOverride",
@@ -2724,7 +2724,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride"),
 										},
 									},
 								},
@@ -2735,9 +2735,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretClusterOverride"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretOverrideStatus defines the observed state of FederatedSecretOverride",
@@ -2746,7 +2746,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2762,7 +2762,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretOverrideStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2778,7 +2778,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretPlacement",
@@ -2804,21 +2804,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2847,7 +2847,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacement"),
 										},
 									},
 								},
@@ -2858,9 +2858,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretPlacement Functions and Structs",
@@ -2877,7 +2877,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretPlacementSpec defines the desired state of FederatedSecretPlacement",
@@ -2901,7 +2901,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretPlacementStatus defines the observed state of FederatedSecretPlacement",
@@ -2910,7 +2910,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2926,7 +2926,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretPlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -2942,7 +2942,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecret Functions and Structs",
@@ -2959,7 +2959,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretSpec defines the desired state of FederatedSecret",
@@ -2976,7 +2976,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.Secret"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretStatus defines the observed state of FederatedSecret",
@@ -2985,7 +2985,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3001,7 +3001,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedSecretStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3017,7 +3017,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedService": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedService": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedService",
@@ -3043,21 +3043,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3086,7 +3086,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedService"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedService"),
 										},
 									},
 								},
@@ -3097,9 +3097,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedService", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedService", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacement": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacement": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedServicePlacement",
@@ -3125,21 +3125,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3168,7 +3168,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacement"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacement"),
 										},
 									},
 								},
@@ -3179,9 +3179,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacement", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedServicePlacement Functions and Structs",
@@ -3198,7 +3198,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedServicePlacementSpec defines the desired state of FederatedServicePlacement",
@@ -3222,7 +3222,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedServicePlacementStatus defines the observed state of FederatedServicePlacement",
@@ -3231,7 +3231,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3247,7 +3247,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServicePlacementStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3263,7 +3263,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedService Functions and Structs",
@@ -3280,7 +3280,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedServiceSpec defines the desired state of FederatedService",
@@ -3297,7 +3297,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.Service"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedServiceStatus defines the observed state of FederatedService",
@@ -3306,7 +3306,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3322,7 +3322,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3338,7 +3338,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersion": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersion": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PropagatedVersion",
@@ -3364,21 +3364,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSpec"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatus"),
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSpec", "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionList": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3407,7 +3407,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersion"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersion"),
 										},
 									},
 								},
@@ -3418,9 +3418,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersion", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersion", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSchemeFns": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PropagatedVersion Functions and Structs",
@@ -3437,7 +3437,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSpec": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PropagatedVersionSpec defines the desired state of PropagatedVersion",
@@ -3446,7 +3446,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatus": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PropagatedVersionStatus defines the observed state of PropagatedVersion",
@@ -3469,7 +3469,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion"),
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion"),
 										},
 									},
 								},
@@ -3479,9 +3479,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterObjectVersion"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatusStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -3497,7 +3497,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"github.com/marun/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStrategy": {
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
