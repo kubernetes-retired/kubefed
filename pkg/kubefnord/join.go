@@ -23,10 +23,10 @@ import (
 
 	"github.com/golang/glog"
 
-	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclient "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/marun/federation-v2/pkg/kubefnord/options"
-	"github.com/marun/federation-v2/pkg/kubefnord/util"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"

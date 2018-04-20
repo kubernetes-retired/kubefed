@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/marun/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )

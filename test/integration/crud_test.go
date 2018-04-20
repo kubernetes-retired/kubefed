@@ -22,9 +22,9 @@ import (
 
 	"github.com/pborman/uuid"
 
-	"github.com/marun/federation-v2/pkg/federatedtypes"
-	"github.com/marun/federation-v2/test/common"
-	"github.com/marun/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 )

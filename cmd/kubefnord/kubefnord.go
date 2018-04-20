@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/marun/federation-v2/pkg/kubefnord"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord"
 	"k8s.io/apiserver/pkg/util/logs"
 )
 

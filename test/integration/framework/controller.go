@@ -19,10 +19,10 @@ package framework
 import (
 	"time"
 
-	"github.com/marun/federation-v2/pkg/controller/federatedcluster"
-	"github.com/marun/federation-v2/pkg/controller/sync"
-	"github.com/marun/federation-v2/pkg/federatedtypes"
-	"github.com/marun/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
 )
 

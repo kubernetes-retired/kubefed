@@ -26,8 +26,8 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Enable cloud provider auth
 
-	"github.com/marun/federation-v2/pkg/apis"
-	"github.com/marun/federation-v2/pkg/openapi"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
+	"github.com/kubernetes-sigs/federation-v2/pkg/openapi"
 )
 
 func main() {

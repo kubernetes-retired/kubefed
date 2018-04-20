@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
-	"github.com/marun/federation-v2/pkg/controller/util"
-	"github.com/marun/federation-v2/test/common"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"

@@ -26,11 +26,11 @@ import (
 	"k8s.io/client-go/rest"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
-	"github.com/marun/federation-v2/pkg/apis"
-	"github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/marun/federation-v2/pkg/openapi"
-	"github.com/marun/federation-v2/pkg/controller/sharedinformers"
-	"github.com/marun/federation-v2/pkg/controller/federatedreplicasetoverride"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/openapi"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedreplicasetoverride"
 )
 
 var testenv *test.TestEnvironment

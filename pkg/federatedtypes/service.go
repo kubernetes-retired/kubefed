@@ -24,9 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 
-	fedv1a1 "github.com/marun/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/marun/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/marun/federation-v2/pkg/controller/util"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 const (

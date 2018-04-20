@@ -21,7 +21,7 @@ package federation
 import (
 	"fmt"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-	federationcommon "github.com/marun/federation-v2/pkg/apis/federation/common"
+	federationcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
