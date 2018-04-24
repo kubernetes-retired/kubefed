@@ -203,6 +203,20 @@ func (cc *ClusterController) updateClusterStatus() error {
 			}
 		}
 
+		zone, region, err := clusterClient.GetClusterZones()
+		if err != nil {
+			glog.Warningf("Failed to get zones and region for cluster with client %v: %v", clusterClient, err)
+		} else {
+			if len(zone) == 0 {
+				zone = cluster.Status.Zone
+			}
+			if len(region) == 0 {
+				region = cluster.Status.Region
+			}
+			clusterStatusNew.Zone = zone
+			clusterStatusNew.Region = region
+		}
+
 		cc.mu.Lock()
 		cc.clusterClusterStatusMap[cluster.Name] = *clusterStatusNew
 		cc.mu.Unlock()
