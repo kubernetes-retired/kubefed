@@ -28,6 +28,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
 	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -81,6 +82,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error starting replicaschedulingpreference controller: %v", err)
 		}
+	}
+
+	err = servicedns.StartController(config, config, config, stopChan, false)
+	if err != nil {
+		log.Fatalf("Error starting dns controller: %v", err)
 	}
 
 	// Blockforever
