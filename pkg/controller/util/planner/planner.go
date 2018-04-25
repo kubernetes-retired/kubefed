@@ -54,8 +54,8 @@ func NewPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *Pla
 
 // Distribute the desired number of replicas among the given cluster according to the planner preferences.
 // The function tries its best to assign each cluster the preferred number of replicas, however if
-// sum of MinReplicas for all cluster is bigger thant replicasToDistribute then some cluster will not
-// have all of the replicas assigned. In such case a cluster with higher weight has priority over
+// sum of MinReplicas for all cluster is bigger than replicasToDistribute (TotalReplicas) then some cluster
+// will not have all of the replicas assigned. In such case a cluster with higher weight has priority over
 // cluster with lower weight (or with lexicographically smaller name in case of draw).
 // It can also use the current replica count and estimated capacity to provide better planning and
 // adhere to rebalance policy. To avoid prioritization of clusters with smaller lexicographical names
@@ -64,7 +64,7 @@ func NewPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *Pla
 // * a map that contains information how many replicas will be possible to run in a cluster.
 // * a map that contains information how many extra replicas would be nice to schedule in a cluster so,
 //   if by chance, they are scheduled we will be closer to the desired replicas layout.
-func (p *Planner) Plan(replicasToDistribute int64, availableClusters []string, currentReplicaCount map[string]int64,
+func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[string]int64,
 	estimatedCapacity map[string]int64, replicaSetKey string) (map[string]int64, map[string]int64) {
 
 	preferences := make([]*namedClusterPreferences, 0, len(availableClusters))
@@ -97,7 +97,8 @@ func (p *Planner) Plan(replicasToDistribute int64, availableClusters []string, c
 	}
 	sort.Sort(byWeight(preferences))
 
-	remainingReplicas := replicasToDistribute
+	// This is the requested total replicas in preferences
+	remainingReplicas := int64(p.preferences.Spec.TotalReplicas)
 
 	// Assign each cluster the minimum number of replicas it requested.
 	for _, preference := range preferences {

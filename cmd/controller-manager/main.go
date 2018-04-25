@@ -26,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
+	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 )
 
@@ -59,6 +60,11 @@ func main() {
 
 	c := manager.NewFederatedTypeConfigController(config, si)
 	c.Run(stopChan)
+
+	err = rspcontroller.StartReplicaSchedulingPreferenceController(config, config, config, stopChan, true)
+	if err != nil {
+		log.Fatalf("Error starting replicaschedulingpreference controller: %v", err)
+	}
 
 	// Blockforever
 	select {}
