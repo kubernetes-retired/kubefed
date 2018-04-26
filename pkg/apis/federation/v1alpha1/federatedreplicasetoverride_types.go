@@ -51,7 +51,7 @@ type FederatedReplicaSetOverrideSpec struct {
 type FederatedReplicaSetClusterOverride struct {
 	// TODO(marun) Need to ensure that a cluster name only appears
 	// once.  Why can't maps be used so this validation is automatic?
-	ClusterName string
+	ClusterName string `json:"clustername,omitempty"`
 	Replicas    *int32 `json:"replicas,omitempty"`
 }
 
