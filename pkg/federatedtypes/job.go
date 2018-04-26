@@ -118,10 +118,6 @@ func (a *FederatedJobTemplate) Kind() string {
 	return FederatedJobKind
 }
 
-func (a *FederatedJobTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedJob).ObjectMeta
-}
-
 func (a *FederatedJobTemplate) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedJob{}
 }
@@ -163,10 +159,6 @@ func NewFederatedJobPlacement(client fedclientset.Interface) PlacementAdapter {
 
 func (a *FederatedJobPlacement) Kind() string {
 	return "FederatedJobPlacement"
-}
-
-func (a *FederatedJobPlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedJobPlacement).ObjectMeta
 }
 
 func (a *FederatedJobPlacement) ObjectType() pkgruntime.Object {
@@ -225,10 +217,6 @@ func (a *FederatedJobOverride) Kind() string {
 	return "FederatedJobOverride"
 }
 
-func (a *FederatedJobOverride) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedJobOverride).ObjectMeta
-}
-
 func (a *FederatedJobOverride) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedJobOverride{}
 }
@@ -264,10 +252,6 @@ type JobAdapter struct {
 
 func (JobAdapter) Kind() string {
 	return JobKind
-}
-
-func (JobAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*batchv1.Job).ObjectMeta
 }
 
 func (JobAdapter) ObjectType() pkgruntime.Object {

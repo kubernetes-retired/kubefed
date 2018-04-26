@@ -268,11 +268,11 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	s.updater = util.NewFederatedUpdater(s.informer, templateAdapter.Kind(), s.updateTimeout, s.eventRecorder, // non-federated
 		func(client kubeclientset.Interface, obj pkgruntime.Object) (string, error) {
 			createdObj, err := targetAdapter.Create(client, obj)
-			return s.comparisonHelper.GetVersion(targetAdapter.ObjectMeta(createdObj)), err
+			return s.comparisonHelper.GetVersion(util.MetaAccessor(createdObj)), err
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) (string, error) {
 			updatedObj, err := targetAdapter.Update(client, obj)
-			return s.comparisonHelper.GetVersion(targetAdapter.ObjectMeta(updatedObj)), err
+			return s.comparisonHelper.GetVersion(util.MetaAccessor(updatedObj)), err
 		},
 		func(client kubeclientset.Interface, obj pkgruntime.Object) (string, error) {
 			qualifiedName := federatedtypes.NewQualifiedName(obj)
@@ -450,9 +450,9 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusAllOK
 	}
 
-	meta := templateAdapter.ObjectMeta(template)
-	if meta.DeletionTimestamp != nil {
-		err := s.delete(template, meta, kind, qualifiedName)
+	meta := util.MetaAccessor(template)
+	if meta.GetDeletionTimestamp() != nil {
+		err := s.delete(template, kind, qualifiedName)
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
 			args := []interface{}{kind, qualifiedName, err}
@@ -539,11 +539,11 @@ func (s *FederationSyncController) clusterNames() ([]string, error) {
 }
 
 // delete deletes the given resource or returns error if the deletion was not complete.
-func (s *FederationSyncController) delete(template pkgruntime.Object, meta *metav1.ObjectMeta,
+func (s *FederationSyncController) delete(template pkgruntime.Object,
 	kind string, qualifiedName federatedtypes.QualifiedName) error {
 	glog.V(3).Infof("Handling deletion of %s %q", kind, qualifiedName)
 
-	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(template, meta, kind)
+	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(template, kind)
 	if err != nil {
 		return err
 	}
@@ -633,11 +633,11 @@ func getClusterVersions(adapter federatedtypes.FederatedTypeAdapter, template,
 		return clusterVersions
 	}
 
-	templateVersion := adapter.Template().ObjectMeta(template).ResourceVersion
+	templateVersion := util.MetaAccessor(template).GetResourceVersion()
 	overrideVersion := ""
 
 	if override != nil {
-		overrideVersion = adapter.Override().ObjectMeta(override).ResourceVersion
+		overrideVersion = util.MetaAccessor(override).GetResourceVersion()
 	}
 
 	if templateVersion == propagatedVersion.Status.TemplateVersion &&
@@ -657,10 +657,10 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 	version *fedv1a1.PropagatedVersion, selectedClusters []string,
 	pendingVersionUpdates sets.String) error {
 
-	templateMeta := adapter.Template().ObjectMeta(template)
+	templateMeta := util.MetaAccessor(template)
 	overrideVersion := ""
 	if override != nil {
-		overrideVersion = adapter.Override().ObjectMeta(override).ResourceVersion
+		overrideVersion = util.MetaAccessor(override).GetResourceVersion()
 	}
 
 	if version == nil {
@@ -682,7 +682,7 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 	}
 
 	oldVersionStatus := version.Status
-	templateVersion := templateMeta.ResourceVersion
+	templateVersion := templateMeta.GetResourceVersion()
 	var existingVersions []fedv1a1.ClusterObjectVersion
 	if version.Status.TemplateVersion == templateVersion && version.Status.OverrideVersion == overrideVersion {
 		existingVersions = version.Status.ClusterVersions
@@ -711,7 +711,7 @@ func updatePropagatedVersion(adapter federatedtypes.FederatedTypeAdapter,
 
 // newVersion initializes a new propagated version resource for the given
 // cluster versions and template and override.
-func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMeta, targetKind,
+func newVersion(clusterVersions map[string]string, templateMeta metav1.Object, targetKind,
 	overrideVersion string) *fedv1a1.PropagatedVersion {
 	versions := []fedv1a1.ClusterObjectVersion{}
 	for clusterName, version := range clusterVersions {
@@ -724,18 +724,18 @@ func newVersion(clusterVersions map[string]string, templateMeta *metav1.ObjectMe
 	util.SortClusterVersions(versions)
 	var namespace string
 	if federatedtypes.IsNamespaceKind(targetKind) {
-		namespace = templateMeta.Name
+		namespace = templateMeta.GetName()
 	} else {
-		namespace = templateMeta.Namespace
+		namespace = templateMeta.GetNamespace()
 	}
 
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name:      common.PropagatedVersionName(targetKind, templateMeta.Name),
+			Name:      common.PropagatedVersionName(targetKind, templateMeta.GetName()),
 		},
 		Status: fedv1a1.PropagatedVersionStatus{
-			TemplateVersion: templateMeta.ResourceVersion,
+			TemplateVersion: templateMeta.GetResourceVersion(),
 			OverrideVersion: overrideVersion,
 			ClusterVersions: versions,
 		},
@@ -805,9 +805,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 			// causing PropagatedVersion to not keep up with the
 			// ResourceVersions being updated.
 			if federatedtypes.IsNamespaceKind(kind) {
-				templateMeta := s.adapter.Template().ObjectMeta(template)
-				clusterMeta := s.adapter.Target().ObjectMeta(clusterObj)
-				if util.IsPrimaryCluster(templateMeta, clusterMeta) {
+				if util.IsPrimaryCluster(template, clusterObj) {
 					continue
 				}
 			}
@@ -819,8 +817,8 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				// No target version recorded for template+override version
 				operationType = util.OperationTypeUpdate
 			} else {
-				clusterObjMeta := s.adapter.Target().ObjectMeta(clusterObj)
-				desiredObjMeta := s.adapter.Target().ObjectMeta(desiredObj)
+				clusterObjMeta := util.MetaAccessor(clusterObj)
+				desiredObjMeta := util.MetaAccessor(desiredObj)
 				targetVersion := s.comparisonHelper.GetVersion(clusterObjMeta)
 
 				// Check if versions don't match. If they match then check its

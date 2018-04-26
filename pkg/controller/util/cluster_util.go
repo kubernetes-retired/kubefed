@@ -25,6 +25,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -141,6 +142,8 @@ var KubeconfigGetterForSecret = func(secret *apiv1.Secret) clientcmd.KubeconfigG
 // primary cluster by checking if the UIDs match for both ObjectMetas passed
 // in.
 // TODO (font): Need to revisit this when cluster ID is available.
-func IsPrimaryCluster(federatedMeta, clusterMeta *metav1.ObjectMeta) bool {
-	return federatedMeta.UID == clusterMeta.UID
+func IsPrimaryCluster(obj, clusterObj pkgruntime.Object) bool {
+	meta := MetaAccessor(obj)
+	clusterMeta := MetaAccessor(clusterObj)
+	return meta.GetUID() == clusterMeta.GetUID()
 }

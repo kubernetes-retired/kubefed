@@ -91,11 +91,11 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlaceme
 func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride pkgruntime.Object) (pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
 	templateAdapter := c.adapter.Template()
 	template := c.createFedResource(templateAdapter, desiredTemplate)
-	templateMeta := templateAdapter.ObjectMeta(template)
+	templateMeta := util.MetaAccessor(template)
 
 	// Test objects may use GenerateName.  Use the name of the
 	// template resource for other resources.
-	name := templateMeta.Name
+	name := templateMeta.GetName()
 	placementAdapter := c.adapter.Placement()
 	c.setFedResourceName(placementAdapter, desiredPlacement, name)
 	placement := c.createFedResource(placementAdapter, desiredPlacement)
@@ -111,13 +111,13 @@ func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desi
 }
 
 func (c *FederatedTypeCrudTester) setFedResourceName(adapter federatedtypes.FedApiAdapter, obj pkgruntime.Object, name string) {
-	meta := adapter.ObjectMeta(obj)
-	meta.Name = name
-	meta.GenerateName = ""
+	meta := util.MetaAccessor(obj)
+	meta.SetName(name)
+	meta.SetGenerateName("")
 }
 
 func (c *FederatedTypeCrudTester) createFedResource(adapter federatedtypes.FedApiAdapter, desiredObj pkgruntime.Object) pkgruntime.Object {
-	namespace := adapter.ObjectMeta(desiredObj).Namespace
+	namespace := util.MetaAccessor(desiredObj).GetNamespace()
 	kind := adapter.Kind()
 	resourceMsg := kind
 	if len(namespace) > 0 {
@@ -144,14 +144,14 @@ func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement,
 	if overrideAdapter != nil {
 		c.tl.Logf("Resource versions for %s: template %q, placement %q, override %q",
 			federatedtypes.NewQualifiedName(template),
-			c.adapter.Template().ObjectMeta(template).ResourceVersion,
-			c.adapter.Placement().ObjectMeta(placement).ResourceVersion,
-			overrideAdapter.ObjectMeta(override).ResourceVersion)
+			util.MetaAccessor(template).GetResourceVersion(),
+			util.MetaAccessor(placement).GetResourceVersion(),
+			util.MetaAccessor(override).GetResourceVersion())
 	} else {
 		c.tl.Logf("Resource versions for %s: template %q, placement %q",
 			federatedtypes.NewQualifiedName(template),
-			c.adapter.Template().ObjectMeta(template).ResourceVersion,
-			c.adapter.Placement().ObjectMeta(placement).ResourceVersion)
+			util.MetaAccessor(template).GetResourceVersion(),
+			util.MetaAccessor(placement).GetResourceVersion())
 	}
 
 	c.CheckPropagation(template, placement, override)
@@ -165,27 +165,31 @@ func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override pkgr
 	adapter := c.adapter.Template()
 
 	var initialAnnotation string
-	meta := adapter.ObjectMeta(template)
-	if meta.Annotations != nil {
-		initialAnnotation = meta.Annotations[AnnotationTestFederationCrudUpdate]
+	meta := util.MetaAccessor(template)
+	annotations := meta.GetAnnotations()
+	if annotations != nil {
+		initialAnnotation = annotations[AnnotationTestFederationCrudUpdate]
 	}
 
 	c.tl.Logf("Updating %s %q", c.kind, qualifiedName)
 	updatedTemplate, err := c.updateFedObject(adapter, template, func(template pkgruntime.Object) {
 		// Target the metadata for simplicity (it's type-agnostic)
-		meta := adapter.ObjectMeta(template)
-		if meta.Annotations == nil {
-			meta.Annotations = make(map[string]string)
+		meta := util.MetaAccessor(template)
+		annotations := meta.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
 		}
-		meta.Annotations[AnnotationTestFederationCrudUpdate] = "updated"
+		annotations[AnnotationTestFederationCrudUpdate] = "updated"
+		meta.SetAnnotations(annotations)
 	})
 	if err != nil {
 		c.tl.Fatalf("Error updating %s %q: %v", c.kind, qualifiedName, err)
 	}
 
 	// updateFedObject is expected to have changed the value of the annotation
-	meta = adapter.ObjectMeta(updatedTemplate)
-	updatedAnnotation := meta.Annotations[AnnotationTestFederationCrudUpdate]
+	meta = util.MetaAccessor(updatedTemplate)
+	updatedAnnotations := meta.GetAnnotations()
+	updatedAnnotation := updatedAnnotations[AnnotationTestFederationCrudUpdate]
 	if updatedAnnotation == initialAnnotation {
 		c.tl.Fatalf("%s %q not mutated", c.kind, qualifiedName)
 	}
@@ -362,7 +366,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client clientset.Interface, qu
 
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		clusterObj, err := targetAdapter.Get(client, qualifiedName)
-		targetMeta := targetAdapter.ObjectMeta(clusterObj)
+		targetMeta := util.MetaAccessor(clusterObj)
 		if err == nil && c.comparisonHelper.GetVersion(targetMeta) == expectedVersion {
 			return true, nil
 		}
@@ -407,18 +411,18 @@ func (c *FederatedTypeCrudTester) updateFedObject(adapter federatedtypes.FedApiA
 }
 
 func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override pkgruntime.Object) (*fedv1a1.PropagatedVersion, error) {
-	templateMeta := c.adapter.Template().ObjectMeta(template)
+	templateMeta := util.MetaAccessor(template)
 	templateQualifiedName := federatedtypes.NewQualifiedName(template)
 
 	overrideVersion := ""
 	overrideAdapter := c.adapter.Override()
 	if overrideAdapter != nil {
-		overrideVersion = overrideAdapter.ObjectMeta(override).ResourceVersion
+		overrideVersion = util.MetaAccessor(override).GetResourceVersion()
 	}
 
 	client := c.adapter.FedClient()
-	namespace := templateMeta.Namespace
-	name := c.versionName(templateMeta.Name)
+	namespace := templateMeta.GetNamespace()
+	name := c.versionName(templateMeta.GetName())
 
 	clusterNames := c.adapter.Placement().ClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
@@ -432,7 +436,7 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		var err error
 		if federatedtypes.IsNamespaceKind(c.kind) {
-			version, err = client.FederationV1alpha1().PropagatedVersions(templateMeta.Name).Get(name, metav1.GetOptions{})
+			version, err = client.FederationV1alpha1().PropagatedVersions(templateMeta.GetName()).Get(name, metav1.GetOptions{})
 		} else {
 			version, err = client.FederationV1alpha1().PropagatedVersions(namespace).Get(name, metav1.GetOptions{})
 		}
@@ -446,7 +450,7 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 		if err != nil {
 			return false, err
 		}
-		templateVersion := c.adapter.Template().ObjectMeta(template).ResourceVersion
+		templateVersion := util.MetaAccessor(template).GetResourceVersion()
 		if version.Status.TemplateVersion == templateVersion && version.Status.OverrideVersion == overrideVersion {
 			// Check that the list of clusters propagated to matches the list of selected clusters
 			propagatedClusters := sets.String{}

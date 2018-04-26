@@ -43,7 +43,6 @@ type FederatedTypeAdapter interface {
 
 type MetaAdapter interface {
 	Kind() string
-	ObjectMeta(pkgruntime.Object) *metav1.ObjectMeta
 	ObjectType() pkgruntime.Object
 }
 

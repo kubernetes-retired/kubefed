@@ -119,10 +119,6 @@ func (a *FederatedSecretTemplate) Kind() string {
 	return FederatedSecretKind
 }
 
-func (a *FederatedSecretTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedSecret).ObjectMeta
-}
-
 func (a *FederatedSecretTemplate) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedSecret{}
 }
@@ -163,10 +159,6 @@ func NewFederatedSecretPlacement(client fedclientset.Interface) PlacementAdapter
 
 func (a *FederatedSecretPlacement) Kind() string {
 	return "FederatedSecretPlacement"
-}
-
-func (a *FederatedSecretPlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedSecretPlacement).ObjectMeta
 }
 
 func (a *FederatedSecretPlacement) ObjectType() pkgruntime.Object {
@@ -225,10 +217,6 @@ func (a *FederatedSecretOverride) Kind() string {
 	return "FederatedSecretOverride"
 }
 
-func (a *FederatedSecretOverride) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedSecretOverride).ObjectMeta
-}
-
 func (a *FederatedSecretOverride) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedSecretOverride{}
 }
@@ -264,10 +252,6 @@ type SecretAdapter struct {
 
 func (SecretAdapter) Kind() string {
 	return SecretKind
-}
-
-func (SecretAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*corev1.Secret).ObjectMeta
 }
 
 func (SecretAdapter) ObjectType() pkgruntime.Object {

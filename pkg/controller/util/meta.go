@@ -19,8 +19,10 @@ package util
 import (
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // Copies cluster-independent, user provided data from the given ObjectMeta struct. If in
@@ -74,6 +76,29 @@ func ObjectMetaEquivalent(a, b metav1.ObjectMeta) bool {
 	return true
 }
 
+// Checks if cluster-independent, user provided data in two given ObjectMeta are equal. If in
+// the future the ObjectMeta structure is expanded then any field that is not populated
+// by the api server should be included here.
+func ObjectMetaObjEquivalent(a, b metav1.Object) bool {
+	if a.GetName() != b.GetName() {
+		return false
+	}
+	if a.GetNamespace() != b.GetNamespace() {
+		return false
+	}
+	aLabels := a.GetLabels()
+	bLabels := b.GetLabels()
+	if !reflect.DeepEqual(aLabels, bLabels) && (len(aLabels) != 0 || len(bLabels) != 0) {
+		return false
+	}
+	aAnnotations := a.GetAnnotations()
+	bAnnotations := b.GetAnnotations()
+	if !reflect.DeepEqual(aAnnotations, bAnnotations) && (len(aAnnotations) != 0 || len(bAnnotations) != 0) {
+		return false
+	}
+	return true
+}
+
 // Checks if cluster-independent, user provided data in ObjectMeta and Spec in two given top
 // level api objects are equivalent.
 func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
@@ -82,4 +107,13 @@ func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
 	specA := reflect.ValueOf(a).Elem().FieldByName("Spec").Interface()
 	specB := reflect.ValueOf(b).Elem().FieldByName("Spec").Interface()
 	return ObjectMetaEquivalent(objectMetaA, objectMetaB) && reflect.DeepEqual(specA, specB)
+}
+
+func MetaAccessor(obj pkgruntime.Object) metav1.Object {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		// This should always succeed if obj is not nil.  Also,
+		// adapters are slated for replacement by unstructured.
+	}
+	return accessor
 }
