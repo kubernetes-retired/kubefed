@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -176,21 +175,14 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 		s.overrideStore, s.overrideController = newFedApiInformer(adapter.Override(), deliverObj)
 	}
 
-	deliverUnstructured := func(obj *unstructured.Unstructured) {
-		qualifiedName := federatedtypes.QualifiedName{
-			Namespace: obj.GetNamespace(),
-			Name:      obj.GetName(),
-		}
-		s.deliver(qualifiedName, 0, false)
-	}
 	if adapter.Template().Kind() == federatedtypes.NamespaceKind {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(adapter.Placement(), deliverObj)
 	} else {
-		var err error
-		s.placementPlugin, err = placement.NewResourcePlacementPlugin(fedConfig, adapter.PlacementGroupVersionResource(), deliverUnstructured)
+		client, err := util.NewResourceClientFromConfig(fedConfig, adapter.PlacementGroupVersionResource())
 		if err != nil {
 			return nil, err
 		}
+		s.placementPlugin = placement.NewResourcePlacementPlugin(client, deliverObj)
 	}
 
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
