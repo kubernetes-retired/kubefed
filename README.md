@@ -1,4 +1,4 @@
-## Kubernetes Federation v2
+# Kubernetes Federation v2
 
 This repo contains an in-progress prototype of some of the
 foundational aspects of V2 of Kubernetes Federation.  The prototype
@@ -14,7 +14,7 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
 <p align="center"><img src="docs/images/propagation.png" width="711"></p>
 
-## Concepts
+# Concepts
 
 The following abstractions support the propagation of a logical
 federated type:
@@ -30,16 +30,16 @@ well-suited to serve as the glue between any given propagation
 mechanism and higher-order behaviors like policy-based placement and
 dynamic scheduling.
 
-## Getting started
+# Getting started
 
-### Required: `apiserver-builder`
+## Required: `apiserver-builder`
 This repo depends on
 [apiserver-builder](https://github.com/kubernetes-incubator/apiserver-builder)
 to generate code and build binaries.  Download a [recent
 release](https://github.com/kubernetes-incubator/apiserver-builder/releases)
 and install it in your `PATH`.
 
-### Adding a new API type
+## Adding a new API type
 
 As per the
 [docs](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/tools_user_guide.md#create-an-api-resource)
@@ -66,7 +66,7 @@ The generated code will need to be updated whenever the code for a
 type is modified. Care should be taken to separate generated from
 non-generated code in the commit history.
 
-### Enabling federation of a type
+## Enabling federation of a type
 
 Implementing support for federation of a Kubernetes type requires
 the following steps:
@@ -92,9 +92,9 @@ the following steps:
      propagated by the reconciler to member clusters.
    - e.g. [FederatedSecretAdapter](https://github.com/marun/federation-v2/blob/master/pkg/federatedtypes/secret.go)
 
-### Testing
+## Testing
 
-#### Integration
+### Integration
 
 The integration tests will spin up a federation consisting of kube
 api + cluster registry api + federation api + 2 member clusters and
@@ -122,7 +122,7 @@ the components involved in the test:
 cd test/integration && dlv test -- -test.run ^TestCrud$
 ``
 
-#### E2E
+### E2E
 
 The Federation-v2 E2E tests can run in an *unmanaged*, *managed*, or *hybrid*
 modes. For both unmanaged and hybrid modes, you will need to bring your own
@@ -139,7 +139,7 @@ verify that:
 
 The read operation is implicit.
 
-##### Managed
+#### Managed
 
 The E2E managed tests will spin up the same environment as the
 [Integration](README.md#integration) tests described above and run [CRUD
@@ -173,7 +173,7 @@ cd test/e2e
 dlv test -- -v=4 -test.v --ginkgo.focus='"FederatedSecret"'
 ```
 
-##### Unmanaged and Hybrid Cluster Setup
+#### Unmanaged and Hybrid Cluster Setup
 
 The difference between unmanaged and hybrid is that with hybrid, you run
 the federation-v2 controllers in-process as part of executing the test. This
@@ -181,7 +181,7 @@ helps in running a debugger to debug anything in the controllers. On the other
 hand with unmanaged, the controllers are already running in the K8s cluster.
 Both methods require the clusters to have already been joined.
 
-###### Create Clusters
+##### Create Clusters
 
 The quickest way to set up clusters for use with unmanaged and hybrid modes is
 to use [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
@@ -208,7 +208,7 @@ kubectl get all --all-namespaces
 
 Once all pods are running you can move on to deploy the cluster registry.
 
-###### Deploy the Cluster Registry
+##### Deploy the Cluster Registry
 
 Make sure the storage provisioner is ready before deploying the Cluster
 Registry.
@@ -227,7 +227,7 @@ crinit aggregated init mycr --host-cluster-context=clusterA
 
 You can also specify your own cluster registry image using the `--image` flag.
 
-###### Deploy Federation
+##### Deploy Federation
 
 First you'll need to create the namespace to deploy the federation into:
 
@@ -280,7 +280,7 @@ kubectl get federatedcluster
 
 It should successfully report that no resources are found.
 
-###### Join Clusters
+##### Join Clusters
 
 First, make sure the federation deployment succeeded by verifying it using the
 step above. Next, you'll want to use the `kubefnord` tool to join all your
@@ -304,7 +304,7 @@ corresponding subsection depending on what you're interested in. If you are unsu
 the hybrid setup is best for debugging as you can run the controllers
 in-process with delve. If you're just wanting to run E2E tests, use unmanaged.
 
-###### Unmanaged
+##### Unmanaged
 
 Follow the below instructions to run E2E tests in your unmanaged federation setup.
 
@@ -333,7 +333,7 @@ dlv test -- -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
     --ginkgo.focus='"FederatedSecret"'
 ```
 
-###### Hybrid
+##### Hybrid
 
 Since hybrid mode runs the federation-v2 controllers as part of the test
 executable to aid in debugging, we need to kill the existing federation
@@ -373,7 +373,7 @@ these steps:
         -v=4 -test.v --ginkgo.focus='"FederatedSecret" resources'
     ```
 
-###### Unmanaged and Hybrid Unjoin
+##### Unmanaged and Hybrid Unjoin
 
 Once the test completes, you will have to manually or script an unjoin
 operation by deleting all the relevant objects. The ability to unjoin via
@@ -394,7 +394,7 @@ CLUSTER_SECRET=$(kubectl -n federation get secrets \
 kubectl -n federation delete secret ${CLUSTER_SECRET}
 ```
 
-### Code of Conduct
+## Code of Conduct
 
 Participation in the Kubernetes community is governed by the
 [Kubernetes Code of Conduct](./code-of-conduct.md).
