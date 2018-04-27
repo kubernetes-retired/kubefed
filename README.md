@@ -185,13 +185,37 @@ Both methods require the clusters to have already been joined.
 
 The quickest way to set up clusters for use with unmanaged and hybrid modes is
 to use [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
+
+**NOTE: You will need to use minikube version
+[0.25.2](https://github.com/kubernetes/minikube/releases/tag/v0.25.2) in order
+to avoid an issue with profiles, which is required for testing multiple
+clusters. See issue https://github.com/kubernetes/minikube/issues/2717 for more
+details.**
+
 Once you have minikube installed run:
 
 ```bash
 minikube start -p clusterA
 ```
 
+Even though the `minikube` cluster has been started, you'll want to verify all
+your `minikube` components are up and ready by examining the state of the
+kubernetes components via:
+
+```bash
+kubectl get all --all-namespaces
+```
+
+Once all pods are running you can move on to deploy the cluster registry.
+
 ###### Deploy the Cluster Registry
+
+Make sure the storage provisioner is ready before deploying the Cluster
+Registry.
+
+```bash
+kubectl -n kube-system get pod storage-provisioner
+```
 
 Get the latest version of the [Cluster
 Registry](https://github.com/kubernetes/cluster-registry/releases) and run the
@@ -211,11 +235,22 @@ First you'll need to create the namespace to deploy the federation into:
 kubectl create ns federation
 ```
 
-Then run `apiserver-boot` to deploy. This will build the federated API server
-and controller manager, build an image containing them, push the image to the
+Then run `apiserver-boot` to deploy. This will build the federated `apiserver`
+and `controller`, build an image containing them, push the image to the
 requested registry, generate a k8s YAML config `config/apiserver.yaml`
 with the name and namespace requested, and deploy the config to the
 cluster specified in your kubeconfig current-context.
+
+If intending to use the docker hub as the container registry to push
+the federation image to, make sure to login to the local docker daemon
+to ensure credentials are available for push:
+
+```bash
+docker login --username <username>
+```
+
+Once you're ready, run the following command. An example of the `--image`
+argument is `docker.io/<username>/federation-v2:test`.
 
 ```bash
 apiserver-boot run in-cluster --name federation --namespace federation \
@@ -224,29 +259,33 @@ apiserver-boot run in-cluster --name federation --namespace federation \
 ```
 
 You will most likely need to increase the limit on the amount of memory
-required by the API server as there isn't a way to request it via
+required by the `apiserver` as there isn't a way to request it via
 `apiserver-boot` at the moment. Otherwise the federation pod may be terminated
-with `OOMKilled`. In order to do that you will need to modify the deployment:
+with `OOMKilled`. In order to do that you will need to patch the deployment:
 
 ```bash
-kubectl -n federation edit deploy/federation
+kubectl -n federation patch deploy federation -p \
+    '{"spec":{"template":{"spec":{"containers":[{"name":"apiserver","resources":{"limits":{"memory":"128Mi"},"requests":{"memory":"64Mi"}}}]}}}}'
 ```
 
-Update the `apiserver` container memory resources so that they read as follows:
+If you also run into `OOMKilled` on either the `etcd` or the `controller`, just
+run the same command but replace `apiserver` with `etcd` or `controller`.
 
-```yaml
-        resources:
-          limits:
-            cpu: 100m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 64Mi
+Verify that the deployment succeeded and is available to serve its API by
+seeing if we can retrieve one of its API resources:
+
+```bash
+kubectl get federatedcluster
 ```
+
+It should successfully report that no resources are found.
 
 ###### Join Clusters
 
-Next, join all your clusters that you want to test against using the `kubefnord` tool.
+First, make sure the federation deployment succeeded by verifying it using the
+step above. Next, you'll want to use the `kubefnord` tool to join all your
+clusters that you want to test against.
+
 
 1. Build kubefnord
     ```bash
@@ -302,8 +341,8 @@ controller container so that they will not step on each other. Follow
 these steps:
 
 1. Edit the federation deployment to delete the controller container. The
-   federation deployment contains 2 containers: the API server and the
-   controller. We'll keep the API server for now and delete the controller.
+   federation deployment contains 2 containers: the `apiserver` and the
+   `controller`. We'll keep the `apiserver` for now and delete the `controller`.
    This way we can launch the necessary federation-v2 controllers ourselves via the
    test binary. Specifically, we will launch the cluster and federated sync
    controllers.
