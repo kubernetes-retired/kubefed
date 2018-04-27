@@ -34,8 +34,8 @@ const (
 )
 
 type ComparisonHelper interface {
-	GetVersion(objectMeta *metav1.ObjectMeta) string
-	Equivalent(objMeta1, objectMeta2 *metav1.ObjectMeta) bool
+	GetVersion(objectMeta metav1.Object) string
+	Equivalent(objMeta1, objectMeta2 metav1.Object) bool
 }
 
 // NewComparisonHelper instantiates and returns a Resource or Generation Helper
@@ -57,14 +57,14 @@ type GenerationHelper struct{}
 // GetVersion returns a string containing the version in the resource's
 // ObjectMeta using the resource comparison type to perform for that
 // resource.
-func (GenerationHelper) GetVersion(objectMeta *metav1.ObjectMeta) string {
-	return strconv.FormatInt(objectMeta.Generation, 10)
+func (GenerationHelper) GetVersion(objectMeta metav1.Object) string {
+	return strconv.FormatInt(objectMeta.GetGeneration(), 10)
 }
 
 // Equivalent returns true if both object metas passed in are equivalent, false
 // otherwise.
-func (GenerationHelper) Equivalent(obj1Meta, obj2Meta *metav1.ObjectMeta) bool {
-	return ObjectMetaEquivalent(*obj1Meta, *obj2Meta)
+func (GenerationHelper) Equivalent(obj1Meta, obj2Meta metav1.Object) bool {
+	return ObjectMetaObjEquivalent(obj1Meta, obj2Meta)
 }
 
 type ResourceHelper struct{}
@@ -72,13 +72,13 @@ type ResourceHelper struct{}
 // GetVersion returns a string containing the version in the resource's
 // ObjectMeta using the resource comparison type to perform for that
 // resource.
-func (ResourceHelper) GetVersion(objectMeta *metav1.ObjectMeta) string {
-	return objectMeta.ResourceVersion
+func (ResourceHelper) GetVersion(objectMeta metav1.Object) string {
+	return objectMeta.GetResourceVersion()
 }
 
 // Equivalent returns true for ResourceVersion comparison as it doesn't require
 // comparing ObjectMeta.
-func (ResourceHelper) Equivalent(obj1Meta, obj2Meta *metav1.ObjectMeta) bool {
+func (ResourceHelper) Equivalent(obj1Meta, obj2Meta metav1.Object) bool {
 	return true
 }
 

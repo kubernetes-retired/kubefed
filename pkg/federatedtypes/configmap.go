@@ -119,10 +119,6 @@ func (a *FederatedConfigMapTemplate) Kind() string {
 	return FederatedConfigMapKind
 }
 
-func (a *FederatedConfigMapTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedConfigMap).ObjectMeta
-}
-
 func (a *FederatedConfigMapTemplate) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedConfigMap{}
 }
@@ -163,10 +159,6 @@ func NewFederatedConfigMapPlacement(client fedclientset.Interface) PlacementAdap
 
 func (a *FederatedConfigMapPlacement) Kind() string {
 	return "FederatedConfigMapPlacement"
-}
-
-func (a *FederatedConfigMapPlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedConfigMapPlacement).ObjectMeta
 }
 
 func (a *FederatedConfigMapPlacement) ObjectType() pkgruntime.Object {
@@ -225,10 +217,6 @@ func (a *FederatedConfigMapOverride) Kind() string {
 	return "FederatedConfigMapOverride"
 }
 
-func (a *FederatedConfigMapOverride) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedConfigMapOverride).ObjectMeta
-}
-
 func (a *FederatedConfigMapOverride) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedConfigMapOverride{}
 }
@@ -264,10 +252,6 @@ type ConfigMapAdapter struct {
 
 func (ConfigMapAdapter) Kind() string {
 	return ConfigMapKind
-}
-
-func (ConfigMapAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*apiv1.ConfigMap).ObjectMeta
 }
 
 func (ConfigMapAdapter) ObjectType() pkgruntime.Object {

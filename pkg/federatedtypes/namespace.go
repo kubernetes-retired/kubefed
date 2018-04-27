@@ -114,10 +114,6 @@ func (a *FederatedNamespaceTemplate) Kind() string {
 	return NamespaceKind
 }
 
-func (a *FederatedNamespaceTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*apiv1.Namespace).ObjectMeta
-}
-
 func (a *FederatedNamespaceTemplate) ObjectType() pkgruntime.Object {
 	return &apiv1.Namespace{}
 }
@@ -158,10 +154,6 @@ func NewFederatedNamespacePlacement(client fedclientset.Interface) PlacementAdap
 
 func (a *FederatedNamespacePlacement) Kind() string {
 	return FederatedNamespacePlacementKind
-}
-
-func (a *FederatedNamespacePlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedNamespacePlacement).ObjectMeta
 }
 
 func (a *FederatedNamespacePlacement) ObjectType() pkgruntime.Object {
@@ -213,10 +205,6 @@ type NamespaceAdapter struct {
 
 func (NamespaceAdapter) Kind() string {
 	return NamespaceKind
-}
-
-func (NamespaceAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*apiv1.Namespace).ObjectMeta
 }
 
 func (NamespaceAdapter) ObjectType() pkgruntime.Object {

@@ -118,10 +118,6 @@ func (a *FederatedReplicaSetTemplate) Kind() string {
 	return FederatedReplicaSetKind
 }
 
-func (a *FederatedReplicaSetTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedReplicaSet).ObjectMeta
-}
-
 func (a *FederatedReplicaSetTemplate) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedReplicaSet{}
 }
@@ -163,10 +159,6 @@ func NewFederatedReplicaSetPlacement(client fedclientset.Interface) PlacementAda
 
 func (a *FederatedReplicaSetPlacement) Kind() string {
 	return "FederatedReplicaSetPlacement"
-}
-
-func (a *FederatedReplicaSetPlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedReplicaSetPlacement).ObjectMeta
 }
 
 func (a *FederatedReplicaSetPlacement) ObjectType() pkgruntime.Object {
@@ -225,10 +217,6 @@ func (a *FederatedReplicaSetOverride) Kind() string {
 	return "FederatedReplicaSetOverride"
 }
 
-func (a *FederatedReplicaSetOverride) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedReplicaSetOverride).ObjectMeta
-}
-
 func (a *FederatedReplicaSetOverride) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedReplicaSetOverride{}
 }
@@ -264,10 +252,6 @@ type ReplicaSetAdapter struct {
 
 func (ReplicaSetAdapter) Kind() string {
 	return ReplicaSetKind
-}
-
-func (ReplicaSetAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*appsv1.ReplicaSet).ObjectMeta
 }
 
 func (ReplicaSetAdapter) ObjectType() pkgruntime.Object {

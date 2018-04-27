@@ -118,10 +118,6 @@ func (a *FederatedDeploymentTemplate) Kind() string {
 	return FederatedDeploymentKind
 }
 
-func (a *FederatedDeploymentTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedDeployment).ObjectMeta
-}
-
 func (a *FederatedDeploymentTemplate) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedDeployment{}
 }
@@ -163,10 +159,6 @@ func NewFederatedDeploymentPlacement(client fedclientset.Interface) PlacementAda
 
 func (a *FederatedDeploymentPlacement) Kind() string {
 	return "FederatedDeploymentPlacement"
-}
-
-func (a *FederatedDeploymentPlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedDeploymentPlacement).ObjectMeta
 }
 
 func (a *FederatedDeploymentPlacement) ObjectType() pkgruntime.Object {
@@ -225,10 +217,6 @@ func (a *FederatedDeploymentOverride) Kind() string {
 	return "FederatedDeploymentOverride"
 }
 
-func (a *FederatedDeploymentOverride) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedDeploymentOverride).ObjectMeta
-}
-
 func (a *FederatedDeploymentOverride) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedDeploymentOverride{}
 }
@@ -264,10 +252,6 @@ type DeploymentAdapter struct {
 
 func (DeploymentAdapter) Kind() string {
 	return DeploymentKind
-}
-
-func (DeploymentAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*appsv1.Deployment).ObjectMeta
 }
 
 func (DeploymentAdapter) ObjectType() pkgruntime.Object {

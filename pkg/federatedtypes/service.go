@@ -126,10 +126,6 @@ func (a *FederatedServiceTemplate) Kind() string {
 	return FederatedServiceKind
 }
 
-func (a *FederatedServiceTemplate) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedService).ObjectMeta
-}
-
 func (a *FederatedServiceTemplate) ObjectType() pkgruntime.Object {
 	return &fedv1a1.FederatedService{}
 }
@@ -170,10 +166,6 @@ func NewFederatedServicePlacement(client fedclientset.Interface) PlacementAdapte
 
 func (a *FederatedServicePlacement) Kind() string {
 	return "FederatedServicePlacement"
-}
-
-func (a *FederatedServicePlacement) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*fedv1a1.FederatedServicePlacement).ObjectMeta
 }
 
 func (a *FederatedServicePlacement) ObjectType() pkgruntime.Object {
@@ -225,10 +217,6 @@ type ServiceAdapter struct {
 
 func (ServiceAdapter) Kind() string {
 	return ServiceKind
-}
-
-func (ServiceAdapter) ObjectMeta(obj pkgruntime.Object) *metav1.ObjectMeta {
-	return &obj.(*corev1.Service).ObjectMeta
 }
 
 func (ServiceAdapter) ObjectType() pkgruntime.Object {
