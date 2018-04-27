@@ -861,7 +861,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetClusterOverride defines the overrides for a named cluster",
 					Properties: map[string]spec.Schema{
-						"ClusterName": {
+						"clustername": {
 							SchemaProps: spec.SchemaProps{
 								Description: "once.  Why can't maps be used so this validation is automatic?",
 								Type:        []string{"string"},
@@ -875,7 +875,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"ClusterName"},
 				},
 			},
 			Dependencies: []string{},
@@ -1368,7 +1367,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobClusterOverride defines the overrides for a named cluster",
 					Properties: map[string]spec.Schema{
-						"ClusterName": {
+						"clustername": {
 							SchemaProps: spec.SchemaProps{
 								Description: "once.  Why can't maps be used so this validation is automatic?",
 								Type:        []string{"string"},
@@ -1382,7 +1381,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"ClusterName"},
 				},
 			},
 			Dependencies: []string{},
@@ -2039,7 +2037,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetClusterOverride defines the overrides for a named cluster",
 					Properties: map[string]spec.Schema{
-						"ClusterName": {
+						"clustername": {
 							SchemaProps: spec.SchemaProps{
 								Description: "once.  Why can't maps be used so this validation is automatic?",
 								Type:        []string{"string"},
@@ -2053,7 +2051,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"ClusterName"},
 				},
 			},
 			Dependencies: []string{},
