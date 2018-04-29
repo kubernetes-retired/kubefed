@@ -496,8 +496,13 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 	}.String()
 	// TODO(marun) LOCK!
 	if s.pendingVersionUpdates.Has(propagatedVersionKey) {
-		// A status update is pending
-		return statusNeedsRecheck
+		// TODO(marun) Need to revisit how namespace deletion affects
+		// the version cache.  Ignoring may cause some unnecessary
+		// updates, but that's better than looping endlessly.
+		if kind != federatedtypes.NamespaceKind {
+			// A status update is pending
+			return statusNeedsRecheck
+		}
 	}
 	propagatedVersionFromCache, err := s.objFromCache(s.propagatedVersionStore,
 		"PropagatedVersion", propagatedVersionKey)
