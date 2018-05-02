@@ -21,7 +21,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -34,7 +33,7 @@ type FederatedTypeAdapter interface {
 	Template() FedApiAdapter
 	// TODO - Remove
 	Placement() PlacementAdapter
-	PlacementGroupVersionResource() schema.GroupVersionResource
+	PlacementAPIResource() *metav1.APIResource
 	Override() OverrideAdapter
 	Target() TargetAdapter
 	ObjectForCluster(template, override pkgruntime.Object, clusterName string) pkgruntime.Object
