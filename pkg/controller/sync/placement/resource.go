@@ -17,10 +17,11 @@ limitations under the License.
 package placement
 
 import (
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -31,16 +32,12 @@ type ResourcePlacementPlugin struct {
 	controller cache.Controller
 }
 
-func NewResourcePlacementPlugin(config *rest.Config, resource schema.GroupVersionResource, triggerFunc func(*unstructured.Unstructured)) (PlacementPlugin, error) {
-	store, controller, err := NewUnstructuredInformer(config, resource, triggerFunc)
-	if err != nil {
-		return nil, err
-	}
-
+func NewResourcePlacementPlugin(client util.ResourceClient, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
+	store, controller := util.NewResourceInformer(client, metav1.NamespaceAll, triggerFunc)
 	return &ResourcePlacementPlugin{
 		store:      store,
 		controller: controller,
-	}, nil
+	}
 }
 
 func (p *ResourcePlacementPlugin) Run(stopCh <-chan struct{}) {
