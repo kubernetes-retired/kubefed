@@ -32,25 +32,29 @@ type resourceClient struct {
 	apiResource *metav1.APIResource
 }
 
-func NewResourceClient(pool dynamic.ClientPool, resource schema.GroupVersionResource) (ResourceClient, error) {
+func NewResourceClient(pool dynamic.ClientPool, apiResource *metav1.APIResource) (ResourceClient, error) {
+	resource := schema.GroupVersionResource{
+		Group:    apiResource.Group,
+		Version:  apiResource.Version,
+		Resource: apiResource.Name,
+	}
 	client, err := pool.ClientForGroupVersionResource(resource)
 	if err != nil {
 		return nil, err
 	}
 
 	return &resourceClient{
-		client: client.ParameterCodec(dynamic.VersionedParameterEncoderWithV1Fallback),
-		// APIResource.Kind is not used by the dynamic client, so leave it empty.
-		apiResource: &metav1.APIResource{Name: resource.Resource},
+		client:      client.ParameterCodec(dynamic.VersionedParameterEncoderWithV1Fallback),
+		apiResource: apiResource,
 	}, nil
 }
 
-func NewResourceClientFromConfig(config *rest.Config, resource schema.GroupVersionResource) (ResourceClient, error) {
+func NewResourceClientFromConfig(config *rest.Config, apiResource *metav1.APIResource) (ResourceClient, error) {
 	// Create a throwaway pool to instantiate the client from. The
 	// logic for properly instantiating a dynamic client is currently
 	// embedded in the pool.
 	tmpPool := dynamic.NewDynamicClientPool(config)
-	return NewResourceClient(tmpPool, resource)
+	return NewResourceClient(tmpPool, apiResource)
 }
 
 func (c *resourceClient) Resources(namespace string) dynamic.ResourceInterface {

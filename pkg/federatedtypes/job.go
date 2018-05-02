@@ -24,7 +24,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -59,8 +58,8 @@ func (a *FederatedJobAdapter) Placement() PlacementAdapter {
 	return NewFederatedJobPlacement(a.client)
 }
 
-func (a *FederatedJobAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatedjobplacements")
+func (a *FederatedJobAdapter) PlacementAPIResource() *metav1.APIResource {
+	return apiResource("federatedjobplacements")
 }
 
 func (a *FederatedJobAdapter) Override() OverrideAdapter {
