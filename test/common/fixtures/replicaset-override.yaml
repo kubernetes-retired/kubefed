@@ -1,0 +1,9 @@
+apiVersion: federation.k8s.io/v1alpha1
+kind: FederatedReplicaSetOverride
+metadata:
+  name: placeholder
+  namespace: placeholder
+spec:
+  overrides:
+    - clusterName: placeholder
+      replicas: 5
