@@ -211,7 +211,7 @@ func (f *FederationFixture) ClusterClients(tl common.TestLogger, apiResource *me
 		rest.AddUserAgent(config, userAgent)
 		client, err := util.NewResourceClientFromConfig(config, apiResource)
 		if err != nil {
-			tl.Fatal(err)
+			tl.Fatalf("Error creating a resource client in cluster %q for kind %q: %v", name, apiResource.Kind, err)
 		}
 		clientMap[name] = common.TestCluster{
 			client,

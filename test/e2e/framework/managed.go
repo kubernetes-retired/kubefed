@@ -23,7 +23,9 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 )
 
@@ -80,6 +82,14 @@ func (f *ManagedFramework) AfterEach() {
 	}
 }
 
+func (f *ManagedFramework) FedConfig() *restclient.Config {
+	return fedFixture.FedApi.NewConfig(f.logger)
+}
+
+func (f *ManagedFramework) KubeConfig() *restclient.Config {
+	return fedFixture.KubeApi.NewConfig(f.logger)
+}
+
 func (f *ManagedFramework) FedClient(userAgent string) fedclientset.Interface {
 	return fedFixture.FedApi.NewClient(f.logger, userAgent)
 }
@@ -92,8 +102,8 @@ func (f *ManagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return fedFixture.CrApi.NewClient(f.logger, userAgent)
 }
 
-func (f *ManagedFramework) ClusterClients(userAgent string) map[string]common.TestCluster {
-	return fedFixture.ClusterClients(f.logger, userAgent)
+func (f *ManagedFramework) ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+	return fedFixture.ClusterClients(f.logger, apiResource, userAgent)
 }
 
 func (f *ManagedFramework) TestNamespaceName() string {

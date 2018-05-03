@@ -20,7 +20,9 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 
 	"github.com/onsi/ginkgo"
@@ -32,11 +34,14 @@ type FederationFramework interface {
 	BeforeEach()
 	AfterEach()
 
+	FedConfig() *restclient.Config
+	KubeConfig() *restclient.Config
+
 	FedClient(userAgent string) fedclientset.Interface
 	KubeClient(userAgent string) kubeclientset.Interface
 	CrClient(userAgent string) crclientset.Interface
 
-	ClusterClients(userAgent string) map[string]common.TestCluster
+	ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
 
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
@@ -83,6 +88,14 @@ func (f *frameworkWrapper) AfterEach() {
 	f.framework().AfterEach()
 }
 
+func (f *frameworkWrapper) FedConfig() *restclient.Config {
+	return f.framework().FedConfig()
+}
+
+func (f *frameworkWrapper) KubeConfig() *restclient.Config {
+	return f.framework().KubeConfig()
+}
+
 func (f *frameworkWrapper) FedClient(userAgent string) fedclientset.Interface {
 	return f.framework().FedClient(userAgent)
 }
@@ -95,8 +108,8 @@ func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
 	return f.framework().CrClient(userAgent)
 }
 
-func (f *frameworkWrapper) ClusterClients(userAgent string) map[string]common.TestCluster {
-	return f.framework().ClusterClients(userAgent)
+func (f *frameworkWrapper) ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+	return f.framework().ClusterClients(apiResource, userAgent)
 }
 
 func (f *frameworkWrapper) TestNamespaceName() string {
