@@ -59,7 +59,6 @@ var (
 
 func init() {
 	RegisterFederatedTypeConfig(FederatedConfigMapKind, ConfigMapTypeConfig)
-	RegisterTestObjectsFunc(FederatedConfigMapKind, NewFederatedConfigMapObjectsForTest)
 }
 
 type FederatedConfigMapAdapter struct {
@@ -309,47 +308,4 @@ func (ConfigMapAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Ob
 
 func (ConfigMapAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().ConfigMaps(namespace).Watch(options)
-}
-
-func NewFederatedConfigMapObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	template = &fedv1a1.FederatedConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-config-map-",
-			Namespace:    namespace,
-		},
-		Spec: fedv1a1.FederatedConfigMapSpec{
-			Template: corev1.ConfigMap{
-				Data: map[string]string{
-					"A": "ala ma kota",
-				},
-			},
-		},
-	}
-	placement = &fedv1a1.FederatedConfigMapPlacement{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedConfigMapPlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-	clusterName := clusterNames[0]
-	override = &fedv1a1.FederatedConfigMapOverride{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedConfigMapOverrideSpec{
-			Overrides: []fedv1a1.FederatedConfigMapClusterOverride{
-				{
-					ClusterName: clusterName,
-					Data: map[string]string{
-						"foo": "bar",
-					},
-				},
-			},
-		},
-	}
-	return template, placement, override
 }

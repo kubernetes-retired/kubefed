@@ -21,7 +21,6 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	batchv1 "k8s.io/api/batch/v1"
-	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -59,7 +58,6 @@ var (
 
 func init() {
 	RegisterFederatedTypeConfig(FederatedJobKind, JobTypeConfig)
-	RegisterTestObjectsFunc(FederatedJobKind, NewFederatedJobObjectsForTest)
 }
 
 type FederatedJobAdapter struct {
@@ -309,87 +307,4 @@ func (JobAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Object) 
 }
 func (JobAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.BatchV1().Jobs(namespace).Watch(options)
-}
-
-func NewFederatedJobObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	labels := map[string]string{"foo": "bar"}
-	zero := int64(0)
-	one := int32(1)
-	manualSeelctorValue := true
-	// TODO(marun) A job created in a member cluster will have
-	// some fields set to defaults if no value is provided for a given
-	// field.  Unless a federated resource has all such fields
-	// populated, a reconcile loop may result.  A loop would be
-	// characterized by one or more fields being populated in the
-	// member cluster resource but not in the federated resource,
-	// resulting in endless attempts to update the member resource.
-	// Possible workarounds include:
-	//
-	//   - performing the same defaulting in the fed api
-	//   - avoid comparison of fields that are not populated
-	//
-	// As a temporary workaround, ensure all defaulted fields are
-	// populated and mark them with comments.
-	template = &fedv1a1.FederatedJob{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-job-",
-			Namespace:    namespace,
-		},
-		Spec: fedv1a1.FederatedJobSpec{
-			Template: batchv1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: batchv1.JobSpec{
-					Parallelism: &one, // defaulted by APIserver
-					Selector: &metav1.LabelSelector{
-						MatchLabels: labels,
-					},
-					ManualSelector: &manualSeelctorValue,
-					Template: apiv1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: labels,
-						},
-						Spec: apiv1.PodSpec{
-							RestartPolicy:                 apiv1.RestartPolicyNever, // forced
-							TerminationGracePeriodSeconds: &zero,
-							Containers: []apiv1.Container{
-								{
-									Name:  "nginx",
-									Image: "nginx",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	placement = &fedv1a1.FederatedJobPlacement{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedJobPlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-
-	two := int32(2)
-	clusterName := clusterNames[0]
-	override = &fedv1a1.FederatedJobOverride{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedJobOverrideSpec{
-			Overrides: []fedv1a1.FederatedJobClusterOverride{
-				{
-					ClusterName: clusterName,
-					Parallelism: &two,
-				},
-			},
-		},
-	}
-	return template, placement, override
 }

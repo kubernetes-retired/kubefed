@@ -57,7 +57,6 @@ var (
 
 func init() {
 	RegisterFederatedTypeConfig(NamespaceKind, NamespaceTypeConfig)
-	RegisterTestObjectsFunc(NamespaceKind, NewFederatedNamespaceObjectsForTest)
 }
 
 func IsNamespaceKind(kind string) bool {
@@ -261,20 +260,4 @@ func (NamespaceAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Ob
 }
 func (NamespaceAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().Namespaces().Watch(options)
-}
-
-func NewFederatedNamespaceObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	template = &apiv1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-namespace-",
-		},
-	}
-
-	placement = &fedv1a1.FederatedNamespacePlacement{
-		Spec: fedv1a1.FederatedNamespacePlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-
-	return template, placement, nil
 }

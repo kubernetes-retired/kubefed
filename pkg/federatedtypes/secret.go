@@ -58,7 +58,6 @@ var (
 
 func init() {
 	RegisterFederatedTypeConfig(FederatedSecretKind, SecretTypeConfig)
-	RegisterTestObjectsFunc(FederatedSecretKind, NewFederatedSecretObjectsForTest)
 }
 
 type FederatedSecretAdapter struct {
@@ -309,52 +308,4 @@ func (SecretAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Objec
 
 func (SecretAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().Secrets(namespace).Watch(options)
-}
-
-func NewFederatedSecretObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	template = &fedv1a1.FederatedSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-secret-",
-			Namespace:    namespace,
-		},
-		Spec: fedv1a1.FederatedSecretSpec{
-			Template: corev1.Secret{
-				Data: map[string][]byte{
-					"A": []byte("ala ma kota"),
-				},
-				Type: corev1.SecretTypeOpaque,
-			},
-		},
-	}
-	placement = &fedv1a1.FederatedSecretPlacement{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedSecretPlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-
-	s := "bar"
-	var newData []byte
-	copy(newData, s[:])
-	clusterName := clusterNames[0]
-	override = &fedv1a1.FederatedSecretOverride{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedSecretOverrideSpec{
-			Overrides: []fedv1a1.FederatedSecretClusterOverride{
-				{
-					ClusterName: clusterName,
-					Data: map[string][]byte{
-						"foo": newData,
-					},
-				},
-			},
-		},
-	}
-	return template, placement, override
 }
