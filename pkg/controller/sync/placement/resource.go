@@ -58,17 +58,7 @@ func (p *ResourcePlacementPlugin) ComputePlacement(key string, clusterNames []st
 	}
 	unstructuredObj := cachedObj.(*unstructured.Unstructured)
 
-	// TODO (font): NestedStringSlice returns false if the clusternames field
-	// value is not found, which can happen when the clusternames field is
-	// empty i.e. when a user does not want to propagate the resource anywhere.
-	// Therefore, ignore the ok return value for now as we'll expect false
-	// returned only in the event the clusternames field is empty, which is a
-	// valid use-case. Ideally, we should not avoid a false return and expand
-	// or re-write NestedStringSlice to check for the empty case as well as to
-	// make sure the unstructured object in-fact has a proper "spec" and
-	// "clusternames" field to avoid any accidental typos in the creation of a
-	// propagation resource.
-	selectedNames, _ := unstructured.NestedStringSlice(unstructuredObj.Object, "spec", "clusternames")
+	selectedNames := util.GetClusterNames(unstructuredObj)
 	clusterSet := sets.NewString(clusterNames...)
 	selectedSet := sets.NewString(selectedNames...)
 	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), nil

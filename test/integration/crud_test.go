@@ -18,6 +18,7 @@ package integration
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/pborman/uuid"
@@ -25,8 +26,8 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
 )
 
 // TestCrud validates create/read/update/delete operations for federated types.
@@ -35,46 +36,45 @@ func TestCrud(t *testing.T) {
 	fedFixture := framework.SetUpFederationFixture(tl, 2)
 	defer fedFixture.TearDown(tl)
 
-	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
-	for kind, fedTypeConfig := range fedTypeConfigs {
+	typeConfigs := federatedtypes.FederatedTypeConfigs()
+	for templateKind, typeConfig := range typeConfigs {
 		// TODO (font): integration tests for federated Namespace does not work
 		// until k8s namespace controller is added.
-		if kind == federatedtypes.NamespaceKind {
+		if templateKind == federatedtypes.NamespaceKind {
 			continue
 		}
 
-		t.Run(kind, func(t *testing.T) {
+		t.Run(templateKind, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
-			fixture, crudTester, template, placement, override := initCrudTest(tl, fedFixture, fedTypeConfig.AdapterFactory, kind)
+			fixture, crudTester := initCrudTest(tl, fedFixture, typeConfig, templateKind)
 			defer fixture.TearDown(tl)
 
+			clusterNames := fedFixture.ClusterNames()
+			template, placement, override, err := common.NewTestObjects(typeConfig, uuid.New(), clusterNames)
+			if err != nil {
+				tl.Fatalf("Error creating test objects: %v", err)
+			}
 			crudTester.CheckLifecycle(template, placement, override)
 		})
 	}
 }
 
 // initCrudTest initializes common elements of a crud test
-func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, adapterFactory federatedtypes.AdapterFactory, kind string) (
-	*framework.ControllerFixture, *common.FederatedTypeCrudTester, pkgruntime.Object, pkgruntime.Object, pkgruntime.Object) {
-	// TODO(marun) stop requiring user agent when creating new config or clients
+func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig federatedtypes.FederatedTypeConfig, templateKind string) (
+	*framework.ControllerFixture, *common.FederatedTypeCrudTester) {
 	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
 	crConfig := fedFixture.CrApi.NewConfig(tl)
-	fixture := framework.NewSyncControllerFixture(tl, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(tl, templateKind, typeConfig.AdapterFactory, fedConfig, kubeConfig, crConfig)
 
-	userAgent := fmt.Sprintf("crud-test-%s", kind)
-
-	client := fedFixture.FedApi.NewClient(tl, userAgent)
-	adapter := adapterFactory(client)
-
-	clusterClients := fedFixture.ClusterClients(tl, userAgent)
-	crudTester, err := common.NewFederatedTypeCrudTester(tl, adapter, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
+	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
+	rest.AddUserAgent(fedConfig, userAgent)
+	rest.AddUserAgent(kubeConfig, userAgent)
+	clusterClients := fedFixture.ClusterClients(tl, &typeConfig.Target, userAgent)
+	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 	if err != nil {
-		tl.Fatalf("Error creating crudtester for %q: %v", kind, err)
+		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 	}
 
-	clusterNames := fedFixture.ClusterNames()
-	template, placement, override := federatedtypes.NewTestObjects(kind, uuid.New(), clusterNames)
-
-	return fixture, crudTester, template, placement, override
+	return fixture, crudTester
 }
