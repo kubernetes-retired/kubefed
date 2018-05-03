@@ -24,7 +24,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -34,8 +33,32 @@ const (
 	FederatedDeploymentKind = "FederatedDeployment"
 )
 
+var (
+	deploymentNamespaced bool                = true
+	DeploymentTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.Generation,
+		Template: FederationAPIResource{
+			APIResource: apiResource(FederatedDeploymentKind, "federateddeployments", deploymentNamespaced),
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedDeploymentPlacement", "federateddeploymentplacements", deploymentNamespaced),
+		},
+		Override: &FederationAPIResource{
+			APIResource: apiResource("FederatedDeploymentOverride", "federateddeploymentoverrides", deploymentNamespaced),
+		},
+		Target: metav1.APIResource{
+			Name:       "deployments",
+			Group:      "apps",
+			Kind:       DeploymentKind,
+			Version:    "v1",
+			Namespaced: deploymentNamespaced,
+		},
+		AdapterFactory: NewFederatedDeploymentAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(FederatedDeploymentKind, NewFederatedDeploymentAdapter)
+	RegisterFederatedTypeConfig(FederatedDeploymentKind, DeploymentTypeConfig)
 	RegisterTestObjectsFunc(FederatedDeploymentKind, NewFederatedDeploymentObjectsForTest)
 }
 
@@ -59,8 +82,8 @@ func (a *FederatedDeploymentAdapter) Placement() PlacementAdapter {
 	return NewFederatedDeploymentPlacement(a.client)
 }
 
-func (a *FederatedDeploymentAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federateddeploymentplacements")
+func (a *FederatedDeploymentAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &DeploymentTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedDeploymentAdapter) Override() OverrideAdapter {
@@ -259,7 +282,7 @@ func (DeploymentAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (DeploymentAdapter) VersionCompareType() util.VersionCompareType {
-	return util.Generation
+	return DeploymentTypeConfig.ComparisonType
 }
 
 func (DeploymentAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

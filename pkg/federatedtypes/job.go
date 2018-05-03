@@ -24,7 +24,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -34,8 +33,32 @@ const (
 	FederatedJobKind = "FederatedJob"
 )
 
+var (
+	jobNamespaced bool                = true
+	JobTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.Generation,
+		Template: FederationAPIResource{
+			APIResource: apiResource(FederatedJobKind, "federatedjobs", jobNamespaced),
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedJobPlacement", "federatedjobplacements", jobNamespaced),
+		},
+		Override: &FederationAPIResource{
+			APIResource: apiResource("FederatedJobOverride", "federatedjoboverrides", jobNamespaced),
+		},
+		Target: metav1.APIResource{
+			Name:       "jobs",
+			Group:      "batch",
+			Kind:       JobKind,
+			Version:    "v1",
+			Namespaced: jobNamespaced,
+		},
+		AdapterFactory: NewFederatedJobAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(FederatedJobKind, NewFederatedJobAdapter)
+	RegisterFederatedTypeConfig(FederatedJobKind, JobTypeConfig)
 	RegisterTestObjectsFunc(FederatedJobKind, NewFederatedJobObjectsForTest)
 }
 
@@ -59,8 +82,8 @@ func (a *FederatedJobAdapter) Placement() PlacementAdapter {
 	return NewFederatedJobPlacement(a.client)
 }
 
-func (a *FederatedJobAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatedjobplacements")
+func (a *FederatedJobAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &JobTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedJobAdapter) Override() OverrideAdapter {
@@ -259,7 +282,7 @@ func (JobAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (JobAdapter) VersionCompareType() util.VersionCompareType {
-	return util.Generation
+	return JobTypeConfig.ComparisonType
 }
 
 func (JobAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

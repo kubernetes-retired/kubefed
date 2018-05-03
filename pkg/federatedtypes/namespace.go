@@ -23,7 +23,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -33,8 +32,31 @@ const (
 	FederatedNamespacePlacementKind = "FederatedNamespacePlacement"
 )
 
+var (
+	namespaceNamespaced  bool               = false
+	namespaceAPIResource metav1.APIResource = metav1.APIResource{
+		Name:       "namespaces",
+		Group:      "",
+		Kind:       NamespaceKind,
+		Version:    "v1",
+		Namespaced: namespaceNamespaced,
+	}
+	NamespaceTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.ResourceVersion,
+		Template: FederationAPIResource{
+			APIResource: namespaceAPIResource,
+			UseKubeAPI:  true,
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedNamespacePlacement", "federatednamespaceplacements", namespaceNamespaced),
+		},
+		Target:         namespaceAPIResource,
+		AdapterFactory: NewFederatedNamespaceAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(NamespaceKind, NewFederatedNamespaceAdapter)
+	RegisterFederatedTypeConfig(NamespaceKind, NamespaceTypeConfig)
 	RegisterTestObjectsFunc(NamespaceKind, NewFederatedNamespaceObjectsForTest)
 }
 
@@ -67,8 +89,8 @@ func (a *FederatedNamespaceAdapter) Placement() PlacementAdapter {
 	return NewFederatedNamespacePlacement(a.fedClient)
 }
 
-func (a *FederatedNamespaceAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatednamespaceplacements")
+func (a *FederatedNamespaceAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &NamespaceTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedNamespaceAdapter) Override() OverrideAdapter {
@@ -212,7 +234,7 @@ func (NamespaceAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (NamespaceAdapter) VersionCompareType() util.VersionCompareType {
-	return util.ResourceVersion
+	return NamespaceTypeConfig.ComparisonType
 }
 
 func (NamespaceAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {

@@ -20,16 +20,19 @@ import (
 	"fmt"
 
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// FederatedTypeConfig configures propagation of a federated type
-type FederatedTypeConfig struct {
-	Kind           string
-	ControllerName string
-	AdapterFactory AdapterFactory
-}
+type FederationAPIResource struct {
+	metav1.APIResource
 
-var typeRegistry = make(map[string]FederatedTypeConfig)
+	// To support testing without aggregation, the configuration for a
+	// federation resource needs to indicate whether kube api should
+	// be used instead of the federation api. Namespaces and CRDs
+	// should be configured to use the kube api.
+	UseKubeAPI bool
+}
 
 // AdapterFactory defines the function signature for factory methods
 // that create instances of a FederatedTypeAdapter.  Such methods
@@ -37,17 +40,28 @@ var typeRegistry = make(map[string]FederatedTypeConfig)
 // adapter is discoverable.
 type AdapterFactory func(client fedclientset.Interface) FederatedTypeAdapter
 
-// RegisterFederatedTypeConfig ensures that configuration for the given kind will be returned by the Propagations method.
-func RegisterFederatedTypeConfig(kind string, factory AdapterFactory) {
-	_, ok := typeRegistry[kind]
+// TODO(marun) This should be an api type instead of being statically defined.
+type FederatedTypeConfig struct {
+	ComparisonType util.VersionCompareType
+	Namespaced     bool
+	Template       FederationAPIResource
+	Placement      FederationAPIResource
+	Override       *FederationAPIResource
+	Target         metav1.APIResource
+	// TODO(marun) Drop when adapters are no longer necessary
+	AdapterFactory AdapterFactory
+}
+
+var typeRegistry = make(map[string]FederatedTypeConfig)
+
+// RegisterFederatedTypeConfig ensures that configuration for the given template kind will be returned by the Propagations method.
+func RegisterFederatedTypeConfig(templateKind string, typeConfig FederatedTypeConfig) {
+	_, ok := typeRegistry[templateKind]
 	if ok {
-		// TODO Is panicking ok given that this is part of a type-registration mechanism
-		panic(fmt.Sprintf("Type %q has already been registered", kind))
+		// TODO(marun) Is panicking ok given that this is part of a type-registration mechanism?
+		panic(fmt.Sprintf("Configuration for %q has already been registered", templateKind))
 	}
-	typeRegistry[kind] = FederatedTypeConfig{
-		Kind:           kind,
-		AdapterFactory: factory,
-	}
+	typeRegistry[templateKind] = typeConfig
 }
 
 // FederatedTypeConfigs returns a mapping of kind

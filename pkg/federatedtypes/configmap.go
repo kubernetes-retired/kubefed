@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -34,8 +33,32 @@ const (
 	FederatedConfigMapKind = "FederatedConfigMap"
 )
 
+var (
+	configMapNamespaced bool                = true
+	ConfigMapTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.ResourceVersion,
+		Template: FederationAPIResource{
+			APIResource: apiResource(FederatedConfigMapKind, "federatedconfigmaps", configMapNamespaced),
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedConfigMapPlacement", "federatedconfigmapplacements", configMapNamespaced),
+		},
+		Override: &FederationAPIResource{
+			APIResource: apiResource("FederatedConfigMapOverride", "federatedconfigmapoverrides", configMapNamespaced),
+		},
+		Target: metav1.APIResource{
+			Name:       "configmaps",
+			Group:      "",
+			Kind:       ConfigMapKind,
+			Version:    "v1",
+			Namespaced: configMapNamespaced,
+		},
+		AdapterFactory: NewFederatedConfigMapAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(FederatedConfigMapKind, NewFederatedConfigMapAdapter)
+	RegisterFederatedTypeConfig(FederatedConfigMapKind, ConfigMapTypeConfig)
 	RegisterTestObjectsFunc(FederatedConfigMapKind, NewFederatedConfigMapObjectsForTest)
 }
 
@@ -59,8 +82,8 @@ func (a *FederatedConfigMapAdapter) Placement() PlacementAdapter {
 	return NewFederatedConfigMapPlacement(a.client)
 }
 
-func (a *FederatedConfigMapAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatedconfigmapplacements")
+func (a *FederatedConfigMapAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &ConfigMapTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedConfigMapAdapter) Override() OverrideAdapter {
@@ -259,7 +282,7 @@ func (ConfigMapAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (ConfigMapAdapter) VersionCompareType() util.VersionCompareType {
-	return util.ResourceVersion
+	return ConfigMapTypeConfig.ComparisonType
 }
 
 func (ConfigMapAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
