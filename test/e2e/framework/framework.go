@@ -47,7 +47,7 @@ type FederationFramework interface {
 	TestNamespaceName() string
 
 	// Initialize and cleanup in-memory controller (useful for debugging)
-	SetUpControllerFixture(kind string, adapterFactory federatedtypes.AdapterFactory)
+	SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig)
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -116,6 +116,6 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 	return f.framework().TestNamespaceName()
 }
 
-func (f *frameworkWrapper) SetUpControllerFixture(kind string, adapterFactory federatedtypes.AdapterFactory) {
-	f.framework().SetUpControllerFixture(kind, adapterFactory)
+func (f *frameworkWrapper) SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig) {
+	f.framework().SetUpControllerFixture(typeConfig)
 }

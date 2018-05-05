@@ -47,10 +47,10 @@ func main() {
 	clusterMonitorPeriod := time.Second * 40
 	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
 
-	for kind, fedTypeConfig := range federatedtypes.FederatedTypeConfigs() {
-		err := sync.StartFederationSyncController(kind, fedTypeConfig.AdapterFactory, config, config, config, stopChan, false)
+	for templateKind, fedTypeConfig := range federatedtypes.FederatedTypeConfigs() {
+		err := sync.StartFederationSyncController(fedTypeConfig, config, config, config, stopChan, false)
 		if err != nil {
-			log.Fatalf("Error starting sync controller for %q: %v", kind, err)
+			log.Fatalf("Error starting sync controller for %q: %v", templateKind, err)
 		}
 	}
 
