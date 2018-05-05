@@ -46,6 +46,7 @@ var (
 		Override: &FederationAPIResource{
 			APIResource: apiResource("FederatedConfigMapOverride", "federatedconfigmapoverrides", configMapNamespaced),
 		},
+		OverridePath: []string{"data"},
 		Target: metav1.APIResource{
 			Name:       "configmaps",
 			Group:      "",

@@ -905,6 +905,31 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	obj.SetName(template.GetName())
 	obj.SetNamespace(template.GetNamespace())
 
+	if override == nil {
+		return obj, nil
+	}
+	targetKind := s.typeConfig.Target.Kind
+	overrides, ok := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	if !ok {
+		return nil, fmt.Errorf("Overrides field is missing for %q", targetKind)
+	}
+	overridePath := s.typeConfig.OverridePath
+	if len(overridePath) == 0 {
+		return nil, fmt.Errorf("Override path is missing for %q", targetKind)
+	}
+	overrideField := overridePath[len(overridePath)-1]
+	for _, overrideInterface := range overrides {
+		clusterOverride := overrideInterface.(map[string]interface{})
+		if clusterOverride["clustername"] != clusterName {
+			continue
+		}
+		data, ok := clusterOverride[overrideField]
+		if ok {
+			unstructured.SetNestedField(obj.Object, data, overridePath...)
+		}
+		break
+	}
+
 	return obj, nil
 }
 

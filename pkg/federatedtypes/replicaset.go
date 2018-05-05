@@ -45,6 +45,7 @@ var (
 		Override: &FederationAPIResource{
 			APIResource: apiResource("FederatedReplicaSetOverride", "federatedreplicasetoverrides", replicaSetNamespaced),
 		},
+		OverridePath: []string{"spec", "replicas"},
 		Target: metav1.APIResource{
 			Name:       "replicasets",
 			Group:      "apps",
