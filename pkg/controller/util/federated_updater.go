@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -59,7 +58,7 @@ type FederatedUpdater interface {
 }
 
 // A function that executes some operation using the passed client and object.
-type FederatedOperationHandler func(kubeclientset.Interface, pkgruntime.Object) (string, error)
+type FederatedOperationHandler func(ResourceClient, pkgruntime.Object) (string, error)
 
 type federatedUpdaterImpl struct {
 	federation FederationView
@@ -105,8 +104,8 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 		go func(op FederatedOperation) {
 			clusterName := op.ClusterName
 
-			// TODO: Ensure that the clientset has reasonable timeout.
-			clientset, err := fu.federation.GetClientsetForCluster(clusterName)
+			// TODO: Ensure that the client has reasonable timeout.
+			client, err := fu.federation.GetClientForCluster(clusterName)
 			if err != nil {
 				done <- operationResult{err: err}
 				return
@@ -125,13 +124,13 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 				eventType := "CreateInCluster"
 
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Creating", eventArgs...)
-				version, err = fu.addFunction(clientset, op.Obj)
+				version, err = fu.addFunction(client, op.Obj)
 			case OperationTypeUpdate:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Updating", eventArgs...)
-				version, err = fu.updateFunction(clientset, op.Obj)
+				version, err = fu.updateFunction(client, op.Obj)
 			case OperationTypeDelete:
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Deleting", eventArgs...)
-				_, err = fu.deleteFunction(clientset, op.Obj)
+				_, err = fu.deleteFunction(client, op.Obj)
 				// IsNotFound error is fine since that means the object is deleted already.
 				if errors.IsNotFound(err) {
 					err = nil
