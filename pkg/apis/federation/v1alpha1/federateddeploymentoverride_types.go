@@ -44,7 +44,7 @@ type FederatedDeploymentOverride struct {
 
 // FederatedDeploymentOverrideSpec defines the desired state of FederatedDeploymentOverride
 type FederatedDeploymentOverrideSpec struct {
-	Overrides []FederatedDeploymentClusterOverride
+	Overrides []FederatedDeploymentClusterOverride `json:"overrides,omitempty"`
 }
 
 // FederatedReplicaSetClusterOverride defines the overrides for a named cluster
