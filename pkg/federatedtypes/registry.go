@@ -19,7 +19,6 @@ package federatedtypes
 import (
 	"fmt"
 
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -34,12 +33,6 @@ type FederationAPIResource struct {
 	UseKubeAPI bool
 }
 
-// AdapterFactory defines the function signature for factory methods
-// that create instances of a FederatedTypeAdapter.  Such methods
-// should be registered with RegisterAdapterFactory to ensure the type
-// adapter is discoverable.
-type AdapterFactory func(client fedclientset.Interface) FederatedTypeAdapter
-
 // TODO(marun) This should be an api type instead of being statically defined.
 type FederatedTypeConfig struct {
 	ComparisonType util.VersionCompareType
@@ -49,14 +42,13 @@ type FederatedTypeConfig struct {
 	Override       *FederationAPIResource
 	OverridePath   []string
 	Target         metav1.APIResource
-	// TODO(marun) Drop when adapters are no longer necessary
-	AdapterFactory AdapterFactory
 }
 
 var typeRegistry = make(map[string]FederatedTypeConfig)
 
 // RegisterFederatedTypeConfig ensures that configuration for the given template kind will be returned by the Propagations method.
-func RegisterFederatedTypeConfig(templateKind string, typeConfig FederatedTypeConfig) {
+func RegisterFederatedTypeConfig(typeConfig FederatedTypeConfig) {
+	templateKind := typeConfig.Template.Kind
 	_, ok := typeRegistry[templateKind]
 	if ok {
 		// TODO(marun) Is panicking ok given that this is part of a type-registration mechanism?

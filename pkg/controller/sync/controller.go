@@ -963,7 +963,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 
 // TODO(marun) Support webhooks for custom update behavior
 func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
-	if s.typeConfig.Target.Kind == "Service" {
+	if s.typeConfig.Target.Kind == federatedtypes.ServiceTypeConfig.Target.Kind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
 	return desiredObj
