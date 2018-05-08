@@ -892,18 +892,46 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 }
 
 func (s *FederationSyncController) objectForCluster(template, override *unstructured.Unstructured, clusterName string) (*unstructured.Unstructured, error) {
-	templateBody, ok := unstructured.NestedMap(template.Object, "spec", "template")
-	if !ok {
-		return nil, fmt.Errorf("Unable to retrieve template body")
-	}
-	obj := &unstructured.Unstructured{Object: templateBody}
-	// Avoid having to duplicate these details in the template or have
-	// the name/namespace vary between the federation api and member
-	// clusters.
+	// Federation of namespaces uses Namespace resources as the
+	// template for resource creation in member clusters. All other
+	// federated types rely on a template type distinct from the
+	// target type.
 	//
-	// TODO(marun) this should be documented
-	obj.SetName(template.GetName())
-	obj.SetNamespace(template.GetNamespace())
+	// Namespace is the only type that can contain other resources,
+	// and adding a federation-specific container type would be
+	// difficult or impossible. This implies that federation
+	// primitives need to exist in regular namespaces.
+	//
+	// TODO(marun) Ensure this is reflected in documentation
+	obj := &unstructured.Unstructured{}
+	if federatedtypes.IsNamespaceKind(s.typeConfig.Target.Kind) {
+		metadata, ok := unstructured.NestedMap(template.Object, "metadata")
+		if !ok {
+			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
+		}
+		// Retain only the target fields from the template
+		targetFields := sets.NewString("name", "namespace", "labels", "annotations")
+		for key, _ := range metadata {
+			if !targetFields.Has(key) {
+				delete(metadata, key)
+			}
+		}
+		obj.Object = make(map[string]interface{})
+		obj.Object["metadata"] = metadata
+	} else {
+		var ok bool
+		obj.Object, ok = unstructured.NestedMap(template.Object, "spec", "template")
+		if !ok {
+			return nil, fmt.Errorf("Unable to retrieve template body")
+		}
+		// Avoid having to duplicate these details in the template or have
+		// the name/namespace vary between the federation api and member
+		// clusters.
+		//
+		// TODO(marun) this should be documented
+		obj.SetName(template.GetName())
+		obj.SetNamespace(template.GetNamespace())
+	}
 
 	if override == nil {
 		return obj, nil
