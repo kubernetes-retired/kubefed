@@ -30,7 +30,7 @@ type VersionComparisonField string
 
 const (
 	// ResourceVersionComparison indicates comparison via the ResourceVersion field
-	ResourceVersionComparison VersionComparisonField = "ResourceVersion"
+	ResourceVersionField VersionComparisonField = "ResourceVersion"
 	// GenerationComparison indicates comparison via the Generation field
-	GenerationComparison = "Generation"
+	GenerationField = "Generation"
 )

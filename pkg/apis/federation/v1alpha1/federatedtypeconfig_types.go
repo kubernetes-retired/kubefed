@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -99,6 +101,11 @@ func (FederatedTypeConfigStrategy) Validate(ctx request.Context, obj runtime.Obj
 	o := obj.(*federation.FederatedTypeConfig)
 	log.Printf("Validating fields for FederatedTypeConfig %s\n", o.Name)
 	errors := field.ErrorList{}
+
+	// TODO(marun) add validation
+	// target kind must match name of resource
+	// target, template and override must have all fields populated
+
 	// perform validation here and add to errors using field.Invalid
 	return errors
 }
@@ -110,6 +117,84 @@ func (FederatedTypeConfigStatusStrategy) NamespaceScoped() bool { return false }
 // DefaultingFunction sets default FederatedTypeConfig field values
 func (FederatedTypeConfigSchemeFns) DefaultingFunction(o interface{}) {
 	obj := o.(*FederatedTypeConfig)
-	// set default field values here
+
+	setStringDefault(&obj.Spec.Target.Kind, obj.Name)
+	setStringDefault(&obj.Spec.Target.PluralName, pluralName(obj.Spec.Target.Kind))
+	setStringDefault(&obj.Spec.Template.PluralName, pluralName(obj.Spec.Template.Kind))
+	setStringDefault(&obj.Spec.Placement.PluralName, pluralName(obj.Spec.Placement.Kind))
+	setStringDefault(&obj.Spec.Placement.Group, obj.Spec.Template.Group)
+	setStringDefault(&obj.Spec.Placement.Version, obj.Spec.Template.Version)
+	if obj.Spec.Override != nil {
+		setStringDefault(&obj.Spec.Override.PluralName, pluralName(obj.Spec.Override.Kind))
+		setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
+		setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
+	}
+
 	log.Printf("Defaulting fields for FederatedTypeConfig %s\n", obj.Name)
+}
+
+func (f *FederatedTypeConfig) GetTarget() metav1.APIResource {
+	return apiResourceToMeta(f.Spec.Target, f.Spec.Namespaced)
+}
+
+func (f *FederatedTypeConfig) GetNamespaced() bool {
+	return f.Spec.Namespaced
+}
+
+func (f *FederatedTypeConfig) GetComparisonField() common.VersionComparisonField {
+	return f.Spec.ComparisonField
+}
+
+func (f *FederatedTypeConfig) GetPropagationEnabled() bool {
+	return f.Spec.PropagationEnabled
+}
+
+func (f *FederatedTypeConfig) GetTemplate() metav1.APIResource {
+	return apiResourceToMeta(f.Spec.Template, f.Spec.Namespaced)
+}
+
+func (f *FederatedTypeConfig) GetPlacement() metav1.APIResource {
+	return apiResourceToMeta(f.Spec.Placement, f.Spec.Namespaced)
+}
+
+func (f *FederatedTypeConfig) GetOverride() *metav1.APIResource {
+	if f.Spec.Override == nil {
+		return nil
+	}
+	metaAPIResource := apiResourceToMeta(*f.Spec.Override, f.Spec.Namespaced)
+	return &metaAPIResource
+}
+
+func (f *FederatedTypeConfig) GetOverridePath() []string {
+	if len(f.Spec.OverridePath) == 0 {
+		return nil
+	}
+	overridePath := make([]string, len(f.Spec.OverridePath))
+	copy(overridePath, f.Spec.OverridePath)
+	return overridePath
+}
+
+func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {
+	return metav1.APIResource{
+		Group:      apiResource.Group,
+		Version:    apiResource.Version,
+		Kind:       apiResource.Kind,
+		Name:       apiResource.PluralName,
+		Namespaced: namespaced,
+	}
+}
+
+// PluralNameForKind naively computes the plural name from the kind by
+// lowercasing and suffixing with 's'.
+func pluralName(kind string) string {
+	return fmt.Sprintf("%ss", strings.ToLower(kind))
+}
+
+// GetDefaultedString returns the value if provided, and otherwise
+// returns the provided default.
+func setStringDefault(value *string, defaultValue string) {
+	if value == nil || len(*value) > 0 {
+		return
+	}
+	*value = defaultValue
 }
