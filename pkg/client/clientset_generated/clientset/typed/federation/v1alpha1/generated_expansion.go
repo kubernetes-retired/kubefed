@@ -53,4 +53,6 @@ type FederatedServiceExpansion interface{}
 
 type FederatedServicePlacementExpansion interface{}
 
+type FederatedTypeConfigExpansion interface{}
+
 type PropagatedVersionExpansion interface{}

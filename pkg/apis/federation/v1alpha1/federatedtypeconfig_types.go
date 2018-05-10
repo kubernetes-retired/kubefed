@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
 )
 
 // +genclient
@@ -72,6 +73,7 @@ type FederatedTypeConfigSpec struct {
 	OverridePath []string `json:"overridePath,omitempty"`
 }
 
+// APIResource defines how to configure the dynamic client for an api resource.
 type APIResource struct {
 	// metav1.GroupVersion is not used since the json annotation of
 	// the fields enforces them as mandatory.
@@ -81,7 +83,7 @@ type APIResource struct {
 	// Version of the resource.
 	Version string `json:"version,omitempty"`
 	// Camel-cased singular name of the resource (e.g. ConfigMap)
-	Kind string
+	Kind string `json:"kind,omitempty"`
 	// Lower-cased plural name of the resource (e.g. configmaps).  If
 	// not provided, it will be computed by lower-casing the kind and
 	// suffixing an 's'.

@@ -41,6 +41,7 @@ type FederationInterface interface {
 	FederatedSecretPlacementsGetter
 	FederatedServicesGetter
 	FederatedServicePlacementsGetter
+	FederatedTypeConfigsGetter
 	PropagatedVersionsGetter
 }
 
@@ -123,6 +124,10 @@ func (c *FederationClient) FederatedServices(namespace string) FederatedServiceI
 
 func (c *FederationClient) FederatedServicePlacements(namespace string) FederatedServicePlacementInterface {
 	return newFederatedServicePlacements(c, namespace)
+}
+
+func (c *FederationClient) FederatedTypeConfigs() FederatedTypeConfigInterface {
+	return newFederatedTypeConfigs(c)
 }
 
 func (c *FederationClient) PropagatedVersions(namespace string) PropagatedVersionInterface {

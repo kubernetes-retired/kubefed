@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Federation v2 Authors.
+Copyright 2017 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedsecretplacement"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedservice"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedserviceplacement"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/propagatedversion"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 	"k8s.io/client-go/rest"
@@ -61,6 +62,7 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 		federatedsecretplacement.NewFederatedSecretPlacementController(config, si),
 		federatedservice.NewFederatedServiceController(config, si),
 		federatedserviceplacement.NewFederatedServicePlacementController(config, si),
+		federatedtypeconfig.NewFederatedTypeConfigController(config, si),
 		propagatedversion.NewPropagatedVersionController(config, si),
 	}, shutdown
 }
