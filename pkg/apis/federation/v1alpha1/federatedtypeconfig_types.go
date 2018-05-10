@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Federation v2 Authors.
 
@@ -14,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 
 package v1alpha1
 
@@ -47,6 +45,47 @@ type FederatedTypeConfig struct {
 
 // FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig
 type FederatedTypeConfigSpec struct {
+	// The configuration of the target type.  Kind will be set to the
+	// name of this resource regardles of the value provided.
+	Target APIResource `json:"target,omitempty"`
+	// Whether or not the target resource is namespaced (all primitive
+	// resources will share this).
+	Namespaced bool `json:"namespaced,omitempty"`
+	// What field equality determines equality.
+	ComparisonField common.VersionComparisonField `json:"comparisonField,omitempty"`
+	// Whether or not federation of the resource should be enabled.
+	PropagationEnabled bool `json:"propagationEnabled,omitempty"`
+	// Configuration for the template resource.
+	Template APIResource `json:"template,omitempty"`
+	// Configuration for the placement resource. If not provided, the
+	// group and version will default to those provided for the
+	// template resource.
+	Placement APIResource `json:"placement,omitempty"`
+	// Configuration for the override resource. If not provided, the
+	// group and version will default to those provided for the
+	// template resource.
+	// +optional
+	Override *APIResource `json:"override,omitempty"`
+	// The path to the field to override in the target type.  The last
+	// entry in the path should be the name of the field in the override type.
+	// +optional
+	OverridePath []string `json:"overridePath,omitempty"`
+}
+
+type APIResource struct {
+	// metav1.GroupVersion is not used since the json annotation of
+	// the fields enforces them as mandatory.
+
+	// Group of the resource.
+	Group string `json:"group,omitempty"`
+	// Version of the resource.
+	Version string `json:"version,omitempty"`
+	// Camel-cased singular name of the resource (e.g. ConfigMap)
+	Kind string
+	// Lower-cased plural name of the resource (e.g. configmaps).  If
+	// not provided, it will be computed by lower-casing the kind and
+	// suffixing an 's'.
+	PluralName string `json:"pluralName,omitempty"`
 }
 
 // FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig
