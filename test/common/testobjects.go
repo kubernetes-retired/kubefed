@@ -24,16 +24,16 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func NewTestObjects(typeConfig federatedtypes.FederatedTypeConfig, namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
+func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
 	path := fixturePath()
 
-	filenameTemplate := filepath.Join(path, fmt.Sprintf("%s-%%s.yaml", strings.ToLower(typeConfig.Target.Kind)))
+	filenameTemplate := filepath.Join(path, fmt.Sprintf("%s-%%s.yaml", strings.ToLower(typeConfig.GetTarget().Kind)))
 
 	templateFilename := fmt.Sprintf(filenameTemplate, "template")
 	template, err = fileToObj(templateFilename)
@@ -49,13 +49,13 @@ func NewTestObjects(typeConfig federatedtypes.FederatedTypeConfig, namespace str
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	placementConfig := typeConfig.Placement
+	placementAPIResource := typeConfig.GetPlacement()
 	placement.SetNamespace(namespace)
-	placement.SetKind(placementConfig.Kind)
-	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementConfig.Group, placementConfig.Version))
+	placement.SetKind(placementAPIResource.Kind)
+	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
 	util.SetClusterNames(placement, clusterNames)
 
-	if typeConfig.Override != nil {
+	if typeConfig.GetOverride() != nil {
 		overrideFilename := fmt.Sprintf(filenameTemplate, "override")
 		override, err = fileToObj(overrideFilename)
 		if err != nil {
@@ -64,7 +64,7 @@ func NewTestObjects(typeConfig federatedtypes.FederatedTypeConfig, namespace str
 		override.SetNamespace(namespace)
 		overrideSlice, ok := unstructured.NestedSlice(override.Object, "spec", "overrides")
 		if !ok {
-			return nil, nil, nil, fmt.Errorf("Unable to set override for %q", typeConfig.Template.Kind)
+			return nil, nil, nil, fmt.Errorf("Unable to set override for %q", typeConfig.GetTemplate().Kind)
 		}
 		targetOverride := overrideSlice[0].(map[string]interface{})
 		targetOverride["clusterName"] = clusterNames[0]

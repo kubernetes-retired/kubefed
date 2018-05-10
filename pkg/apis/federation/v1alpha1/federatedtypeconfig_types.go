@@ -103,7 +103,8 @@ func (FederatedTypeConfigStrategy) Validate(ctx request.Context, obj runtime.Obj
 	errors := field.ErrorList{}
 
 	// TODO(marun) add validation
-	// target kind must match name of resource
+	// Name should be qualified by the group (e.g. batch.Job vs Job)
+	// target kind must match last part of the name
 	// target, template and override must have all fields populated
 
 	// perform validation here and add to errors using field.Invalid
@@ -117,7 +118,11 @@ func (FederatedTypeConfigStatusStrategy) NamespaceScoped() bool { return false }
 // DefaultingFunction sets default FederatedTypeConfig field values
 func (FederatedTypeConfigSchemeFns) DefaultingFunction(o interface{}) {
 	obj := o.(*FederatedTypeConfig)
+	SetFederatedTypeConfigDefaults(obj)
+	log.Printf("Defaulting fields for FederatedTypeConfig %s\n", obj.Name)
+}
 
+func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 	setStringDefault(&obj.Spec.Target.Kind, obj.Name)
 	setStringDefault(&obj.Spec.Target.PluralName, pluralName(obj.Spec.Target.Kind))
 	setStringDefault(&obj.Spec.Template.PluralName, pluralName(obj.Spec.Template.Kind))
@@ -129,8 +134,21 @@ func (FederatedTypeConfigSchemeFns) DefaultingFunction(o interface{}) {
 		setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
 		setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
 	}
+}
 
-	log.Printf("Defaulting fields for FederatedTypeConfig %s\n", obj.Name)
+// GetDefaultedString returns the value if provided, and otherwise
+// returns the provided default.
+func setStringDefault(value *string, defaultValue string) {
+	if value == nil || len(*value) > 0 {
+		return
+	}
+	*value = defaultValue
+}
+
+// PluralNameForKind naively computes the plural name from the kind by
+// lowercasing and suffixing with 's'.
+func pluralName(kind string) string {
+	return fmt.Sprintf("%ss", strings.ToLower(kind))
 }
 
 func (f *FederatedTypeConfig) GetTarget() metav1.APIResource {
@@ -182,19 +200,4 @@ func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResou
 		Name:       apiResource.PluralName,
 		Namespaced: namespaced,
 	}
-}
-
-// PluralNameForKind naively computes the plural name from the kind by
-// lowercasing and suffixing with 's'.
-func pluralName(kind string) string {
-	return fmt.Sprintf("%ss", strings.ToLower(kind))
-}
-
-// GetDefaultedString returns the value if provided, and otherwise
-// returns the provided default.
-func setStringDefault(value *string, defaultValue string) {
-	if value == nil || len(*value) > 0 {
-		return
-	}
-	*value = defaultValue
 }

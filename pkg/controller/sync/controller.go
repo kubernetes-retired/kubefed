@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/placement"
@@ -110,14 +111,14 @@ type FederationSyncController struct {
 	smallDelay              time.Duration
 	updateTimeout           time.Duration
 
-	typeConfig federatedtypes.FederatedTypeConfig
+	typeConfig typeconfig.Interface
 
 	fedClient      fedclientset.Interface
 	templateClient util.ResourceClient
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
 	controller, err := newFederationSyncController(typeConfig, fedConfig, kubeConfig, crConfig)
 	if err != nil {
 		return err
@@ -125,14 +126,15 @@ func StartFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting sync controller for %s resources", typeConfig.Template.Kind))
+	glog.Infof(fmt.Sprintf("Starting sync controller for %s resources", typeConfig.GetTemplate().Kind))
 	controller.Run(stopChan)
 	return nil
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, fedConfig, kubeConfig, crConfig *restclient.Config) (*FederationSyncController, error) {
-	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(typeConfig.Template.Kind))
+func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config) (*FederationSyncController, error) {
+	templateAPIResource := typeConfig.GetTemplate()
+	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
 	restclient.AddUserAgent(fedConfig, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
@@ -146,15 +148,16 @@ func newFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, 
 	// aggregation is in use, both pools will use the same config.
 	fedPool := dynamic.NewDynamicClientPool(fedConfig)
 	kubePool := dynamic.NewDynamicClientPool(kubeConfig)
-	clientFor := func(fedResource federatedtypes.FederationAPIResource) (util.ResourceClient, error) {
+	clientFor := func(apiResource metav1.APIResource) (util.ResourceClient, error) {
 		pool := fedPool
-		if fedResource.UseKubeAPI {
+		// TODO(marun) Revisit this when federation of primary types to CRD
+		if apiResource.Group != "federation.k8s.io" {
 			pool = kubePool
 		}
-		return util.NewResourceClient(pool, &fedResource.APIResource)
+		return util.NewResourceClient(pool, &apiResource)
 	}
 
-	templateClient, err := clientFor(typeConfig.Template)
+	templateClient, err := clientFor(templateAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -188,19 +191,20 @@ func newFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, 
 	}
 	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, metav1.NamespaceAll, deliverObj)
 
-	if typeConfig.Override != nil {
-		client, err := clientFor(*typeConfig.Override)
+	if overrideAPIResource := typeConfig.GetOverride(); overrideAPIResource != nil {
+		client, err := clientFor(*overrideAPIResource)
 		if err != nil {
 			return nil, err
 		}
 		s.overrideStore, s.overrideController = util.NewResourceInformer(client, metav1.NamespaceAll, deliverObj)
 	}
 
-	placementClient, err := clientFor(typeConfig.Placement)
+	placementClient, err := clientFor(typeConfig.GetPlacement())
 	if err != nil {
 		return nil, err
 	}
-	if federatedtypes.IsNamespaceKind(typeConfig.Target.Kind) {
+	targetAPIResource := typeConfig.GetTarget()
+	if federatedtypes.IsNamespaceKind(targetAPIResource.Kind) {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, deliverObj)
 	} else {
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, deliverObj)
@@ -232,7 +236,7 @@ func newFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, 
 		},
 	)
 
-	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.ComparisonType)
+	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.GetComparisonField())
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +246,7 @@ func newFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, 
 		fedClient,
 		kubeClient,
 		crClient,
-		&typeConfig.Target,
+		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, s.reviewDelay, false)
 		},
@@ -259,7 +263,7 @@ func newFederationSyncController(typeConfig federatedtypes.FederatedTypeConfig, 
 	)
 
 	// Federated updater along with Create/Update/Delete operations.
-	s.updater = util.NewFederatedUpdater(s.informer, typeConfig.Target.Kind, s.updateTimeout, s.eventRecorder,
+	s.updater = util.NewFederatedUpdater(s.informer, targetAPIResource.Kind, s.updateTimeout, s.eventRecorder,
 		func(client util.ResourceClient, rawObj pkgruntime.Object) (string, error) {
 			obj := rawObj.(*unstructured.Unstructured)
 			createdObj, err := client.Resources(obj.GetNamespace()).Create(obj)
@@ -431,11 +435,11 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		return statusNotSynced
 	}
 
-	templateKind := s.typeConfig.Template.Kind
+	templateKind := s.typeConfig.GetTemplate().Kind
 	key := qualifiedName.String()
 	namespace := qualifiedName.Namespace
 
-	targetKind := s.typeConfig.Target.Kind
+	targetKind := s.typeConfig.GetTarget().Kind
 	if federatedtypes.IsNamespaceKind(targetKind) {
 		namespace = qualifiedName.Name
 		// TODO(font): Need a configurable or discoverable list of namespaces
@@ -492,7 +496,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 
 	var override *unstructured.Unstructured
 	if s.overrideStore != nil {
-		override, err = s.objFromCache(s.overrideStore, s.typeConfig.Override.Kind, key)
+		override, err = s.objFromCache(s.overrideStore, s.typeConfig.GetOverride().Kind, key)
 		if err != nil {
 			return statusError
 		}
@@ -597,7 +601,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 }
 
 func (s *FederationSyncController) versionName(resourceName string) string {
-	targetKind := s.typeConfig.Target.Kind
+	targetKind := s.typeConfig.GetTarget().Kind
 	return common.PropagatedVersionName(targetKind, resourceName)
 }
 
@@ -606,7 +610,7 @@ func (s *FederationSyncController) versionName(resourceName string) string {
 func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedClusters []string,
 	template, override *unstructured.Unstructured, propagatedVersion *fedv1a1.PropagatedVersion) reconciliationStatus {
 
-	templateKind := s.typeConfig.Template.Kind
+	templateKind := s.typeConfig.GetTemplate().Kind
 	key := federatedtypes.NewQualifiedName(template).String()
 
 	glog.V(3).Infof("Syncing %s %q in underlying clusters", templateKind, key)
@@ -674,7 +678,7 @@ func getClusterVersions(template, override *unstructured.Unstructured, propagate
 
 // updatePropagatedVersion handles creating or updating the propagated version
 // resource in the federation API.
-func updatePropagatedVersion(typeConfig federatedtypes.FederatedTypeConfig, fedClient fedclientset.Interface,
+func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclientset.Interface,
 	updatedVersions map[string]string, template, override *unstructured.Unstructured,
 	version *fedv1a1.PropagatedVersion, selectedClusters []string,
 	pendingVersionUpdates sets.String) error {
@@ -685,7 +689,7 @@ func updatePropagatedVersion(typeConfig federatedtypes.FederatedTypeConfig, fedC
 	}
 
 	if version == nil {
-		version := newVersion(updatedVersions, template, typeConfig.Target.Kind, overrideVersion)
+		version := newVersion(updatedVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
 		_, err := fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
@@ -716,7 +720,7 @@ func updatePropagatedVersion(typeConfig federatedtypes.FederatedTypeConfig, fedC
 
 	if util.PropagatedVersionStatusEquivalent(&oldVersionStatus, &version.Status) {
 		glog.V(4).Infof("No PropagatedVersion update necessary for %s %q",
-			typeConfig.Template.Kind, federatedtypes.NewQualifiedName(template).String())
+			typeConfig.GetTemplate().Kind, federatedtypes.NewQualifiedName(template).String())
 		return nil
 	}
 
@@ -802,7 +806,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 	operations := make([]util.FederatedOperation, 0)
 
-	targetKind := s.typeConfig.Target.Kind
+	targetKind := s.typeConfig.GetTarget().Kind
 	for _, clusterName := range selectedClusters {
 		desiredObj, err := s.objectForCluster(template, override, clusterName)
 		if err != nil {
@@ -903,8 +907,9 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	// primitives need to exist in regular namespaces.
 	//
 	// TODO(marun) Ensure this is reflected in documentation
+	targetKind := s.typeConfig.GetTarget().Kind
 	obj := &unstructured.Unstructured{}
-	if federatedtypes.IsNamespaceKind(s.typeConfig.Target.Kind) {
+	if federatedtypes.IsNamespaceKind(targetKind) {
 		metadata, ok := unstructured.NestedMap(template.Object, "metadata")
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
@@ -936,12 +941,11 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	if override == nil {
 		return obj, nil
 	}
-	targetKind := s.typeConfig.Target.Kind
 	overrides, ok := unstructured.NestedSlice(override.Object, "spec", "overrides")
 	if !ok {
 		return nil, fmt.Errorf("Overrides field is missing for %q", targetKind)
 	}
-	overridePath := s.typeConfig.OverridePath
+	overridePath := s.typeConfig.GetOverridePath()
 	if len(overridePath) == 0 {
 		return nil, fmt.Errorf("Override path is missing for %q", targetKind)
 	}
@@ -963,7 +967,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 
 // TODO(marun) Support webhooks for custom update behavior
 func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
-	if s.typeConfig.Target.Kind == federatedtypes.ServiceTypeConfig.Target.Kind {
+	if s.typeConfig.GetTarget().Kind == federatedtypes.ServiceTypeConfig.Target.Kind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
 	return desiredObj

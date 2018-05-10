@@ -22,15 +22,9 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-type VersionCompareType int
-
-const (
-	ResourceVersion VersionCompareType = iota
-	Generation
 )
 
 type ComparisonHelper interface {
@@ -41,14 +35,14 @@ type ComparisonHelper interface {
 // NewComparisonHelper instantiates and returns a Resource or Generation Helper
 // struct that implements the ComparisonHelper interface based on the version
 // comparison type passed in.
-func NewComparisonHelper(compareType VersionCompareType) (ComparisonHelper, error) {
-	switch compareType {
-	case ResourceVersion:
+func NewComparisonHelper(comparisonField common.VersionComparisonField) (ComparisonHelper, error) {
+	switch comparisonField {
+	case common.ResourceVersionField:
 		return &ResourceHelper{}, nil
-	case Generation:
+	case common.GenerationField:
 		return &GenerationHelper{}, nil
 	default:
-		return nil, fmt.Errorf("Unrecognized version comparison type %v", compareType)
+		return nil, fmt.Errorf("Unrecognized version comparison field %v", comparisonField)
 	}
 }
 
