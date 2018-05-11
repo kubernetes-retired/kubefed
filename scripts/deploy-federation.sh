@@ -95,6 +95,11 @@ function apiserver-available() {
 }
 util::wait-for-condition "apiserver availability" 'apiserver-available' 60
 
+# Enable available types
+for filename in ./config/federatedtypes/*.yaml; do
+  kubectl create -f "${filename}"
+done
+
 # Join the host cluster
 go build -o bin/kubefnord cmd/kubefnord/kubefnord.go
 CONTEXT="$(kubectl config current-context)"

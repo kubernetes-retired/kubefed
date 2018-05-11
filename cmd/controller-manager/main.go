@@ -22,9 +22,11 @@ import (
 	"time"
 
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 )
 
 var kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig")
@@ -47,12 +49,16 @@ func main() {
 	clusterMonitorPeriod := time.Second * 40
 	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
 
-	for templateKind, fedTypeConfig := range federatedtypes.FederatedTypeConfigs() {
-		err := sync.StartFederationSyncController(fedTypeConfig, config, config, config, stopChan, false)
-		if err != nil {
-			log.Fatalf("Error starting sync controller for %q: %v", templateKind, err)
-		}
+	// Initialize shared informer to enable reuse of the controller factory.
+	// TODO(marun) Shared informer doesn't makes sense for FederatedTypeConfig.
+	si := &sharedinformers.SharedInformers{
+		controllerlib.SharedInformersDefaults{},
+		externalversions.NewSharedInformerFactory(clientset.NewForConfigOrDie(config), 10*time.Minute),
 	}
+	go si.Factory.Federation().V1alpha1().FederatedTypeConfigs().Informer().Run(stopChan)
+
+	c := manager.NewFederatedTypeConfigController(config, si)
+	c.Run(stopChan)
 
 	// Blockforever
 	select {}

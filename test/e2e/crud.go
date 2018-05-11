@@ -30,17 +30,23 @@ import (
 var _ = Describe("Federated types", func() {
 	f := framework.NewFederationFramework("federated-types")
 
-	fedTypeConfigs := federatedtypes.FederatedTypeConfigs()
-	for kind, _ := range fedTypeConfigs {
+	tl := framework.NewE2ELogger()
+
+	typeConfigs, err := common.FederatedTypeConfigs()
+	if err != nil {
+		tl.Fatalf("Error loading type configs: %v", err)
+	}
+
+	for i, _ := range typeConfigs {
 		// Bind the type config inside the loop to ensure the ginkgo
 		// closure gets a different value for every loop iteration.
 		//
 		// Reference: https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
-		fedTypeConfig := fedTypeConfigs[kind]
+		typeConfig := typeConfigs[i]
+		templateKind := typeConfig.GetTemplate().Kind
 
-		Describe(fmt.Sprintf("%q resources", kind), func() {
+		Describe(fmt.Sprintf("%q resources", templateKind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				templateKind := fedTypeConfig.Template.Kind
 				// TODO (font): e2e tests for federated Namespace using a
 				// test managed federation does not work until k8s
 				// namespace controller is added.
@@ -50,15 +56,15 @@ var _ = Describe("Federated types", func() {
 				}
 
 				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(fedTypeConfig)
+				f.SetUpControllerFixture(typeConfig)
 
 				userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 
-				tl := framework.NewE2ELogger()
 				fedConfig := f.FedConfig()
 				kubeConfig := f.KubeConfig()
-				testClusters := f.ClusterClients(&fedTypeConfig.Target, userAgent)
-				crudTester, err := common.NewFederatedTypeCrudTester(tl, fedTypeConfig, fedConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
+				targetAPIResource := typeConfig.GetTarget()
+				testClusters := f.ClusterClients(&targetAPIResource, userAgent)
+				crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
 				if err != nil {
 					tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 				}
@@ -67,7 +73,7 @@ var _ = Describe("Federated types", func() {
 				for name, _ := range testClusters {
 					clusterNames = append(clusterNames, name)
 				}
-				template, placement, override, err := common.NewTestObjects(fedTypeConfig, f.TestNamespaceName(), clusterNames)
+				template, placement, override, err := common.NewTestObjects(typeConfig, f.TestNamespaceName(), clusterNames)
 				if err != nil {
 					tl.Fatalf("Error creating test objects: %v", err)
 				}

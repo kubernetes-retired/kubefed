@@ -17,8 +17,8 @@ limitations under the License.
 package framework
 
 import (
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
@@ -47,7 +47,7 @@ type FederationFramework interface {
 	TestNamespaceName() string
 
 	// Initialize and cleanup in-memory controller (useful for debugging)
-	SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig)
+	SetUpControllerFixture(typeConfig typeconfig.Interface)
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -116,6 +116,6 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 	return f.framework().TestNamespaceName()
 }
 
-func (f *frameworkWrapper) SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig) {
+func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	f.framework().SetUpControllerFixture(typeConfig)
 }

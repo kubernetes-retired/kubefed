@@ -19,8 +19,8 @@ package framework
 import (
 	"github.com/pborman/uuid"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,7 +110,7 @@ func (f *ManagedFramework) TestNamespaceName() string {
 	return uuid.New()
 }
 
-func (f *ManagedFramework) SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig) {
+func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
 	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
