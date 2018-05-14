@@ -21,11 +21,11 @@ import (
 	"log"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
+	genericvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
@@ -50,20 +50,20 @@ type FederatedTypeConfig struct {
 type FederatedTypeConfigSpec struct {
 	// The configuration of the target type.  Kind will be set to the
 	// name of this resource regardles of the value provided.
-	Target APIResource `json:"target,omitempty"`
+	Target APIResource `json:"target"`
 	// Whether or not the target resource is namespaced (all primitive
 	// resources will share this).
-	Namespaced bool `json:"namespaced,omitempty"`
+	Namespaced bool `json:"namespaced"`
 	// What field equality determines equality.
-	ComparisonField common.VersionComparisonField `json:"comparisonField,omitempty"`
+	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 	// Whether or not federation of the resource should be enabled.
-	PropagationEnabled bool `json:"propagationEnabled,omitempty"`
+	PropagationEnabled bool `json:"propagationEnabled"`
 	// Configuration for the template resource.
-	Template APIResource `json:"template,omitempty"`
+	Template APIResource `json:"template"`
 	// Configuration for the placement resource. If not provided, the
 	// group and version will default to those provided for the
 	// template resource.
-	Placement APIResource `json:"placement,omitempty"`
+	Placement APIResource `json:"placement"`
 	// Configuration for the override resource. If not provided, the
 	// group and version will default to those provided for the
 	// template resource.
@@ -85,7 +85,7 @@ type APIResource struct {
 	// Version of the resource.
 	Version string `json:"version,omitempty"`
 	// Camel-cased singular name of the resource (e.g. ConfigMap)
-	Kind string `json:"kind,omitempty"`
+	Kind string `json:"kind"`
 	// Lower-cased plural name of the resource (e.g. configmaps).  If
 	// not provided, it will be computed by lower-casing the kind and
 	// suffixing an 's'.
@@ -100,15 +100,49 @@ type FederatedTypeConfigStatus struct {
 func (FederatedTypeConfigStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
 	o := obj.(*federation.FederatedTypeConfig)
 	log.Printf("Validating fields for FederatedTypeConfig %s\n", o.Name)
-	errors := field.ErrorList{}
+	return ValidateFederatedTypeConfig(o)
+}
 
-	// TODO(marun) add validation
-	// Name should be qualified by the group (e.g. batch.Job vs Job)
-	// target kind must match last part of the name
-	// target, template and override must have all fields populated
+func ValidateFederatedTypeConfig(obj *federation.FederatedTypeConfig) field.ErrorList {
+	nameValidationFn := func(name string, prefix bool) []string {
+		ret := genericvalidation.NameIsDNSSubdomain(name, prefix)
+		requiredName := obj.Spec.Target.PluralName
+		// Group can be empty for core kube types
+		if len(obj.Spec.Target.Group) > 0 {
+			requiredName = requiredName + "." + obj.Spec.Target.Group
+		}
+		if name != requiredName {
+			ret = append(ret, fmt.Sprintf(`must be spec.target.pluralName+"."+spec.target.group`))
+		}
+		return ret
+	}
+	allErrs := genericvalidation.ValidateObjectMeta(&obj.ObjectMeta, false, nameValidationFn, field.NewPath("metadata"))
+	return append(allErrs, ValidateFederatedTypeConfigSpec(&obj.Spec, field.NewPath("spec"))...)
+}
 
-	// perform validation here and add to errors using field.Invalid
-	return errors
+func ValidateFederatedTypeConfigSpec(spec *federation.FederatedTypeConfigSpec, fldPath *field.Path) field.ErrorList {
+	allErrs := ValidateAPIResource(&spec.Target, fldPath.Child("target"))
+	allErrs = append(allErrs, ValidateAPIResource(&spec.Template, fldPath.Child("target"))...)
+	allErrs = append(allErrs, ValidateAPIResource(&spec.Placement, fldPath.Child("placement"))...)
+	if spec.Override != nil {
+		allErrs = append(allErrs, ValidateAPIResource(spec.Override, fldPath.Child("override"))...)
+	}
+	return allErrs
+}
+
+func ValidateAPIResource(apiResource *federation.APIResource, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(apiResource.Version) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("version"), "version is required"))
+	}
+	if len(apiResource.Kind) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("kind"), "kind is required"))
+	}
+	if len(apiResource.PluralName) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("pluralName"), "pluralName is required"))
+	}
+	return allErrs
 }
 
 func (FederatedTypeConfigStrategy) NamespaceScoped() bool { return false }
@@ -123,8 +157,14 @@ func (FederatedTypeConfigSchemeFns) DefaultingFunction(o interface{}) {
 }
 
 func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
-	setStringDefault(&obj.Spec.Target.Kind, obj.Name)
-	setStringDefault(&obj.Spec.Target.PluralName, pluralName(obj.Spec.Target.Kind))
+	// TODO(marun) will name always be populated?
+	nameParts := strings.SplitN(obj.Name, ".", 2)
+	templatePluralName := nameParts[0]
+	setStringDefault(&obj.Spec.Target.PluralName, templatePluralName)
+	if len(nameParts) > 1 {
+		group := nameParts[1]
+		setStringDefault(&obj.Spec.Target.Group, group)
+	}
 	setStringDefault(&obj.Spec.Template.PluralName, pluralName(obj.Spec.Template.Kind))
 	setStringDefault(&obj.Spec.Placement.PluralName, pluralName(obj.Spec.Placement.Kind))
 	setStringDefault(&obj.Spec.Placement.Group, obj.Spec.Template.Group)
