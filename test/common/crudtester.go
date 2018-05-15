@@ -25,7 +25,6 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -129,7 +128,7 @@ func (c *FederatedTypeCrudTester) createFedResource(apiResource metav1.APIResour
 		c.tl.Fatalf("Error creating %s: %v", resourceMsg, err)
 	}
 
-	qualifiedName := federatedtypes.NewQualifiedName(obj)
+	qualifiedName := util.NewQualifiedName(obj)
 	c.tl.Logf("Created new %s %q", kind, qualifiedName)
 
 	return obj
@@ -152,7 +151,7 @@ func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement,
 	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
 
 	msg := fmt.Sprintf("Resource versions for %s: template %q, placement %q",
-		federatedtypes.NewQualifiedName(template),
+		util.NewQualifiedName(template),
 		template.GetResourceVersion(),
 		placement.GetResourceVersion(),
 	)
@@ -169,7 +168,7 @@ func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement,
 func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override *unstructured.Unstructured) {
 	templateAPIResource := c.typeConfig.GetTemplate()
 	templateKind := templateAPIResource.Kind
-	qualifiedName := federatedtypes.NewQualifiedName(template)
+	qualifiedName := util.NewQualifiedName(template)
 
 	var initialAnnotation string
 	annotations := template.GetAnnotations()
@@ -207,7 +206,7 @@ func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override *uns
 func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, override *unstructured.Unstructured) {
 	placementAPIResource := c.typeConfig.GetPlacement()
 	placementKind := placementAPIResource.Kind
-	qualifiedName := federatedtypes.NewQualifiedName(placement)
+	qualifiedName := util.NewQualifiedName(placement)
 
 	clusterNames := util.GetClusterNames(placement)
 
@@ -215,7 +214,7 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 	// primary cluster. Skipping avoids deleting the namespace from the entire
 	// federation by removing this single cluster from the placement, because
 	// if deleted, this fails the next CheckDelete test.
-	if federatedtypes.IsNamespaceKind(c.typeConfig.GetTarget().Kind) && len(clusterNames) == 1 &&
+	if c.typeConfig.GetTarget().Kind == util.NamespaceKind && len(clusterNames) == 1 &&
 		clusterNames[0] == c.getPrimaryClusterName() {
 		c.tl.Logf("Skipping %s update for %q due to single primary cluster",
 			placementKind, qualifiedName)
@@ -247,7 +246,7 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructured, orphanDependents *bool) {
 	templateAPIResource := c.typeConfig.GetTemplate()
 	templateKind := templateAPIResource.Kind
-	qualifiedName := federatedtypes.NewQualifiedName(template)
+	qualifiedName := util.NewQualifiedName(template)
 	name := qualifiedName.Name
 	namespace := qualifiedName.Namespace
 
@@ -284,7 +283,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 	// Version tracker should also be removed
 	targetKind := c.typeConfig.GetTarget().Kind
 	versionName := common.PropagatedVersionName(targetKind, name)
-	if federatedtypes.IsNamespaceKind(targetKind) {
+	if targetKind == util.NamespaceKind {
 		_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
 	} else {
 		_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
@@ -313,7 +312,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 // CheckPropagation checks propagation for the crud tester's clients
 func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override *unstructured.Unstructured) {
 	targetKind := c.typeConfig.GetTarget().Kind
-	qualifiedName := federatedtypes.NewQualifiedName(template)
+	qualifiedName := util.NewQualifiedName(template)
 
 	clusterNames := util.GetClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
@@ -321,7 +320,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	// If we are a namespace, there is only one cluster, and the cluster is the
 	// host cluster, then do not check for PropagatedVersion as it will never
 	// be created.
-	if federatedtypes.IsNamespaceKind(targetKind) && len(clusterNames) == 1 &&
+	if targetKind == util.NamespaceKind && len(clusterNames) == 1 &&
 		clusterNames[0] == c.getPrimaryClusterName() {
 		return
 	}
@@ -372,7 +371,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName federatedtypes.QualifiedName, expectedVersion string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedVersion string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if err == nil && c.comparisonHelper.GetVersion(clusterObj) == expectedVersion {
@@ -386,7 +385,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 	return err
 }
 
-func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName federatedtypes.QualifiedName) error {
+func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName util.QualifiedName) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
@@ -435,7 +434,7 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	clusterNames := util.GetClusterNames(placement)
 	selectedClusters := sets.NewString(clusterNames...)
 
-	if federatedtypes.IsNamespaceKind(targetKind) {
+	if targetKind == util.NamespaceKind {
 		versionNamespace = name
 		// Delete the primary cluster as it will never be included in
 		// PropagatedVersion's list of cluster versions.
@@ -504,7 +503,7 @@ func (c *FederatedTypeCrudTester) propagatedVersion(version *fedv1a1.PropagatedV
 	// For namespaces, since we do not store the primary cluster's namespace
 	// version in PropagatedVersion's ClusterVersions slice, grab it from the
 	// TemplateVersion field instead.
-	if federatedtypes.IsNamespaceKind(c.typeConfig.GetTarget().Kind) && clusterName == c.getPrimaryClusterName() {
+	if c.typeConfig.GetTarget().Kind == util.NamespaceKind && clusterName == c.getPrimaryClusterName() {
 		return version.Status.TemplateVersion
 	}
 

@@ -21,4 +21,9 @@ import (
 )
 
 // Providing 0 duration to an informer indicates that resync should be delayed as long as possible
-const NoResyncPeriod time.Duration = 0 * time.Second
+const (
+	NoResyncPeriod time.Duration = 0 * time.Second
+
+	NamespaceKind = "Namespace"
+	ServiceKind   = "Service"
+)
