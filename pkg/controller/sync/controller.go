@@ -629,17 +629,20 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 		return statusAllOK
 	}
 
+	// TODO(marun) raise the visibility of operationErrors to aid in debugging
 	updatedClusterVersions, operationErrors := s.updater.Update(operations)
 
-	err = updatePropagatedVersion(s.typeConfig, s.fedClient, updatedClusterVersions, template, override,
-		propagatedVersion, selectedClusters, s.pendingVersionUpdates)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v", templateKind,
-			key, err))
-		// Don't return an error - failure to record the propagated
-		// version does not imply that propagation for the resource
-		// needs to be attempted again.
-	}
+	defer func() {
+		err = updatePropagatedVersion(s.typeConfig, s.fedClient, updatedClusterVersions, template, override,
+			propagatedVersion, selectedClusters, s.pendingVersionUpdates)
+		if err != nil {
+			runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v", templateKind,
+				key, err))
+			// Failure to record the propagated version does not imply
+			// that propagation for the resource needs to be attempted
+			// again.
+		}
+	}()
 
 	if len(operationErrors) > 0 {
 		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", templateKind,
@@ -936,6 +939,9 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 		// TODO(marun) this should be documented
 		obj.SetName(template.GetName())
 		obj.SetNamespace(template.GetNamespace())
+		targetApiResource := s.typeConfig.GetTarget()
+		obj.SetKind(targetApiResource.Kind)
+		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
 	}
 
 	if override == nil {
@@ -967,6 +973,9 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 
 // TODO(marun) Support webhooks for custom update behavior
 func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
+	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
+	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
+
 	if s.typeConfig.GetTarget().Kind == federatedtypes.ServiceTypeConfig.Target.Kind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
@@ -974,9 +983,6 @@ func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *uns
 }
 
 func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
-	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
-	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
-
 	// ClusterIP and NodePort are allocated to Service by cluster, so retain the same if any while updating
 
 	// Retain clusterip

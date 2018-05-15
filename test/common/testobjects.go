@@ -44,16 +44,10 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 	template.SetName("")
 	template.SetGenerateName("test-crud-")
 
-	placementFilename := filepath.Join(path, "placement.yaml")
-	placement, err = fileToObj(placementFilename)
+	placement, err = GetPlacementTestObject(typeConfig, namespace, clusterNames)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	placementAPIResource := typeConfig.GetPlacement()
-	placement.SetNamespace(namespace)
-	placement.SetKind(placementAPIResource.Kind)
-	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
-	util.SetClusterNames(placement, clusterNames)
 
 	if typeConfig.GetOverride() != nil {
 		overrideFilename := fmt.Sprintf(filenameTemplate, "override")
@@ -89,10 +83,10 @@ func fileToObj(filename string) (*unstructured.Unstructured, error) {
 	}
 	defer f.Close()
 
-	return readerToObj(f)
+	return ReaderToObj(f)
 }
 
-func readerToObj(r io.Reader) (*unstructured.Unstructured, error) {
+func ReaderToObj(r io.Reader) (*unstructured.Unstructured, error) {
 	decoder := yaml.NewYAMLToJSONDecoder(r)
 	obj := &unstructured.Unstructured{}
 	err := decoder.Decode(obj)
@@ -100,4 +94,19 @@ func readerToObj(r io.Reader) (*unstructured.Unstructured, error) {
 		return nil, err
 	}
 	return obj, nil
+}
+
+func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
+	path := fixturePath()
+	placementFilename := filepath.Join(path, "placement.yaml")
+	placement, err := fileToObj(placementFilename)
+	if err != nil {
+		return nil, err
+	}
+	placementAPIResource := typeConfig.GetPlacement()
+	placement.SetNamespace(namespace)
+	placement.SetKind(placementAPIResource.Kind)
+	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
+	util.SetClusterNames(placement, clusterNames)
+	return placement, nil
 }
