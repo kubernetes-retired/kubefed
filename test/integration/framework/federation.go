@@ -25,6 +25,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
@@ -203,11 +204,17 @@ func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, cluster
 	}
 }
 
-func (f *FederationFixture) ClusterClients(tl common.TestLogger, userAgent string) map[string]common.TestCluster {
+func (f *FederationFixture) ClusterClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	clientMap := make(map[string]common.TestCluster)
 	for name, cluster := range f.Clusters {
+		config := cluster.NewConfig(tl)
+		rest.AddUserAgent(config, userAgent)
+		client, err := util.NewResourceClientFromConfig(config, apiResource)
+		if err != nil {
+			tl.Fatalf("Error creating a resource client in cluster %q for kind %q: %v", name, apiResource.Kind, err)
+		}
 		clientMap[name] = common.TestCluster{
-			cluster.NewClient(tl, userAgent),
+			client,
 			cluster.IsPrimary,
 		}
 	}

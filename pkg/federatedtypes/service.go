@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 
@@ -34,9 +33,29 @@ const (
 	FederatedServiceKind = "FederatedService"
 )
 
+var (
+	serviceNamespaced bool                = true
+	ServiceTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.Generation,
+		Template: FederationAPIResource{
+			APIResource: apiResource(FederatedServiceKind, "federatedservices", serviceNamespaced),
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedServicePlacement", "federatedserviceplacements", serviceNamespaced),
+		},
+		Target: metav1.APIResource{
+			Name:       "services",
+			Group:      "",
+			Kind:       ServiceKind,
+			Version:    "v1",
+			Namespaced: serviceNamespaced,
+		},
+		AdapterFactory: NewFederatedServiceAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(FederatedServiceKind, NewFederatedServiceAdapter)
-	RegisterTestObjectsFunc(FederatedServiceKind, NewFederatedServiceObjectsForTest)
+	RegisterFederatedTypeConfig(FederatedServiceKind, ServiceTypeConfig)
 }
 
 type FederatedServiceAdapter struct {
@@ -59,8 +78,8 @@ func (a *FederatedServiceAdapter) Placement() PlacementAdapter {
 	return NewFederatedServicePlacement(a.client)
 }
 
-func (a *FederatedServiceAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatedserviceplacements")
+func (a *FederatedServiceAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &ServiceTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedServiceAdapter) Override() OverrideAdapter {
@@ -224,7 +243,7 @@ func (ServiceAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (ServiceAdapter) VersionCompareType() util.VersionCompareType {
-	return util.Generation
+	return ServiceTypeConfig.ComparisonType
 }
 
 func (ServiceAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
@@ -251,37 +270,4 @@ func (ServiceAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Obje
 
 func (ServiceAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().Services(namespace).Watch(options)
-}
-
-func NewFederatedServiceObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	template = &fedv1a1.FederatedService{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-service-",
-			Namespace:    namespace,
-		},
-		Spec: fedv1a1.FederatedServiceSpec{
-			Template: corev1.Service{
-				Spec: corev1.ServiceSpec{
-					Type: corev1.ServiceTypeClusterIP,
-					Ports: []corev1.ServicePort{
-						{
-							Name: "http",
-							Port: 80,
-						},
-					},
-				},
-			},
-		},
-	}
-	placement = &fedv1a1.FederatedServicePlacement{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedServicePlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-
-	return template, placement, nil
 }

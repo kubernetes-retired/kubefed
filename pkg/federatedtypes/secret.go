@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -33,9 +32,32 @@ const (
 	FederatedSecretKind = "FederatedSecret"
 )
 
+var (
+	secretNamespaced bool                = true
+	SecretTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.ResourceVersion,
+		Template: FederationAPIResource{
+			APIResource: apiResource(FederatedSecretKind, "federatedsecrets", secretNamespaced),
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedSecretPlacement", "federatedsecretplacements", secretNamespaced),
+		},
+		Override: &FederationAPIResource{
+			APIResource: apiResource("FederatedSecretOverride", "federatedsecretoverrides", secretNamespaced),
+		},
+		Target: metav1.APIResource{
+			Name:       "secrets",
+			Group:      "",
+			Kind:       SecretKind,
+			Version:    "v1",
+			Namespaced: secretNamespaced,
+		},
+		AdapterFactory: NewFederatedSecretAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(FederatedSecretKind, NewFederatedSecretAdapter)
-	RegisterTestObjectsFunc(FederatedSecretKind, NewFederatedSecretObjectsForTest)
+	RegisterFederatedTypeConfig(FederatedSecretKind, SecretTypeConfig)
 }
 
 type FederatedSecretAdapter struct {
@@ -58,8 +80,8 @@ func (a *FederatedSecretAdapter) Placement() PlacementAdapter {
 	return NewFederatedSecretPlacement(a.client)
 }
 
-func (a *FederatedSecretAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatedsecretplacements")
+func (a *FederatedSecretAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &SecretTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedSecretAdapter) Override() OverrideAdapter {
@@ -259,7 +281,7 @@ func (SecretAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (SecretAdapter) VersionCompareType() util.VersionCompareType {
-	return util.ResourceVersion
+	return SecretTypeConfig.ComparisonType
 }
 
 func (SecretAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
@@ -286,52 +308,4 @@ func (SecretAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Objec
 
 func (SecretAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.CoreV1().Secrets(namespace).Watch(options)
-}
-
-func NewFederatedSecretObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	template = &fedv1a1.FederatedSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-secret-",
-			Namespace:    namespace,
-		},
-		Spec: fedv1a1.FederatedSecretSpec{
-			Template: corev1.Secret{
-				Data: map[string][]byte{
-					"A": []byte("ala ma kota"),
-				},
-				Type: corev1.SecretTypeOpaque,
-			},
-		},
-	}
-	placement = &fedv1a1.FederatedSecretPlacement{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedSecretPlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-
-	s := "bar"
-	var newData []byte
-	copy(newData, s[:])
-	clusterName := clusterNames[0]
-	override = &fedv1a1.FederatedSecretOverride{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedSecretOverrideSpec{
-			Overrides: []fedv1a1.FederatedSecretClusterOverride{
-				{
-					ClusterName: clusterName,
-					Data: map[string][]byte{
-						"foo": newData,
-					},
-				},
-			},
-		},
-	}
-	return template, placement, override
 }

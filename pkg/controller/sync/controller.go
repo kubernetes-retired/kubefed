@@ -178,7 +178,7 @@ func newFederationSyncController(adapter federatedtypes.FederatedTypeAdapter, fe
 	if adapter.Template().Kind() == federatedtypes.NamespaceKind {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(adapter.Placement(), deliverObj)
 	} else {
-		client, err := util.NewResourceClientFromConfig(fedConfig, adapter.PlacementGroupVersionResource())
+		client, err := util.NewResourceClientFromConfig(fedConfig, adapter.PlacementAPIResource())
 		if err != nil {
 			return nil, err
 		}

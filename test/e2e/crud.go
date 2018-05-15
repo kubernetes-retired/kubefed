@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -39,35 +40,37 @@ var _ = Describe("Federated types", func() {
 
 		Describe(fmt.Sprintf("%q resources", kind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
+				templateKind := fedTypeConfig.Template.Kind
 				// TODO (font): e2e tests for federated Namespace using a
 				// test managed federation does not work until k8s
 				// namespace controller is added.
 				if framework.TestContext.TestManagedFederation &&
-					fedTypeConfig.Kind == federatedtypes.NamespaceKind {
-					framework.Skipf("%s not supported for test managed federation.", fedTypeConfig.Kind)
+					federatedtypes.IsNamespaceKind(templateKind) {
+					framework.Skipf("%s not supported for test managed federation.", templateKind)
 				}
 
 				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(fedTypeConfig.Kind, fedTypeConfig.AdapterFactory)
+				f.SetUpControllerFixture(templateKind, fedTypeConfig.AdapterFactory)
 
-				userAgent := fmt.Sprintf("crud-test-%s", fedTypeConfig.Kind)
-				adapter := fedTypeConfig.AdapterFactory(f.FedClient(userAgent))
-				namespaceAdapter, ok := adapter.(*federatedtypes.FederatedNamespaceAdapter)
-				if ok {
-					namespaceAdapter.SetKubeClient(f.KubeClient(userAgent))
-				}
-				testClusters := f.ClusterClients(userAgent)
-				testLogger := framework.NewE2ELogger()
-				crudTester, err := common.NewFederatedTypeCrudTester(testLogger, adapter, testClusters, framework.PollInterval, framework.SingleCallTimeout)
+				userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
+
+				tl := framework.NewE2ELogger()
+				fedConfig := f.FedConfig()
+				kubeConfig := f.KubeConfig()
+				testClusters := f.ClusterClients(&fedTypeConfig.Target, userAgent)
+				crudTester, err := common.NewFederatedTypeCrudTester(tl, fedTypeConfig, fedConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
 				if err != nil {
-					testLogger.Fatalf("Error creating crudtester for %q: %v", kind, err)
+					tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 				}
 
 				clusterNames := []string{}
 				for name, _ := range testClusters {
 					clusterNames = append(clusterNames, name)
 				}
-				template, placement, override := federatedtypes.NewTestObjects(fedTypeConfig.Kind, f.TestNamespaceName(), clusterNames)
+				template, placement, override, err := common.NewTestObjects(fedTypeConfig, f.TestNamespaceName(), clusterNames)
+				if err != nil {
+					tl.Fatalf("Error creating test objects: %v", err)
+				}
 
 				crudTester.CheckLifecycle(template, placement, override)
 			})

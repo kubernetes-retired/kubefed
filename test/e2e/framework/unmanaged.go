@@ -164,6 +164,14 @@ func (f *UnmanagedFramework) AfterEach() {
 	}
 }
 
+func (f *UnmanagedFramework) FedConfig() *restclient.Config {
+	return f.Config
+}
+
+func (f *UnmanagedFramework) KubeConfig() *restclient.Config {
+	return f.Config
+}
+
 func (f *UnmanagedFramework) FedClient(userAgent string) fedclientset.Interface {
 	restclient.AddUserAgent(f.Config, userAgent)
 	return fedclientset.NewForConfigOrDie(f.Config)
@@ -179,7 +187,7 @@ func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return crclientset.NewForConfigOrDie(f.Config)
 }
 
-func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]common.TestCluster {
+func (f *UnmanagedFramework) ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	// TODO(marun) Avoid having to reload configuration on every call.
 	// Clusters may be added or removed between calls, but
 	// configuration is unlikely to change.
@@ -205,11 +213,14 @@ func (f *UnmanagedFramework) ClusterClients(userAgent string) map[string]common.
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
-
+		client, err := util.NewResourceClientFromConfig(config, apiResource)
+		if err != nil {
+			Failf("Error creating a resource client in cluster %q for kind %q: %v", cluster.Name, apiResource.Kind, err)
+		}
 		// Check if this cluster is the same name as the host cluster name to
 		// make it the primary cluster.
 		testClusters[cluster.Name] = common.TestCluster{
-			kubeclientset.NewForConfigOrDie(config),
+			client,
 			(cluster.Name == hostClusterName),
 		}
 	}

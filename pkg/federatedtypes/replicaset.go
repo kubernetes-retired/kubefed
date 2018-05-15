@@ -21,10 +21,8 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
@@ -34,9 +32,32 @@ const (
 	FederatedReplicaSetKind = "FederatedReplicaSet"
 )
 
+var (
+	replicaSetNamespaced bool                = true
+	ReplicaSetTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+		ComparisonType: util.Generation,
+		Template: FederationAPIResource{
+			APIResource: apiResource(FederatedReplicaSetKind, "federatedreplicasets", replicaSetNamespaced),
+		},
+		Placement: FederationAPIResource{
+			APIResource: apiResource("FederatedReplicaSetPlacement", "federatedreplicasetplacements", replicaSetNamespaced),
+		},
+		Override: &FederationAPIResource{
+			APIResource: apiResource("FederatedReplicaSetOverride", "federatedreplicasetoverrides", replicaSetNamespaced),
+		},
+		Target: metav1.APIResource{
+			Name:       "replicasets",
+			Group:      "apps",
+			Kind:       ReplicaSetKind,
+			Version:    "v1",
+			Namespaced: replicaSetNamespaced,
+		},
+		AdapterFactory: NewFederatedReplicaSetAdapter,
+	}
+)
+
 func init() {
-	RegisterFederatedTypeConfig(FederatedReplicaSetKind, NewFederatedReplicaSetAdapter)
-	RegisterTestObjectsFunc(FederatedReplicaSetKind, NewFederatedReplicaSetObjectsForTest)
+	RegisterFederatedTypeConfig(FederatedReplicaSetKind, ReplicaSetTypeConfig)
 }
 
 type FederatedReplicaSetAdapter struct {
@@ -59,8 +80,8 @@ func (a *FederatedReplicaSetAdapter) Placement() PlacementAdapter {
 	return NewFederatedReplicaSetPlacement(a.client)
 }
 
-func (a *FederatedReplicaSetAdapter) PlacementGroupVersionResource() schema.GroupVersionResource {
-	return groupVersionResource("federatedreplicasetplacements")
+func (a *FederatedReplicaSetAdapter) PlacementAPIResource() *metav1.APIResource {
+	return &ReplicaSetTypeConfig.Placement.APIResource
 }
 
 func (a *FederatedReplicaSetAdapter) Override() OverrideAdapter {
@@ -259,7 +280,7 @@ func (ReplicaSetAdapter) ObjectType() pkgruntime.Object {
 }
 
 func (ReplicaSetAdapter) VersionCompareType() util.VersionCompareType {
-	return util.Generation
+	return ReplicaSetTypeConfig.ComparisonType
 }
 
 func (ReplicaSetAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
@@ -286,81 +307,4 @@ func (ReplicaSetAdapter) Update(client kubeclientset.Interface, obj pkgruntime.O
 }
 func (ReplicaSetAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return client.AppsV1().ReplicaSets(namespace).Watch(options)
-}
-
-func NewFederatedReplicaSetObjectsForTest(namespace string, clusterNames []string) (template, placement, override pkgruntime.Object) {
-	replicas := int32(3)
-	zero := int64(0)
-	labels := map[string]string{"foo": "bar"}
-	// TODO(marun) A replicaset created in a member cluster will have
-	// some fields set to defaults if no value is provided for a given
-	// field.  Unless a federated resource has all such fields
-	// populated, a reconcile loop may result.  A loop would be
-	// characterized by one or more fields being populated in the
-	// member cluster resource but not in the federated resource,
-	// resulting in endless attempts to update the member resource.
-	// Possible workarounds include:
-	//
-	//   - performing the same defaulting in the fed api
-	//   - avoid comparison of fields that are not populated
-	//
-	// As a temporary workaround, ensure all defaulted fields are
-	// populated and mark them with comments.
-	template = &fedv1a1.FederatedReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-replicaset-",
-			Namespace:    namespace,
-		},
-		Spec: fedv1a1.FederatedReplicaSetSpec{
-			Template: appsv1.ReplicaSet{
-				Spec: appsv1.ReplicaSetSpec{
-					Replicas: &replicas,
-					Selector: &metav1.LabelSelector{
-						MatchLabels: labels,
-					},
-					Template: apiv1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: labels,
-						},
-						Spec: apiv1.PodSpec{
-							TerminationGracePeriodSeconds: &zero,
-							Containers: []apiv1.Container{
-								{
-									Name:  "nginx",
-									Image: "nginx",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	placement = &fedv1a1.FederatedReplicaSetPlacement{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedReplicaSetPlacementSpec{
-			ClusterNames: clusterNames,
-		},
-	}
-
-	clusterName := clusterNames[0]
-	clusterReplicas := int32(5)
-	override = &fedv1a1.FederatedReplicaSetOverride{
-		ObjectMeta: metav1.ObjectMeta{
-			// Name will be set to match the template by the crud tester
-			Namespace: namespace,
-		},
-		Spec: fedv1a1.FederatedReplicaSetOverrideSpec{
-			Overrides: []fedv1a1.FederatedReplicaSetClusterOverride{
-				{
-					ClusterName: clusterName,
-					Replicas:    &clusterReplicas,
-				},
-			},
-		},
-	}
-	return template, placement, override
 }

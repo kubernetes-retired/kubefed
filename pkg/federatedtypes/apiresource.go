@@ -17,13 +17,15 @@ limitations under the License.
 package federatedtypes
 
 import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func groupVersionResource(resourceName string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "federation.k8s.io",
-		Version:  "v1alpha1",
-		Resource: resourceName,
+func apiResource(kind, name string, namespaced bool) metav1.APIResource {
+	return metav1.APIResource{
+		Name:       name,
+		Group:      "federation.k8s.io",
+		Version:    "v1alpha1",
+		Kind:       kind,
+		Namespaced: namespaced,
 	}
 }
