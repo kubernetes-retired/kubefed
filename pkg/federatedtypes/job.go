@@ -45,6 +45,7 @@ var (
 		Override: &FederationAPIResource{
 			APIResource: apiResource("FederatedJobOverride", "federatedjoboverrides", jobNamespaced),
 		},
+		OverridePath: []string{"spec", "parallelism"},
 		Target: metav1.APIResource{
 			Name:       "jobs",
 			Group:      "batch",

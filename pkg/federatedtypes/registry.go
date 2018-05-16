@@ -47,6 +47,7 @@ type FederatedTypeConfig struct {
 	Template       FederationAPIResource
 	Placement      FederationAPIResource
 	Override       *FederationAPIResource
+	OverridePath   []string
 	Target         metav1.APIResource
 	// TODO(marun) Drop when adapters are no longer necessary
 	AdapterFactory AdapterFactory

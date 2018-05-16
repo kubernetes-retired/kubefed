@@ -76,8 +76,8 @@ type FederatedReadOnlyStore interface {
 
 // An interface to access federation members and clients.
 type FederationView interface {
-	// GetClientsetForCluster returns a clientset for the cluster, if present.
-	GetClientsetForCluster(clusterName string) (kubeclientset.Interface, error)
+	// GetClientForCluster returns a client for the cluster, if present.
+	GetClientForCluster(clusterName string) (ResourceClient, error)
 
 	// GetUnreadyClusters returns a list of all clusters that are not ready yet.
 	GetUnreadyClusters() ([]*fedv1a1.FederatedCluster, error)
@@ -114,12 +114,12 @@ type FederatedInformer interface {
 type FederatedInformerForTestOnly interface {
 	FederatedInformer
 
-	SetClientFactory(func(*fedv1a1.FederatedCluster) (kubeclientset.Interface, error))
+	SetClientFactory(func(*fedv1a1.FederatedCluster) (ResourceClient, error))
 }
 
 // A function that should be used to create an informer on the target object. Store should use
 // cache.DeletionHandlingMetaNamespaceKeyFunc as a keying function.
-type TargetInformerFactory func(*fedv1a1.FederatedCluster, kubeclientset.Interface) (cache.Store, cache.Controller)
+type TargetInformerFactory func(*fedv1a1.FederatedCluster, ResourceClient) (cache.Store, cache.Controller)
 
 // A structure with cluster lifecycle handler functions. Cluster is available (and ClusterAvailable is fired)
 // when it is created in federated etcd and ready. Cluster becomes unavailable (and ClusterUnavailable is fired)
@@ -135,22 +135,31 @@ type ClusterLifecycleHandlerFuncs struct {
 
 // Builds a FederatedInformer for the given federation client and factory.
 func NewFederatedInformer(
-	// TODO - use unified client?
+	// TODO(marun) - use unified client?
 	fedClient fedclientset.Interface,
 	kubeClient kubeclientset.Interface,
 	crClient crclientset.Interface,
-	targetInformerFactory TargetInformerFactory,
+	apiResource *metav1.APIResource,
+	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) FederatedInformer {
+
+	targetInformerFactory := func(cluster *fedv1a1.FederatedCluster, client ResourceClient) (cache.Store, cache.Controller) {
+		return NewResourceInformer(client, metav1.NamespaceAll, triggerFunc)
+	}
 
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
-		clientFactory: func(cluster *fedv1a1.FederatedCluster) (kubeclientset.Interface, error) {
-			clusterConfig, err := BuildClusterConfig(cluster, kubeClient, crClient)
-			if err == nil && clusterConfig != nil {
-				clientset := kubeclientset.NewForConfigOrDie(restclient.AddUserAgent(clusterConfig, userAgentName))
-				return clientset, nil
+		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
+			config, err := BuildClusterConfig(cluster, kubeClient, crClient)
+			if err != nil {
+				return nil, err
 			}
-			return nil, err
+			if config == nil {
+				return nil, fmt.Errorf("Unable to load configuration for cluster %q", cluster.Name)
+			}
+
+			restclient.AddUserAgent(config, userAgentName)
+			return NewResourceClientFromConfig(config, apiResource)
 		},
 		targetInformers: make(map[string]informer),
 	}
@@ -266,7 +275,7 @@ type federatedInformerImpl struct {
 	targetInformers map[string]informer
 
 	// A function to build clients.
-	clientFactory func(*fedv1a1.FederatedCluster) (kubeclientset.Interface, error)
+	clientFactory func(*fedv1a1.FederatedCluster) (ResourceClient, error)
 }
 
 // *federatedInformerImpl implements FederatedInformer interface.
@@ -301,21 +310,21 @@ func (f *federatedInformerImpl) Start() {
 	go f.clusterInformer.controller.Run(f.clusterInformer.stopChan)
 }
 
-func (f *federatedInformerImpl) SetClientFactory(clientFactory func(*fedv1a1.FederatedCluster) (kubeclientset.Interface, error)) {
+func (f *federatedInformerImpl) SetClientFactory(clientFactory func(*fedv1a1.FederatedCluster) (ResourceClient, error)) {
 	f.Lock()
 	defer f.Unlock()
 
 	f.clientFactory = clientFactory
 }
 
-// GetClientsetForCluster returns a clientset for the cluster, if present.
-func (f *federatedInformerImpl) GetClientsetForCluster(clusterName string) (kubeclientset.Interface, error) {
+// GetClientForCluster returns a client for the cluster, if present.
+func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (ResourceClient, error) {
 	f.Lock()
 	defer f.Unlock()
-	return f.getClientsetForClusterUnlocked(clusterName)
+	return f.getClientForClusterUnlocked(clusterName)
 }
 
-func (f *federatedInformerImpl) getClientsetForClusterUnlocked(clusterName string) (kubeclientset.Interface, error) {
+func (f *federatedInformerImpl) getClientForClusterUnlocked(clusterName string) (ResourceClient, error) {
 	// No locking needed. Will happen in f.GetCluster.
 	glog.V(4).Infof("Getting clientset for cluster %q", clusterName)
 	if cluster, found, err := f.getReadyClusterUnlocked(clusterName); found && err == nil {
@@ -399,7 +408,7 @@ func (f *federatedInformerImpl) addCluster(cluster *fedv1a1.FederatedCluster) {
 	f.Lock()
 	defer f.Unlock()
 	name := cluster.Name
-	if client, err := f.getClientsetForClusterUnlocked(name); err == nil {
+	if client, err := f.getClientForClusterUnlocked(name); err == nil {
 		store, controller := f.targetInformerFactory(cluster, client)
 		targetInformer := informer{
 			controller: controller,

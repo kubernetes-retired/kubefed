@@ -50,7 +50,7 @@ var _ = Describe("Federated types", func() {
 				}
 
 				// Initialize an in-memory controller if configuration requires
-				f.SetUpControllerFixture(templateKind, fedTypeConfig.AdapterFactory)
+				f.SetUpControllerFixture(fedTypeConfig)
 
 				userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 

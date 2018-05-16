@@ -43,7 +43,7 @@ type FederatedJobOverride struct {
 
 // FederatedJobOverrideSpec defines the desired state of FederatedJobOverride
 type FederatedJobOverrideSpec struct {
-	Overrides []FederatedJobClusterOverride
+	Overrides []FederatedJobClusterOverride `json:"overrides,omitempty"`
 }
 
 // FederatedJobClusterOverride defines the overrides for a named cluster

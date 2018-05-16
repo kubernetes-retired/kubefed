@@ -18,39 +18,23 @@ package placement
 
 import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 )
 
 type NamespacePlacementPlugin struct {
-	adapter federatedtypes.PlacementAdapter
 	// Store for the placement directives of the federated type
 	store cache.Store
 	// Informer controller for placement directives of the federated type
 	controller cache.Controller
 }
 
-func NewNamespacePlacementPlugin(adapter federatedtypes.PlacementAdapter, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
-	store, controller := cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.List(metav1.NamespaceAll, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.Watch(metav1.NamespaceAll, options)
-			},
-		},
-		adapter.ObjectType(),
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(triggerFunc),
-	)
-
+func NewNamespacePlacementPlugin(client util.ResourceClient, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
+	store, controller := util.NewResourceInformer(client, metav1.NamespaceAll, triggerFunc)
 	return &NamespacePlacementPlugin{
-		adapter:    adapter,
 		store:      store,
 		controller: controller,
 	}
@@ -73,9 +57,10 @@ func (p *NamespacePlacementPlugin) ComputePlacement(key string, clusterNames []s
 		// TODO(marun) Compute placement from the placement decisions of contained resources
 		return clusterNames, []string{}, nil
 	}
-	placement := cachedObj.(pkgruntime.Object)
+	unstructuredObj := cachedObj.(*unstructured.Unstructured)
 
+	selectedNames := util.GetClusterNames(unstructuredObj)
 	clusterSet := sets.NewString(clusterNames...)
-	selectedClusterSet := sets.NewString(p.adapter.ClusterNames(placement)...)
-	return clusterSet.Intersection(selectedClusterSet).List(), clusterSet.Difference(selectedClusterSet).List(), nil
+	selectedSet := sets.NewString(selectedNames...)
+	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), nil
 }

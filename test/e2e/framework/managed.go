@@ -110,11 +110,11 @@ func (f *ManagedFramework) TestNamespaceName() string {
 	return uuid.New()
 }
 
-func (f *ManagedFramework) SetUpControllerFixture(kind string, adapterFactory federatedtypes.AdapterFactory) {
+func (f *ManagedFramework) SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig) {
 	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
 	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
 	crConfig := fedFixture.CrApi.NewConfig(f.logger)
-	fixture := framework.NewSyncControllerFixture(f.logger, kind, adapterFactory, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, fedConfig, kubeConfig, crConfig)
 	f.fixtures = append(f.fixtures, fixture)
 }

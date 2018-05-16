@@ -240,13 +240,12 @@ func (f *UnmanagedFramework) TestNamespaceName() string {
 	return f.testNamespaceName
 }
 
-func (f *UnmanagedFramework) SetUpControllerFixture(kind string, adapterFactory federatedtypes.AdapterFactory) {
+func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig) {
 	// Hybrid setup where just the sync controller is run and we do not rely on
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewSyncControllerFixture(f.logger, kind, adapterFactory, f.Config,
-			f.Config, f.Config)
+		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, f.Config, f.Config)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }

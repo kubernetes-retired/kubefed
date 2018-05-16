@@ -32,11 +32,11 @@ type ControllerFixture struct {
 }
 
 // NewSyncControllerFixture initializes a new sync controller fixture.
-func NewSyncControllerFixture(tl common.TestLogger, kind string, adapterFactory federatedtypes.AdapterFactory, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewSyncControllerFixture(tl common.TestLogger, typeConfig federatedtypes.FederatedTypeConfig, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := sync.StartFederationSyncController(kind, adapterFactory, fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	err := sync.StartFederationSyncController(typeConfig, fedConfig, kubeConfig, crConfig, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}

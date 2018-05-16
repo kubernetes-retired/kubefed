@@ -40,7 +40,7 @@ func TestCrud(t *testing.T) {
 	for templateKind, typeConfig := range typeConfigs {
 		// TODO (font): integration tests for federated Namespace does not work
 		// until k8s namespace controller is added.
-		if templateKind == federatedtypes.NamespaceKind {
+		if federatedtypes.IsNamespaceKind(templateKind) {
 			continue
 		}
 
@@ -65,7 +65,7 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
 	crConfig := fedFixture.CrApi.NewConfig(tl)
-	fixture := framework.NewSyncControllerFixture(tl, templateKind, typeConfig.AdapterFactory, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(tl, typeConfig, fedConfig, kubeConfig, crConfig)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 	rest.AddUserAgent(fedConfig, userAgent)

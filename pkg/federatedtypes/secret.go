@@ -45,6 +45,7 @@ var (
 		Override: &FederationAPIResource{
 			APIResource: apiResource("FederatedSecretOverride", "federatedsecretoverrides", secretNamespaced),
 		},
+		OverridePath: []string{"data"},
 		Target: metav1.APIResource{
 			Name:       "secrets",
 			Group:      "",

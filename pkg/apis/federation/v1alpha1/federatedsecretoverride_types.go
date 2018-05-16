@@ -44,7 +44,7 @@ type FederatedSecretOverride struct {
 
 // FederatedSecretOverrideSpec defines the desired state of FederatedSecretOverride
 type FederatedSecretOverrideSpec struct {
-	Overrides []FederatedSecretClusterOverride
+	Overrides []FederatedSecretClusterOverride `json:"overrides,omitempty"`
 }
 
 // FederatedSecretClusterOverride defines the overrides for a named cluster
