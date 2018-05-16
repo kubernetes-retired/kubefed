@@ -17,27 +17,16 @@ limitations under the License.
 package federatedtypes
 
 import (
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	kubeclientset "k8s.io/client-go/kubernetes"
-)
-
-const (
-	JobKind          = "Job"
-	FederatedJobKind = "FederatedJob"
 )
 
 var (
 	jobNamespaced bool                = true
-	JobTypeConfig FederatedTypeConfig = FederatedTypeConfig{
+	jobTypeConfig FederatedTypeConfig = FederatedTypeConfig{
 		ComparisonType: util.Generation,
 		Template: FederationAPIResource{
-			APIResource: apiResource(FederatedJobKind, "federatedjobs", jobNamespaced),
+			APIResource: apiResource("FederatedJob", "federatedjobs", jobNamespaced),
 		},
 		Placement: FederationAPIResource{
 			APIResource: apiResource("FederatedJobPlacement", "federatedjobplacements", jobNamespaced),
@@ -49,263 +38,13 @@ var (
 		Target: metav1.APIResource{
 			Name:       "jobs",
 			Group:      "batch",
-			Kind:       JobKind,
+			Kind:       "Job",
 			Version:    "v1",
 			Namespaced: jobNamespaced,
 		},
-		AdapterFactory: NewFederatedJobAdapter,
 	}
 )
 
 func init() {
-	RegisterFederatedTypeConfig(FederatedJobKind, JobTypeConfig)
-}
-
-type FederatedJobAdapter struct {
-	client fedclientset.Interface
-}
-
-func NewFederatedJobAdapter(client fedclientset.Interface) FederatedTypeAdapter {
-	return &FederatedJobAdapter{client: client}
-}
-
-func (a *FederatedJobAdapter) FedClient() fedclientset.Interface {
-	return a.client
-}
-
-func (a *FederatedJobAdapter) Template() FedApiAdapter {
-	return NewFederatedJobTemplate(a.client)
-}
-
-func (a *FederatedJobAdapter) Placement() PlacementAdapter {
-	return NewFederatedJobPlacement(a.client)
-}
-
-func (a *FederatedJobAdapter) PlacementAPIResource() *metav1.APIResource {
-	return &JobTypeConfig.Placement.APIResource
-}
-
-func (a *FederatedJobAdapter) Override() OverrideAdapter {
-	return NewFederatedJobOverride(a.client)
-}
-
-func (a *FederatedJobAdapter) Target() TargetAdapter {
-	return JobAdapter{}
-}
-
-// TODO(marun) Copy the whole thing
-func (a *FederatedJobAdapter) ObjectForCluster(template, override pkgruntime.Object, clusterName string) pkgruntime.Object {
-	fedJob := template.(*fedv1a1.FederatedJob)
-	templateJob := fedJob.Spec.Template
-
-	job := &batchv1.Job{
-		ObjectMeta: util.DeepCopyRelevantObjectMeta(templateJob.ObjectMeta),
-		Spec:       *templateJob.Spec.DeepCopy(),
-	}
-
-	if override != nil {
-		jobOverride := override.(*fedv1a1.FederatedJobOverride)
-		for _, clusterOverride := range jobOverride.Spec.Overrides {
-			if clusterOverride.ClusterName == clusterName {
-				job.Spec.Parallelism = clusterOverride.Parallelism
-				break
-			}
-		}
-	}
-
-	// Avoid having to duplicate these details in the template or have
-	// the name/namespace vary between the federation api and member
-	// clusters.
-	//
-	// TODO(marun) Document this
-	job.Name = fedJob.Name
-	job.Namespace = fedJob.Namespace
-
-	return job
-}
-
-func (a *FederatedJobAdapter) ObjectForUpdateOp(desiredObj, clusterObj pkgruntime.Object) pkgruntime.Object {
-	return desiredObj
-}
-
-type FederatedJobTemplate struct {
-	client fedclientset.Interface
-}
-
-func NewFederatedJobTemplate(client fedclientset.Interface) FedApiAdapter {
-	return &FederatedJobTemplate{client: client}
-}
-
-func (a *FederatedJobTemplate) Kind() string {
-	return FederatedJobKind
-}
-
-func (a *FederatedJobTemplate) ObjectType() pkgruntime.Object {
-	return &fedv1a1.FederatedJob{}
-}
-
-func (a *FederatedJobTemplate) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	fedJob := obj.(*fedv1a1.FederatedJob)
-	return a.client.FederationV1alpha1().FederatedJobs(fedJob.Namespace).Create(fedJob)
-}
-
-func (a *FederatedJobTemplate) Delete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
-	return a.client.FederationV1alpha1().FederatedJobs(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
-}
-
-func (a *FederatedJobTemplate) Get(qualifiedName QualifiedName) (pkgruntime.Object, error) {
-	return a.client.FederationV1alpha1().FederatedJobs(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-}
-
-func (a *FederatedJobTemplate) List(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return a.client.FederationV1alpha1().FederatedJobs(namespace).List(options)
-}
-
-func (a *FederatedJobTemplate) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	fedJob := obj.(*fedv1a1.FederatedJob)
-	updatedObj, err := a.client.FederationV1alpha1().FederatedJobs(fedJob.Namespace).Update(fedJob)
-	return updatedObj, err
-}
-
-func (a *FederatedJobTemplate) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return a.client.FederationV1alpha1().FederatedJobs(namespace).Watch(options)
-}
-
-type FederatedJobPlacement struct {
-	client fedclientset.Interface
-}
-
-func NewFederatedJobPlacement(client fedclientset.Interface) PlacementAdapter {
-	return &FederatedJobPlacement{client: client}
-}
-
-func (a *FederatedJobPlacement) Kind() string {
-	return "FederatedJobPlacement"
-}
-
-func (a *FederatedJobPlacement) ObjectType() pkgruntime.Object {
-	return &fedv1a1.FederatedJobPlacement{}
-}
-
-func (a *FederatedJobPlacement) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	fedJobPlacement := obj.(*fedv1a1.FederatedJobPlacement)
-	return a.client.FederationV1alpha1().FederatedJobPlacements(fedJobPlacement.Namespace).Create(fedJobPlacement)
-}
-
-func (a *FederatedJobPlacement) Delete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
-	return a.client.FederationV1alpha1().FederatedJobPlacements(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
-}
-
-func (a *FederatedJobPlacement) Get(qualifiedName QualifiedName) (pkgruntime.Object, error) {
-	return a.client.FederationV1alpha1().FederatedJobPlacements(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-}
-
-func (a *FederatedJobPlacement) List(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return a.client.FederationV1alpha1().FederatedJobPlacements(namespace).List(options)
-}
-
-func (a *FederatedJobPlacement) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	fedJobPlacement := obj.(*fedv1a1.FederatedJobPlacement)
-	return a.client.FederationV1alpha1().FederatedJobPlacements(fedJobPlacement.Namespace).Update(fedJobPlacement)
-}
-
-func (a *FederatedJobPlacement) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return a.client.FederationV1alpha1().FederatedJobPlacements(namespace).Watch(options)
-}
-
-func (a *FederatedJobPlacement) ClusterNames(obj pkgruntime.Object) []string {
-	fedJobPlacement := obj.(*fedv1a1.FederatedJobPlacement)
-	clusterNames := []string{}
-	for _, name := range fedJobPlacement.Spec.ClusterNames {
-		clusterNames = append(clusterNames, name)
-	}
-	return clusterNames
-}
-
-func (a *FederatedJobPlacement) SetClusterNames(obj pkgruntime.Object, clusterNames []string) {
-	fedJobPlacement := obj.(*fedv1a1.FederatedJobPlacement)
-	fedJobPlacement.Spec.ClusterNames = clusterNames
-}
-
-type FederatedJobOverride struct {
-	client fedclientset.Interface
-}
-
-func NewFederatedJobOverride(client fedclientset.Interface) OverrideAdapter {
-	return &FederatedJobOverride{client: client}
-}
-
-func (a *FederatedJobOverride) Kind() string {
-	return "FederatedJobOverride"
-}
-
-func (a *FederatedJobOverride) ObjectType() pkgruntime.Object {
-	return &fedv1a1.FederatedJobOverride{}
-}
-
-func (a *FederatedJobOverride) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	fedJobOverride := obj.(*fedv1a1.FederatedJobOverride)
-	return a.client.FederationV1alpha1().FederatedJobOverrides(fedJobOverride.Namespace).Create(fedJobOverride)
-}
-
-func (a *FederatedJobOverride) Delete(qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
-	return a.client.FederationV1alpha1().FederatedJobOverrides(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
-}
-
-func (a *FederatedJobOverride) Get(qualifiedName QualifiedName) (pkgruntime.Object, error) {
-	return a.client.FederationV1alpha1().FederatedJobOverrides(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-}
-
-func (a *FederatedJobOverride) List(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return a.client.FederationV1alpha1().FederatedJobOverrides(namespace).List(options)
-}
-
-func (a *FederatedJobOverride) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	fedJobOverride := obj.(*fedv1a1.FederatedJobOverride)
-	return a.client.FederationV1alpha1().FederatedJobOverrides(fedJobOverride.Namespace).Update(fedJobOverride)
-}
-
-func (a *FederatedJobOverride) Watch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return a.client.FederationV1alpha1().FederatedJobOverrides(namespace).Watch(options)
-}
-
-type JobAdapter struct {
-}
-
-func (JobAdapter) Kind() string {
-	return JobKind
-}
-
-func (JobAdapter) ObjectType() pkgruntime.Object {
-	return &batchv1.Job{}
-}
-
-func (JobAdapter) VersionCompareType() util.VersionCompareType {
-	return JobTypeConfig.ComparisonType
-}
-
-func (JobAdapter) Create(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
-	job := obj.(*batchv1.Job)
-	createdObj, err := client.BatchV1().Jobs(job.Namespace).Create(job)
-	return createdObj, err
-}
-
-func (JobAdapter) Delete(client kubeclientset.Interface, qualifiedName QualifiedName, options *metav1.DeleteOptions) error {
-	return client.BatchV1().Jobs(qualifiedName.Namespace).Delete(qualifiedName.Name, options)
-}
-
-func (JobAdapter) Get(client kubeclientset.Interface, qualifiedName QualifiedName) (pkgruntime.Object, error) {
-	return client.BatchV1().Jobs(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-}
-
-func (JobAdapter) List(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return client.BatchV1().Jobs(namespace).List(options)
-}
-
-func (JobAdapter) Update(client kubeclientset.Interface, obj pkgruntime.Object) (pkgruntime.Object, error) {
-	job := obj.(*batchv1.Job)
-	return client.BatchV1().Jobs(job.Namespace).Update(job)
-}
-func (JobAdapter) Watch(client kubeclientset.Interface, namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return client.BatchV1().Jobs(namespace).Watch(options)
+	RegisterFederatedTypeConfig(jobTypeConfig)
 }
