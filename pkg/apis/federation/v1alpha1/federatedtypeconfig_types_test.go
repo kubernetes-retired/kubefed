@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Federation v2 Authors.
 
@@ -14,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 
 package v1alpha1_test
 
@@ -34,8 +32,27 @@ var _ = Describe("FederatedTypeConfig", func() {
 	var client FederatedTypeConfigInterface
 
 	BeforeEach(func() {
-		instance = FederatedTypeConfig{}
-		instance.Name = "instance-1"
+		instance = FederatedTypeConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "configmaps",
+			},
+			Spec: FederatedTypeConfigSpec{
+				Target: APIResource{
+					Version: "v1",
+					Kind:    "ConfigMap",
+				},
+				Template: APIResource{
+					Group:   "federation.k8s.io",
+					Version: "v1alpha1",
+					Kind:    "FederatedConfigMap",
+				},
+				Placement: APIResource{
+					Kind: "FederatedConfigMapPlacement",
+				},
+			},
+		}
+
+		SetFederatedTypeConfigDefaults(&instance)
 
 		expected = instance
 	})
