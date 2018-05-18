@@ -35,7 +35,10 @@ import (
 // fixture run a namespace controller to ensure cleanup on deletion.
 // Will this be required?
 
-const userAgent = "federation-framework"
+const (
+	userAgent         = "federation-framework"
+	testClusterPrefix = "test-cluster-"
+)
 
 // FederationFixture manages servers for kube, cluster registry and
 // federation along with a set of member clusters.
@@ -47,17 +50,21 @@ type FederationFixture struct {
 	ClusterController *ControllerFixture
 }
 
-func SetUpFederationFixture(tl common.TestLogger, clusterCount int) *FederationFixture {
+func SetUpSequencedFederationFixture(tl common.TestLogger, clusterCount int, sequenced bool) *FederationFixture {
 	if clusterCount < 1 {
 		tl.Fatal("Cluster count must be greater than 0")
 	}
 	tl.Logf("Starting a federation of %d clusters...", clusterCount)
 	f := &FederationFixture{}
-	f.setUp(tl, clusterCount)
+	f.setUp(tl, clusterCount, sequenced)
 	return f
 }
 
-func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
+func SetUpFederationFixture(tl common.TestLogger, clusterCount int) *FederationFixture {
+	return SetUpSequencedFederationFixture(tl, clusterCount, false)
+}
+
+func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int, sequenced bool) {
 	defer TearDownOnPanic(tl, f)
 
 	f.CrApi = SetUpClusterRegistryApiFixture(tl)
@@ -65,7 +72,12 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 
 	f.Clusters = make(map[string]*KubernetesApiFixture)
 	for i := 0; i < clusterCount; i++ {
-		clusterName := f.AddMemberCluster(tl)
+		clusterName := ""
+		if sequenced {
+			clusterName = fmt.Sprintf("%s%d", testClusterPrefix, i)
+
+		}
+		clusterName = f.AddMemberCluster(tl, clusterName)
 		tl.Logf("Added cluster %s to the federation", clusterName)
 	}
 
@@ -100,10 +112,10 @@ func (f *FederationFixture) TearDown(tl common.TestLogger) {
 }
 
 // AddCluster adds a new member cluster to the federation.
-func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
+func (f *FederationFixture) AddMemberCluster(tl common.TestLogger, clusterName string) string {
 	kubeApi := SetUpKubernetesApiFixture(tl)
 
-	clusterName := f.registerCluster(tl, kubeApi.Host)
+	clusterName = f.registerCluster(tl, kubeApi.Host, clusterName)
 
 	// Pick the first added cluster to be the primary
 	if f.KubeApi == nil {
@@ -121,13 +133,11 @@ func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 }
 
 // registerCluster registers a cluster with the cluster registry
-func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) string {
+func (f *FederationFixture) registerCluster(tl common.TestLogger, host, clusterName string) string {
 	// Registry the kube api with the cluster registry
 	crClient := f.CrApi.NewClient(tl, userAgent)
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Create(&crv1a1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-cluster-",
-		},
+	c := &crv1a1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{},
 		Spec: crv1a1.ClusterSpec{
 			KubernetesAPIEndpoints: crv1a1.KubernetesAPIEndpoints{
 				ServerEndpoints: []crv1a1.ServerAddressByClientCIDR{
@@ -138,7 +148,14 @@ func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) s
 				},
 			},
 		},
-	})
+	}
+	if clusterName != "" {
+		c.Name = clusterName
+	} else {
+		c.GenerateName = testClusterPrefix
+	}
+
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Create(c)
 	if err != nil {
 		tl.Fatal(err)
 	}
