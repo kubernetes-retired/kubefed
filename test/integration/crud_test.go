@@ -24,7 +24,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -47,7 +47,7 @@ func TestCrud(t *testing.T) {
 
 		// TODO (font): integration tests for federated Namespace does not work
 		// until k8s namespace controller is added.
-		if federatedtypes.IsNamespaceKind(templateKind) {
+		if templateKind == util.NamespaceKind {
 			continue
 		}
 

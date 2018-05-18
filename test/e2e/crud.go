@@ -24,7 +24,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -63,7 +62,7 @@ var _ = Describe("Federated types", func() {
 				// test managed federation does not work until k8s
 				// namespace controller is added.
 				if framework.TestContext.TestManagedFederation &&
-					federatedtypes.IsNamespaceKind(templateKind) {
+					templateKind == util.NamespaceKind {
 					framework.Skipf("%s not supported for test managed federation.", templateKind)
 				}
 

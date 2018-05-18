@@ -25,7 +25,6 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -149,7 +148,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, k
 		// Skip the update if this object is for the primary cluster as that
 		// namespace will simply be removed after removing its finalizers.
 		clusterObj := clusterNsObj.Object.(runtime.Object)
-		if federatedtypes.IsNamespaceKind(kind) {
+		if kind == util.NamespaceKind {
 			if util.IsPrimaryCluster(obj, clusterObj) {
 				continue
 			}

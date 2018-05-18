@@ -29,7 +29,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/placement"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -204,7 +203,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 		return nil, err
 	}
 	targetAPIResource := typeConfig.GetTarget()
-	if federatedtypes.IsNamespaceKind(targetAPIResource.Kind) {
+	if targetAPIResource.Kind == util.NamespaceKind {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, deliverObj)
 	} else {
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, deliverObj)
@@ -227,7 +226,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 			UpdateFunc: func(old, cur interface{}) {
 				// Clear the indication of a pending version update for the object's key
 				version := cur.(*fedv1a1.PropagatedVersion)
-				key := federatedtypes.NewQualifiedName(version).String()
+				key := util.NewQualifiedName(version).String()
 				// TODO(marun) LOCK!
 				if s.pendingVersionUpdates.Has(key) {
 					s.pendingVersionUpdates.Delete(key)
@@ -281,7 +280,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 			return s.comparisonHelper.GetVersion(updatedObj), err
 		},
 		func(client util.ResourceClient, obj pkgruntime.Object) (string, error) {
-			qualifiedName := federatedtypes.NewQualifiedName(obj)
+			qualifiedName := util.NewQualifiedName(obj)
 			orphanDependents := false
 			return "", client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 		})
@@ -296,7 +295,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 		},
 		// objNameFunc
 		func(obj pkgruntime.Object) string {
-			return federatedtypes.NewQualifiedName(obj).String()
+			return util.NewQualifiedName(obj).String()
 		},
 		s.informer,
 		s.updater,
@@ -361,7 +360,7 @@ func (s *FederationSyncController) worker() {
 		}
 
 		item := obj.(*util.DelayingDelivererItem)
-		qualifiedName := item.Value.(*federatedtypes.QualifiedName)
+		qualifiedName := item.Value.(*util.QualifiedName)
 		status := s.reconcile(*qualifiedName)
 		s.workQueue.Done(item)
 
@@ -379,12 +378,12 @@ func (s *FederationSyncController) worker() {
 }
 
 func (s *FederationSyncController) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
-	qualifiedName := federatedtypes.NewQualifiedName(obj)
+	qualifiedName := util.NewQualifiedName(obj)
 	s.deliver(qualifiedName, delay, failed)
 }
 
 // Adds backoff to delay if this delivery is related to some failure. Resets backoff if there was no failure.
-func (s *FederationSyncController) deliver(qualifiedName federatedtypes.QualifiedName, delay time.Duration, failed bool) {
+func (s *FederationSyncController) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
 	key := qualifiedName.String()
 	if failed {
 		s.backoff.Next(key, time.Now())
@@ -425,12 +424,12 @@ func (s *FederationSyncController) reconcileOnClusterChange() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
 	for _, obj := range s.templateStore.List() {
-		qualifiedName := federatedtypes.NewQualifiedName(obj.(pkgruntime.Object))
+		qualifiedName := util.NewQualifiedName(obj.(pkgruntime.Object))
 		s.deliver(qualifiedName, s.smallDelay, false)
 	}
 }
 
-func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.QualifiedName) reconciliationStatus {
+func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) reconciliationStatus {
 	if !s.isSynced() {
 		return statusNotSynced
 	}
@@ -440,7 +439,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 	namespace := qualifiedName.Namespace
 
 	targetKind := s.typeConfig.GetTarget().Kind
-	if federatedtypes.IsNamespaceKind(targetKind) {
+	if targetKind == util.NamespaceKind {
 		namespace = qualifiedName.Name
 		// TODO(font): Need a configurable or discoverable list of namespaces
 		// to not propagate beyond just the default system namespaces e.g.
@@ -502,7 +501,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		}
 	}
 
-	propagatedVersionKey := federatedtypes.QualifiedName{
+	propagatedVersionKey := util.QualifiedName{
 		Namespace: namespace,
 		Name:      s.versionName(qualifiedName.Name),
 	}.String()
@@ -511,7 +510,7 @@ func (s *FederationSyncController) reconcile(qualifiedName federatedtypes.Qualif
 		// TODO(marun) Need to revisit how namespace deletion affects
 		// the version cache.  Ignoring may cause some unnecessary
 		// updates, but that's better than looping endlessly.
-		if !federatedtypes.IsNamespaceKind(targetKind) {
+		if targetKind != util.NamespaceKind {
 			// A status update is pending
 			return statusNeedsRecheck
 		}
@@ -568,7 +567,7 @@ func (s *FederationSyncController) clusterNames() ([]string, error) {
 
 // delete deletes the given resource or returns error if the deletion was not complete.
 func (s *FederationSyncController) delete(template pkgruntime.Object,
-	kind string, qualifiedName federatedtypes.QualifiedName) error {
+	kind string, qualifiedName util.QualifiedName) error {
 	glog.V(3).Infof("Handling deletion of %s %q", kind, qualifiedName)
 
 	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(template, kind)
@@ -576,7 +575,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 		return err
 	}
 
-	if federatedtypes.IsNamespaceKind(kind) {
+	if kind == util.NamespaceKind {
 		// Return immediately if we are a namespace as it will be deleted
 		// simply by removing its finalizers.
 		return nil
@@ -611,7 +610,7 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	template, override *unstructured.Unstructured, propagatedVersion *fedv1a1.PropagatedVersion) reconciliationStatus {
 
 	templateKind := s.typeConfig.GetTemplate().Kind
-	key := federatedtypes.NewQualifiedName(template).String()
+	key := util.NewQualifiedName(template).String()
 
 	glog.V(3).Infof("Syncing %s %q in underlying clusters", templateKind, key)
 
@@ -698,7 +697,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 			return err
 		}
 
-		key := federatedtypes.NewQualifiedName(version).String()
+		key := util.NewQualifiedName(version).String()
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
 		pendingVersionUpdates.Insert(key)
 
@@ -723,11 +722,11 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 
 	if util.PropagatedVersionStatusEquivalent(&oldVersionStatus, &version.Status) {
 		glog.V(4).Infof("No PropagatedVersion update necessary for %s %q",
-			typeConfig.GetTemplate().Kind, federatedtypes.NewQualifiedName(template).String())
+			typeConfig.GetTemplate().Kind, util.NewQualifiedName(template).String())
 		return nil
 	}
 
-	key := federatedtypes.NewQualifiedName(version).String()
+	key := util.NewQualifiedName(version).String()
 	pendingVersionUpdates.Insert(key)
 
 	_, err := fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
@@ -751,7 +750,7 @@ func newVersion(clusterVersions map[string]string, templateMeta metav1.Object, t
 
 	util.SortClusterVersions(versions)
 	var namespace string
-	if federatedtypes.IsNamespaceKind(targetKind) {
+	if targetKind == util.NamespaceKind {
 		namespace = templateMeta.GetName()
 	} else {
 		namespace = templateMeta.GetNamespace()
@@ -839,7 +838,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 			// of continually adding finalizers and then removing finalizers,
 			// causing PropagatedVersion to not keep up with the
 			// ResourceVersions being updated.
-			if federatedtypes.IsNamespaceKind(targetKind) {
+			if targetKind == util.NamespaceKind {
 				if util.IsPrimaryCluster(template, clusterObj) {
 					continue
 				}
@@ -912,7 +911,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	// TODO(marun) Ensure this is reflected in documentation
 	targetKind := s.typeConfig.GetTarget().Kind
 	obj := &unstructured.Unstructured{}
-	if federatedtypes.IsNamespaceKind(targetKind) {
+	if targetKind == util.NamespaceKind {
 		metadata, ok := unstructured.NestedMap(template.Object, "metadata")
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
@@ -976,7 +975,7 @@ func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *uns
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
-	if s.typeConfig.GetTarget().Kind == federatedtypes.ServiceTypeConfig.Target.Kind {
+	if s.typeConfig.GetTarget().Kind == util.ServiceKind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
 	return desiredObj
