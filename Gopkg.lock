@@ -295,6 +295,12 @@
   source = "github.com/marun/frameworks"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/kubernetes/repo-infra"
+  packages = ["verify/boilerplate/test"]
+  revision = "f1bd2e20dc62a8c8f97184ab911d31cf93283d2a"
+
+[[projects]]
   name = "github.com/mailru/easyjson"
   packages = [
     "buffer",
@@ -759,6 +765,7 @@
   packages = [
     "discovery",
     "discovery/fake",
+    "dynamic",
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1alpha1",
@@ -912,6 +919,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "017e3a0a30d58feebff42b223ca275eb83c84e48a52cfcee4730015f014e5f67"
+  inputs-digest = "e808bd86b0ae432aad31c349bae3d554d646fc3fd6b998130fcc58e2a40495e9"
   solver-name = "gps-cdcl"
   solver-version = 1
