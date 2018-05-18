@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
+	rsp "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
@@ -51,6 +52,18 @@ func NewClusterControllerFixture(fedConfig, kubeConfig, crConfig *restclient.Con
 	monitorPeriod := 1 * time.Second
 	federatedcluster.StartClusterController(fedConfig, kubeConfig, crConfig,
 		f.stopChan, monitorPeriod)
+	return f
+}
+
+// NewRSPControllerFixture initializes a new RSP controller fixture.
+func NewRSPControllerFixture(tl common.TestLogger, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+	f := &ControllerFixture{
+		stopChan: make(chan struct{}),
+	}
+	err := rsp.StartReplicaSchedulingPreferenceController(fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	if err != nil {
+		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
+	}
 	return f
 }
 
