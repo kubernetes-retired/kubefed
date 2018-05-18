@@ -23,6 +23,7 @@ import (
 
 	"github.com/pborman/uuid"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
@@ -32,12 +33,18 @@ import (
 
 // TestCrud validates create/read/update/delete operations for federated types.
 func TestCrud(t *testing.T) {
+	typeConfigs, err := common.FederatedTypeConfigs()
+	if err != nil {
+		t.Fatalf("Error loading type configs: %v", err)
+	}
+
 	tl := framework.NewIntegrationLogger(t)
 	fedFixture := framework.SetUpFederationFixture(tl, 2)
 	defer fedFixture.TearDown(tl)
 
-	typeConfigs := federatedtypes.FederatedTypeConfigs()
-	for templateKind, typeConfig := range typeConfigs {
+	for _, typeConfig := range typeConfigs {
+		templateKind := typeConfig.GetTemplate().Kind
+
 		// TODO (font): integration tests for federated Namespace does not work
 		// until k8s namespace controller is added.
 		if federatedtypes.IsNamespaceKind(templateKind) {
@@ -60,7 +67,7 @@ func TestCrud(t *testing.T) {
 }
 
 // initCrudTest initializes common elements of a crud test
-func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig federatedtypes.FederatedTypeConfig, templateKind string) (
+func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig typeconfig.Interface, templateKind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester) {
 	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
@@ -70,7 +77,8 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 	rest.AddUserAgent(fedConfig, userAgent)
 	rest.AddUserAgent(kubeConfig, userAgent)
-	clusterClients := fedFixture.ClusterClients(tl, &typeConfig.Target, userAgent)
+	targetAPIResource := typeConfig.GetTarget()
+	clusterClients := fedFixture.ClusterClients(tl, &targetAPIResource, userAgent)
 	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)

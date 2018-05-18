@@ -101,6 +101,10 @@ func (c *FakeFederation) FederatedServicePlacements(namespace string) internalve
 	return &FakeFederatedServicePlacements{c, namespace}
 }
 
+func (c *FakeFederation) FederatedTypeConfigs() internalversion.FederatedTypeConfigInterface {
+	return &FakeFederatedTypeConfigs{c}
+}
+
 func (c *FakeFederation) PropagatedVersions(namespace string) internalversion.PropagatedVersionInterface {
 	return &FakePropagatedVersions{c, namespace}
 }

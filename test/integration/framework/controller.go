@@ -19,9 +19,9 @@ package framework
 import (
 	"time"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
 )
@@ -32,7 +32,7 @@ type ControllerFixture struct {
 }
 
 // NewSyncControllerFixture initializes a new sync controller fixture.
-func NewSyncControllerFixture(tl common.TestLogger, typeConfig federatedtypes.FederatedTypeConfig, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}

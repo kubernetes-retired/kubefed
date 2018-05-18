@@ -83,14 +83,13 @@ the following steps:
    - Ensure the new type contains fields that should be overridable
    - e.g. [FederatedSecretOverride](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecretoverride_types.go)
 
- - Add a new propagation adapter
-   - the [push
-     reconciler](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/controller/sync/controller.go)
-     targets an [adapter
-     interface](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/federatedtypes/adapter.go),
-     and any logical federated type implementing the interface can be
-     propagated by the reconciler to member clusters.
-   - e.g. [FederatedSecretAdapter](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/federatedtypes/secret.go)
+ - Add a new type config resource to configure a propagation controller
+   - Ensure the new type contains fields that should be overridable
+   - e.g. [secrets](https://github.com/kubernetes-sigs/federation-v2/blob/master/config/federatedtypes/secret.yaml)
+
+ - (optionally) Add yaml test objects for template and override to support integration and e2e testing
+   - e.g. [secret-template.yaml](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/common/fixtures/secret-template.yaml)
+   - e.g. [secret-override.yaml](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/common/fixtures/secret-override.yaml)
 
 ## Testing
 
@@ -279,6 +278,17 @@ kubectl get federatedcluster
 ```
 
 It should successfully report that no resources are found.
+
+##### Enabling Push Propagation
+
+Configuration of push propagation is via the creation of
+FederatedTypeConfig resources. To enable propagation for default
+supported types, run the following command:
+
+```bash
+for tc in ./config/federatedtypes/*.yaml; do kubectl create -f "${tc}"; done
+```
+
 
 ##### Join Clusters
 

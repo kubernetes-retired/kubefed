@@ -30,6 +30,45 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.APIResource": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "APIResource defines how to configure the dynamic client for an api resource.",
+					Properties: map[string]spec.Schema{
+						"group": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Group of the resource.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"version": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Version of the resource.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Camel-cased singular name of the resource (e.g. ConfigMap)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"pluralName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Lower-cased plural name of the resource (e.g. configmaps).  If not provided, it will be computed by lower-casing the kind and suffixing an 's'.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"kind"},
+				},
+			},
+			Dependencies: []string{},
+		},
 		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.ClusterCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -1025,7 +1064,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedDeploymentOverrideSpec defines the desired state of FederatedDeploymentOverride",
 					Properties: map[string]spec.Schema{
-						"Overrides": {
+						"overrides": {
 							SchemaProps: spec.SchemaProps{
 								Type: []string{"array"},
 								Items: &spec.SchemaOrArray{
@@ -1038,7 +1077,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"Overrides"},
 				},
 			},
 			Dependencies: []string{
@@ -1531,7 +1569,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedJobOverrideSpec defines the desired state of FederatedJobOverride",
 					Properties: map[string]spec.Schema{
-						"Overrides": {
+						"overrides": {
 							SchemaProps: spec.SchemaProps{
 								Type: []string{"array"},
 								Items: &spec.SchemaOrArray{
@@ -1544,7 +1582,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"Overrides"},
 				},
 			},
 			Dependencies: []string{
@@ -2201,7 +2238,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedReplicaSetOverrideSpec defines the desired state of FederatedReplicaSetOverride",
 					Properties: map[string]spec.Schema{
-						"Overrides": {
+						"overrides": {
 							SchemaProps: spec.SchemaProps{
 								Type: []string{"array"},
 								Items: &spec.SchemaOrArray{
@@ -2214,7 +2251,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"Overrides"},
 				},
 			},
 			Dependencies: []string{
@@ -2715,7 +2751,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "FederatedSecretOverrideSpec defines the desired state of FederatedSecretOverride",
 					Properties: map[string]spec.Schema{
-						"Overrides": {
+						"overrides": {
 							SchemaProps: spec.SchemaProps{
 								Type: []string{"array"},
 								Items: &spec.SchemaOrArray{
@@ -2728,7 +2764,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"Overrides"},
 				},
 			},
 			Dependencies: []string{
@@ -3320,6 +3355,217 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
 		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedServiceStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfig": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedTypeConfig",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigStatus"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfig"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigSchemeFns": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedTypeConfig Functions and Structs",
+					Properties: map[string]spec.Schema{
+						"DefaultSchemeFns": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"),
+							},
+						},
+					},
+					Required: []string{"DefaultSchemeFns"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig",
+					Properties: map[string]spec.Schema{
+						"target": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The configuration of the target type.  Kind will be set to the name of this resource regardles of the value provided.",
+								Ref:         ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.APIResource"),
+							},
+						},
+						"namespaced": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Whether or not the target resource is namespaced (all primitive resources will share this).",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"comparisonField": {
+							SchemaProps: spec.SchemaProps{
+								Description: "What field equality determines equality.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"propagationEnabled": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Whether or not federation of the resource should be enabled.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"template": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Configuration for the template resource.",
+								Ref:         ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.APIResource"),
+							},
+						},
+						"placement": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Configuration for the placement resource. If not provided, the group and version will default to those provided for the template resource.",
+								Ref:         ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.APIResource"),
+							},
+						},
+						"override": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Configuration for the override resource. If not provided, the group and version will default to those provided for the template resource.",
+								Ref:         ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.APIResource"),
+							},
+						},
+						"overridePath": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The path to the field to override in the target type.  The last entry in the path should be the name of the field in the override type.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"target", "namespaced", "comparisonField", "propagationEnabled", "template", "placement"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.APIResource"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig",
+					Properties:  map[string]spec.Schema{},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigStatusStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStatusStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStatusStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.FederatedTypeConfigStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{

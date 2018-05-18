@@ -22,10 +22,10 @@ import (
 	"time"
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/federatedtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	corev1 "k8s.io/api/core/v1"
@@ -240,7 +240,7 @@ func (f *UnmanagedFramework) TestNamespaceName() string {
 	return f.testNamespaceName
 }
 
-func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig federatedtypes.FederatedTypeConfig) {
+func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	// Hybrid setup where just the sync controller is run and we do not rely on
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
@@ -278,6 +278,9 @@ func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	if err := client.Core().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
 		Failf("Error while deleting namespace %s: %s", namespaceName, err)
 	}
+	// TODO(marun) Check namespace deletion at the end of the test run.
+	return
+
 	// TODO(marun) Deletion handling of namespaces in fedv1 relied on
 	// a strict separation between a federated namespace and the
 	// namespace in a federated cluster.  In fedv2 this distinction

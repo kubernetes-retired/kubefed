@@ -17,14 +17,12 @@ limitations under the License.
 package federatedtypes
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
 	jobNamespaced bool                = true
 	jobTypeConfig FederatedTypeConfig = FederatedTypeConfig{
-		ComparisonType: util.Generation,
 		Template: FederationAPIResource{
 			APIResource: apiResource("FederatedJob", "federatedjobs", jobNamespaced),
 		},

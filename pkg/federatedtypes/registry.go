@@ -19,7 +19,6 @@ package federatedtypes
 import (
 	"fmt"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,13 +34,12 @@ type FederationAPIResource struct {
 
 // TODO(marun) This should be an api type instead of being statically defined.
 type FederatedTypeConfig struct {
-	ComparisonType util.VersionCompareType
-	Namespaced     bool
-	Template       FederationAPIResource
-	Placement      FederationAPIResource
-	Override       *FederationAPIResource
-	OverridePath   []string
-	Target         metav1.APIResource
+	Namespaced   bool
+	Template     FederationAPIResource
+	Placement    FederationAPIResource
+	Override     *FederationAPIResource
+	OverridePath []string
+	Target       metav1.APIResource
 }
 
 var typeRegistry = make(map[string]FederatedTypeConfig)

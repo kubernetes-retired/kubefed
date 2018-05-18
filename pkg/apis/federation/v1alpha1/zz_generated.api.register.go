@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Federation v2 Authors.
+Copyright 2017 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -160,6 +160,13 @@ var (
 		func() runtime.Object { return &FederatedServicePlacementList{} }, // Register versioned resource list
 		&FederatedServicePlacementStrategy{builders.StorageStrategySingleton},
 	)
+	federationFederatedTypeConfigStorage = builders.NewApiResource( // Resource status endpoint
+		federation.InternalFederatedTypeConfig,
+		FederatedTypeConfigSchemeFns{},
+		func() runtime.Object { return &FederatedTypeConfig{} },     // Register versioned resource
+		func() runtime.Object { return &FederatedTypeConfigList{} }, // Register versioned resource list
+		&FederatedTypeConfigStrategy{builders.StorageStrategySingleton},
+	)
 	federationPropagatedVersionStorage = builders.NewApiResource( // Resource status endpoint
 		federation.InternalPropagatedVersion,
 		PropagatedVersionSchemeFns{},
@@ -301,6 +308,13 @@ var (
 			func() runtime.Object { return &FederatedServicePlacement{} },     // Register versioned resource
 			func() runtime.Object { return &FederatedServicePlacementList{} }, // Register versioned resource list
 			&FederatedServicePlacementStatusStrategy{builders.StatusStorageStrategySingleton},
+		), federationFederatedTypeConfigStorage,
+		builders.NewApiResource( // Resource status endpoint
+			federation.InternalFederatedTypeConfigStatus,
+			FederatedTypeConfigSchemeFns{},
+			func() runtime.Object { return &FederatedTypeConfig{} },     // Register versioned resource
+			func() runtime.Object { return &FederatedTypeConfigList{} }, // Register versioned resource list
+			&FederatedTypeConfigStatusStrategy{builders.StatusStorageStrategySingleton},
 		), federationPropagatedVersionStorage,
 		builders.NewApiResource( // Resource status endpoint
 			federation.InternalPropagatedVersionStatus,
@@ -821,6 +835,32 @@ type FederatedServicePlacementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedServicePlacement `json:"items"`
+}
+
+//
+// FederatedTypeConfig Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type FederatedTypeConfigSchemeFns struct {
+	builders.DefaultSchemeFns
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedTypeConfigStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type FederatedTypeConfigStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedTypeConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedTypeConfig `json:"items"`
 }
 
 //

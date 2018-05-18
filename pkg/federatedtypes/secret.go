@@ -17,14 +17,12 @@ limitations under the License.
 package federatedtypes
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
 	secretNamespaced bool                = true
 	SecretTypeConfig FederatedTypeConfig = FederatedTypeConfig{
-		ComparisonType: util.ResourceVersion,
 		Template: FederationAPIResource{
 			APIResource: apiResource("FederatedSecret", "federatedsecrets", secretNamespaced),
 		},
