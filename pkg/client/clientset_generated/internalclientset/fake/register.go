@@ -16,6 +16,7 @@ limitations under the License.
 package fake
 
 import (
+	federatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling"
 	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -47,6 +48,7 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
+	federatedschedulinginternalversion.AddToScheme(scheme)
 	federationinternalversion.AddToScheme(scheme)
 
 }

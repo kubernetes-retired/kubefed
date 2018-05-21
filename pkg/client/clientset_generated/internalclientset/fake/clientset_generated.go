@@ -17,6 +17,8 @@ package fake
 
 import (
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset"
+	federatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federatedscheduling/internalversion"
+	fakefederatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federatedscheduling/internalversion/fake"
 	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
 	fakefederationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,6 +60,11 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 var _ clientset.Interface = &Clientset{}
+
+// Federatedscheduling retrieves the FederatedschedulingClient
+func (c *Clientset) Federatedscheduling() federatedschedulinginternalversion.FederatedschedulingInterface {
+	return &fakefederatedschedulinginternalversion.FakeFederatedscheduling{Fake: &c.Fake}
+}
 
 // Federation retrieves the FederationClient
 func (c *Clientset) Federation() federationinternalversion.FederationInterface {

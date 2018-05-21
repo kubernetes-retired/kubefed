@@ -20,6 +20,7 @@ package internalversion
 
 import (
 	"fmt"
+	federatedscheduling "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling"
 	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
@@ -51,7 +52,11 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=federation.k8s.io, Version=internalVersion
+	// Group=federatedscheduling.k8s.io, Version=internalVersion
+	case federatedscheduling.SchemeGroupVersion.WithResource("replicaschedulingpreferences"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federatedscheduling().InternalVersion().ReplicaSchedulingPreferences().Informer()}, nil
+
+		// Group=federation.k8s.io, Version=internalVersion
 	case federation.SchemeGroupVersion.WithResource("federatedclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().InternalVersion().FederatedClusters().Informer()}, nil
 	case federation.SchemeGroupVersion.WithResource("federatedconfigmaps"):

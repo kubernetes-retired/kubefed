@@ -17,6 +17,7 @@ package clientset
 
 import (
 	glog "github.com/golang/glog"
+	federatedschedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federatedscheduling/v1alpha1"
 	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -25,6 +26,9 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	FederatedschedulingV1alpha1() federatedschedulingv1alpha1.FederatedschedulingV1alpha1Interface
+	// Deprecated: please explicitly pick a version if possible.
+	Federatedscheduling() federatedschedulingv1alpha1.FederatedschedulingV1alpha1Interface
 	FederationV1alpha1() federationv1alpha1.FederationV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
 	Federation() federationv1alpha1.FederationV1alpha1Interface
@@ -34,7 +38,19 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	federationV1alpha1 *federationv1alpha1.FederationV1alpha1Client
+	federatedschedulingV1alpha1 *federatedschedulingv1alpha1.FederatedschedulingV1alpha1Client
+	federationV1alpha1          *federationv1alpha1.FederationV1alpha1Client
+}
+
+// FederatedschedulingV1alpha1 retrieves the FederatedschedulingV1alpha1Client
+func (c *Clientset) FederatedschedulingV1alpha1() federatedschedulingv1alpha1.FederatedschedulingV1alpha1Interface {
+	return c.federatedschedulingV1alpha1
+}
+
+// Deprecated: Federatedscheduling retrieves the default version of FederatedschedulingClient.
+// Please explicitly pick a version.
+func (c *Clientset) Federatedscheduling() federatedschedulingv1alpha1.FederatedschedulingV1alpha1Interface {
+	return c.federatedschedulingV1alpha1
 }
 
 // FederationV1alpha1 retrieves the FederationV1alpha1Client
@@ -64,6 +80,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.federatedschedulingV1alpha1, err = federatedschedulingv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.federationV1alpha1, err = federationv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -81,6 +101,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.federatedschedulingV1alpha1 = federatedschedulingv1alpha1.NewForConfigOrDie(c)
 	cs.federationV1alpha1 = federationv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
@@ -90,6 +111,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.federatedschedulingV1alpha1 = federatedschedulingv1alpha1.New(c)
 	cs.federationV1alpha1 = federationv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)

@@ -20,7 +20,8 @@ package externalversions
 
 import (
 	"fmt"
-	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
+	federation_v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,48 +52,52 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=federation.k8s.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedclusters"):
+	// Group=federatedscheduling.k8s.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("replicaschedulingpreferences"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Federatedscheduling().V1alpha1().ReplicaSchedulingPreferences().Informer()}, nil
+
+		// Group=federation.k8s.io, Version=v1alpha1
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedClusters().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmaps"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmaps"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedConfigMaps().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapoverrides"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedConfigMapOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedConfigMapPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federateddeployments"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federateddeployments"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedDeployments().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federateddeploymentoverrides"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federateddeploymentoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedDeploymentOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federateddeploymentplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federateddeploymentplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedDeploymentPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedjobs"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedjobs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedJobs().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedjoboverrides"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedjoboverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedJobOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedjobplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedjobplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedJobPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatednamespaceplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatednamespaceplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedNamespacePlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasets"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedReplicaSets().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetoverrides"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedReplicaSetOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedReplicaSetPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecrets"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedsecrets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedSecrets().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecretoverrides"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedsecretoverrides"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedSecretOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecretplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedsecretplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedSecretPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedservices"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedservices"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedServices().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceplacements"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedserviceplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedServicePlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedtypeconfigs"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("federatedtypeconfigs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedTypeConfigs().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("propagatedversions"):
+	case federation_v1alpha1.SchemeGroupVersion.WithResource("propagatedversions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().PropagatedVersions().Informer()}, nil
 
 	}

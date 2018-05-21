@@ -16,6 +16,7 @@ limitations under the License.
 package scheme
 
 import (
+	federatedschedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
 	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -47,6 +48,7 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
+	federatedschedulingv1alpha1.AddToScheme(scheme)
 	federationv1alpha1.AddToScheme(scheme)
 
 }
