@@ -280,15 +280,21 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 		c.tl.Fatalf("Error deleting %s %q: %v", templateKind, qualifiedName, err)
 	}
 
-	// Version tracker should also be removed
+	// Version tracker should also be removed. Wait for it to be removed.
 	targetKind := c.typeConfig.GetTarget().Kind
 	versionName := common.PropagatedVersionName(targetKind, name)
-	if targetKind == util.NamespaceKind {
-		_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
-	} else {
-		_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
-	}
-	if !errors.IsNotFound(err) {
+	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
+		if targetKind == util.NamespaceKind {
+			_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
+		} else {
+			_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
+		}
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	})
+	if err != nil {
 		c.tl.Fatalf("Expecting PropagatedVersion %s to be deleted", versionName)
 	}
 
