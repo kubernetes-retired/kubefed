@@ -35,12 +35,11 @@ const (
 )
 
 // TestReplicaSchedulingPreference validates basic replica scheduling preference calculations.
-func TestReplicaSchedulingPreference(t *testing.T) {
+var TestReplicaSchedulingPreference = func(t *testing.T) {
+	t.Parallel()
 	tl := framework.NewIntegrationLogger(t)
-	fedFixture := framework.SetUpFederationFixture(tl, 2)
-	defer fedFixture.TearDown(tl)
 
-	controllerFixture, fedClient := initRSPTest(tl, fedFixture)
+	controllerFixture, fedClient := initRSPTest(tl, FedFixture)
 	defer controllerFixture.TearDown(tl)
 
 	clusters := getClusterNames(fedClient)

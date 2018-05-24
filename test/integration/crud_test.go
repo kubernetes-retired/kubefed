@@ -32,15 +32,12 @@ import (
 )
 
 // TestCrud validates create/read/update/delete operations for federated types.
-func TestCrud(t *testing.T) {
+var TestCrud = func(t *testing.T) {
+	t.Parallel()
 	typeConfigs, err := common.FederatedTypeConfigs()
 	if err != nil {
 		t.Fatalf("Error loading type configs: %v", err)
 	}
-
-	tl := framework.NewIntegrationLogger(t)
-	fedFixture := framework.SetUpFederationFixture(tl, 2)
-	defer fedFixture.TearDown(tl)
 
 	for _, typeConfig := range typeConfigs {
 		templateKind := typeConfig.GetTemplate().Kind
@@ -53,10 +50,10 @@ func TestCrud(t *testing.T) {
 
 		t.Run(templateKind, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
-			fixture, crudTester := initCrudTest(tl, fedFixture, typeConfig, templateKind)
+			fixture, crudTester := initCrudTest(tl, FedFixture, typeConfig, templateKind)
 			defer fixture.TearDown(tl)
 
-			clusterNames := fedFixture.ClusterNames()
+			clusterNames := FedFixture.ClusterNames()
 			template, placement, override, err := common.NewTestObjects(typeConfig, uuid.New(), clusterNames)
 			if err != nil {
 				tl.Fatalf("Error creating test objects: %v", err)
