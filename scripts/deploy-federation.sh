@@ -30,9 +30,9 @@
 #
 # This script depends on crinit, kubectl, and apiserver-boot being
 # installed in the path.  These binaries can be installed via the
-# download-test-binaries.sh script, which downloads to ./bin:
+# download-binaries.sh script, which downloads to ./bin:
 #
-#   $ ./scripts/download-test-binaries.sh
+#   $ ./scripts/download-binaries.sh
 #   $ export PATH=$(pwd)/bin:${PATH}
 #
 # To redeploy federation from scratch, prefix the deploy invocation with the deletion script:
