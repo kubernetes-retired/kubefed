@@ -32,6 +32,11 @@ dynamic scheduling.
 
 # Guides
 
+## User Guide
+
+Take a look at our [user guide](docs/userguide.md) if you are interested in
+using Federation v2.
+
 ## Development Guide
 
 Take a look at our [development guide](docs/development.md) if you are
