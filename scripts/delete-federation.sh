@@ -24,17 +24,21 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 KCD="kubectl --ignore-not-found=true delete"
+NS=federation
 
 # Remove the federation service account for the current context.
 CONTEXT="$(kubectl config current-context)"
 SA_NAME="${CONTEXT}-${CONTEXT}"
-${KCD} -n federation sa "${SA_NAME}"
-${KCD} -n federation clusterrole "federation-controller-manager:${SA_NAME}"
-${KCD} -n federation clusterrolebinding "federation-controller-manager:${SA_NAME}"
+${KCD} -n ${NS} sa "${SA_NAME}"
+${KCD} -n ${NS} clusterrole "${NS}-controller-manager:${SA_NAME}"
+${KCD} -n ${NS} clusterrolebinding "${NS}-controller-manager:${SA_NAME}"
+
+# Remove permissive rolebinding that allows federation controllers to run.
+${KCD} clusterrolebinding federation-admin
 
 # Remove federation
 ${KCD} apiservice v1alpha1.federation.k8s.io
-${KCD} namespace federation
+${KCD} namespace ${NS}
 
 # Remove cluster registry
 crinit aggregated delete mycr
@@ -44,5 +48,5 @@ function ns-deleted() {
   kubectl get ns "${1}" &> /dev/null
   [[ "$?" = "1" ]]
 }
-util::wait-for-condition "removal of namespace 'federation'" "ns-deleted federation" 120
+util::wait-for-condition "removal of namespace '${NS}'" "ns-deleted ${NS}" 120
 util::wait-for-condition "removal of namespace 'clusterregistry'" "ns-deleted clusterregistry" 120
