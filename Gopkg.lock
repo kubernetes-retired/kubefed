@@ -321,15 +321,6 @@
   source = "github.com/marun/frameworks"
 
 [[projects]]
-  name = "github.com/kubernetes-sigs/kubebuilder"
-  packages = [
-    "pkg/install",
-    "pkg/test"
-  ]
-  revision = "12ec8cfb3ce3a12447ec6b9a0472383f94190f52"
-  version = "v1.9-alpha.30"
-
-[[projects]]
   branch = "master"
   name = "github.com/kubernetes/repo-infra"
   packages = ["verify/boilerplate/test"]
@@ -1009,17 +1000,6 @@
   version = "v0.0.5"
 
 [[projects]]
-  branch = "release-1.9"
-  name = "k8s.io/kube-aggregator"
-  packages = [
-    "pkg/apis/apiregistration",
-    "pkg/apis/apiregistration/v1beta1",
-    "pkg/client/clientset_generated/clientset/scheme",
-    "pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1"
-  ]
-  revision = "cecb77a9d2b4a4bc5fca3332cfd2893ec7275aad"
-
-[[projects]]
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = [
@@ -1034,6 +1014,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "58f8cfe6cde3303127863d3e40e7f7a33b1583453b5938660b4c90cc0ec29715"
+  inputs-digest = "98085e9cabcddc668ec72c0ec5035ab6f2055104f4f127a953d7515d386bce94"
   solver-name = "gps-cdcl"
   solver-version = 1
