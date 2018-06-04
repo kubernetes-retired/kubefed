@@ -21,10 +21,11 @@ import (
 )
 
 // +genclient
-// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Cluster contains information about a cluster in a cluster registry.
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,CIDR:.spec.kubernetesApiEndpoints.serverEndpoints[].clientCIDR,SERVER:.spec.kubernetesApiEndpoints.serverEndpoints[].serverAddress,CREATION TIME:.metadata.creationTimestamp
+// +resource:path=clusters
 type Cluster struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -37,10 +38,9 @@ type Cluster struct {
 	// +optional
 	Spec ClusterSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
-	// Status is the status of the cluster. It is optional, and can be left nil
-	// to imply that the cluster status is not being reported.
+	// Status is the status of the cluster.
 	// +optional
-	Status *ClusterStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
+	Status ClusterStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
 // ClusterSpec contains the specification of a cluster.
@@ -98,7 +98,7 @@ type ServerAddressByClientCIDR struct {
 type AuthInfo struct {
 	// AuthProviders is a list of configurations for auth providers.
 	// +optional
-	Providers []AuthProviderConfig `json:"providers" protobuf:"bytes,1,rep,name=providers"`
+	Providers []AuthProviderConfig `json:"providers,omitempty" protobuf:"bytes,1,rep,name=providers"`
 }
 
 // AuthProviderConfig contains the information necessary for a client to
@@ -132,18 +132,4 @@ type AuthProviderType struct {
 	// Name is the name of the auth provider.
 	// +optional
 	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ClusterList is a list of Kubernetes clusters in the cluster registry.
-type ClusterList struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// List of Cluster objects.
-	Items []Cluster `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

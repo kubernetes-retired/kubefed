@@ -32,7 +32,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
@@ -40,8 +39,6 @@ import (
 	genericadmissioninit "k8s.io/apiserver/pkg/admission/initializer"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/config"
-	webhookadmissionapi "k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission"
-	webhookadmissionapiv1alpha1 "k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission/v1alpha1"
 	webhookerrors "k8s.io/apiserver/pkg/admission/plugin/webhook/errors"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/namespace"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/request"
@@ -66,9 +63,6 @@ func Register(plugins *admission.Plugins) {
 
 		return plugin, nil
 	})
-	// add our config types
-	webhookadmissionapi.AddToScheme(plugins.ConfigScheme)
-	webhookadmissionapiv1alpha1.AddToScheme(plugins.ConfigScheme)
 }
 
 // WebhookSource can list dynamic webhook plugins.
@@ -136,9 +130,6 @@ func (a *ValidatingAdmissionWebhook) SetServiceResolver(sr config.ServiceResolve
 // SetScheme sets a serializer(NegotiatedSerializer) which is derived from the scheme
 func (a *ValidatingAdmissionWebhook) SetScheme(scheme *runtime.Scheme) {
 	if scheme != nil {
-		a.clientManager.SetNegotiatedSerializer(serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
-			Serializer: serializer.NewCodecFactory(scheme).LegacyCodec(admissionv1beta1.SchemeGroupVersion),
-		}))
 		a.convertor.Scheme = scheme
 	}
 }

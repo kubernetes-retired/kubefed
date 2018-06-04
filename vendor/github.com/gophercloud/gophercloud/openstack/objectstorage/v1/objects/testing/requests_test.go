@@ -2,6 +2,8 @@ package testing
 
 import (
 	"bytes"
+	"crypto/md5"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -44,9 +46,10 @@ func TestDownloadExtraction(t *testing.T) {
 	th.CheckEquals(t, "Successful download with Gophercloud", string(bytes))
 
 	expected := &objects.DownloadHeader{
-		ContentLength: 36,
-		ContentType:   "text/plain; charset=utf-8",
-		Date:          time.Date(2009, time.November, 10, 23, 0, 0, 0, loc),
+		ContentLength:     36,
+		ContentType:       "text/plain; charset=utf-8",
+		Date:              time.Date(2009, time.November, 10, 23, 0, 0, 0, loc),
+		StaticLargeObject: true,
 	}
 	actual, err := response.Extract()
 	th.AssertNoErr(t, err)
@@ -73,14 +76,53 @@ func TestListObjectInfo(t *testing.T) {
 	th.CheckEquals(t, count, 1)
 }
 
+func TestListObjectSubdir(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleListSubdirSuccessfully(t)
+
+	count := 0
+	options := &objects.ListOpts{Full: true, Prefix: "", Delimiter: "/"}
+	err := objects.List(fake.ServiceClient(), "testContainer", options).EachPage(func(page pagination.Page) (bool, error) {
+		count++
+		actual, err := objects.ExtractInfo(page)
+		th.AssertNoErr(t, err)
+
+		th.CheckDeepEquals(t, ExpectedListSubdir, actual)
+
+		return true, nil
+	})
+	th.AssertNoErr(t, err)
+	th.CheckEquals(t, count, 1)
+}
+
 func TestListObjectNames(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
 	HandleListObjectNamesSuccessfully(t)
 
+	// Check without delimiter.
 	count := 0
 	options := &objects.ListOpts{Full: false}
 	err := objects.List(fake.ServiceClient(), "testContainer", options).EachPage(func(page pagination.Page) (bool, error) {
+		count++
+		actual, err := objects.ExtractNames(page)
+		if err != nil {
+			t.Errorf("Failed to extract container names: %v", err)
+			return false, err
+		}
+
+		th.CheckDeepEquals(t, ExpectedListNames, actual)
+
+		return true, nil
+	})
+	th.AssertNoErr(t, err)
+	th.CheckEquals(t, count, 1)
+
+	// Check with delimiter.
+	count = 0
+	options = &objects.ListOpts{Full: false, Delimiter: "/"}
+	err = objects.List(fake.ServiceClient(), "testContainer", options).EachPage(func(page pagination.Page) (bool, error) {
 		count++
 		actual, err := objects.ExtractNames(page)
 		if err != nil {
@@ -193,4 +235,34 @@ func TestGetObject(t *testing.T) {
 	actual, err := objects.Get(fake.ServiceClient(), "testContainer", "testObject", nil).ExtractMetadata()
 	th.AssertNoErr(t, err)
 	th.CheckDeepEquals(t, expected, actual)
+
+	actualHeaders, err := objects.Get(fake.ServiceClient(), "testContainer", "testObject", nil).Extract()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, actualHeaders.StaticLargeObject, true)
+}
+
+func TestETag(t *testing.T) {
+	content := "some example object"
+	createOpts := objects.CreateOpts{
+		Content: strings.NewReader(content),
+		NoETag:  true,
+	}
+
+	_, headers, _, err := createOpts.ToObjectCreateParams()
+	th.AssertNoErr(t, err)
+	_, ok := headers["ETag"]
+	th.AssertEquals(t, ok, false)
+
+	hash := md5.New()
+	io.WriteString(hash, content)
+	localChecksum := fmt.Sprintf("%x", hash.Sum(nil))
+
+	createOpts = objects.CreateOpts{
+		Content: strings.NewReader(content),
+		ETag:    localChecksum,
+	}
+
+	_, headers, _, err = createOpts.ToObjectCreateParams()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, headers["ETag"], localChecksum)
 }

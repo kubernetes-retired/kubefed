@@ -34,10 +34,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
-	clusterregistryscheme "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset/scheme"
-	informers "k8s.io/cluster-registry/pkg/client/informers_generated/externalversions"
-	listers "k8s.io/cluster-registry/pkg/client/listers_generated/clusterregistry/v1alpha1"
+	clientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	clusterregistryscheme "k8s.io/cluster-registry/pkg/client/clientset/versioned/scheme"
+	informers "k8s.io/cluster-registry/pkg/client/informers/externalversions"
+	listers "k8s.io/cluster-registry/pkg/client/listers/clusterregistry/v1alpha1"
 )
 
 const controllerAgentName = "clusterregistry-controller"
@@ -209,27 +209,28 @@ func (c *Controller) processNextWorkItem() bool {
 
 // syncHandler sends Slack notifications when the cluster is updated.
 func (c *Controller) syncHandler(key string) error {
+	glog.Infof(key)
 	// Convert the namespace/name string into a distinct namespace and name
-	_, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
-	bodyFormatString := "Cluster %s was added."
+	bodyFormatString := "Cluster %s was added in namespace %s."
 	// Get the Cluster resource with this name
-	cluster, err := c.clusterLister.Get(name)
+	cluster, err := c.clusterLister.Clusters(namespace).Get(name)
 	if err != nil {
 		// The Cluster resource may have been deleted, in which case we
 		// post a removal message.
 		if errors.IsNotFound(err) {
-			bodyFormatString = "Cluster %s was removed."
+			bodyFormatString = "Cluster %s was removed from namespace %s."
 		} else {
 			return err
 		}
 	}
 
-	body := strings.NewReader(fmt.Sprintf("{ 'text':'%s'}", fmt.Sprintf(bodyFormatString, name)))
+	body := strings.NewReader(fmt.Sprintf("{ 'text':'%s'}", fmt.Sprintf(bodyFormatString, name, namespace)))
 	client := &http.Client{}
 	resp, err := client.Post(c.slackURL, "application/json", body)
 	if err != nil {

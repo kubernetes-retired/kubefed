@@ -4,7 +4,7 @@
 # Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
 # for detailed Gopkg.toml documentation.
 #
-required = ["github.com/kubernetes/repo-infra/verify/boilerplate/test"]
+required = ["github.com/kubernetes/repo-infra/verify/boilerplate/test", "github.com/kubernetes-sigs/kubebuilder/pkg/test"]
 # [[constraint]]
 #   name = "github.com/user/project"
 #   version = "1.0.0"
@@ -101,9 +101,9 @@ required = ["github.com/kubernetes/repo-infra/verify/boilerplate/test"]
 
 [[constraint]]
   name = "k8s.io/cluster-registry"
-  source = "github.com/marun/cluster-registry"
-  branch = "vendorable"
+  version = "=v0.0.5"
 
 [[constraint]]
   branch = "master"
   name = "github.com/golang/groupcache"
+

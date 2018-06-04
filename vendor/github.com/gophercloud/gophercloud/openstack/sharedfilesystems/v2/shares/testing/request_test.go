@@ -135,3 +135,29 @@ func TestGrantAcessSuccess(t *testing.T) {
 		ID:          "a2f226a5-cee8-430b-8a03-78a59bd84ee8",
 	})
 }
+
+func TestListAccessRightsSuccess(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	MockListAccessRightsResponse(t)
+
+	c := client.ServiceClient()
+	// Client c must have Microversion set; minimum supported microversion for Grant Access is 2.7
+	c.Microversion = "2.7"
+
+	s, err := shares.ListAccessRights(c, shareID).Extract()
+
+	th.AssertNoErr(t, err)
+	th.AssertDeepEquals(t, s, []shares.AccessRight{
+		{
+			ShareID:     "011d21e2-fbc3-4e4a-9993-9ea223f73264",
+			AccessType:  "ip",
+			AccessTo:    "0.0.0.0/0",
+			AccessKey:   "",
+			AccessLevel: "rw",
+			State:       "new",
+			ID:          "a2f226a5-cee8-430b-8a03-78a59bd84ee8",
+		},
+	})
+}

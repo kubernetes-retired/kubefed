@@ -145,6 +145,7 @@ type CreateOptsBuilder interface {
 type CreateOpts struct {
 	Content            io.Reader
 	Metadata           map[string]string
+	NoETag             bool
 	CacheControl       string `h:"Cache-Control"`
 	ContentDisposition string `h:"Content-Disposition"`
 	ContentEncoding    string `h:"Content-Encoding"`
@@ -177,6 +178,15 @@ func (opts CreateOpts) ToObjectCreateParams() (io.Reader, map[string]string, str
 
 	for k, v := range opts.Metadata {
 		h["X-Object-Meta-"+k] = v
+	}
+
+	if opts.NoETag {
+		delete(h, "etag")
+		return opts.Content, h, q.String(), nil
+	}
+
+	if h["ETag"] != "" {
+		return opts.Content, h, q.String(), nil
 	}
 
 	hash := md5.New()
@@ -344,7 +354,7 @@ func Get(c *gophercloud.ServiceClient, containerName, objectName string, opts Ge
 		}
 		url += query
 	}
-	resp, err := c.Request("HEAD", url, &gophercloud.RequestOpts{
+	resp, err := c.Head(url, &gophercloud.RequestOpts{
 		OkCodes: []int{200, 204},
 	})
 	if resp != nil {
