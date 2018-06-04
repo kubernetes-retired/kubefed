@@ -17,6 +17,8 @@ limitations under the License.
 package framework
 
 import (
+	"net/url"
+
 	"github.com/kubernetes-sig-testing/frameworks/integration"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 )
@@ -37,6 +39,19 @@ func SetUpEtcd(tl common.TestLogger) string {
 	}
 	refCount += 1
 	return etcd.URL.String()
+}
+
+func EtcdURL(tl common.TestLogger) *url.URL {
+	if etcd == nil {
+		etcd = &integration.Etcd{}
+		err := etcd.Start()
+		if err != nil {
+			etcd = nil
+			tl.Fatalf("Error starting etcd: %v", err)
+		}
+	}
+	refCount += 1
+	return etcd.URL
 }
 
 func TearDownEtcd(tl common.TestLogger) {

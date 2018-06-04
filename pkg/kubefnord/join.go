@@ -37,7 +37,7 @@ import (
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
