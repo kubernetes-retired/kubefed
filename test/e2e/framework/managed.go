@@ -122,3 +122,11 @@ func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interfac
 	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, fedConfig, kubeConfig, crConfig)
 	f.fixtures = append(f.fixtures, fixture)
 }
+
+func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
+	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
+	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
+	crConfig := fedFixture.CrApi.NewConfig(f.logger)
+	fixture := framework.NewServiceDNSControllerFixture(f.logger, fedConfig, kubeConfig, crConfig)
+	f.fixtures = append(f.fixtures, fixture)
+}

@@ -270,6 +270,13 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	}
 }
 
+func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
+	if TestContext.InMemoryControllers {
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, f.Config, f.Config)
+		f.fixtures = append(f.fixtures, fixture)
+	}
+}
+
 func createNamespace(client kubeclientset.Interface, baseName string) (string, error) {
 	namespaceObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

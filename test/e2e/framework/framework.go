@@ -49,6 +49,8 @@ type FederationFramework interface {
 
 	// Initialize and cleanup in-memory controller (useful for debugging)
 	SetUpControllerFixture(typeConfig typeconfig.Interface)
+
+	SetUpServiceDNSControllerFixture()
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -123,4 +125,8 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 
 func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	f.framework().SetUpControllerFixture(typeConfig)
+}
+
+func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {
+	f.framework().SetUpServiceDNSControllerFixture()
 }
