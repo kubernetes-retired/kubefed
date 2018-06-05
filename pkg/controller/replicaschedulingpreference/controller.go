@@ -29,6 +29,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -509,7 +510,6 @@ func (s *ReplicaSchedulingPreferenceController) GetSchedulingResult(fedPref *fed
 		if err != nil {
 			return nil, err
 		}
-		//selectorObj := reflect.ValueOf(obj).Elem().FieldByName("Spec").FieldByName("Selector").Interface().(*metav1.LabelSelector)
 		selectorLabels, ok := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
 		if !ok {
 			return nil, fmt.Errorf("missing selector on object: %v", err)
@@ -613,15 +613,24 @@ func clustersReplicaState(
 			currentReplicasPerCluster[clusterName] = readyReplicas
 		} else {
 			currentReplicasPerCluster[clusterName] = int64(0)
-			_, err := podsGetter(clusterName, unstructuredObj)
+			pods, err := podsGetter(clusterName, unstructuredObj)
 			if err != nil {
 				return nil, nil, err
 			}
-			//TODO: Include Analysis of pods per cluster.
-			// Unstructured list seems not very suitable for
-			// functions like AnalysePods().
-			// A good mechanism might be to get a typed client
-			// in Fed Informer which is much easier to work with PodLists.
+
+			//TODO: Update AnalysePods to use typed podList.
+			// Unstructured list seems not very suitable for functions like
+			// AnalysePods() and there are many possibilities of unchecked
+			// errors, if extensive set or get of fields is done on unstructured
+			// object. A good mechanism might be to get a typed client
+			// in FedInformer which is much easier to work with in PodLists.
+			podList := pods.(*unstructured.UnstructuredList)
+			podStatus := podanalyzer.AnalyzePods(podList, time.Now())
+			currentReplicasPerCluster[clusterName] = int64(podStatus.RunningAndReady) // include pending as well?
+			unschedulable := int64(podStatus.Unschedulable)
+			if unschedulable > 0 {
+				estimatedCapacity[clusterName] = replicas - unschedulable
+			}
 		}
 	}
 	return currentReplicasPerCluster, estimatedCapacity, nil

@@ -17,19 +17,21 @@ limitations under the License.
 package podanalyzer
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	api_v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAnalyze(t *testing.T) {
 	now := time.Now()
-	podRunning := newPod("p1",
+	podRunning := newPod(t, "p1",
 		api_v1.PodStatus{
 			Phase: api_v1.PodRunning,
 			Conditions: []api_v1.PodCondition{
@@ -39,7 +41,7 @@ func TestAnalyze(t *testing.T) {
 				},
 			},
 		})
-	podUnschedulable := newPod("pU",
+	podUnschedulable := newPod(t, "pU",
 		api_v1.PodStatus{
 			Phase: api_v1.PodPending,
 			Conditions: []api_v1.PodCondition{
@@ -51,20 +53,20 @@ func TestAnalyze(t *testing.T) {
 				},
 			},
 		})
-	podOther := newPod("pO",
+	podOther := newPod(t, "pO",
 		api_v1.PodStatus{
 			Phase:      api_v1.PodPending,
 			Conditions: []api_v1.PodCondition{},
 		})
 
-	result := AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podRunning, *podRunning, *podRunning, *podUnschedulable, *podUnschedulable}}, now)
+	result := AnalyzePods(&unstructured.UnstructuredList{Items: []unstructured.Unstructured{*podRunning, *podRunning, *podRunning, *podUnschedulable, *podUnschedulable}}, now)
 	assert.Equal(t, PodAnalysisResult{
 		Total:           5,
 		RunningAndReady: 3,
 		Unschedulable:   2,
 	}, result)
 
-	result = AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podOther}}, now)
+	result = AnalyzePods(&unstructured.UnstructuredList{Items: []unstructured.Unstructured{*podOther}}, now)
 	assert.Equal(t, PodAnalysisResult{
 		Total:           1,
 		RunningAndReady: 0,
@@ -87,12 +89,23 @@ func newReplicaSet(selectorMap map[string]string) *v1beta1.ReplicaSet {
 	return rs
 }
 
-func newPod(name string, status api_v1.PodStatus) *api_v1.Pod {
-	return &api_v1.Pod{
+func newPod(t *testing.T, name string, status api_v1.PodStatus) *unstructured.Unstructured {
+	pod := &api_v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
 		Status: status,
 	}
+
+	uP := &unstructured.Unstructured{}
+	pMarshalled, err := json.Marshal(pod)
+	assert.NoError(t, err)
+	assert.NoError(t, uP.UnmarshalJSON(pMarshalled))
+
+	return uP
 }
