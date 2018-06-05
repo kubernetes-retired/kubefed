@@ -16,6 +16,7 @@ limitations under the License.
 package scheme
 
 import (
+	federatedscheduling "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/install"
 	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
@@ -40,6 +41,7 @@ func init() {
 
 // Install registers the API group and adds types to a scheme
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
+	federatedscheduling.Install(groupFactoryRegistry, registry, scheme)
 	federation.Install(groupFactoryRegistry, registry, scheme)
 
 }

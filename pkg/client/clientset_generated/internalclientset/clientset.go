@@ -17,6 +17,7 @@ package internalclientset
 
 import (
 	glog "github.com/golang/glog"
+	federatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federatedscheduling/internalversion"
 	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -25,6 +26,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	Federatedscheduling() federatedschedulinginternalversion.FederatedschedulingInterface
 	Federation() federationinternalversion.FederationInterface
 }
 
@@ -32,7 +34,13 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	federation *federationinternalversion.FederationClient
+	federatedscheduling *federatedschedulinginternalversion.FederatedschedulingClient
+	federation          *federationinternalversion.FederationClient
+}
+
+// Federatedscheduling retrieves the FederatedschedulingClient
+func (c *Clientset) Federatedscheduling() federatedschedulinginternalversion.FederatedschedulingInterface {
+	return c.federatedscheduling
 }
 
 // Federation retrieves the FederationClient
@@ -56,6 +64,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.federatedscheduling, err = federatedschedulinginternalversion.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.federation, err = federationinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -73,6 +85,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.federatedscheduling = federatedschedulinginternalversion.NewForConfigOrDie(c)
 	cs.federation = federationinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
@@ -82,6 +95,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.federatedscheduling = federatedschedulinginternalversion.New(c)
 	cs.federation = federationinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)

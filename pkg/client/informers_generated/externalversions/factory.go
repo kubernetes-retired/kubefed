@@ -20,6 +20,7 @@ package externalversions
 
 import (
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	federatedscheduling "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/federatedscheduling"
 	federation "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/federation"
 	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -122,7 +123,12 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Federatedscheduling() federatedscheduling.Interface
 	Federation() federation.Interface
+}
+
+func (f *sharedInformerFactory) Federatedscheduling() federatedscheduling.Interface {
+	return federatedscheduling.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Federation() federation.Interface {

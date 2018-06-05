@@ -20,6 +20,8 @@ package apis
 
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling"
+	federatedschedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 )
@@ -28,8 +30,22 @@ import (
 // so they can be registered with the apiserver
 func GetAllApiBuilders() []*builders.APIGroupBuilder {
 	return []*builders.APIGroupBuilder{
+		GetFederatedschedulingAPIBuilder(),
 		GetFederationAPIBuilder(),
 	}
+}
+
+var federatedschedulingApiGroup = builders.NewApiGroupBuilder(
+	"federatedscheduling.k8s.io",
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling").
+	WithUnVersionedApi(federatedscheduling.ApiVersion).
+	WithVersionedApis(
+		federatedschedulingv1alpha1.ApiVersion,
+	).
+	WithRootScopedKinds()
+
+func GetFederatedschedulingAPIBuilder() *builders.APIGroupBuilder {
+	return federatedschedulingApiGroup
 }
 
 var federationApiGroup = builders.NewApiGroupBuilder(
