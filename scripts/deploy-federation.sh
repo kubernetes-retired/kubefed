@@ -30,15 +30,15 @@
 #
 # This script depends on crinit, kubectl, and apiserver-boot being
 # installed in the path.  These binaries can be installed via the
-# download-test-binaries.sh script, which downloads to ./bin:
+# download-binaries.sh script, which downloads to ./bin:
 #
-#   $ ./scripts/download-test-binaries.sh
+#   $ ./scripts/download-binaries.sh
 #   $ export PATH=$(pwd)/bin:${PATH}
 #
 # To redeploy federation from scratch, prefix the deploy invocation with the deletion script:
 #
 #   # WARNING: The deletion script will remove federation and cluster registry data
-#   $ ./scripts/delete-federation.sh && ./scripts/deploy-federation.sh <image>
+#   $ ./scripts/delete-federation.sh && ./scripts/deploy-federation.sh <image> [join-cluster]...
 #
 
 set -o errexit
@@ -51,9 +51,9 @@ NS=federation
 IMAGE_NAME="${1:-}"
 
 if [[ -z "${IMAGE_NAME}" ]]; then
-  >&2 echo "Usage: $0 <image>
+  >&2 echo "Usage: $0 <image> [join-cluster]...
 
-<image> should be in the form <containerregistry>/<username>/<imagename>:<tagname>
+<image>        should be in the form <containerregistry>/<username>/<imagename>:<tagname>
 
 Example: docker.io/<username>/federation-v2:test
 
@@ -62,9 +62,16 @@ the federation image to, make sure to login to the local docker daemon
 to ensure credentials are available for push:
 
   $ docker login --username <username>
+
+<join-cluster> should be the kubeconfig context name for the additional cluster to join.
+               NOTE: The host cluster is already included in the join.
+
 "
   exit 2
 fi
+
+shift
+JOIN_CLUSTERS="${*}"
 
 # Wait for the storage provisioner to be ready.  If crinit is called
 # before dynamic provisioning is enabled, the pvc for etcd will never
@@ -104,3 +111,7 @@ done
 go build -o bin/kubefnord cmd/kubefnord/kubefnord.go
 CONTEXT="$(kubectl config current-context)"
 ./bin/kubefnord join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2
+
+for c in ${JOIN_CLUSTERS}; do
+    ./bin/kubefnord join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2
+done

@@ -61,14 +61,14 @@ curl "${curl_args}" "$kubectl_url" --output "$kubectl_dest"
 
 crc_dest="${dest_dir}/crinit"
 crc_tgz="clusterregistry-client.tar.gz"
-crc_url="https://storage.googleapis.com/crreleases/v0.0.3/${crc_tgz}"
+crc_url="https://storage.googleapis.com/crreleases/v0.0.4/${crc_tgz}"
 curl "${curl_args}O" "${crc_url}" \
   && tar -xzf "${crc_tgz}" -C "${dest_dir}" ./crinit \
   && rm "${crc_tgz}"
 
 crs_dest="${dest_dir}/clusterregistry"
 crs_tgz="clusterregistry-server.tar.gz"
-crs_url="https://storage.googleapis.com/crreleases/v0.0.3/${crs_tgz}"
+crs_url="https://storage.googleapis.com/crreleases/v0.0.4/${crs_tgz}"
 curl "${curl_args}O" "${crs_url}" \
   && tar -xzf "${crs_tgz}" -C "${dest_dir}" ./clusterregistry \
   && rm "${crs_tgz}"
