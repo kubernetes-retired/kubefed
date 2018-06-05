@@ -33,5 +33,6 @@ func TestIntegration(t *testing.T) {
 	t.Run("Parallel-Integration-Test-Group", func(t *testing.T) {
 		t.Run("TestCrud", TestCrud)
 		t.Run("TestReplicaSchedulingPreference", TestReplicaSchedulingPreference)
+		t.Run("TestMultiClusterServiceDNS", TestMultiClusterServiceDNS)
 	})
 }
