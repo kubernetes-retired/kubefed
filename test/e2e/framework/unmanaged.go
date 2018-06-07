@@ -187,7 +187,38 @@ func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return crclientset.NewForConfigOrDie(f.Config)
 }
 
-func (f *UnmanagedFramework) ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+	testClusters := make(map[string]common.TestCluster)
+	// Assume host cluster name is the same as the current context name.
+	hostClusterName := f.Kubeconfig.CurrentContext
+	for clusterName, config := range f.ClusterConfigs(userAgent) {
+		client, err := util.NewResourceClientFromConfig(config, apiResource)
+		if err != nil {
+			Failf("Error creating a resource client in cluster %q for kind %q: %v", clusterName, apiResource.Kind, err)
+		}
+		// Check if this cluster is the same name as the host cluster name to
+		// make it the primary cluster.
+		testClusters[clusterName] = common.TestCluster{
+			client,
+			(clusterName == hostClusterName),
+		}
+	}
+	return testClusters
+}
+
+func (f *UnmanagedFramework) ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface {
+	typedClients := make(map[string]kubeclientset.Interface)
+	for clusterName, config := range f.ClusterConfigs(userAgent) {
+		client, err := kubeclientset.NewForConfig(config)
+		if err != nil {
+			Failf("Error creating a typed client in cluster %q: %v", clusterName, err)
+		}
+		typedClients[clusterName] = client
+	}
+	return typedClients
+}
+
+func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restclient.Config {
 	// TODO(marun) Avoid having to reload configuration on every call.
 	// Clusters may be added or removed between calls, but
 	// configuration is unlikely to change.
@@ -205,27 +236,16 @@ func (f *UnmanagedFramework) ClusterClients(apiResource *metav1.APIResource, use
 
 	kubeClient := f.KubeClient(userAgent)
 	crClient := f.CrClient(userAgent)
-	testClusters := make(map[string]common.TestCluster)
-	// Assume host cluster name is the same as the current context name.
-	hostClusterName := f.Kubeconfig.CurrentContext
+	clusterConfigs := make(map[string]*restclient.Config)
 	for _, cluster := range clusterList.Items {
 		ClusterIsReadyOrFail(fedClient, &cluster)
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
-		client, err := util.NewResourceClientFromConfig(config, apiResource)
-		if err != nil {
-			Failf("Error creating a resource client in cluster %q for kind %q: %v", cluster.Name, apiResource.Kind, err)
-		}
-		// Check if this cluster is the same name as the host cluster name to
-		// make it the primary cluster.
-		testClusters[cluster.Name] = common.TestCluster{
-			client,
-			(cluster.Name == hostClusterName),
-		}
+		clusterConfigs[cluster.Name] = config
 	}
 
-	return testClusters
+	return clusterConfigs
 }
 
 func (f *UnmanagedFramework) TestNamespaceName() string {
