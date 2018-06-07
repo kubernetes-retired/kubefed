@@ -186,7 +186,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	}
 
 	if addToRegistry {
-		err = addToClusterRegistry(hostConfig, clusterConfig.Host, joiningClusterName, dryRun)
+		err = addToClusterRegistry(hostConfig, clusterConfig.Host, federationNamespace, joiningClusterName, dryRun)
 		if err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 		// TODO(font): If cluster exists in clusterregistry, grab the
 		// ServerAddress from the KubernetesAPIEndpoints to create a
 		// clusterClientset from it.
-		err = verifyExistsInClusterRegistry(hostConfig, joiningClusterName)
+		err = verifyExistsInClusterRegistry(hostConfig, federationNamespace, joiningClusterName)
 		if err != nil {
 			return err
 		}
@@ -257,7 +257,7 @@ func performPreflightChecks(clusterClientset client.Interface, name, host,
 
 // addToClusterRegistry handles adding the cluster to the cluster registry and
 // reports progress.
-func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName string,
+func addToClusterRegistry(hostConfig *rest.Config, host, federationNamespace, joiningClusterName string,
 	dryRun bool) error {
 	// Get the cluster registry clientset using the host cluster config.
 	crClientset, err := util.ClusterRegistryClientset(hostConfig)
@@ -268,7 +268,7 @@ func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName stri
 
 	glog.V(2).Info("Registering cluster with the cluster registry.")
 
-	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
+	_, err = registerCluster(crClientset, host, federationNamespace, joiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
 		return err
@@ -280,7 +280,7 @@ func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName stri
 
 // verifyExistsInClusterRegistry verifies that the given joining cluster name exists
 // in the cluster registry.
-func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName string) error {
+func verifyExistsInClusterRegistry(hostConfig *rest.Config, federationNamespace, joiningClusterName string) error {
 	// Get the cluster registry clientset using the host cluster config.
 	crClientset, err := util.ClusterRegistryClientset(hostConfig)
 	if err != nil {
@@ -291,7 +291,7 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName s
 	glog.V(2).Infof("Verifying cluster %s exists in the cluster registry.",
 		joiningClusterName)
 
-	_, err = crClientset.ClusterregistryV1alpha1().Clusters().Get(joiningClusterName,
+	_, err = crClientset.ClusterregistryV1alpha1().Clusters(federationNamespace).Get(joiningClusterName,
 		metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -310,11 +310,12 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName s
 
 // registerCluster registers a cluster with the cluster registry.
 // TODO: save off service account authinfo for cluster.
-func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName string,
+func registerCluster(crClientset *crclient.Clientset, host, federationNamespace, joiningClusterName string,
 	dryRun bool) (*crv1a1.Cluster, error) {
 	cluster := &crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: joiningClusterName,
+			Name:      joiningClusterName,
+			Namespace: federationNamespace,
 		},
 		Spec: crv1a1.ClusterSpec{
 			KubernetesAPIEndpoints: crv1a1.KubernetesAPIEndpoints{
@@ -332,7 +333,7 @@ func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName s
 		return cluster, nil
 	}
 
-	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters().Create(cluster)
+	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters(federationNamespace).Create(cluster)
 	if err != nil {
 		return cluster, err
 	}
