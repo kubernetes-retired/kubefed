@@ -22,6 +22,7 @@ import (
 	"fmt"
 	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
 	federation_v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	multiclusterdns_v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -99,6 +100,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().FederatedTypeConfigs().Informer()}, nil
 	case federation_v1alpha1.SchemeGroupVersion.WithResource("propagatedversions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Federation().V1alpha1().PropagatedVersions().Informer()}, nil
+
+		// Group=multiclusterdns.k8s.io, Version=v1alpha1
+	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("multiclusterservicednsrecords"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().MultiClusterServiceDNSRecords().Informer()}, nil
 
 	}
 

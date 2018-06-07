@@ -24,6 +24,8 @@ import (
 	federatedschedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns"
+	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 )
 
 // GetAllApiBuilders returns all known APIGroupBuilders
@@ -32,6 +34,7 @@ func GetAllApiBuilders() []*builders.APIGroupBuilder {
 	return []*builders.APIGroupBuilder{
 		GetFederatedschedulingAPIBuilder(),
 		GetFederationAPIBuilder(),
+		GetMulticlusterdnsAPIBuilder(),
 	}
 }
 
@@ -63,4 +66,17 @@ var federationApiGroup = builders.NewApiGroupBuilder(
 
 func GetFederationAPIBuilder() *builders.APIGroupBuilder {
 	return federationApiGroup
+}
+
+var multiclusterdnsApiGroup = builders.NewApiGroupBuilder(
+	"multiclusterdns.k8s.io",
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns").
+	WithUnVersionedApi(multiclusterdns.ApiVersion).
+	WithVersionedApis(
+		multiclusterdnsv1alpha1.ApiVersion,
+	).
+	WithRootScopedKinds()
+
+func GetMulticlusterdnsAPIBuilder() *builders.APIGroupBuilder {
+	return multiclusterdnsApiGroup
 }

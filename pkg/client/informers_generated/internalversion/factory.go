@@ -23,6 +23,7 @@ import (
 	federatedscheduling "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/federatedscheduling"
 	federation "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/federation"
 	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/internalinterfaces"
+	multiclusterdns "github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/internalversion/multiclusterdns"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -125,6 +126,7 @@ type SharedInformerFactory interface {
 
 	Federatedscheduling() federatedscheduling.Interface
 	Federation() federation.Interface
+	Multiclusterdns() multiclusterdns.Interface
 }
 
 func (f *sharedInformerFactory) Federatedscheduling() federatedscheduling.Interface {
@@ -133,4 +135,8 @@ func (f *sharedInformerFactory) Federatedscheduling() federatedscheduling.Interf
 
 func (f *sharedInformerFactory) Federation() federation.Interface {
 	return federation.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Multiclusterdns() multiclusterdns.Interface {
+	return multiclusterdns.New(f, f.namespace, f.tweakListOptions)
 }

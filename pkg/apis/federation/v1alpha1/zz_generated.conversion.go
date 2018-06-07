@@ -464,7 +464,7 @@ func Convert_federation_FederatedClusterSpec_To_v1alpha1_FederatedClusterSpec(in
 
 func autoConvert_v1alpha1_FederatedClusterStatus_To_federation_FederatedClusterStatus(in *FederatedClusterStatus, out *federation.FederatedClusterStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]federation.ClusterCondition)(unsafe.Pointer(&in.Conditions))
-	out.Zones = *(*[]string)(unsafe.Pointer(&in.Zones))
+	out.Zone = in.Zone
 	out.Region = in.Region
 	return nil
 }
@@ -476,7 +476,7 @@ func Convert_v1alpha1_FederatedClusterStatus_To_federation_FederatedClusterStatu
 
 func autoConvert_federation_FederatedClusterStatus_To_v1alpha1_FederatedClusterStatus(in *federation.FederatedClusterStatus, out *FederatedClusterStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]ClusterCondition)(unsafe.Pointer(&in.Conditions))
-	out.Zones = *(*[]string)(unsafe.Pointer(&in.Zones))
+	out.Zone = in.Zone
 	out.Region = in.Region
 	return nil
 }

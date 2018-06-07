@@ -68,6 +68,7 @@ func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	go si.Factory.Federation().V1alpha1().FederatedServices().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedServicePlacements().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().FederatedTypeConfigs().Informer().Run(shutdown)
+	go si.Factory.Multiclusterdns().V1alpha1().MultiClusterServiceDNSRecords().Informer().Run(shutdown)
 	go si.Factory.Federation().V1alpha1().PropagatedVersions().Informer().Run(shutdown)
 }
 

@@ -21,6 +21,8 @@ import (
 	fakefederatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federatedscheduling/internalversion/fake"
 	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
 	fakefederationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion/fake"
+	multiclusterdnsinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/multiclusterdns/internalversion"
+	fakemulticlusterdnsinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/multiclusterdns/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -69,4 +71,9 @@ func (c *Clientset) Federatedscheduling() federatedschedulinginternalversion.Fed
 // Federation retrieves the FederationClient
 func (c *Clientset) Federation() federationinternalversion.FederationInterface {
 	return &fakefederationinternalversion.FakeFederation{Fake: &c.Fake}
+}
+
+// Multiclusterdns retrieves the MulticlusterdnsClient
+func (c *Clientset) Multiclusterdns() multiclusterdnsinternalversion.MulticlusterdnsInterface {
+	return &fakemulticlusterdnsinternalversion.FakeMulticlusterdns{Fake: &c.Fake}
 }
