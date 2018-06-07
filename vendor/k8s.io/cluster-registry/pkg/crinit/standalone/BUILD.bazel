@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "delete.go",
+        "doc.go",
+        "init.go",
+        "standalone.go",
+    ],
+    importpath = "k8s.io/cluster-registry/pkg/crinit/standalone",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/crinit/common:go_default_library",
+        "//pkg/crinit/options:go_default_library",
+        "//pkg/crinit/util:go_default_library",
+        "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/github.com/spf13/cobra:go_default_library",
+        "//vendor/github.com/spf13/pflag:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/k8s.io/client-go/tools/clientcmd:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["standalone_test.go"],
+    embed = [":go_default_library"],
+    importpath = "k8s.io/cluster-registry/pkg/crinit/standalone",
+    deps = [
+        "//pkg/crinit/common:go_default_library",
+        "//pkg/crinit/options:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/fake:go_default_library",
+        "//vendor/k8s.io/client-go/testing:go_default_library",
+    ],
+)

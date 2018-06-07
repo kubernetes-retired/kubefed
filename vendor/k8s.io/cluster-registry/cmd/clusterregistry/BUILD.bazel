@@ -1,0 +1,48 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_docker//docker:docker.bzl", "docker_build", "docker_push")
+load("//pkg/version:def.bzl", "version_x_defs")
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+
+docker_build(
+    name = "clusterregistry-image",
+    base = "@ubuntu//image",
+    cmd = ["./clusterregistry"],
+    files = [":clusterregistry"],
+)
+
+docker_push(
+    name = "push-clusterregistry-image",
+    image = ":clusterregistry-image",
+    registry = "gcr.io",
+    repository = "$(repository)",
+    tag = "dev",
+)
+
+pkg_tar(
+    name = "clusterregistry-server",
+    srcs = [
+        ":clusterregistry",
+        "//:LICENSES",
+        "//:SOURCES.md",
+    ],
+    extension = "tar.gz",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["clusterregistry.go"],
+    importpath = "k8s.io/cluster-registry/cmd/clusterregistry",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/clusterregistry:go_default_library",
+        "//vendor/k8s.io/apiserver/pkg/util/logs:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "clusterregistry",
+    embed = [":go_default_library"],
+    importpath = "k8s.io/cluster-registry/cmd/clusterregistry",
+    visibility = ["//visibility:public"],
+    x_defs = version_x_defs(),
+)
