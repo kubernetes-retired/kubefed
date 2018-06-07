@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
@@ -27,13 +25,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns"
 )
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MultiClusterServiceDNSRecord
+// MultiClusterServiceDNSRecord holds information necessary to program DNS for cross cluster service discovery
 // +k8s:openapi-gen=true
 // +resource:path=multiclusterservicednsrecords,strategy=MultiClusterServiceDNSRecordStrategy
 type MultiClusterServiceDNSRecord struct {
@@ -46,10 +46,27 @@ type MultiClusterServiceDNSRecord struct {
 
 // MultiClusterServiceDNSRecordSpec defines the desired state of MultiClusterServiceDNSRecord
 type MultiClusterServiceDNSRecordSpec struct {
+	// FederationName is the name of the federation to which the corresponding federated service belongs
+	FederationName string `json:"federationName,omitempty"`
+	// DNSSuffix is the suffix (domain) to append to DNS names
+	DNSSuffix string `json:"dnsSuffix,omitempty"`
 }
 
 // MultiClusterServiceDNSRecordStatus defines the observed state of MultiClusterServiceDNSRecord
 type MultiClusterServiceDNSRecordStatus struct {
+	DNS []ClusterDNS `json:"dns,omitempty"`
+}
+
+// ClusterDNS defines the observed status of LoadBalancer within a cluster.
+type ClusterDNS struct {
+	// Cluster name
+	Cluster string `json:"cluster,omitempty"`
+	// LoadBalancer for the corresponding service
+	LoadBalancer corev1.LoadBalancerStatus `json:"loadBalancer,omitempty"`
+	// Zone to which the cluster belongs
+	Zone string `json:"zone,omitempty"`
+	// Region to which the cluster belongs
+	Region string `json:"region,omitempty"`
 }
 
 // Validate checks that an instance of MultiClusterServiceDNSRecord is well formed
