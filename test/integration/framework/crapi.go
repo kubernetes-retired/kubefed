@@ -27,7 +27,7 @@ import (
 	"github.com/kubernetes-sig-testing/frameworks/integration"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"k8s.io/client-go/rest"
-	"k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	clientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 // ClusterRegistryApiFixture manages a api registry apiserver

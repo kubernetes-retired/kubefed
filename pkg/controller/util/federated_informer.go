@@ -32,7 +32,7 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	"github.com/golang/glog"
 )

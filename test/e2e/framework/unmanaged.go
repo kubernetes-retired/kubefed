@@ -36,7 +36,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

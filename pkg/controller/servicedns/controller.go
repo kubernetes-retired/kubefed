@@ -37,7 +37,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"

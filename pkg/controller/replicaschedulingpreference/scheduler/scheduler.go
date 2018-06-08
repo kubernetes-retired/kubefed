@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	"github.com/golang/glog"
 )

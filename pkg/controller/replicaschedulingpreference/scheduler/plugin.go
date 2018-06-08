@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 type Plugin struct {
