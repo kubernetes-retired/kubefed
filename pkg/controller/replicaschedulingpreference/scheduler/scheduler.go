@@ -24,7 +24,7 @@ import (
 	"time"
 
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"

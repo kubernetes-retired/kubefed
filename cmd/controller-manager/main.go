@@ -23,8 +23,8 @@ import (
 	"time"
 
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
 	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"

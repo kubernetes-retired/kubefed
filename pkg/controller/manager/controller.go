@@ -28,7 +28,7 @@ package manager
 // 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 
 // 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-// 	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+// 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 // 	listers "github.com/kubernetes-sigs/federation-v2/pkg/client/listers_generated/federation/v1alpha1"
 // 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 // 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"

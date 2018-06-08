@@ -24,7 +24,7 @@ import (
 	"github.com/golang/glog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/util"
 	"github.com/spf13/cobra"

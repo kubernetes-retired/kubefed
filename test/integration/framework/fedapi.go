@@ -25,8 +25,7 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/kubernetes-sigs/federation-v2/pkg/openapi"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"k8s.io/client-go/rest"
 )

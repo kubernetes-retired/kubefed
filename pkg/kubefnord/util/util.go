@@ -19,7 +19,7 @@ package util
 import (
 	"fmt"
 
-	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

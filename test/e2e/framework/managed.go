@@ -20,7 +20,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
