@@ -122,7 +122,11 @@ func setStringDefault(value *string, defaultValue string) {
 // PluralNameForKind naively computes the plural name from the kind by
 // lowercasing and suffixing with 's'.
 func pluralName(kind string) string {
-	return fmt.Sprintf("%ss", strings.ToLower(kind))
+	lowerKind := strings.ToLower(kind)
+	if strings.HasSuffix(lowerKind, "overrides") {
+		return fmt.Sprintf("%ses", lowerKind)
+	}
+	return fmt.Sprintf("%ss", lowerKind)
 }
 
 func (f *FederatedTypeConfig) GetTarget() metav1.APIResource {

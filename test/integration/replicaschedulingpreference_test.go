@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 )
 
 const (
@@ -106,11 +107,10 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 }
 
 func initRSPTest(tl common.TestLogger, fedFixture *framework.FederationFixture) (*framework.ControllerFixture, clientset.Interface) {
-	fedConfig := fedFixture.FedApi.NewConfig(tl)
-	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	crConfig := fedFixture.CrApi.NewConfig(tl)
-	fixture := framework.NewRSPControllerFixture(tl, fedConfig, kubeConfig, crConfig)
-	client := fedFixture.FedApi.NewClient(tl, "rsp-test")
+	config := fedFixture.KubeApi.NewConfig(tl)
+	fixture := framework.NewRSPControllerFixture(tl, config)
+	restclient.AddUserAgent(config, "rsp-test")
+	client := clientset.NewForConfigOrDie(config)
 
 	return fixture, client
 }

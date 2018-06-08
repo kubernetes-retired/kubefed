@@ -34,11 +34,11 @@ type ControllerFixture struct {
 }
 
 // NewSyncControllerFixture initializes a new sync controller fixture.
-func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := sync.StartFederationSyncController(typeConfig, fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	err := sync.StartFederationSyncController(typeConfig, kubeConfig, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
@@ -46,11 +46,11 @@ func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interf
 }
 
 // NewServiceDNSControllerFixture initializes a new service-dns controller fixture.
-func NewServiceDNSControllerFixture(tl common.TestLogger, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	err := servicedns.StartController(config, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
@@ -58,22 +58,21 @@ func NewServiceDNSControllerFixture(tl common.TestLogger, fedConfig, kubeConfig,
 }
 
 // NewClusterControllerFixture initializes a new cluster controller fixture.
-func NewClusterControllerFixture(fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewClusterControllerFixture(config *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 	monitorPeriod := 1 * time.Second
-	federatedcluster.StartClusterController(fedConfig, kubeConfig, crConfig,
-		f.stopChan, monitorPeriod)
+	federatedcluster.StartClusterController(config, f.stopChan, monitorPeriod)
 	return f
 }
 
 // NewRSPControllerFixture initializes a new RSP controller fixture.
-func NewRSPControllerFixture(tl common.TestLogger, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+func NewRSPControllerFixture(tl common.TestLogger, config *restclient.Config) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := rsp.StartReplicaSchedulingPreferenceController(fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	err := rsp.StartReplicaSchedulingPreferenceController(config, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
 	}

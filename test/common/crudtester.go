@@ -47,8 +47,7 @@ type FederatedTypeCrudTester struct {
 	typeConfig       typeconfig.Interface
 	comparisonHelper util.ComparisonHelper
 	fedClient        clientset.Interface
-	fedPool          dynamic.ClientPool
-	kubePool         dynamic.ClientPool
+	pool             dynamic.ClientPool
 	testClusters     map[string]TestCluster
 	waitInterval     time.Duration
 	// Federation operations will use wait.ForeverTestTimeout.  Any
@@ -62,7 +61,7 @@ type TestCluster struct {
 	IsPrimary bool
 }
 
-func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, fedConfig, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
+func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
 	compare, err := util.NewComparisonHelper(typeConfig.GetComparisonField())
 	if err != nil {
 		return nil, err
@@ -72,9 +71,8 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
 		comparisonHelper:   compare,
-		fedClient:          clientset.NewForConfigOrDie(fedConfig),
-		fedPool:            dynamic.NewDynamicClientPool(fedConfig),
-		kubePool:           dynamic.NewDynamicClientPool(kubeConfig),
+		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
+		pool:               dynamic.NewDynamicClientPool(kubeConfig),
 		testClusters:       testClusters,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
@@ -135,12 +133,7 @@ func (c *FederatedTypeCrudTester) createFedResource(apiResource metav1.APIResour
 }
 
 func (c *FederatedTypeCrudTester) fedResourceClient(apiResource metav1.APIResource) util.ResourceClient {
-	pool := c.fedPool
-	// TODO(marun) Revisit this when federation of primary types to CRD
-	if apiResource.Group != "federation.k8s.io" {
-		pool = c.kubePool
-	}
-	client, err := util.NewResourceClient(pool, &apiResource)
+	client, err := util.NewResourceClient(c.pool, &apiResource)
 	if err != nil {
 		c.tl.Fatalf("Error creating resource client: %v", err)
 	}

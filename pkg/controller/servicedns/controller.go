@@ -86,14 +86,12 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing MultiClusterServiceDNSRecord objects.
-func StartController(fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartController(config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
 	userAgent := "MultiClusterServiceDNS"
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
+	restclient.AddUserAgent(config, userAgent)
+	fedClient := fedclientset.NewForConfigOrDie(config)
+	kubeClient := kubeclientset.NewForConfigOrDie(config)
+	crClient := crclientset.NewForConfigOrDie(config)
 
 	controller, err := newController(fedClient, kubeClient, crClient)
 	if err != nil {

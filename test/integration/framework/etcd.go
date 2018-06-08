@@ -17,8 +17,10 @@ limitations under the License.
 package framework
 
 import (
-	"github.com/kubernetes-sig-testing/frameworks/integration"
+	"net/url"
+
 	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/testing_frameworks/integration"
 )
 
 var (
@@ -26,7 +28,7 @@ var (
 	refCount int
 )
 
-func SetUpEtcd(tl common.TestLogger) string {
+func SetUpEtcd(tl common.TestLogger) *url.URL {
 	if etcd == nil {
 		etcd = &integration.Etcd{}
 		err := etcd.Start()
@@ -36,7 +38,7 @@ func SetUpEtcd(tl common.TestLogger) string {
 		}
 	}
 	refCount += 1
-	return etcd.URL.String()
+	return etcd.URL
 }
 
 func TearDownEtcd(tl common.TestLogger) {

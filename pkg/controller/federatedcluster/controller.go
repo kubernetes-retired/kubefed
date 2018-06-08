@@ -57,14 +57,11 @@ type ClusterController struct {
 }
 
 // StartClusterController starts a new cluster controller
-func StartClusterController(fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
-	userAgent := "cluster-controller"
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
+func StartClusterController(config *restclient.Config, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
+	restclient.AddUserAgent(config, "cluster-controller")
+	fedClient := fedclientset.NewForConfigOrDie(config)
+	kubeClient := kubeclientset.NewForConfigOrDie(config)
+	crClient := crclientset.NewForConfigOrDie(config)
 
 	controller := newClusterController(fedClient, kubeClient, crClient, clusterMonitorPeriod)
 	glog.Infof("Starting cluster controller")

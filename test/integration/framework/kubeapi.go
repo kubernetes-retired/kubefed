@@ -17,26 +17,23 @@ limitations under the License.
 package framework
 
 import (
-	"fmt"
 	"net/url"
 	"os"
-	"strconv"
 
 	"github.com/pborman/uuid"
 
-	"github.com/kubernetes-sig-testing/frameworks/integration"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/testing_frameworks/integration"
 )
 
 // KubernetesApiFixture manages a kubernetes api server
 type KubernetesApiFixture struct {
-	EtcdUrl             string
-	Host                string
-	SecureConfigFixture *SecureConfigFixture
-	ApiServer           *integration.APIServer
-	IsPrimary           bool
+	EtcdUrl   *url.URL
+	Host      string
+	ApiServer *integration.APIServer
+	IsPrimary bool
 }
 
 func SetUpKubernetesApiFixture(tl common.TestLogger) *KubernetesApiFixture {
@@ -49,44 +46,31 @@ func (f *KubernetesApiFixture) setUp(tl common.TestLogger) {
 	defer TearDownOnPanic(tl, f)
 
 	f.EtcdUrl = SetUpEtcd(tl)
-	f.SecureConfigFixture = SetUpSecureConfigFixture(tl)
 
-	// TODO(marun) ensure resiliency in the face of another process
-	// taking the port
-
-	port, err := FindFreeLocalPort()
-	if err != nil {
-		tl.Fatal(err)
-	}
-
-	bindAddress := "127.0.0.1"
-	f.Host = fmt.Sprintf("https://%s:%d", bindAddress, port)
-	url, err := url.Parse(f.Host)
-	if err != nil {
-		tl.Fatalf("Error parsing url: %v", err)
-	}
+	// TODO(marun) Enable https apiserver for integration.APIServer
 
 	args := []string{
-		"--etcd-servers", f.EtcdUrl,
-		"--client-ca-file", f.SecureConfigFixture.CACertFile,
-		"--cert-dir", f.SecureConfigFixture.CertDir,
-		"--bind-address", bindAddress,
-		"--secure-port", strconv.Itoa(port),
-		"--insecure-port", "0",
+		"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
+		"--cert-dir={{ .CertDir }}",
+		"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
+		"--insecure-bind-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}",
+		"--secure-port=0",
 		"--etcd-prefix", uuid.New(),
+		"--feature-gates=CustomResourceSubresources=true",
 	}
 
 	apiServer := &integration.APIServer{
-		URL:  url,
-		Args: args,
-		Out:  os.Stdout,
-		Err:  os.Stderr,
+		EtcdURL: f.EtcdUrl,
+		Args:    args,
+		Out:     os.Stdout,
+		Err:     os.Stderr,
 	}
-	err = apiServer.Start()
+	err := apiServer.Start()
 	if err != nil {
 		tl.Fatalf("Error starting kubernetes apiserver: %v", err)
 	}
 	f.ApiServer = apiServer
+	f.Host = f.ApiServer.URL.String()
 }
 
 func (f *KubernetesApiFixture) TearDown(tl common.TestLogger) {
@@ -94,13 +78,9 @@ func (f *KubernetesApiFixture) TearDown(tl common.TestLogger) {
 		f.ApiServer.Stop()
 		f.ApiServer = nil
 	}
-	if len(f.EtcdUrl) > 0 {
+	if f.EtcdUrl != nil {
 		TearDownEtcd(tl)
-		f.EtcdUrl = ""
-	}
-	if f.SecureConfigFixture != nil {
-		f.SecureConfigFixture.TearDown(tl)
-		f.SecureConfigFixture = nil
+		f.EtcdUrl = nil
 	}
 }
 
@@ -111,5 +91,5 @@ func (f *KubernetesApiFixture) NewClient(tl common.TestLogger, userAgent string)
 }
 
 func (f *KubernetesApiFixture) NewConfig(tl common.TestLogger) *rest.Config {
-	return f.SecureConfigFixture.NewClientConfig(tl, f.Host)
+	return &rest.Config{Host: f.Host}
 }

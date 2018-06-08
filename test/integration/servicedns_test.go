@@ -78,31 +78,23 @@ var TestMultiClusterServiceDNS = func(t *testing.T) {
 				return fixture.client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Get(name, metav1.GetOptions{})
 			}
 
-			serviceDNSObj := common.NewServiceDNSObject(tc.name, namespace)
+			serviceDNS := common.NewServiceDNSObject(tc.name, namespace)
 			tl.Logf("Create serviceDNSObj: %s", key)
-			serviceDNSObj, err := fixture.client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNSObj)
+			serviceDNSObj, err := fixture.client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNS)
+			name := serviceDNSObj.Name
 			if err != nil {
 				tl.Fatalf("Error creating MultiClusterServiceDNS object %q: %v", key, err)
 			}
-			defer func() {
-				fixture.client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Delete(tc.name, &metav1.DeleteOptions{})
-				common.WaitForObjectDeletion(tl, namespace, tc.name, objectGetter, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
-				tl.Logf("Delete MultiClusterServiceDNS object success: %s", key)
-			}()
 			tl.Logf("Create MultiClusterServiceDNS object success: %s", key)
 
 			for clusterName, clusterClient := range fixture.clusterClients {
 				if tc.createService {
-					service := common.NewServiceObject(tc.name, namespace)
+					service := common.NewServiceObject(name, namespace)
 					tl.Logf("Create service %q, in cluster: %s", key, clusterName)
 					service, err = clusterClient.CoreV1().Services(namespace).Create(service)
 					if err != nil {
 						tl.Fatalf("Error creating service %q in cluster %q: %v", key, clusterName, err)
 					}
-					defer func(clusterName string) {
-						clusterClient.CoreV1().Services(namespace).Delete(tc.name, &metav1.DeleteOptions{})
-						tl.Logf("Service %q deleted in cluster %q", key, clusterName)
-					}(clusterName)
 
 					service.Status = apiv1.ServiceStatus{LoadBalancer: apiv1.LoadBalancerStatus{
 						Ingress: []apiv1.LoadBalancerIngress{{IP: fixture.clusterLbs[clusterName]}}}}
@@ -113,25 +105,20 @@ var TestMultiClusterServiceDNS = func(t *testing.T) {
 					tl.Logf("Created service: %q", key)
 				}
 				if tc.createEndpoint {
-					endpoint := common.NewEndpointObject(tc.name, namespace)
+					endpoint := common.NewEndpointObject(name, namespace)
 					tl.Logf("Create endpoint %q, in cluster: %s", key, clusterName)
 					endpoint, err = clusterClient.CoreV1().Endpoints(namespace).Create(endpoint)
 					if err != nil {
 						tl.Fatalf("Error creating endpoint %q in cluster %q: %v", key, clusterName, err)
 					}
-					defer func(clusterName string) {
-						clusterClient.CoreV1().Endpoints(namespace).Delete(tc.name, &metav1.DeleteOptions{})
-						tl.Logf("Endpoint %q deleted in cluster %q", key, clusterName)
-					}(clusterName)
 					tl.Logf("Created endpoint: %q", key)
 				}
 			}
 
-			desiredServiceDNSObj := common.NewServiceDNSObject(tc.name, namespace)
-			desiredServiceDNSObj.Status.DNS = tc.desiredDNSStatus
+			serviceDNSObj.Status.DNS = tc.desiredDNSStatus
 
 			tl.Logf("Wait for MultiClusterServiceDNS object status update")
-			common.WaitForObject(tl, namespace, tc.name, objectGetter, desiredServiceDNSObj, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
+			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNSObj, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 			tl.Logf("MultiClusterServiceDNS object status is updated successfully: %s", key)
 		})
 	}
