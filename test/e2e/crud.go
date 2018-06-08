@@ -48,6 +48,19 @@ var _ = Describe("Federated types", func() {
 		tl.Fatalf("Error loading type configs: %v", err)
 	}
 
+	// Find the namespace typeconfig to be able to start its sync
+	// controller as needed.
+	var namespaceTypeConfig typeconfig.Interface
+	for _, typeConfig := range typeConfigs {
+		if typeConfig.GetTarget().Kind == util.NamespaceKind {
+			namespaceTypeConfig = typeConfig
+			break
+		}
+	}
+	if namespaceTypeConfig == nil {
+		tl.Fatalf("Unable to find namespace type config")
+	}
+
 	for i, _ := range typeConfigs {
 		// Bind the type config inside the loop to ensure the ginkgo
 		// closure gets a different value for every loop iteration.
@@ -69,7 +82,7 @@ var _ = Describe("Federated types", func() {
 				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
 					return common.NewTestObjects(typeConfig, namespace, clusterNames)
 				}
-				validateCrud(f, tl, typeConfig, testObjectFunc)
+				validateCrud(f, tl, typeConfig, namespaceTypeConfig, testObjectFunc)
 			})
 		})
 	}
@@ -203,7 +216,7 @@ spec:
 				return template, placement, nil, nil
 			}
 
-			validateCrud(f, tl, typeConfig, testObjectFunc)
+			validateCrud(f, tl, typeConfig, namespaceTypeConfig, testObjectFunc)
 		})
 	})
 })
@@ -225,19 +238,24 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 	}
 }
 
-func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
-	// Initialize an in-memory controller if configuration requires
+func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig, namespaceTypeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
+	// Initialize in-memory controllers if configuration requires
 	f.SetUpControllerFixture(typeConfig)
+	if typeConfig.GetTarget().Kind != util.NamespaceKind {
+		// The namespace controller is required to ensure namespaces
+		// are created as needed in member clusters in advance of
+		// propagation of other namespaced types.
+		f.SetUpControllerFixture(namespaceTypeConfig)
+	}
 
 	templateKind := typeConfig.GetTemplate().Kind
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 
-	fedConfig := f.FedConfig()
 	kubeConfig := f.KubeConfig()
 	targetAPIResource := typeConfig.GetTarget()
 	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
-	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
+	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 	}

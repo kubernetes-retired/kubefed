@@ -17,15 +17,20 @@ limitations under the License.
 package framework
 
 import (
+	"fmt"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 // FederationFramework provides an interface to a test federation so
@@ -34,11 +39,10 @@ type FederationFramework interface {
 	BeforeEach()
 	AfterEach()
 
-	FedConfig() *restclient.Config
 	KubeConfig() *restclient.Config
 
-	FedClient(userAgent string) fedclientset.Interface
 	KubeClient(userAgent string) kubeclientset.Interface
+	FedClient(userAgent string) fedclientset.Interface
 	CrClient(userAgent string) crclientset.Interface
 
 	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
@@ -59,16 +63,17 @@ type FederationFramework interface {
 // The workaround is using a wrapper that performs late-binding on the
 // framework flavor.
 type frameworkWrapper struct {
-	impl     FederationFramework
-	baseName string
+	impl              FederationFramework
+	baseName          string
+	testNamespaceName string
 }
 
 func NewFederationFramework(baseName string) FederationFramework {
 	f := &frameworkWrapper{
 		baseName: baseName,
 	}
-	ginkgo.AfterEach(f.AfterEach)
-	ginkgo.BeforeEach(f.BeforeEach)
+	AfterEach(f.AfterEach)
+	BeforeEach(f.BeforeEach)
 	return f
 }
 
@@ -91,20 +96,16 @@ func (f *frameworkWrapper) AfterEach() {
 	f.framework().AfterEach()
 }
 
-func (f *frameworkWrapper) FedConfig() *restclient.Config {
-	return f.framework().FedConfig()
-}
-
 func (f *frameworkWrapper) KubeConfig() *restclient.Config {
 	return f.framework().KubeConfig()
 }
 
-func (f *frameworkWrapper) FedClient(userAgent string) fedclientset.Interface {
-	return f.framework().FedClient(userAgent)
-}
-
 func (f *frameworkWrapper) KubeClient(userAgent string) kubeclientset.Interface {
 	return f.framework().KubeClient(userAgent)
+}
+
+func (f *frameworkWrapper) FedClient(userAgent string) fedclientset.Interface {
+	return f.framework().FedClient(userAgent)
 }
 
 func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
@@ -119,12 +120,43 @@ func (f *frameworkWrapper) ClusterKubeClients(userAgent string) map[string]kubec
 	return f.framework().ClusterKubeClients(userAgent)
 }
 
-func (f *frameworkWrapper) TestNamespaceName() string {
-	return f.framework().TestNamespaceName()
-}
-
 func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	f.framework().SetUpControllerFixture(typeConfig)
+}
+
+func (f *frameworkWrapper) TestNamespaceName() string {
+	if f.testNamespaceName == "" {
+		By("Creating a namespace to execute the test in")
+		client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
+		namespaceName, err := createNamespace(client, f.baseName)
+		Expect(err).NotTo(HaveOccurred())
+		f.testNamespaceName = namespaceName
+		By(fmt.Sprintf("Created test namespace %s", namespaceName))
+	}
+	return f.testNamespaceName
+}
+
+func createNamespace(client kubeclientset.Interface, baseName string) (string, error) {
+	namespaceObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("e2e-tests-%v-", baseName),
+		},
+	}
+	// Be robust about making the namespace creation call.
+	// TODO(marun) should all api calls be made 'robustly'?
+	var namespaceName string
+	if err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
+		namespace, err := client.Core().Namespaces().Create(namespaceObj)
+		if err != nil {
+			Logf("Unexpected error while creating namespace: %v", err)
+			return false, nil
+		}
+		namespaceName = namespace.Name
+		return true, nil
+	}); err != nil {
+		return "", err
+	}
+	return namespaceName, nil
 }
 
 func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {

@@ -117,8 +117,8 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, fedConfig, kubeConfig, crConfig)
+func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+	controller, err := newFederationSyncController(typeConfig, kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -131,32 +131,18 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, fedConfig, k
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config) (*FederationSyncController, error) {
+func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
 	restclient.AddUserAgent(kubeConfig, userAgent)
+	fedClient := fedclientset.NewForConfigOrDie(kubeConfig)
 	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
+	crClient := crclientset.NewForConfigOrDie(kubeConfig)
 
-	// In testing where aggregation may not be configured, namespace
-	// and crd resources will need to use the kube config.  When
-	// aggregation is in use, both pools will use the same config.
-	fedPool := dynamic.NewDynamicClientPool(fedConfig)
-	kubePool := dynamic.NewDynamicClientPool(kubeConfig)
-	clientFor := func(apiResource metav1.APIResource) (util.ResourceClient, error) {
-		pool := fedPool
-		// TODO(marun) Revisit this when federation of primary types to CRD
-		if apiResource.Group != "federation.k8s.io" {
-			pool = kubePool
-		}
-		return util.NewResourceClient(pool, &apiResource)
-	}
+	pool := dynamic.NewDynamicClientPool(kubeConfig)
 
-	templateClient, err := clientFor(templateAPIResource)
+	templateClient, err := util.NewResourceClient(pool, &templateAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -191,14 +177,15 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, metav1.NamespaceAll, deliverObj)
 
 	if overrideAPIResource := typeConfig.GetOverride(); overrideAPIResource != nil {
-		client, err := clientFor(*overrideAPIResource)
+		client, err := util.NewResourceClient(pool, overrideAPIResource)
 		if err != nil {
 			return nil, err
 		}
 		s.overrideStore, s.overrideController = util.NewResourceInformer(client, metav1.NamespaceAll, deliverObj)
 	}
 
-	placementClient, err := clientFor(typeConfig.GetPlacement())
+	placementAPIResource := typeConfig.GetPlacement()
+	placementClient, err := util.NewResourceClient(pool, &placementAPIResource)
 	if err != nil {
 		return nil, err
 	}

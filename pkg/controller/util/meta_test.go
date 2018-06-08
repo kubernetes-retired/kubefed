@@ -70,7 +70,7 @@ func TestObjectMeta(t *testing.T) {
 		ResourceVersion: "1231255531412",
 	}
 	assert.Equal(t, 0, len(o2.UID))
-	assert.Equal(t, 0, len(o2.ResourceVersion))
+	assert.Equal(t, 3, len(o2.ResourceVersion))
 	assert.Equal(t, o1.Name, o2.Name)
 	assert.True(t, ObjectMetaEquivalent(o1, o2))
 	assert.False(t, ObjectMetaEquivalent(o1, o3))

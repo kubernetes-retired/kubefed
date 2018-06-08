@@ -21,6 +21,7 @@ import (
 	"sort"
 
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -39,7 +40,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 	tl := framework.NewE2ELogger()
 
 	const userAgent = "test-service-dns"
-	const name = "test-service-dns"
+	const baseName = "test-service-dns-"
 
 	var fedClient fedclientset.Interface
 	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
@@ -47,7 +48,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
-		federatedClusters, err := fedClient.FederationV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 		framework.ExpectNoError(err, "Error listing federated clusters")
 		clusterRegionZones = make(map[string]fedv1a1.FederatedClusterStatus)
 		for _, cluster := range federatedClusters.Items {
@@ -67,9 +68,9 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 		namespace := f.TestNamespaceName()
 
 		By("Create the ServiceDNS object")
-		serviceDNS := common.NewServiceDNSObject(name, namespace)
-		_, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNS)
-		framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object %v", serviceDNS)
+		serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
+		serviceDNS, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNSObj)
+		framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object: %v", serviceDNS)
 
 		serviceDNSStatus := dnsv1a1.MultiClusterServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
 		for clusterName, _ := range f.ClusterKubeClients(userAgent) {
@@ -85,16 +86,17 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 		serviceDNS.Status = serviceDNSStatus
 		By("Wait for the ServiceDNS object to have correct status")
-		common.WaitForObject(tl, namespace, name, objectGetter, serviceDNS, framework.PollInterval, wait.ForeverTestTimeout)
+		common.WaitForObject(tl, namespace, serviceDNS.Name, objectGetter, serviceDNS, framework.PollInterval, wait.ForeverTestTimeout)
 	})
 
 	It("ServiceDNS object status should be updated, when service and endpoint are created in member cluster", func() {
 		namespace := f.TestNamespaceName()
 
 		By("Create the ServiceDNS object")
-		serviceDNS := common.NewServiceDNSObject(name, namespace)
-		_, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNS)
+		serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
+		serviceDNS, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNSObj)
 		framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object %v", serviceDNS)
+		name := serviceDNS.Name
 
 		serviceDNSStatus := dnsv1a1.MultiClusterServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
 
@@ -110,13 +112,23 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 			loadbalancerStatus := apiv1.LoadBalancerStatus{Ingress: []apiv1.LoadBalancerIngress{{IP: clusterLb}}}
 			serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{Cluster: clusterName, LoadBalancer: loadbalancerStatus})
 
-			_, err = client.CoreV1().Services(namespace).Create(service)
+			// Ensure the test namespace exists in the target cluster.
+			_, err = client.CoreV1().Namespaces().Create(&apiv1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			})
+			if !errors.IsAlreadyExists(err) {
+				framework.ExpectNoError(err, "Error creating namespace in cluster %q", clusterName)
+			}
+
+			createdService, err := client.CoreV1().Services(namespace).Create(service)
 			framework.ExpectNoError(err, "Error creating service in cluster %q", clusterName)
 
-			service.Status = apiv1.ServiceStatus{loadbalancerStatus}
+			createdService.Status = apiv1.ServiceStatus{loadbalancerStatus}
 
 			// Fake out provisioning LoadBalancer by updating the service status in member cluster.
-			_, err = client.CoreV1().Services(namespace).UpdateStatus(service)
+			_, err = client.CoreV1().Services(namespace).UpdateStatus(createdService)
 			framework.ExpectNoError(err, "Error updating service status in cluster %q", clusterName)
 
 			// Fake out pods backing service by creating endpoint in member cluster.

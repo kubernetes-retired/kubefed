@@ -85,15 +85,12 @@ type ReplicaSchedulingPreferenceController struct {
 }
 
 // ReplicaSchedulingPreferenceController starts a new controller for ReplicaSchedulingPreferences
-func StartReplicaSchedulingPreferenceController(fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
-	userAgent := "replicaschedulingpreference-controller"
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
-	controller, err := newReplicaSchedulingPreferenceController(fedConfig, fedClient, kubeClient, crClient)
+func StartReplicaSchedulingPreferenceController(config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+	restclient.AddUserAgent(config, "replicaschedulingpreference-controller")
+	fedClient := fedclientset.NewForConfigOrDie(config)
+	kubeClient := kubeclientset.NewForConfigOrDie(config)
+	crClient := crclientset.NewForConfigOrDie(config)
+	controller, err := newReplicaSchedulingPreferenceController(fedClient, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
@@ -106,7 +103,7 @@ func StartReplicaSchedulingPreferenceController(fedConfig, kubeConfig, crConfig 
 }
 
 // newReplicaSchedulingPreferenceController returns a new ReplicaSchedulingPreference Controller for the given client
-func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*ReplicaSchedulingPreferenceController, error) {
+func newReplicaSchedulingPreferenceController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*ReplicaSchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
