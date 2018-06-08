@@ -187,7 +187,8 @@
     "pkg/inject/args",
     "pkg/inject/run",
     "pkg/install",
-    "pkg/signals"
+    "pkg/signals",
+    "pkg/test"
   ]
   revision = "fea9e3a5c0b00a407e337857eda7d4f967a8347f"
   version = "v0.1.11"
@@ -511,6 +512,7 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "discovery/fake",
     "dynamic",
     "informers",
     "informers/admissionregistration",
@@ -617,6 +619,7 @@
     "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
+    "testing",
     "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
@@ -645,12 +648,12 @@
   name = "k8s.io/cluster-registry"
   packages = [
     "pkg/apis/clusterregistry/v1alpha1",
-    "pkg/client/clientset_generated/clientset",
-    "pkg/client/clientset_generated/clientset/scheme",
-    "pkg/client/clientset_generated/clientset/typed/clusterregistry/v1alpha1"
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/clusterregistry/v1alpha1"
   ]
-  revision = "8ec3a68e0da81c80f146cb3e010907edbb0737a6"
-  version = "v0.0.4"
+  revision = "423735c7f10cbbc83ccee14d62b266ddcf9709dd"
+  version = "v0.0.6"
 
 [[projects]]
   name = "k8s.io/kube-aggregator"
@@ -666,10 +669,7 @@
 
 [[projects]]
   name = "k8s.io/kube-openapi"
-  packages = [
-    "pkg/common",
-    "pkg/util/proto"
-  ]
+  packages = ["pkg/util/proto"]
   revision = "f08db293d3ef80052d6513ece19792642a289fea"
 
 [[projects]]
@@ -683,6 +683,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b501e19fa8069ddbf2c0e523bd38dd73d306e093b022322ee7577664ae7369d2"
+  inputs-digest = "f04a7742ef8b0c4fafa24717037870731b0fbdf66da8e08c475b853092460141"
   solver-name = "gps-cdcl"
   solver-version = 1

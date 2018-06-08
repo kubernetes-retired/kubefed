@@ -1,0 +1,61 @@
+{
+  "table_of_contents": {},
+  "docs": [
+    {
+      "filename": "_clusterregistry.md"
+    },
+    {
+      "filename": "_generated_cluster_v1alpha1_clusterregistry_concept.md"
+    },
+    {
+      "filename": "_oldversions.md"
+    },
+    {
+      "filename": "_definitions.md"
+    },
+    {
+      "filename": "_generated_authinfo_v1alpha1_clusterregistry_definition.md"
+    },
+    {
+      "filename": "_generated_clustercondition_v1alpha1_clusterregistry_definition.md"
+    },
+    {
+      "filename": "_generated_initializer_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_initializers_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_kubernetesapiendpoints_v1alpha1_clusterregistry_definition.md"
+    },
+    {
+      "filename": "_generated_listmeta_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_objectmeta_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_objectreference_v1alpha1_clusterregistry_definition.md"
+    },
+    {
+      "filename": "_generated_ownerreference_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_serveraddressbyclientcidr_v1alpha1_clusterregistry_definition.md"
+    },
+    {
+      "filename": "_generated_status_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_statuscause_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_statusdetails_v1_meta_definition.md"
+    },
+    {
+      "filename": "_generated_time_v1_meta_definition.md"
+    }
+  ],
+  "title": "API Reference",
+  "copyright": "\u003ca href=\"https://github.com/kubernetes/kubernetes\"\u003eCopyright 2018 The Kubernetes Authors.\u003c/a\u003e"
+}
