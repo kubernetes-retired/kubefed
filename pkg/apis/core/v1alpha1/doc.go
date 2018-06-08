@@ -25,5 +25,5 @@ limitations under the License.
 // +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/federation
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=federation.k8s.io
-package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 

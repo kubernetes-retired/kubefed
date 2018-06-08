@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"

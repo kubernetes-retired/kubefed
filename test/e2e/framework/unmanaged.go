@@ -21,9 +21,9 @@ import (
 	"sort"
 	"time"
 
-	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"

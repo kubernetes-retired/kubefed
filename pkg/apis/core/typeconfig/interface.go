@@ -17,7 +17,7 @@ limitations under the License.
 package typeconfig
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

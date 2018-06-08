@@ -19,7 +19,7 @@ package framework
 import (
 	"time"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	rsp "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"

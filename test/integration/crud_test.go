@@ -23,7 +23,7 @@ import (
 
 	"github.com/pborman/uuid"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"

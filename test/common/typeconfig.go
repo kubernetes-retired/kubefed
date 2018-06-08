@@ -24,8 +24,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
