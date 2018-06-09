@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"log"
+	"strings"
 	"time"
 
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
@@ -28,15 +29,27 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
 	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
+	"github.com/kubernetes-sigs/federation-v2/pkg/features"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	flagutil "k8s.io/apiserver/pkg/util/flag"
 )
 
 var kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig")
+var featureGates map[string]bool
 
 func main() {
+	flag.Var(flagutil.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
+		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
+
 	flag.Parse()
 	config, err := controllerlib.GetConfig(*kubeconfig)
 	if err != nil {
 		log.Fatalf("Could not create Config for talking to the apiserver: %v", err)
+	}
+
+	err = utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
+	if err != nil {
+		log.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
 	stopChan := make(chan struct{})
@@ -50,20 +63,24 @@ func main() {
 	clusterMonitorPeriod := time.Second * 40
 	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
 
-	// Initialize shared informer to enable reuse of the controller factory.
-	// TODO(marun) Shared informer doesn't makes sense for FederatedTypeConfig.
-	si := &sharedinformers.SharedInformers{
-		controllerlib.SharedInformersDefaults{},
-		externalversions.NewSharedInformerFactory(clientset.NewForConfigOrDie(config), 10*time.Minute),
+	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
+		// Initialize shared informer to enable reuse of the controller factory.
+		// TODO(marun) Shared informer doesn't makes sense for FederatedTypeConfig.
+		si := &sharedinformers.SharedInformers{
+			controllerlib.SharedInformersDefaults{},
+			externalversions.NewSharedInformerFactory(clientset.NewForConfigOrDie(config), 10*time.Minute),
+		}
+		go si.Factory.Federation().V1alpha1().FederatedTypeConfigs().Informer().Run(stopChan)
+
+		c := manager.NewFederatedTypeConfigController(config, si)
+		c.Run(stopChan)
 	}
-	go si.Factory.Federation().V1alpha1().FederatedTypeConfigs().Informer().Run(stopChan)
 
-	c := manager.NewFederatedTypeConfigController(config, si)
-	c.Run(stopChan)
-
-	err = rspcontroller.StartReplicaSchedulingPreferenceController(config, config, config, stopChan, true)
-	if err != nil {
-		log.Fatalf("Error starting replicaschedulingpreference controller: %v", err)
+	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
+		err = rspcontroller.StartReplicaSchedulingPreferenceController(config, config, config, stopChan, true)
+		if err != nil {
+			log.Fatalf("Error starting replicaschedulingpreference controller: %v", err)
+		}
 	}
 
 	// Blockforever
