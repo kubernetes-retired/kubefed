@@ -343,15 +343,6 @@ func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 	}()
 }
 
-type reconciliationStatus int
-
-const (
-	statusAllOK reconciliationStatus = iota
-	statusNeedsRecheck
-	statusError
-	statusNotSynced
-)
-
 func (s *FederationSyncController) worker() {
 	for {
 		obj, quit := s.workQueue.Get()
@@ -365,13 +356,13 @@ func (s *FederationSyncController) worker() {
 		s.workQueue.Done(item)
 
 		switch status {
-		case statusAllOK:
+		case util.StatusAllOK:
 			break
-		case statusError:
+		case util.StatusError:
 			s.deliver(*qualifiedName, 0, true)
-		case statusNeedsRecheck:
+		case util.StatusNeedsRecheck:
 			s.deliver(*qualifiedName, s.reviewDelay, false)
-		case statusNotSynced:
+		case util.StatusNotSynced:
 			s.deliver(*qualifiedName, s.clusterAvailableDelay, false)
 		}
 	}
@@ -429,9 +420,9 @@ func (s *FederationSyncController) reconcileOnClusterChange() {
 	}
 }
 
-func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) reconciliationStatus {
+func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	if !s.isSynced() {
-		return statusNotSynced
+		return util.StatusNotSynced
 	}
 
 	templateKind := s.typeConfig.GetTemplate().Kind
@@ -445,7 +436,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) r
 		// to not propagate beyond just the default system namespaces e.g.
 		// clusterregistry.
 		if isSystemNamespace(namespace) {
-			return statusAllOK
+			return util.StatusAllOK
 		}
 	}
 
@@ -455,10 +446,10 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) r
 
 	template, err := s.objFromCache(s.templateStore, templateKind, key)
 	if err != nil {
-		return statusError
+		return util.StatusError
 	}
 	if template == nil {
-		return statusAllOK
+		return util.StatusAllOK
 	}
 
 	if template.GetDeletionTimestamp() != nil {
@@ -468,36 +459,36 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) r
 			args := []interface{}{templateKind, qualifiedName, err}
 			runtime.HandleError(fmt.Errorf(msg, args...))
 			s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "DeleteFailed", msg, args...)
-			return statusError
+			return util.StatusError
 		}
-		return statusAllOK
+		return util.StatusAllOK
 	}
 
 	glog.V(3).Infof("Ensuring finalizers exist on %s %q", templateKind, key)
 	finalizedTemplate, err := s.deletionHelper.EnsureFinalizers(template)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to ensure finalizers for %s %q: %v", templateKind, key, err))
-		return statusError
+		return util.StatusError
 	}
 	template = finalizedTemplate.(*unstructured.Unstructured)
 
 	clusterNames, err := s.clusterNames()
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
-		return statusNotSynced
+		return util.StatusNotSynced
 	}
 
 	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(key, clusterNames)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", templateKind, key, err))
-		return statusError
+		return util.StatusError
 	}
 
 	var override *unstructured.Unstructured
 	if s.overrideStore != nil {
 		override, err = s.objFromCache(s.overrideStore, s.typeConfig.GetOverride().Kind, key)
 		if err != nil {
-			return statusError
+			return util.StatusError
 		}
 	}
 
@@ -512,13 +503,13 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) r
 		// updates, but that's better than looping endlessly.
 		if targetKind != util.NamespaceKind {
 			// A status update is pending
-			return statusNeedsRecheck
+			return util.StatusNeedsRecheck
 		}
 	}
 	propagatedVersionFromCache, err := s.rawObjFromCache(s.propagatedVersionStore,
 		"PropagatedVersion", propagatedVersionKey)
 	if err != nil {
-		return statusError
+		return util.StatusError
 	}
 	var propagatedVersion *fedv1a1.PropagatedVersion
 	if propagatedVersionFromCache != nil {
@@ -607,7 +598,7 @@ func (s *FederationSyncController) versionName(resourceName string) string {
 // syncToClusters ensures that the state of the given object is synchronized to
 // member clusters.
 func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedClusters []string,
-	template, override *unstructured.Unstructured, propagatedVersion *fedv1a1.PropagatedVersion) reconciliationStatus {
+	template, override *unstructured.Unstructured, propagatedVersion *fedv1a1.PropagatedVersion) util.ReconciliationStatus {
 
 	templateKind := s.typeConfig.GetTemplate().Kind
 	key := util.NewQualifiedName(template).String()
@@ -621,11 +612,11 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	if err != nil {
 		s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "FedClusterOperationsError",
 			"Error obtaining sync operations for %s: %s error: %s", templateKind, key, err.Error())
-		return statusError
+		return util.StatusError
 	}
 
 	if len(operations) == 0 {
-		return statusAllOK
+		return util.StatusAllOK
 	}
 
 	// TODO(marun) raise the visibility of operationErrors to aid in debugging
@@ -646,10 +637,10 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	if len(operationErrors) > 0 {
 		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", templateKind,
 			key, operationErrors))
-		return statusError
+		return util.StatusError
 	}
 
-	return statusAllOK
+	return util.StatusAllOK
 }
 
 // getClusterVersions returns the cluster versions populated in the current

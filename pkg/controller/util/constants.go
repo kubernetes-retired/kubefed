@@ -27,3 +27,12 @@ const (
 	NamespaceKind = "Namespace"
 	ServiceKind   = "Service"
 )
+
+type ReconciliationStatus int
+
+const (
+	StatusAllOK ReconciliationStatus = iota
+	StatusNeedsRecheck
+	StatusError
+	StatusNotSynced
+)
