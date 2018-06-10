@@ -17,24 +17,17 @@ limitations under the License.
 package replicaschedulingpreference
 
 import (
-	"bytes"
 	"fmt"
-	"reflect"
-	"sort"
 	"time"
 
 	"github.com/golang/glog"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference/scheduler"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -56,7 +49,6 @@ const (
 
 // ReplicaSchedulingPreferenceController syncronises the template, override
 // and placement for a target deployment template with its spec (user preference).
-// TODO: make this usable atleast for current known scheduling types (deployments and replicasets)
 type ReplicaSchedulingPreferenceController struct {
 	// Used to allow time delay in triggering reconciliation
 	// when any of RSP, target template, override or placement
@@ -67,35 +59,14 @@ type ReplicaSchedulingPreferenceController struct {
 	// federation). This is used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
 
-	// Contains target resources present in members of federation.
-	targetInformer util.FederatedInformer
-
-	// Informs about pods present in members of federation.
-	// TODO: Rather then a separate informer, a typed client
-	// interface can be added into the targetInformer.
-	podInformer util.FederatedInformer
+	// scheduler holds all the information and functionality
+	// to handle the target objects of RSP
+	scheduler *scheduler.Scheduler
 
 	// Store for self (ReplicaSchedulingPreference)
 	store cache.Store
 	// Informer for self (ReplicaSchedulingPreference)
 	controller cache.Controller
-	// Client to the federation API
-	fedClient fedclientset.Interface
-
-	// Store for the templates of the federated type
-	templateStore cache.Store
-	// Informer for the templates of the federated type
-	templateController cache.Controller
-
-	// Store for the override directives of the federated type
-	overrideStore cache.Store
-	// Informer controller for override directives of the federated type
-	overrideController cache.Controller
-
-	// Store for the placements of the federated type
-	placementStore cache.Store
-	// Informer controller for placements of the federated type
-	placementController cache.Controller
 
 	// Work queue allowing parallel processing of resources
 	workQueue workqueue.Interface
@@ -149,17 +120,11 @@ func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedC
 		workQueue:               workqueue.New(),
 		backoff:                 flowcontrol.NewBackOff(5*time.Second, time.Minute),
 		eventRecorder:           recorder,
-		fedClient:               fedClient,
 	}
 
 	// Build delivereres for triggering reconciliations.
 	s.deliverer = util.NewDelayingDeliverer()
 	s.clusterDeliverer = util.NewDelayingDeliverer()
-
-	// Start informers on the resources for the federated type
-	deliverObj := func(obj pkgruntime.Object) {
-		s.deliverObj(obj, 0, false)
-	}
 
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
@@ -172,62 +137,18 @@ func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedC
 		},
 		&fedschedulingv1a1.ReplicaSchedulingPreference{},
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(deliverObj),
+		util.NewTriggerOnAllChanges(
+			func(obj pkgruntime.Object) {
+				s.deliverObj(obj, 0, false)
+			}),
 	)
 
-	s.templateStore, s.templateController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().FederatedDeployments(metav1.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().FederatedDeployments(metav1.NamespaceAll).Watch(options)
-			},
-		},
-		&fedv1a1.FederatedDeployment{},
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(deliverObj),
-	)
-
-	s.overrideStore, s.overrideController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().FederatedDeploymentOverrides(metav1.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().FederatedDeploymentOverrides(metav1.NamespaceAll).Watch(options)
-			},
-		},
-		&fedv1a1.FederatedDeploymentOverride{},
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(deliverObj),
-	)
-
-	s.placementStore, s.placementController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().FederatedDeploymentPlacements(metav1.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().FederatedDeploymentPlacements(metav1.NamespaceAll).Watch(options)
-			},
-		},
-		&fedv1a1.FederatedDeploymentPlacement{},
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(deliverObj),
-	)
-
-	// Federated informer on the resource type in members of federation.
-	s.targetInformer = util.NewFederatedInformer(
+	s.scheduler = scheduler.NewReplicaScheduler(
 		fedClient,
 		kubeClient,
 		crClient,
-		&metav1.APIResource{
-			Name:       "deployments",
-			Group:      "apps",
-			Version:    "v1",
-			Kind:       "deployment",
-			Namespaced: true,
+		func(obj pkgruntime.Object) {
+			s.deliverObj(obj, 0, false)
 		},
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, s.reviewDelay, false)
@@ -241,35 +162,7 @@ func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedC
 			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
-		},
-	)
-
-	// Federated informer watching pods in members of federation.
-	s.podInformer = util.NewFederatedInformer(
-		fedClient,
-		kubeClient,
-		crClient,
-		&metav1.APIResource{
-			Name:       "pods",
-			Group:      "",
-			Version:    "v1",
-			Kind:       "pod",
-			Namespaced: true,
-		},
-		func(obj pkgruntime.Object) {
-			s.deliverObj(obj, s.reviewDelay, false)
-		},
-		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
-				// When new cluster becomes available process all the target resources again.
-				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
-			},
-			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
-				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
-			},
-		},
-	)
+		})
 
 	return s, nil
 }
@@ -285,12 +178,8 @@ func (s *ReplicaSchedulingPreferenceController) minimizeLatency() {
 
 func (s *ReplicaSchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	go s.controller.Run(stopChan)
-	go s.templateController.Run(stopChan)
-	go s.overrideController.Run(stopChan)
-	go s.placementController.Run(stopChan)
+	s.scheduler.Start(stopChan)
 
-	s.targetInformer.Start()
-	s.podInformer.Start()
 	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
 		s.workQueue.Add(item)
 	})
@@ -305,55 +194,38 @@ func (s *ReplicaSchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	// Ensure all goroutines are cleaned up when the stop channel closes
 	go func() {
 		<-stopChan
-		s.targetInformer.Stop()
-		s.podInformer.Stop()
 		s.workQueue.ShutDown()
 		s.deliverer.Stop()
 		s.clusterDeliverer.Stop()
+		s.scheduler.Stop()
 	}()
 }
 
-type reconciliationStatus int
-
-const (
-	statusAllOK reconciliationStatus = iota
-	statusNeedsRecheck
-	statusError
-	statusNotSynced
-)
-
 func (s *ReplicaSchedulingPreferenceController) worker() {
 	for {
-		obj, quit := s.workQueue.Get()
+		item, quit := s.workQueue.Get()
 		if quit {
 			return
 		}
-
-		item := obj.(*util.DelayingDelivererItem)
-		qualifiedName := item.Value.(*util.QualifiedName)
+		typedItem := item.(*util.DelayingDelivererItem)
+		qualifiedName := typedItem.Value.(*util.QualifiedName)
 		status := s.reconcile(*qualifiedName)
-		s.workQueue.Done(item)
+		s.workQueue.Done(typedItem)
 
 		switch status {
-		case statusAllOK:
+		case util.StatusAllOK:
 			break
-		case statusError:
+		case util.StatusError:
 			s.deliver(*qualifiedName, 0, true)
-		case statusNeedsRecheck:
+		case util.StatusNeedsRecheck:
 			s.deliver(*qualifiedName, s.reviewDelay, false)
-		case statusNotSynced:
+		case util.StatusNotSynced:
 			s.deliver(*qualifiedName, s.clusterAvailableDelay, false)
 		}
 	}
 }
 
 func (s *ReplicaSchedulingPreferenceController) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
-	// TODO: right now this works on the RSP being same "ns/name" as the
-	// deploymenttemplate. Update this to rsp being able to use
-	// targetRef (kind+name) with multiple kinds.
-	// For reviewers - Plan is to use Objectmeta.OwnerReferences by setting it to
-	// created rsp into the target object. This way when reconcile is called
-	// the information will be available to link objects both ways.
 	qualifiedName := util.NewQualifiedName(obj)
 	s.deliver(qualifiedName, delay, failed)
 }
@@ -373,112 +245,54 @@ func (s *ReplicaSchedulingPreferenceController) deliver(qualifiedName util.Quali
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
 func (s *ReplicaSchedulingPreferenceController) isSynced() bool {
-	if !s.targetInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
-		return false
-	}
-	clusters, err := s.targetInformer.GetReadyClusters()
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
-		return false
-	}
-	if !s.targetInformer.GetTargetStore().ClustersSynced(clusters) {
-		return false
-	}
-
-	if !s.podInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
-		return false
-	}
-	clusters, err = s.podInformer.GetReadyClusters()
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
-		return false
-	}
-	if !s.podInformer.GetTargetStore().ClustersSynced(clusters) {
-		return false
-	}
-
-	if !s.controller.HasSynced() ||
-		!s.templateController.HasSynced() ||
-		!s.overrideController.HasSynced() ||
-		!s.placementController.HasSynced() {
-		return false
-	}
-
-	return true
+	return s.controller.HasSynced() && s.scheduler.HasSynced()
 }
 
-// The function triggers reconciliation of all target federated resources.
+// The function triggers reconciliation of all known RSP resources.
 func (s *ReplicaSchedulingPreferenceController) reconcileOnClusterChange() {
 	if !s.isSynced() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
-	for _, obj := range s.templateStore.List() {
+	for _, obj := range s.store.List() {
 		qualifiedName := util.NewQualifiedName(obj.(pkgruntime.Object))
 		s.deliver(qualifiedName, s.smallDelay, false)
 	}
 }
 
-func (s *ReplicaSchedulingPreferenceController) reconcile(qualifiedName util.QualifiedName) reconciliationStatus {
+func (s *ReplicaSchedulingPreferenceController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	if !s.isSynced() {
-		return statusNotSynced
+		return util.StatusNotSynced
 	}
 
 	kind := "ReplicaSchedulingPreference"
 	key := qualifiedName.String()
 
-	glog.V(4).Infof("Starting to reconcile %v %v", kind, key)
+	glog.V(4).Infof("Starting to reconcile %s controller triggerred key named %v", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %v %v (duration: %v)", kind, key, time.Now().Sub(startTime))
+	defer glog.V(4).Infof("Finished reconciling %s controller triggerred key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
 
 	rsp, err := s.objFromCache(s.store, kind, key)
 	if err != nil {
-		return statusError
+		return util.StatusAllOK
 	}
 	if rsp == nil {
-		return statusAllOK
+		// Nothing to do
+		return util.StatusAllOK
 	}
 
 	typedRsp, ok := rsp.(*fedschedulingv1a1.ReplicaSchedulingPreference)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Incorrect runtime object for RSP: %v", rsp))
-		return statusNotSynced
+		return util.StatusError
 	}
 
-	clusterNames, err := s.clusterNames()
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
-		return statusNotSynced
-	}
-	if len(clusterNames) == 0 {
-		// no joined clusters, nothing to do
-		return statusAllOK
-	}
-
-	template, err := s.objFromCache(s.templateStore, "FederatedDeployment", key)
-	if err != nil {
-		return statusError
-	}
-	if template == nil {
-		return statusAllOK
-	}
-
-	typedTemplate := template.(*fedv1a1.FederatedDeployment)
-	result, err := s.GetSchedulingResult(typedRsp, &typedTemplate.Spec.Template, key, clusterNames)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to compute the schedule information for RSP %q: %v", key, err))
-		return statusError
-	}
-
-	updateFederationTargets(s.fedClient, qualifiedName, result)
-	return statusAllOK
+	return s.scheduler.Reconcile(typedRsp, qualifiedName)
 }
 
 func (s *ReplicaSchedulingPreferenceController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
-		wrappedErr := fmt.Errorf("Failed to query %s store for %q: %v", kind, key, err)
+		wrappedErr := fmt.Errorf("Failed to query store while reconciling RSP controller, triggerred by %s named %q: %v", kind, key, err)
 		runtime.HandleError(wrappedErr)
 		return nil, err
 	}
@@ -486,273 +300,4 @@ func (s *ReplicaSchedulingPreferenceController) objFromCache(store cache.Store, 
 		return nil, nil
 	}
 	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
-}
-
-func (s *ReplicaSchedulingPreferenceController) clusterNames() ([]string, error) {
-	clusters, err := s.targetInformer.GetReadyClusters()
-	if err != nil {
-		return nil, err
-	}
-	clusterNames := []string{}
-	for _, cluster := range clusters {
-		clusterNames = append(clusterNames, cluster.Name)
-	}
-
-	return clusterNames, nil
-}
-
-func (s *ReplicaSchedulingPreferenceController) GetSchedulingResult(fedPref *fedschedulingv1a1.ReplicaSchedulingPreference, obj pkgruntime.Object, key string, clusterNames []string) (map[string]int64, error) {
-	objectGetter := func(clusterName, key string) (interface{}, bool, error) {
-		return s.targetInformer.GetTargetStore().GetByKey(clusterName, key)
-	}
-	podsGetter := func(clusterName string, unstructuredObj *unstructured.Unstructured) (pkgruntime.Object, error) {
-		client, err := s.podInformer.GetClientForCluster(clusterName)
-		if err != nil {
-			return nil, err
-		}
-		selectorLabels, ok := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
-		if !ok {
-			return nil, fmt.Errorf("missing selector on object: %v", err)
-		}
-
-		label := labels.SelectorFromSet(labels.Set(selectorLabels))
-		if err != nil {
-			return nil, fmt.Errorf("invalid selector: %v", err)
-		}
-		unstructuredPodList, err := client.Resources(unstructuredObj.GetNamespace()).List(metav1.ListOptions{LabelSelector: label.String()})
-		if err != nil || unstructuredPodList == nil {
-			return nil, err
-		}
-		return unstructuredPodList, nil
-	}
-
-	currentReplicasPerCluster, estimatedCapacity, err := clustersReplicaState(clusterNames, key, objectGetter, podsGetter)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: Move this to API defaulting logic
-	if len(fedPref.Spec.Clusters) == 0 {
-		fedPref.Spec.Clusters = map[string]fedschedulingv1a1.ClusterPreferences{
-			"*": {Weight: 1},
-		}
-	}
-
-	plnr := planner.NewPlanner(fedPref)
-	return schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity), nil
-}
-
-func schedule(planner *planner.Planner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) map[string]int64 {
-
-	scheduleResult, overflow := planner.Plan(clusterNames, currentReplicasPerCluster, estimatedCapacity, key)
-
-	// TODO: Check if we really need to place the template in clusters
-	// with 0 replicas. Override replicas would be set to 0 in this case.
-	result := make(map[string]int64)
-	for clusterName := range currentReplicasPerCluster {
-		result[clusterName] = 0
-	}
-
-	for clusterName, replicas := range scheduleResult {
-		result[clusterName] = replicas
-	}
-	for clusterName, replicas := range overflow {
-		result[clusterName] += replicas
-	}
-
-	if glog.V(4) {
-		buf := bytes.NewBufferString(fmt.Sprintf("Schedule - %q\n", key))
-		sort.Strings(clusterNames)
-		for _, clusterName := range clusterNames {
-			cur := currentReplicasPerCluster[clusterName]
-			target := scheduleResult[clusterName]
-			fmt.Fprintf(buf, "%s: current: %d target: %d", clusterName, cur, target)
-			if over, found := overflow[clusterName]; found {
-				fmt.Fprintf(buf, " overflow: %d", over)
-			}
-			if capacity, found := estimatedCapacity[clusterName]; found {
-				fmt.Fprintf(buf, " capacity: %d", capacity)
-			}
-			fmt.Fprintf(buf, "\n")
-		}
-		glog.V(4).Infof(buf.String())
-	}
-	return result
-}
-
-// clusterReplicaState returns information about the scheduling state of the pods running in the federated clusters.
-func clustersReplicaState(
-	clusterNames []string,
-	key string,
-	objectGetter func(clusterName string, key string) (interface{}, bool, error),
-	podsGetter func(clusterName string, obj *unstructured.Unstructured) (pkgruntime.Object, error)) (currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64, err error) {
-
-	currentReplicasPerCluster = make(map[string]int64)
-	estimatedCapacity = make(map[string]int64)
-
-	for _, clusterName := range clusterNames {
-		obj, exists, err := objectGetter(clusterName, key)
-		if err != nil {
-			return nil, nil, err
-		}
-		if !exists {
-			continue
-		}
-
-		unstructuredObj := obj.(*unstructured.Unstructured)
-		replicas, ok := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
-		if !ok {
-			replicas = int64(0)
-		}
-		readyReplicas, ok := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
-		if !ok {
-			readyReplicas = int64(0)
-		}
-
-		if replicas == readyReplicas {
-			currentReplicasPerCluster[clusterName] = readyReplicas
-		} else {
-			currentReplicasPerCluster[clusterName] = int64(0)
-			pods, err := podsGetter(clusterName, unstructuredObj)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			//TODO: Update AnalysePods to use typed podList.
-			// Unstructured list seems not very suitable for functions like
-			// AnalysePods() and there are many possibilities of unchecked
-			// errors, if extensive set or get of fields is done on unstructured
-			// object. A good mechanism might be to get a typed client
-			// in FedInformer which is much easier to work with in PodLists.
-			podList := pods.(*unstructured.UnstructuredList)
-			podStatus := podanalyzer.AnalyzePods(podList, time.Now())
-			currentReplicasPerCluster[clusterName] = int64(podStatus.RunningAndReady) // include pending as well?
-			unschedulable := int64(podStatus.Unschedulable)
-			if unschedulable > 0 {
-				estimatedCapacity[clusterName] = replicas - unschedulable
-			}
-		}
-	}
-	return currentReplicasPerCluster, estimatedCapacity, nil
-}
-
-func updateFederationTargets(fedClient fedclientset.Interface, qualifiedName util.QualifiedName, result map[string]int64) error {
-	newClusterNames := []string{}
-	for name := range result {
-		newClusterNames = append(newClusterNames, name)
-	}
-
-	err := updatePlacement(fedClient, qualifiedName, newClusterNames)
-	if err != nil {
-		return err
-	}
-
-	err = updateOverrides(fedClient, qualifiedName, result)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func updatePlacement(fedClient fedclientset.Interface, qualifiedName util.QualifiedName, newClusterNames []string) error {
-	placement, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-		newPlacement := &fedv1a1.FederatedDeploymentPlacement{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: qualifiedName.Namespace,
-				Name:      qualifiedName.Name,
-			},
-			Spec: fedv1a1.FederatedDeploymentPlacementSpec{
-				ClusterNames: newClusterNames,
-			},
-		}
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Create(newPlacement)
-		return err
-	}
-
-	if placementUpdateNeeded(placement.Spec.ClusterNames, newClusterNames) {
-		// TODO: do we need to make a copy of this object
-		newPlacement := placement
-		newPlacement.Spec.ClusterNames = newClusterNames
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Update(newPlacement)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func updateOverrides(fedClient fedclientset.Interface, qualifiedName util.QualifiedName, result map[string]int64) error {
-	override, err := fedClient.FederationV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-
-		newOverride := &fedv1a1.FederatedDeploymentOverride{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      qualifiedName.Name,
-				Namespace: qualifiedName.Namespace,
-			},
-			Spec: fedv1a1.FederatedDeploymentOverrideSpec{},
-		}
-
-		for clusterName, replicas := range result {
-			var r int32 = int32(replicas)
-			clusterOverride := fedv1a1.FederatedDeploymentClusterOverride{
-				ClusterName: clusterName,
-				Replicas:    &r,
-			}
-			newOverride.Spec.Overrides = append(newOverride.Spec.Overrides, clusterOverride)
-		}
-
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Create(newOverride)
-		return err
-	}
-
-	if overrideUpdateNeeded(override.Spec, result) {
-		// TODO: do we need to make a copy of this object
-		newOverride := override
-		newOverride.Spec = fedv1a1.FederatedDeploymentOverrideSpec{}
-		for clusterName, replicas := range result {
-			var r int32 = int32(replicas)
-			clusterOverride := fedv1a1.FederatedDeploymentClusterOverride{
-				ClusterName: clusterName,
-				Replicas:    &r,
-			}
-			newOverride.Spec.Overrides = append(newOverride.Spec.Overrides, clusterOverride)
-		}
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Update(newOverride)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// These assume that there would be no duplicate clusternames
-func placementUpdateNeeded(names, newNames []string) bool {
-	sort.Strings(names)
-	sort.Strings(newNames)
-	return !reflect.DeepEqual(names, newNames)
-}
-
-func overrideUpdateNeeded(overrideSpec fedv1a1.FederatedDeploymentOverrideSpec, result map[string]int64) bool {
-	resultLen := len(result)
-	checkLen := 0
-	for _, override := range overrideSpec.Overrides {
-		replicas, ok := result[override.ClusterName]
-		if !ok || (override.Replicas == nil) || (int32(replicas) != *override.Replicas) {
-			return true
-		}
-		checkLen += 1
-	}
-
-	return checkLen != resultLen
 }

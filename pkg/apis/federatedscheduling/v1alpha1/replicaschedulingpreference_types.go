@@ -45,10 +45,14 @@ type ReplicaSchedulingPreference struct {
 // ReplicaSchedulingPreferenceSpec defines the desired state of ReplicaSchedulingPreference
 type ReplicaSchedulingPreferenceSpec struct {
 	//TODO (@irfanurrehman); upgrade this to label selector only if need be.
-	// Currently supported kinds for this type in federation will be FederatedDeployments
-	// and FederatedReplicasets.
-	// The scheme used to match the RSP to target kind is simply both the RSP
-	// and target object to have same ns/name.
+	// The idea of this API is to have a a set of preferences which can
+	// be used for a target FederatedDeployment or FederatedReplicaset.
+	// Although the set of preferences in question can be applied to multiple
+	// target objects using label selectors, but there are no clear advantages
+	// of doing that as of now.
+	// To keep the implementation and usage simple, matching ns/name of RSP
+	// resource to the target resource is sufficient and only additional information
+	// needed in RSP resource is a target kind (FederatedDeployment or FederatedReplicaset).
 	TargetKind string
 
 	// Total number of pods desired across federated clusters.
