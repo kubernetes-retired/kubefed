@@ -108,8 +108,8 @@ func prefSpecWithoutClusterList(total int32) fedschedulingv1a1.ReplicaScheduling
 	return fedschedulingv1a1.ReplicaSchedulingPreferenceSpec{
 		TotalReplicas: total,
 		//TODO: TargetRef is actually unused in this pass of implementation
-		PreferenceTargetRef: fedschedulingv1a1.ObjectReference{},
-		Clusters:            map[string]fedschedulingv1a1.ClusterPreferences{},
+		TargetKind: "FederatedDeployment",
+		Clusters:   map[string]fedschedulingv1a1.ClusterPreferences{},
 	}
 }
 
