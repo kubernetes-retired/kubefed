@@ -84,9 +84,11 @@ func main() {
 		}
 	}
 
-	err = servicedns.StartController(config, config, config, stopChan, false)
-	if err != nil {
-		log.Fatalf("Error starting dns controller: %v", err)
+	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
+		err = servicedns.StartController(config, config, config, stopChan, false)
+		if err != nil {
+			log.Fatalf("Error starting dns controller: %v", err)
+		}
 	}
 
 	// Blockforever

@@ -38,6 +38,13 @@ const (
 	//
 	// Scheduler controllers which dynamically schedules workloads based on user preferences.
 	SchedulerPreferences utilfeature.Feature = "SchedulerPreferences"
+
+	// owner: @kubernetes-sigs/federation-v2-maintainers
+	// alpha: v0.1
+	//
+	// DNS based cross cluster service discovery.
+	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/multicluster/federated-services.md
+	CrossClusterServiceDiscovery utilfeature.Feature = "CrossClusterServiceDiscovery"
 )
 
 func init() {
@@ -48,6 +55,7 @@ func init() {
 // To add a new feature, define a key for it above and add it here. The features will be
 // available throughout Federation binaries.
 var defaultFederationFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
-	SchedulerPreferences: {Default: true, PreRelease: utilfeature.Alpha},
-	PushReconciler:       {Default: true, PreRelease: utilfeature.Alpha},
+	SchedulerPreferences:         {Default: true, PreRelease: utilfeature.Alpha},
+	PushReconciler:               {Default: true, PreRelease: utilfeature.Alpha},
+	CrossClusterServiceDiscovery: {Default: true, PreRelease: utilfeature.Alpha},
 }
