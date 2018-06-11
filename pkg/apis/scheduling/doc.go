@@ -1,6 +1,5 @@
-
 /*
-Copyright 2018 The Federation v2 Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,11 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-
 // +k8s:deepcopy-gen=package,register
-// +groupName=federatedscheduling.k8s.io
+// +groupName=scheduling.federation.k8s.io
 
 // Package api is the internal version of the API.
-package federatedscheduling
-
+package scheduling

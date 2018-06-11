@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"

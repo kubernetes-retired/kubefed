@@ -22,7 +22,7 @@ import (
 
 	"github.com/golang/glog"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference/scheduler"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -129,10 +129,10 @@ func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedC
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederatedschedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
+				return fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederatedschedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
+				return fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&fedschedulingv1a1.ReplicaSchedulingPreference{},

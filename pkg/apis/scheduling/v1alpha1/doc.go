@@ -1,6 +1,5 @@
-
 /*
-Copyright 2018 The Federation v2 Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 // Api versions allow the api contract for a resource to be changed while keeping
 // backward compatibility by support multiple concurrent versions
 // of the same resource
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling
+// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=federatedscheduling.k8s.io
-package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
-
+// +groupName=scheduling.federation.k8s.io
+package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"

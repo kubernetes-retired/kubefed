@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
@@ -166,7 +166,7 @@ func createTestObjs(rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, n
 		},
 		Spec: rspSpec,
 	}
-	_, err := fedClient.FederatedschedulingV1alpha1().ReplicaSchedulingPreferences(namespace).Create(rsp)
+	_, err := fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(namespace).Create(rsp)
 	if err != nil {
 		return "", err
 	}
