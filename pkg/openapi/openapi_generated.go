@@ -62,31 +62,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ObjectReference": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "ObjectReference contains enough information to let you identify the referred resource. Currently supported kinds for this type in federation will be FederatedDeployments and FederatedReplicasets",
-					Properties: map[string]spec.Schema{
-						"Kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds\"",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"Name": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"Kind", "Name"},
-				},
-			},
-			Dependencies: []string{},
-		},
 		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ReplicaSchedulingPreference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -191,9 +166,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "ReplicaSchedulingPreferenceSpec defines the desired state of ReplicaSchedulingPreference",
 					Properties: map[string]spec.Schema{
-						"PreferenceTargetRef": {
+						"TargetKind": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ObjectReference"),
+								Description: "Currently supported kinds for this type in federation will be FederatedDeployments and FederatedReplicasets. The scheme used to match the RSP to target kind is simply both the RSP and target object to have same ns/name.",
+								Type:        []string{"string"},
+								Format:      "",
 							},
 						},
 						"TotalReplicas": {
@@ -224,11 +201,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"PreferenceTargetRef", "TotalReplicas"},
+					Required: []string{"TargetKind", "TotalReplicas"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ClusterPreferences", "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ObjectReference"},
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ClusterPreferences"},
 		},
 		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1.ReplicaSchedulingPreferenceStatus": {
 			Schema: spec.Schema{

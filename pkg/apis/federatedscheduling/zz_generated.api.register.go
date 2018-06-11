@@ -79,10 +79,10 @@ type ReplicaSchedulingPreference struct {
 }
 
 type ReplicaSchedulingPreferenceSpec struct {
-	PreferenceTargetRef ObjectReference
-	TotalReplicas       int32
-	Rebalance           bool
-	Clusters            map[string]ClusterPreferences
+	TargetKind    string
+	TotalReplicas int32
+	Rebalance     bool
+	Clusters      map[string]ClusterPreferences
 }
 
 type ReplicaSchedulingPreferenceStatus struct {
@@ -92,11 +92,6 @@ type ClusterPreferences struct {
 	MinReplicas int64
 	MaxReplicas *int64
 	Weight      int64
-}
-
-type ObjectReference struct {
-	Kind string
-	Name string
 }
 
 //
