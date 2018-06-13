@@ -39,6 +39,10 @@ func NewFederatedDeploymentAdapter(fedClient fedclientset.Interface) SchedulerAd
 	}
 }
 
+func (d *FederatedDeploymentAdapter) TemplateObject() pkgruntime.Object {
+	return &fedv1a1.FederatedDeployment{}
+}
+
 func (d *FederatedDeploymentAdapter) TemplateList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
 	return d.fedClient.FederationV1alpha1().FederatedDeployments(namespace).List(options)
 }
@@ -47,12 +51,20 @@ func (d *FederatedDeploymentAdapter) TemplateWatch(namespace string, options met
 	return d.fedClient.FederationV1alpha1().FederatedDeployments(namespace).Watch(options)
 }
 
+func (d *FederatedDeploymentAdapter) OverrideObject() pkgruntime.Object {
+	return &fedv1a1.FederatedDeploymentOverride{}
+}
+
 func (d *FederatedDeploymentAdapter) OverrideList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
 	return d.fedClient.FederationV1alpha1().FederatedDeploymentOverrides(namespace).List(options)
 }
 
 func (d *FederatedDeploymentAdapter) OverrideWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
 	return d.fedClient.FederationV1alpha1().FederatedDeploymentOverrides(namespace).Watch(options)
+}
+
+func (d *FederatedDeploymentAdapter) PlacementObject() pkgruntime.Object {
+	return &fedv1a1.FederatedDeploymentPlacement{}
 }
 
 func (d *FederatedDeploymentAdapter) PlacementList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
@@ -84,7 +96,7 @@ func (d *FederatedDeploymentAdapter) ReconcilePlacement(fedClient fedclientset.I
 		return err
 	}
 
-	if placementUpdateNeeded(placement.Spec.ClusterNames, newClusterNames) {
+	if PlacementUpdateNeeded(placement.Spec.ClusterNames, newClusterNames) {
 		newPlacement := placement
 		newPlacement.Spec.ClusterNames = newClusterNames
 		_, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Update(newPlacement)
@@ -124,7 +136,7 @@ func (d *FederatedDeploymentAdapter) ReconcileOverride(fedClient fedclientset.In
 		return err
 	}
 
-	if overrideUpdateNeeded(override.Spec, result) {
+	if deploymentOverrideUpdateNeeded(override.Spec, result) {
 		newOverride := override
 		newOverride.Spec = fedv1a1.FederatedDeploymentOverrideSpec{}
 		for clusterName, replicas := range result {
@@ -145,13 +157,13 @@ func (d *FederatedDeploymentAdapter) ReconcileOverride(fedClient fedclientset.In
 }
 
 // These assume that there would be no duplicate clusternames
-func placementUpdateNeeded(names, newNames []string) bool {
+func PlacementUpdateNeeded(names, newNames []string) bool {
 	sort.Strings(names)
 	sort.Strings(newNames)
 	return !reflect.DeepEqual(names, newNames)
 }
 
-func overrideUpdateNeeded(overrideSpec fedv1a1.FederatedDeploymentOverrideSpec, result map[string]int64) bool {
+func deploymentOverrideUpdateNeeded(overrideSpec fedv1a1.FederatedDeploymentOverrideSpec, result map[string]int64) bool {
 	resultLen := len(result)
 	checkLen := 0
 	for _, override := range overrideSpec.Overrides {

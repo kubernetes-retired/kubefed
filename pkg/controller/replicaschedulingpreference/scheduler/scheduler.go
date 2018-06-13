@@ -58,22 +58,25 @@ var resources = map[string]metav1.APIResource{
 		Kind:       Deployment,
 		Namespaced: true,
 	},
-	/*	FederatedReplicaSet: {
+	FederatedReplicaSet: {
 		Name:       strings.ToLower(ReplicaSet) + "s",
 		Group:      appsv1.SchemeGroupVersion.Group,
 		Version:    appsv1.SchemeGroupVersion.Version,
 		Kind:       ReplicaSet,
 		Namespaced: true,
-	},*/
+	},
 }
 
 type SchedulerAdapter interface {
+	TemplateObject() pkgruntime.Object
 	TemplateList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
 	TemplateWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
 
+	OverrideObject() pkgruntime.Object
 	OverrideList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
 	OverrideWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
 
+	PlacementObject() pkgruntime.Object
 	PlacementList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
 	PlacementWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
 
@@ -98,7 +101,7 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 		case FederatedDeployment:
 			adapter = NewFederatedDeploymentAdapter(fedClient)
 		case FederatedReplicaSet:
-
+			adapter = NewFederatedReplicaSetAdapter(fedClient)
 		}
 		scheduler.plugins[name] = NewPlugin(
 			adapter,

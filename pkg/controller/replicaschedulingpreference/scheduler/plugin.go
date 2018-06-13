@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +73,7 @@ func NewPlugin(adapter SchedulerAdapter, apiResource *metav1.APIResource, fedCli
 				return adapter.TemplateWatch(metav1.NamespaceAll, options)
 			},
 		},
-		&fedv1a1.FederatedDeployment{},
+		adapter.TemplateObject(),
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(federationEventHandler),
 	)
@@ -88,7 +87,7 @@ func NewPlugin(adapter SchedulerAdapter, apiResource *metav1.APIResource, fedCli
 				return adapter.OverrideWatch(metav1.NamespaceAll, options)
 			},
 		},
-		&fedv1a1.FederatedDeploymentOverride{},
+		adapter.OverrideObject(),
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(federationEventHandler),
 	)
@@ -102,7 +101,7 @@ func NewPlugin(adapter SchedulerAdapter, apiResource *metav1.APIResource, fedCli
 				return adapter.PlacementWatch(metav1.NamespaceAll, options)
 			},
 		},
-		&fedv1a1.FederatedDeploymentPlacement{},
+		adapter.PlacementObject(),
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(federationEventHandler),
 	)
