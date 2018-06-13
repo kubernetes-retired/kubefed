@@ -17,31 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedConfigMap
-// +k8s:openapi-gen=true
-// +resource:path=federatedconfigmaps,strategy=FederatedConfigMapStrategy
-type FederatedConfigMap struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedConfigMapSpec   `json:"spec,omitempty"`
-	Status FederatedConfigMapStatus `json:"status,omitempty"`
-}
 
 // FederatedConfigMapSpec defines the desired state of FederatedConfigMap
 type FederatedConfigMapSpec struct {
@@ -53,18 +31,16 @@ type FederatedConfigMapSpec struct {
 type FederatedConfigMapStatus struct {
 }
 
-// Validate checks that an instance of FederatedConfigMap is well formed
-func (FederatedConfigMapStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedConfigMap)
-	log.Printf("Validating fields for FederatedConfigMap %s\n", o.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DefaultingFunction sets default FederatedConfigMap field values
-func (FederatedConfigMapSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedConfigMap)
-	// set default field values here
-	log.Printf("Defaulting fields for FederatedConfigMap %s\n", obj.Name)
+// FederatedConfigMap
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federatedconfigmaps
+type FederatedConfigMap struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   FederatedConfigMapSpec   `json:"spec,omitempty"`
+	Status FederatedConfigMapStatus `json:"status,omitempty"`
 }

@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 // Api versions allow the api contract for a resource to be changed while keeping
 // backward compatibility by support multiple concurrent versions
 // of the same resource
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/federation
+// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/core
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=federation.k8s.io
+// +groupName=core.federation.k8s.io
 package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-

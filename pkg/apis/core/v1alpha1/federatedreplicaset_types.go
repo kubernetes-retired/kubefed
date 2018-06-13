@@ -17,31 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedReplicaSet
-// +k8s:openapi-gen=true
-// +resource:path=federatedreplicasets,strategy=FederatedReplicaSetStrategy
-type FederatedReplicaSet struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedReplicaSetSpec   `json:"spec,omitempty"`
-	Status FederatedReplicaSetStatus `json:"status,omitempty"`
-}
 
 // FederatedReplicaSetSpec defines the desired state of FederatedReplicaSet
 type FederatedReplicaSetSpec struct {
@@ -52,18 +30,16 @@ type FederatedReplicaSetSpec struct {
 type FederatedReplicaSetStatus struct {
 }
 
-// Validate checks that an instance of FederatedReplicaSet is well formed
-func (FederatedReplicaSetStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedReplicaSet)
-	log.Printf("Validating fields for FederatedReplicaSet %s\n", o.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DefaultingFunction sets default FederatedReplicaSet field values
-func (FederatedReplicaSetSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedReplicaSet)
-	// set default field values here
-	log.Printf("Defaulting fields for FederatedReplicaSet %s\n", obj.Name)
+// FederatedReplicaSet
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federatedreplicasets
+type FederatedReplicaSet struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   FederatedReplicaSetSpec   `json:"spec,omitempty"`
+	Status FederatedReplicaSetStatus `json:"status,omitempty"`
 }

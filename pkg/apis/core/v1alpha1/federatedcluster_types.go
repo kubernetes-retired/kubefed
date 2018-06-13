@@ -17,33 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
-
-// FederatedCluster
-// +k8s:openapi-gen=true
-// +resource:path=federatedclusters,strategy=FederatedClusterStrategy
-type FederatedCluster struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedClusterSpec   `json:"spec,omitempty"`
-	Status FederatedClusterStatus `json:"status,omitempty"`
-}
 
 // FederatedClusterSpec defines the desired state of FederatedCluster
 type FederatedClusterSpec struct {
@@ -80,24 +58,19 @@ type FederatedClusterStatus struct {
 	Region string `json:"region,omitempty"`
 }
 
-// Validate checks that an instance of FederatedCluster is well formed
-func (FederatedClusterStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedCluster)
-	log.Printf("Validating fields for FederatedCluster %s\n", o.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
-func (FederatedClusterStrategy) NamespaceScoped() bool { return false }
+// FederatedCluster
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federatedclusters
+type FederatedCluster struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-func (FederatedClusterStatusStrategy) NamespaceScoped() bool { return false }
-
-// DefaultingFunction sets default FederatedCluster field values
-func (FederatedClusterSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedCluster)
-	// set default field values here
-	log.Printf("Defaulting fields for FederatedCluster %s\n", obj.Name)
+	Spec   FederatedClusterSpec   `json:"spec,omitempty"`
+	Status FederatedClusterStatus `json:"status,omitempty"`
 }
 
 // ClusterCondition describes current state of a cluster.

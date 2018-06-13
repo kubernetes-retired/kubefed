@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,11 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-
 // +k8s:deepcopy-gen=package,register
-// +groupName=federation.k8s.io
+// +groupName=core.federation.k8s.io
 
 // Package api is the internal version of the API.
-package federation
-
+package core

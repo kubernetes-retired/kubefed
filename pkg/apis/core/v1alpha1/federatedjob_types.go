@@ -17,31 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedJob
-// +k8s:openapi-gen=true
-// +resource:path=federatedjobs,strategy=FederatedJobStrategy
-type FederatedJob struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedJobSpec   `json:"spec,omitempty"`
-	Status FederatedJobStatus `json:"status,omitempty"`
-}
 
 // FederatedJobSpec defines the desired state of FederatedJob
 type FederatedJobSpec struct {
@@ -52,18 +30,16 @@ type FederatedJobSpec struct {
 type FederatedJobStatus struct {
 }
 
-// Validate checks that an instance of FederatedJob is well formed
-func (FederatedJobStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedJob)
-	log.Printf("Validating fields for FederatedJob %s\n", o.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DefaultingFunction sets default FederatedJob field values
-func (FederatedJobSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedJob)
-	// set default field values here
-	log.Printf("Defaulting fields for FederatedJob %s\n", obj.Name)
+// FederatedJob
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federatedjobs
+type FederatedJob struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   FederatedJobSpec   `json:"spec,omitempty"`
+	Status FederatedJobStatus `json:"status,omitempty"`
 }

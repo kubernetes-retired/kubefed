@@ -17,30 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedDeployment
-// +k8s:openapi-gen=true
-// +resource:path=federateddeployments,strategy=FederatedDeploymentStrategy
-type FederatedDeployment struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedDeploymentSpec   `json:"spec,omitempty"`
-	Status FederatedDeploymentStatus `json:"status,omitempty"`
-}
 
 // FederatedDeploymentSpec defines the desired state of FederatedDeployment
 type FederatedDeploymentSpec struct {
@@ -51,18 +30,16 @@ type FederatedDeploymentSpec struct {
 type FederatedDeploymentStatus struct {
 }
 
-// Validate checks that an instance of FederatedDeployment is well formed
-func (FederatedDeploymentStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedDeployment)
-	log.Printf("Validating fields for FederatedDeployment %s\n", o.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DefaultingFunction sets default FederatedDeployment field values
-func (FederatedDeploymentSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedDeployment)
-	// set default field values here
-	log.Printf("Defaulting fields for FederatedDeployment %s\n", obj.Name)
+// FederatedDeployment
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federateddeployments
+type FederatedDeployment struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   FederatedDeploymentSpec   `json:"spec,omitempty"`
+	Status FederatedDeploymentStatus `json:"status,omitempty"`
 }

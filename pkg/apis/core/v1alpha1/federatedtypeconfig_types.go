@@ -18,33 +18,12 @@ package v1alpha1
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
-	genericvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
-
-// FederatedTypeConfig
-// +k8s:openapi-gen=true
-// +resource:path=federatedtypeconfigs,strategy=FederatedTypeConfigStrategy
-type FederatedTypeConfig struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedTypeConfigSpec   `json:"spec,omitempty"`
-	Status FederatedTypeConfigStatus `json:"status,omitempty"`
-}
 
 // FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig
 type FederatedTypeConfigSpec struct {
@@ -96,64 +75,19 @@ type APIResource struct {
 type FederatedTypeConfigStatus struct {
 }
 
-// Validate checks that an instance of FederatedTypeConfig is well formed
-func (FederatedTypeConfigStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedTypeConfig)
-	log.Printf("Validating fields for FederatedTypeConfig %s\n", o.Name)
-	return ValidateFederatedTypeConfig(o)
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
-func ValidateFederatedTypeConfig(obj *federation.FederatedTypeConfig) field.ErrorList {
-	nameValidationFn := func(name string, prefix bool) []string {
-		ret := genericvalidation.NameIsDNSSubdomain(name, prefix)
-		requiredName := obj.Spec.Target.PluralName
-		// Group can be empty for core kube types
-		if len(obj.Spec.Target.Group) > 0 {
-			requiredName = requiredName + "." + obj.Spec.Target.Group
-		}
-		if name != requiredName {
-			ret = append(ret, fmt.Sprintf(`must be spec.target.pluralName+"."+spec.target.group`))
-		}
-		return ret
-	}
-	allErrs := genericvalidation.ValidateObjectMeta(&obj.ObjectMeta, false, nameValidationFn, field.NewPath("metadata"))
-	return append(allErrs, ValidateFederatedTypeConfigSpec(&obj.Spec, field.NewPath("spec"))...)
-}
+// FederatedTypeConfig
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federatedtypeconfigs
+type FederatedTypeConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-func ValidateFederatedTypeConfigSpec(spec *federation.FederatedTypeConfigSpec, fldPath *field.Path) field.ErrorList {
-	allErrs := ValidateAPIResource(&spec.Target, fldPath.Child("target"))
-	allErrs = append(allErrs, ValidateAPIResource(&spec.Template, fldPath.Child("target"))...)
-	allErrs = append(allErrs, ValidateAPIResource(&spec.Placement, fldPath.Child("placement"))...)
-	if spec.Override != nil {
-		allErrs = append(allErrs, ValidateAPIResource(spec.Override, fldPath.Child("override"))...)
-	}
-	return allErrs
-}
-
-func ValidateAPIResource(apiResource *federation.APIResource, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	if len(apiResource.Version) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("version"), "version is required"))
-	}
-	if len(apiResource.Kind) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("kind"), "kind is required"))
-	}
-	if len(apiResource.PluralName) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("pluralName"), "pluralName is required"))
-	}
-	return allErrs
-}
-
-func (FederatedTypeConfigStrategy) NamespaceScoped() bool { return false }
-
-func (FederatedTypeConfigStatusStrategy) NamespaceScoped() bool { return false }
-
-// DefaultingFunction sets default FederatedTypeConfig field values
-func (FederatedTypeConfigSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedTypeConfig)
-	SetFederatedTypeConfigDefaults(obj)
-	log.Printf("Defaulting fields for FederatedTypeConfig %s\n", obj.Name)
+	Spec   FederatedTypeConfigSpec   `json:"spec,omitempty"`
+	Status FederatedTypeConfigStatus `json:"status,omitempty"`
 }
 
 func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {

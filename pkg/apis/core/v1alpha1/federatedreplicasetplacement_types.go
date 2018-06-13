@@ -17,53 +17,29 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedReplicaSetPlacement
-// +k8s:openapi-gen=true
-// +resource:path=federatedreplicasetplacements,strategy=FederatedReplicaSetPlacementStrategy
-type FederatedReplicaSetPlacement struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FederatedReplicaSetPlacementSpec   `json:"spec,omitempty"`
-	Status FederatedReplicaSetPlacementStatus `json:"status,omitempty"`
-}
 
 // FederatedReplicaSetPlacementSpec defines the desired state of FederatedReplicaSetPlacement
 type FederatedReplicaSetPlacementSpec struct {
 	// Names of the clusters that a federated resource should exist in.
-	ClusterNames []string `json:"clusternames,omitempty"`
+	ClusterNames []string `json:"clusterNames,omitempty"`
 }
 
 // FederatedReplicaSetPlacementStatus defines the observed state of FederatedReplicaSetPlacement
 type FederatedReplicaSetPlacementStatus struct {
 }
 
-// Validate checks that an instance of FederatedReplicaSetPlacement is well formed
-func (FederatedReplicaSetPlacementStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*federation.FederatedReplicaSetPlacement)
-	log.Printf("Validating fields for FederatedReplicaSetPlacement %s\n", o.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
-}
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DefaultingFunction sets default FederatedReplicaSetPlacement field values
-func (FederatedReplicaSetPlacementSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*FederatedReplicaSetPlacement)
-	// set default field values here
-	log.Printf("Defaulting fields for FederatedReplicaSetPlacement %s\n", obj.Name)
+// FederatedReplicaSetPlacement
+// +k8s:openapi-gen=true
+// +kubebuilder:resource:path=federatedreplicasetplacements
+type FederatedReplicaSetPlacement struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   FederatedReplicaSetPlacementSpec   `json:"spec,omitempty"`
+	Status FederatedReplicaSetPlacementStatus `json:"status,omitempty"`
 }
