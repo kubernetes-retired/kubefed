@@ -254,9 +254,12 @@ func (s *Scheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaScheduling
 		if err != nil {
 			return nil, err
 		}
-		selectorLabels, ok := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
+		selectorLabels, ok, err := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
 		if !ok {
-			return nil, fmt.Errorf("missing selector on object: %v", err)
+			return nil, fmt.Errorf("missing selector on object")
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving selector from object: %v", err)
 		}
 
 		label := labels.SelectorFromSet(labels.Set(selectorLabels))
@@ -344,11 +347,17 @@ func clustersReplicaState(
 		}
 
 		unstructuredObj := obj.(*unstructured.Unstructured)
-		replicas, ok := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
+		replicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
+		if err != nil {
+			return nil, nil, fmt.Errorf("Error retrieving 'replicas' field: %v", err)
+		}
 		if !ok {
 			replicas = int64(0)
 		}
-		readyReplicas, ok := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
+		readyReplicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
+		if err != nil {
+			return nil, nil, fmt.Errorf("Error retrieving 'readyreplicas' field: %v", err)
+		}
 		if !ok {
 			readyReplicas = int64(0)
 		}

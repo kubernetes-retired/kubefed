@@ -56,14 +56,22 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 			return nil, nil, nil, err
 		}
 		override.SetNamespace(namespace)
-		overrideSlice, ok := unstructured.NestedSlice(override.Object, "spec", "overrides")
-		if !ok {
-			return nil, nil, nil, fmt.Errorf("Unable to set override for %q", typeConfig.GetTemplate().Kind)
+		overridesSlice, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("Error retrieving overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
 		}
-		targetOverride := overrideSlice[0].(map[string]interface{})
-		targetOverride["clusterName"] = clusterNames[0]
-		overrideSlice[0] = targetOverride
-		unstructured.SetNestedSlice(override.Object, overrideSlice, "spec", "overrides")
+		var targetOverrides map[string]interface{}
+		if ok {
+			targetOverrides = overridesSlice[0].(map[string]interface{})
+		} else {
+			targetOverrides = map[string]interface{}{}
+		}
+		targetOverrides["clusterName"] = clusterNames[0]
+		overridesSlice[0] = targetOverrides
+		err = unstructured.SetNestedSlice(override.Object, overridesSlice, "spec", "overrides")
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("Error setting overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
+		}
 	}
 
 	return template, placement, override, nil
@@ -107,6 +115,9 @@ func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, c
 	placement.SetNamespace(namespace)
 	placement.SetKind(placementAPIResource.Kind)
 	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
-	util.SetClusterNames(placement, clusterNames)
+	err = util.SetClusterNames(placement, clusterNames)
+	if err != nil {
+		return nil, err
+	}
 	return placement, nil
 }

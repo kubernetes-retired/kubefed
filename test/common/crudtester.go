@@ -208,7 +208,10 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 	placementKind := placementAPIResource.Kind
 	qualifiedName := util.NewQualifiedName(placement)
 
-	clusterNames := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 
 	// Skip if we're a namespace, we only have one cluster, and it's the
 	// primary cluster. Skipping avoids deleting the namespace from the entire
@@ -223,9 +226,12 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 
 	c.tl.Logf("Updating %s %q", placementKind, qualifiedName)
 	updatedPlacement, err := c.updateFedObject(placementAPIResource, placement, func(placement *unstructured.Unstructured) {
-		clusterNames := util.GetClusterNames(placement)
+		clusterNames, err := util.GetClusterNames(placement)
+		if err != nil {
+			c.tl.Fatalf("Error retrieving cluster names: %v", err)
+		}
 		clusterNames = c.deleteOneNonPrimaryCluster(clusterNames)
-		err := util.SetClusterNames(placement, clusterNames)
+		err = util.SetClusterNames(placement, clusterNames)
 		if err != nil {
 			c.tl.Fatalf("Error setting cluster names for %s %q: %v", placementKind, qualifiedName, err)
 		}
@@ -235,7 +241,10 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 	}
 
 	// updateFedObject is expected to have reduced the size of the cluster list
-	updatedClusterNames := util.GetClusterNames(updatedPlacement)
+	updatedClusterNames, err := util.GetClusterNames(updatedPlacement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 	if len(updatedClusterNames) > len(clusterNames) {
 		c.tl.Fatalf("%s %q not mutated", placementKind, qualifiedName)
 	}
@@ -320,7 +329,10 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	targetKind := c.typeConfig.GetTarget().Kind
 	qualifiedName := util.NewQualifiedName(template)
 
-	clusterNames := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 	selectedClusters := sets.NewString(clusterNames...)
 
 	// If we are a namespace, there is only one cluster, and the cluster is the
@@ -437,7 +449,10 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	versionName := common.PropagatedVersionName(targetKind, name)
 	versionNamespace := namespace
 
-	clusterNames := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 	selectedClusters := sets.NewString(clusterNames...)
 
 	if targetKind == util.NamespaceKind {
@@ -450,7 +465,7 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	client := c.fedResourceClient(c.typeConfig.GetTemplate())
 
 	var version *fedv1a1.PropagatedVersion
-	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+	err = wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		var err error
 		version, err = c.fedClient.CoreV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
 		if errors.IsNotFound(err) {

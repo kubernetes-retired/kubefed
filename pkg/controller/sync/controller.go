@@ -835,7 +835,12 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				}
 			}
 
-			desiredObj = s.objectForUpdateOp(desiredObj, clusterObj)
+			desiredObj, err = s.objectForUpdateOp(desiredObj, clusterObj)
+			if err != nil {
+				wrappedErr := fmt.Errorf("Failed to determine desired object %s %q for cluster %q: %v", targetKind, key, clusterName, err)
+				runtime.HandleError(wrappedErr)
+				return nil, wrappedErr
+			}
 
 			version, ok := clusterVersions[clusterName]
 			if !ok {
@@ -903,7 +908,10 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	targetKind := s.typeConfig.GetTarget().Kind
 	obj := &unstructured.Unstructured{}
 	if targetKind == util.NamespaceKind {
-		metadata, ok := unstructured.NestedMap(template.Object, "metadata")
+		metadata, ok, err := unstructured.NestedMap(template.Object, "metadata")
+		if err != nil {
+			return nil, fmt.Errorf("Error retrieving namespace metadata", err)
+		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
 		}
@@ -918,7 +926,11 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 		obj.Object["metadata"] = metadata
 	} else {
 		var ok bool
-		obj.Object, ok = unstructured.NestedMap(template.Object, "spec", "template")
+		var err error
+		obj.Object, ok, err = unstructured.NestedMap(template.Object, "spec", "template")
+		if err != nil {
+			return nil, fmt.Errorf("Error retrieving template body", err)
+		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve template body")
 		}
@@ -937,9 +949,12 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	if override == nil {
 		return obj, nil
 	}
-	overrides, ok := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	overrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving overrides for %q: %v", targetKind, err)
+	}
 	if !ok {
-		return nil, fmt.Errorf("Overrides field is missing for %q", targetKind)
+		return obj, nil
 	}
 	overridePath := s.typeConfig.GetOverridePath()
 	if len(overridePath) == 0 {
@@ -962,32 +977,48 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 }
 
 // TODO(marun) Support webhooks for custom update behavior
-func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
+func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
 	if s.typeConfig.GetTarget().Kind == util.ServiceKind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
-	return desiredObj
+	return desiredObj, nil
 }
 
-func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
+func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// ClusterIP and NodePort are allocated to Service by cluster, so retain the same if any while updating
 
 	// Retain clusterip
-	clusterIP, ok := unstructured.NestedString(clusterObj.Object, "spec", "clusterIP")
+	clusterIP, ok, err := unstructured.NestedString(clusterObj.Object, "spec", "clusterIP")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving clusterIP from cluster service: %v", err)
+	}
 	// !ok could indicate that a cluster ip was not assigned
 	if ok && clusterIP != "" {
-		unstructured.SetNestedField(desiredObj.Object, clusterIP, "spec", "clusterIP")
+		err := unstructured.SetNestedField(desiredObj.Object, clusterIP, "spec", "clusterIP")
+		if err != nil {
+			return nil, fmt.Errorf("Error setting clusterIP for service: %v", err)
+		}
 	}
 
 	// Retain nodeports
-	clusterPorts, ok := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
-	if !ok {
-		return desiredObj
+	clusterPorts, ok, err := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ports from cluster service: %v", err)
 	}
-	desiredPorts, ok := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
+	if !ok {
+		return desiredObj, nil
+	}
+	var desiredPorts []interface{}
+	desiredPorts, ok, err = unstructured.NestedSlice(desiredObj.Object, "spec", "ports")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ports from service: %v", err)
+	}
+	if !ok {
+		desiredPorts = []interface{}{}
+	}
 	for desiredIndex, _ := range desiredPorts {
 		for clusterIndex, _ := range clusterPorts {
 			fPort := desiredPorts[desiredIndex].(map[string]interface{})
@@ -1001,12 +1032,12 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unst
 			}
 		}
 	}
-	ok = unstructured.SetNestedSlice(desiredObj.Object, desiredPorts, "spec", "ports")
-	if !ok {
-		// TODO(marun) Handle this error
+	err = unstructured.SetNestedSlice(desiredObj.Object, desiredPorts, "spec", "ports")
+	if err != nil {
+		return nil, fmt.Errorf("Error setting ports for service: %v", err)
 	}
 
-	return desiredObj
+	return desiredObj, nil
 }
 
 // TODO (font): Externalize this list to a package var to allow it to be
