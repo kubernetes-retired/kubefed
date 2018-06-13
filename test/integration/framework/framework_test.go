@@ -75,7 +75,7 @@ func TestClusterRegistration(t *testing.T) {
 	// Retrieve the cluster resource
 	// TODO(marun) does it make sense to even have a cluster ref?  When will the names differ
 	crClient := f.CrApi.NewClient(t, userAgent)
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Get(clusterName, metav1.GetOptions{})
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(util.MulticlusterPublicNamespace).Get(clusterName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

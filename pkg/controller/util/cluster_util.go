@@ -35,19 +35,21 @@ import (
 )
 
 const (
-	// TODO(marun) this should be discovered rather than hard-coded
-	FederationSystemNamespace = "federation"
-	KubeAPIQPS                = 20.0
-	KubeAPIBurst              = 30
-	KubeconfigSecretDataKey   = "kubeconfig"
-	getSecretTimeout          = 1 * time.Minute
+	// TODO(marun) these should be configured rather than hard-coded
+	FederationSystemNamespace   = "federation"
+	MulticlusterPublicNamespace = "kube-multicluster-public"
+
+	KubeAPIQPS              = 20.0
+	KubeAPIBurst            = 30
+	KubeconfigSecretDataKey = "kubeconfig"
+	getSecretTimeout        = 1 * time.Minute
 )
 
 func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	// Retrieve the associated cluster
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Get(clusterName, metav1.GetOptions{})
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(MulticlusterPublicNamespace).Get(clusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

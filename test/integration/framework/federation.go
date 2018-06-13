@@ -125,7 +125,7 @@ func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) string {
 	// Registry the kube api with the cluster registry
 	crClient := f.CrApi.NewClient(tl, userAgent)
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Create(&crv1a1.Cluster{
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(util.MulticlusterPublicNamespace).Create(&crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-cluster-",
 		},

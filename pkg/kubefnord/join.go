@@ -25,6 +25,7 @@ import (
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	controllerutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
@@ -291,7 +292,7 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName s
 	glog.V(2).Infof("Verifying cluster %s exists in the cluster registry.",
 		joiningClusterName)
 
-	_, err = crClientset.ClusterregistryV1alpha1().Clusters().Get(joiningClusterName,
+	_, err = crClientset.ClusterregistryV1alpha1().Clusters(controllerutil.MulticlusterPublicNamespace).Get(joiningClusterName,
 		metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -332,7 +333,7 @@ func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName s
 		return cluster, nil
 	}
 
-	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters().Create(cluster)
+	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters(controllerutil.MulticlusterPublicNamespace).Create(cluster)
 	if err != nil {
 		return cluster, err
 	}
