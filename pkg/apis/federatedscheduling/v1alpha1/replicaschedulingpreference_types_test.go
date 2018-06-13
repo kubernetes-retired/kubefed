@@ -35,6 +35,7 @@ var _ = Describe("ReplicaSchedulingPreference", func() {
 		instance = ReplicaSchedulingPreference{
 			Spec: ReplicaSchedulingPreferenceSpec{
 				TotalReplicas: 1,
+				TargetKind:    "FederatedDeployment",
 			},
 		}
 		instance.Name = "instance-1"
