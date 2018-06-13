@@ -46,7 +46,7 @@ func TestClusterRegistration(t *testing.T) {
 
 	// Retrieve the federated cluster resource
 	fedClient := f.FedApi.NewClient(t, userAgent)
-	federatedCluster, err := fedClient.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+	federatedCluster, err := fedClient.CoreV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

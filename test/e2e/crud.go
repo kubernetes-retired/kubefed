@@ -169,11 +169,11 @@ var _ = Describe("Federated types", func() {
 			// will be started for the crd.
 			if !framework.TestContext.InMemoryControllers {
 				fedClient := f.FedClient(userAgent)
-				_, err := fedClient.FederationV1alpha1().FederatedTypeConfigs().Create(typeConfig)
+				_, err := fedClient.CoreV1alpha1().FederatedTypeConfigs().Create(typeConfig)
 				if err != nil {
 					tl.Fatalf("Error creating FederatedTypeConfig %q: %v", crd.GetName(), err)
 				}
-				defer fedClient.FederationV1alpha1().FederatedTypeConfigs().Delete(typeConfig.Name, nil)
+				defer fedClient.CoreV1alpha1().FederatedTypeConfigs().Delete(typeConfig.Name, nil)
 				// TODO(marun) Wait until the controller has started
 			}
 

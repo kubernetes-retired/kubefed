@@ -247,7 +247,7 @@ package manager
 // 	if c.client == nil {
 // 		c.client = clientset.NewForConfigOrDie(c.config)
 // 	}
-// 	_, err := c.client.FederationV1alpha1().FederatedTypeConfigs().Update(u)
+// 	_, err := c.client.CoreV1alpha1().FederatedTypeConfigs().Update(u)
 // 	return err
 // }
 

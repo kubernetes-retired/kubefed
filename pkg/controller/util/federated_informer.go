@@ -176,10 +176,10 @@ func NewFederatedInformer(
 	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().FederatedClusters().List(options)
+				return fedClient.CoreV1alpha1().FederatedClusters().List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().FederatedClusters().Watch(options)
+				return fedClient.CoreV1alpha1().FederatedClusters().Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},

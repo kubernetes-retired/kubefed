@@ -212,10 +212,10 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().PropagatedVersions(metav1.NamespaceAll).List(options)
+				return fedClient.CoreV1alpha1().PropagatedVersions(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().PropagatedVersions(metav1.NamespaceAll).Watch(options)
+				return fedClient.CoreV1alpha1().PropagatedVersions(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&fedv1a1.PropagatedVersion{},
@@ -573,7 +573,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 	}
 
 	versionName := s.versionName(qualifiedName.Name)
-	err = s.fedClient.FederationV1alpha1().PropagatedVersions(qualifiedName.Namespace).Delete(versionName, nil)
+	err = s.fedClient.CoreV1alpha1().PropagatedVersions(qualifiedName.Namespace).Delete(versionName, nil)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
@@ -683,7 +683,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 
 	if version == nil {
 		version := newVersion(updatedVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
-		_, err := fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).Create(version)
+		_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
 		}
@@ -692,7 +692,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
 		pendingVersionUpdates.Insert(key)
 
-		_, err = fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
+		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 		if err != nil {
 			pendingVersionUpdates.Delete(key)
 		}
@@ -720,7 +720,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 	key := util.NewQualifiedName(version).String()
 	pendingVersionUpdates.Insert(key)
 
-	_, err := fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
+	_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 	if err != nil {
 		pendingVersionUpdates.Delete(key)
 	}

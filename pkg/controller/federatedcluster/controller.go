@@ -85,10 +85,10 @@ func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclien
 	_, cc.clusterController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return cc.fedClient.FederationV1alpha1().FederatedClusters().List(options)
+				return cc.fedClient.CoreV1alpha1().FederatedClusters().List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return cc.fedClient.FederationV1alpha1().FederatedClusters().Watch(options)
+				return cc.fedClient.CoreV1alpha1().FederatedClusters().Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},
@@ -159,7 +159,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 
 // updateClusterStatus checks cluster status and get the metrics from cluster's restapi
 func (cc *ClusterController) updateClusterStatus() error {
-	clusters, err := cc.fedClient.FederationV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+	clusters, err := cc.fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cc.clusterClusterStatusMap[cluster.Name] = *clusterStatusNew
 		cc.mu.Unlock()
 		cluster.Status = *clusterStatusNew
-		cluster, err := cc.fedClient.FederationV1alpha1().FederatedClusters().UpdateStatus(&cluster)
+		cluster, err := cc.fedClient.CoreV1alpha1().FederatedClusters().UpdateStatus(&cluster)
 		if err != nil {
 			glog.Warningf("Failed to update the status of cluster: %v ,error is : %v", cluster.Name, err)
 			// Don't return err here, as we want to continue processing remaining clusters.

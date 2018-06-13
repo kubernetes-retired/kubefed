@@ -362,7 +362,7 @@ func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterNam
 		return fedCluster, nil
 	}
 
-	fedCluster, err := fedClientset.FederationV1alpha1().FederatedClusters().Create(fedCluster)
+	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters().Create(fedCluster)
 
 	if err != nil {
 		return fedCluster, err

@@ -227,7 +227,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 
 	By("Obtaining a list of federated clusters")
 	fedClient := f.FedClient(userAgent)
-	clusterList, err := fedClient.FederationV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
 	if len(clusterList.Items) == 0 {
@@ -357,7 +357,7 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 // without error.
 func waitForApiserver(client fedclientset.Interface) error {
 	return wait.PollImmediate(time.Second, 1*time.Minute, func() (bool, error) {
-		_, err := client.FederationV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+		_, err := client.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -413,7 +413,7 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.Federa
 			}
 		}
 		var err error
-		cluster, err = client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		cluster, err = client.CoreV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

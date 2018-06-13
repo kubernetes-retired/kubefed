@@ -285,9 +285,9 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 	versionName := common.PropagatedVersionName(targetKind, name)
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		if targetKind == util.NamespaceKind {
-			_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
+			_, err = c.fedClient.CoreV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
 		} else {
-			_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
+			_, err = c.fedClient.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
 		}
 		if errors.IsNotFound(err) {
 			return true, nil
@@ -452,7 +452,7 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	var version *fedv1a1.PropagatedVersion
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		var err error
-		version, err = c.fedClient.FederationV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
+		version, err = c.fedClient.CoreV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
