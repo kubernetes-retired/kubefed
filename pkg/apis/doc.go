@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,10 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-
 //
-// +domain=k8s.io
+// +domain=federation.k8s.io
 
 package apis
-
