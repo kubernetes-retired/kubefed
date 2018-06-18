@@ -42,20 +42,18 @@ type ReplicaSchedulingPreference struct {
 	Status ReplicaSchedulingPreferenceStatus `json:"status,omitempty"`
 }
 
-// ObjectReference contains enough information to let you identify the referred resource.
-// Currently supported kinds for this type in federation will be FederatedDeployments
-// and FederatedReplicasets
-type ObjectReference struct {
-	// Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
-	Kind string
-	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
-	Name string
-}
-
 // ReplicaSchedulingPreferenceSpec defines the desired state of ReplicaSchedulingPreference
 type ReplicaSchedulingPreferenceSpec struct {
-	//TODO (@irfanurrehman); upgrade this to label selector if need be.
-	PreferenceTargetRef ObjectReference
+	//TODO (@irfanurrehman); upgrade this to label selector only if need be.
+	// The idea of this API is to have a a set of preferences which can
+	// be used for a target FederatedDeployment or FederatedReplicaset.
+	// Although the set of preferences in question can be applied to multiple
+	// target objects using label selectors, but there are no clear advantages
+	// of doing that as of now.
+	// To keep the implementation and usage simple, matching ns/name of RSP
+	// resource to the target resource is sufficient and only additional information
+	// needed in RSP resource is a target kind (FederatedDeployment or FederatedReplicaset).
+	TargetKind string
 
 	// Total number of pods desired across federated clusters.
 	// Replicas specified in the spec for target deployment template or replicaset
