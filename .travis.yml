@@ -20,7 +20,7 @@ script:
 deploy:
   skip_cleanup: true
   provider: script
-  script: imagebuild.sh
+  script: scripts/imagebuild.sh
   on:
     repo: kubernetes-sigs/federation-v2
     all_branches: true
