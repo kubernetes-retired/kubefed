@@ -12,6 +12,10 @@ install:
 script:
   - ./scripts/pre-commit.sh
   - vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
+  - ./imagebuild.sh
+  - docker build -t quay.io/onyiny_ang/federation-v2:proto -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
+
+
 # TBD. Suppressing for now.
 notifications:
   email: false
