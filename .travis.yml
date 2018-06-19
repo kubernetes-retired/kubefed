@@ -3,6 +3,11 @@ language: go
 go:
   - "1.10.1"
 
+sudo: required
+
+services:
+  - docker
+
 # Install must be set to prevent default `go get` to run.
 # The dependencies have already been vendored by `dep` so
 # we don't need to fetch them.
@@ -12,8 +17,13 @@ install:
 script:
   - ./scripts/pre-commit.sh
   - vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
-  - ./imagebuild.sh
-  - docker build -t quay.io/onyiny_ang/federation-v2:proto -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: imagebuild.sh
+  on:
+    repo: kubernetes-sigs/federation-v2
+    all_branches: true
 
 
 # TBD. Suppressing for now.
