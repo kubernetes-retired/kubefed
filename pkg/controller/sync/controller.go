@@ -670,16 +670,16 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 
 	if version == nil {
 		version := newVersion(updatedVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
-		_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
+		createdVersion, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
 		}
 
-		key := util.NewQualifiedName(version).String()
+		key := util.NewQualifiedName(createdVersion).String()
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
 		pendingVersionUpdates.Insert(key)
 
-		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
+		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(createdVersion)
 		if err != nil {
 			pendingVersionUpdates.Delete(key)
 		}
