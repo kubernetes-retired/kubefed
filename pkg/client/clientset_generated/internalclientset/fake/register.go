@@ -18,6 +18,7 @@ package fake
 import (
 	federatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling"
 	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation"
+	multiclusterdnsinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,5 +51,6 @@ func init() {
 func AddToScheme(scheme *runtime.Scheme) {
 	federatedschedulinginternalversion.AddToScheme(scheme)
 	federationinternalversion.AddToScheme(scheme)
+	multiclusterdnsinternalversion.AddToScheme(scheme)
 
 }

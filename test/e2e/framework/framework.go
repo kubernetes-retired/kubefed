@@ -41,13 +41,16 @@ type FederationFramework interface {
 	KubeClient(userAgent string) kubeclientset.Interface
 	CrClient(userAgent string) crclientset.Interface
 
-	ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
+	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
+	ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface
 
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
 
 	// Initialize and cleanup in-memory controller (useful for debugging)
 	SetUpControllerFixture(typeConfig typeconfig.Interface)
+
+	SetUpServiceDNSControllerFixture()
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -108,8 +111,12 @@ func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
 	return f.framework().CrClient(userAgent)
 }
 
-func (f *frameworkWrapper) ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
-	return f.framework().ClusterClients(apiResource, userAgent)
+func (f *frameworkWrapper) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+	return f.framework().ClusterDynamicClients(apiResource, userAgent)
+}
+
+func (f *frameworkWrapper) ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface {
+	return f.framework().ClusterKubeClients(userAgent)
 }
 
 func (f *frameworkWrapper) TestNamespaceName() string {
@@ -118,4 +125,8 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 
 func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	f.framework().SetUpControllerFixture(typeConfig)
+}
+
+func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {
+	f.framework().SetUpServiceDNSControllerFixture()
 }

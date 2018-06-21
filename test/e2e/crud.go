@@ -98,7 +98,7 @@ var _ = Describe("Federated types", func() {
 			// TODO(marun) Need to create the target crd in all member
 			// clusters to support more than a host cluster
 			// federation.
-			testClusters := f.ClusterClients(crdApiResource, userAgent)
+			testClusters := f.ClusterDynamicClients(crdApiResource, userAgent)
 			if len(testClusters) > 1 {
 				framework.Skipf("Testing of CRD not yet supported for multiple clusters")
 			}
@@ -236,7 +236,7 @@ func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeCon
 	fedConfig := f.FedConfig()
 	kubeConfig := f.KubeConfig()
 	targetAPIResource := typeConfig.GetTarget()
-	testClusters := f.ClusterClients(&targetAPIResource, userAgent)
+	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
 	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)

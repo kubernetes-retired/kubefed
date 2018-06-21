@@ -102,8 +102,12 @@ func (f *ManagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return fedFixture.CrApi.NewClient(f.logger, userAgent)
 }
 
-func (f *ManagedFramework) ClusterClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
-	return fedFixture.ClusterClients(f.logger, apiResource, userAgent)
+func (f *ManagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+	return fedFixture.ClusterDynamicClients(f.logger, apiResource, userAgent)
+}
+
+func (f *ManagedFramework) ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface {
+	return fedFixture.ClusterKubeClients(f.logger, userAgent)
 }
 
 func (f *ManagedFramework) TestNamespaceName() string {
@@ -116,5 +120,13 @@ func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interfac
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
 	crConfig := fedFixture.CrApi.NewConfig(f.logger)
 	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, fedConfig, kubeConfig, crConfig)
+	f.fixtures = append(f.fixtures, fixture)
+}
+
+func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
+	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
+	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
+	crConfig := fedFixture.CrApi.NewConfig(f.logger)
+	fixture := framework.NewServiceDNSControllerFixture(f.logger, fedConfig, kubeConfig, crConfig)
 	f.fixtures = append(f.fixtures, fixture)
 }

@@ -168,7 +168,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"TargetKind": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Currently supported kinds for this type in federation will be FederatedDeployments and FederatedReplicasets. The scheme used to match the RSP to target kind is simply both the RSP and target object to have same ns/name.",
+								Description: "The idea of this API is to have a a set of preferences which can be used for a target FederatedDeployment or FederatedReplicaset. Although the set of preferences in question can be applied to multiple target objects using label selectors, but there are no clear advantages of doing that as of now. To keep the implementation and usage simple, matching ns/name of RSP resource to the target resource is sufficient and only additional information needed in RSP resource is a target kind (FederatedDeployment or FederatedReplicaset).",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -500,18 +500,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								},
 							},
 						},
-						"zones": {
+						"zone": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Zones is the list of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'. These will always be in the same region.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
+								Description: "Zone is the name of availability zone in which the nodes of the cluster exist, e.g. 'us-east1-a'.",
+								Type:        []string{"string"},
+								Format:      "",
 							},
 						},
 						"region": {
@@ -3959,6 +3952,222 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
 		"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1.PropagatedVersionStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.ClusterDNS": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ClusterDNS defines the observed status of LoadBalancer within a cluster.",
+					Properties: map[string]spec.Schema{
+						"cluster": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Cluster name",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"loadBalancer": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LoadBalancer for the corresponding service",
+								Ref:         ref("k8s.io/api/core/v1.LoadBalancerStatus"),
+							},
+						},
+						"zone": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Zone to which the cluster belongs",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"region": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Region to which the cluster belongs",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.LoadBalancerStatus"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecord": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MultiClusterServiceDNSRecord holds information necessary to program DNS for cross cluster service discovery",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordStatus"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordSpec", "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecord"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecord", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordSchemeFns": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MultiClusterServiceDNSRecord Functions and Structs",
+					Properties: map[string]spec.Schema{
+						"DefaultSchemeFns": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"),
+							},
+						},
+					},
+					Required: []string{"DefaultSchemeFns"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MultiClusterServiceDNSRecordSpec defines the desired state of MultiClusterServiceDNSRecord",
+					Properties: map[string]spec.Schema{
+						"federationName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FederationName is the name of the federation to which the corresponding federated service belongs",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"dnsSuffix": {
+							SchemaProps: spec.SchemaProps{
+								Description: "DNSSuffix is the suffix (domain) to append to DNS names",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MultiClusterServiceDNSRecordStatus defines the observed state of MultiClusterServiceDNSRecord",
+					Properties: map[string]spec.Schema{
+						"dns": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.ClusterDNS"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.ClusterDNS"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordStatusStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStatusStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStatusStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
+		},
+		"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1.MultiClusterServiceDNSRecordStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{

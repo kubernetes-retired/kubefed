@@ -1,0 +1,7 @@
+note: MultiClusterServiceDNSRecord Example
+sample: |
+  apiVersion: multiclusterdns.k8s.io/v1alpha1
+  kind: MultiClusterServiceDNSRecord
+  metadata:
+    name: multiclusterservicednsrecord-example
+  spec:

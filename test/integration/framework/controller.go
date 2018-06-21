@@ -22,6 +22,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	rsp "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
@@ -40,6 +41,18 @@ func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interf
 	err := sync.StartFederationSyncController(typeConfig, fedConfig, kubeConfig, crConfig, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
+	}
+	return f
+}
+
+// NewServiceDNSControllerFixture initializes a new service-dns controller fixture.
+func NewServiceDNSControllerFixture(tl common.TestLogger, fedConfig, kubeConfig, crConfig *restclient.Config) *ControllerFixture {
+	f := &ControllerFixture{
+		stopChan: make(chan struct{}),
+	}
+	err := servicedns.StartController(fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	if err != nil {
+		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
 	return f
 }

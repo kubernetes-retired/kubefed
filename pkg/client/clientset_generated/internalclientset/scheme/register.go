@@ -18,6 +18,7 @@ package scheme
 import (
 	federatedscheduling "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/install"
 	federation "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/install"
+	multiclusterdns "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,5 +44,6 @@ func init() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	federatedscheduling.Install(groupFactoryRegistry, registry, scheme)
 	federation.Install(groupFactoryRegistry, registry, scheme)
+	multiclusterdns.Install(groupFactoryRegistry, registry, scheme)
 
 }

@@ -17,7 +17,10 @@ limitations under the License.
 package federatedcluster
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/golang/glog"
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
@@ -31,6 +34,10 @@ import (
 
 const (
 	UserAgentName = "Cluster-Controller"
+
+	// Following labels come from k8s.io/kubernetes/pkg/kubelet/apis
+	LabelZoneFailureDomain = "failure-domain.beta.kubernetes.io/zone"
+	LabelZoneRegion        = "failure-domain.beta.kubernetes.io/region"
 )
 
 type ClusterClient struct {
@@ -100,4 +107,51 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterSta
 	}
 
 	return &clusterStatus
+}
+
+// GetClusterZones gets the kubernetes cluster zones and region by inspecting labels on nodes in the cluster.
+func (self *ClusterClient) GetClusterZones() (zone, region string, err error) {
+	nodes, err := self.kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		glog.Errorf("Failed to list nodes while getting zone names: %v", err)
+		return "", "", err
+	}
+	for i, node := range nodes.Items {
+		zone, err = getZoneNameForNode(node)
+		if err != nil {
+			return "", "", err
+		}
+		if i == 0 {
+			region, err = getRegionNameForNode(node)
+			if err != nil {
+				return "", "", err
+			}
+		}
+		// TODO: Optimize this flow. All nodes will have the same zone label.
+		// So just considering first node for now.
+		break
+	}
+	return zone, region, nil
+}
+
+// Find the name of the zone in which a Node is running.
+func getZoneNameForNode(node corev1.Node) (string, error) {
+	for key, value := range node.Labels {
+		if key == LabelZoneFailureDomain {
+			return value, nil
+		}
+	}
+	return "", fmt.Errorf("Zone name for node %s not found. No label with key %s",
+		node.Name, LabelZoneFailureDomain)
+}
+
+// Find the name of the region in which a Node is running.
+func getRegionNameForNode(node corev1.Node) (string, error) {
+	for key, value := range node.Labels {
+		if key == LabelZoneRegion {
+			return value, nil
+		}
+	}
+	return "", fmt.Errorf("Region name for node %s not found. No label with key %s",
+		node.Name, LabelZoneRegion)
 }

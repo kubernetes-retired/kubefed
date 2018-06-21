@@ -75,7 +75,7 @@ func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture,
 	rest.AddUserAgent(fedConfig, userAgent)
 	rest.AddUserAgent(kubeConfig, userAgent)
 	targetAPIResource := typeConfig.GetTarget()
-	clusterClients := fedFixture.ClusterClients(tl, &targetAPIResource, userAgent)
+	clusterClients := fedFixture.ClusterDynamicClients(tl, &targetAPIResource, userAgent)
 	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)

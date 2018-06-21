@@ -19,6 +19,7 @@ import (
 	glog "github.com/golang/glog"
 	federatedschedulinginternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federatedscheduling/internalversion"
 	federationinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/federation/internalversion"
+	multiclusterdnsinternalversion "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/internalclientset/typed/multiclusterdns/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -28,6 +29,7 @@ type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	Federatedscheduling() federatedschedulinginternalversion.FederatedschedulingInterface
 	Federation() federationinternalversion.FederationInterface
+	Multiclusterdns() multiclusterdnsinternalversion.MulticlusterdnsInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -36,6 +38,7 @@ type Clientset struct {
 	*discovery.DiscoveryClient
 	federatedscheduling *federatedschedulinginternalversion.FederatedschedulingClient
 	federation          *federationinternalversion.FederationClient
+	multiclusterdns     *multiclusterdnsinternalversion.MulticlusterdnsClient
 }
 
 // Federatedscheduling retrieves the FederatedschedulingClient
@@ -46,6 +49,11 @@ func (c *Clientset) Federatedscheduling() federatedschedulinginternalversion.Fed
 // Federation retrieves the FederationClient
 func (c *Clientset) Federation() federationinternalversion.FederationInterface {
 	return c.federation
+}
+
+// Multiclusterdns retrieves the MulticlusterdnsClient
+func (c *Clientset) Multiclusterdns() multiclusterdnsinternalversion.MulticlusterdnsInterface {
+	return c.multiclusterdns
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -72,6 +80,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.multiclusterdns, err = multiclusterdnsinternalversion.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -87,6 +99,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.federatedscheduling = federatedschedulinginternalversion.NewForConfigOrDie(c)
 	cs.federation = federationinternalversion.NewForConfigOrDie(c)
+	cs.multiclusterdns = multiclusterdnsinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -97,6 +110,7 @@ func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.federatedscheduling = federatedschedulinginternalversion.New(c)
 	cs.federation = federationinternalversion.New(c)
+	cs.multiclusterdns = multiclusterdnsinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

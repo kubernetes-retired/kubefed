@@ -21,6 +21,8 @@ import (
 	fakefederatedschedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federatedscheduling/v1alpha1/fake"
 	federationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1"
 	fakefederationv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/federation/v1alpha1/fake"
+	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/multiclusterdns/v1alpha1"
+	fakemulticlusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/multiclusterdns/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -79,4 +81,14 @@ func (c *Clientset) FederationV1alpha1() federationv1alpha1.FederationV1alpha1In
 // Federation retrieves the FederationV1alpha1Client
 func (c *Clientset) Federation() federationv1alpha1.FederationV1alpha1Interface {
 	return &fakefederationv1alpha1.FakeFederationV1alpha1{Fake: &c.Fake}
+}
+
+// MulticlusterdnsV1alpha1 retrieves the MulticlusterdnsV1alpha1Client
+func (c *Clientset) MulticlusterdnsV1alpha1() multiclusterdnsv1alpha1.MulticlusterdnsV1alpha1Interface {
+	return &fakemulticlusterdnsv1alpha1.FakeMulticlusterdnsV1alpha1{Fake: &c.Fake}
+}
+
+// Multiclusterdns retrieves the MulticlusterdnsV1alpha1Client
+func (c *Clientset) Multiclusterdns() multiclusterdnsv1alpha1.MulticlusterdnsV1alpha1Interface {
+	return &fakemulticlusterdnsv1alpha1.FakeMulticlusterdnsV1alpha1{Fake: &c.Fake}
 }

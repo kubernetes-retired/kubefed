@@ -25,6 +25,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -204,7 +205,7 @@ func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, cluster
 	}
 }
 
-func (f *FederationFixture) ClusterClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	clientMap := make(map[string]common.TestCluster)
 	for name, cluster := range f.Clusters {
 		config := cluster.NewConfig(tl)
@@ -217,6 +218,20 @@ func (f *FederationFixture) ClusterClients(tl common.TestLogger, apiResource *me
 			client,
 			cluster.IsPrimary,
 		}
+	}
+	return clientMap
+}
+
+func (f *FederationFixture) ClusterKubeClients(tl common.TestLogger, userAgent string) map[string]kubeclientset.Interface {
+	clientMap := make(map[string]kubeclientset.Interface)
+	for name, cluster := range f.Clusters {
+		config := cluster.NewConfig(tl)
+		rest.AddUserAgent(config, userAgent)
+		client, err := kubeclientset.NewForConfig(config)
+		if err != nil {
+			tl.Fatalf("Error creating a resource client in cluster %q: %v", name, err)
+		}
+		clientMap[name] = client
 	}
 	return clientMap
 }
