@@ -147,18 +147,16 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 		userAgent = "test-service-dns"
 	)
 
-	fedConfig := fedFixture.FedApi.NewConfig(tl)
-	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	crConfig := fedFixture.CrApi.NewConfig(tl)
+	config := fedFixture.KubeApi.NewConfig(tl)
 
 	f := &serviceDNSControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(fedConfig, kubeConfig, crConfig, f.stopChan, true)
+	err := servicedns.StartController(config, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting service-dns controller: %v", err)
 	}
-	f.client = fedFixture.FedApi.NewClient(tl, userAgent)
+	f.client = fedFixture.NewFedClient(tl, userAgent)
 
 	lbsuffix := 1
 	f.clusterClients = FedFixture.ClusterKubeClients(tl, userAgent)
@@ -174,12 +172,12 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 		}
 		f.clusterRegionZones[clusterName] = regionZones
 
-		federatedCluster, err := f.client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		federatedCluster, err := f.client.CoreV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			tl.Fatal("Error retrieving federated cluster %q: %v", clusterName, err)
 		}
 		federatedCluster.Status = f.clusterRegionZones[clusterName]
-		_, err = f.client.FederationV1alpha1().FederatedClusters().UpdateStatus(federatedCluster)
+		_, err = f.client.CoreV1alpha1().FederatedClusters().UpdateStatus(federatedCluster)
 		if err != nil {
 			tl.Fatal("Error updating federated cluster status %q: %v", clusterName, err)
 		}

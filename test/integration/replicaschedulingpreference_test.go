@@ -34,7 +34,6 @@ import (
 )
 
 const (
-	defaultTestNS       = "fed-test-ns"
 	federatedDeployment = "FederatedDeployment"
 	federatedReplicaSet = "FederatedReplicaSet"
 )
@@ -51,6 +50,9 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 	if len(clusters) != 2 {
 		tl.Fatalf("Expected two clusters to be part of Federation Fixture setup")
 	}
+
+	kubeClient := FedFixture.KubeApi.NewClient(tl, "rsp")
+	testNamespace := framework.CreateTestNamespace(tl, kubeClient, "rsp-")
 
 	targetKinds := []string{
 		federatedDeployment,
@@ -87,17 +89,17 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 
 		for testName, testCase := range testCases {
 			t.Run(testName, func(t *testing.T) {
-				name, err := createTestObjs(testCase.rspSpec, defaultTestNS, targetKind, fedClient)
+				name, err := createTestObjs(testCase.rspSpec, testNamespace, targetKind, fedClient)
 				if err != nil {
 					tl.Fatalf("Creation of test objects failed in federation")
 				}
 
-				err = waitForMatchingPlacement(fedClient, name, defaultTestNS, targetKind, testCase.expected)
+				err = waitForMatchingPlacement(fedClient, name, testNamespace, targetKind, testCase.expected)
 				if err != nil {
 					tl.Fatalf("Failed waiting for matching placements")
 				}
 
-				err = waitForMatchingOverride(fedClient, name, defaultTestNS, targetKind, testCase.expected)
+				err = waitForMatchingOverride(fedClient, name, testNamespace, targetKind, testCase.expected)
 				if err != nil {
 					tl.Fatalf("Failed waiting for matching overrides")
 				}
