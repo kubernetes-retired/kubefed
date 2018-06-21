@@ -28,29 +28,26 @@ cd "$base_dir" || {
 }
 cd ${base_dir}
 
+
+if [[ "${TRAVIS_BRANCH}" != "master" ]]; then
+  echo "Not on master branch. Image build skipped." >&2
+  exit 0
+fi
+
+echo "Starting image build"
 export REGISTRY=quay.io/
-
 echo "Copy apiserver"
-
 cp ${base_dir}/bin/apiserver apiserver
+
 echo "Copy controller manager"
-
 cp ${base_dir}/bin/controller-manager controller-manager
-echo "Building Federation-v2 docker image"
 
+echo "Building Federation-v2 docker image"
 docker login -u "${QUAY_USERNAME}" -p "{QUAY_PASSWORD}" quay.io
 
-#For testing purposes
-export TRAVIS_BRANCH="master"
-
-if [[ "${TRAVIS_BRANCH}" == "master" ]]; then
-    echo "Pushing images with default tags (git sha and 'canary')."
-     docker build ${dockerfile_dir} -t ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
-  docker push ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
-
-else
-    echo "Nothing to deploy"
-fi
+echo "Pushing images with default tags (git sha and 'canary')."
+docker build ${dockerfile_dir} -t ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
+docker push ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
 
 rm apiserver
 rm controller-manager
