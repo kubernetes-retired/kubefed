@@ -35,21 +35,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "Preferences regarding number of replicas assigned to a cluster workload object (dep, rs, ..) within a federated workload object.",
 					Properties: map[string]spec.Schema{
-						"MinReplicas": {
+						"minReplicas": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Minimum number of replicas that should be assigned to this cluster workload object. 0 by default.",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},
 						},
-						"MaxReplicas": {
+						"maxReplicas": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Maximum number of replicas that should be assigned to this cluster workload object. Unbounded if no value provided (default).",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},
 						},
-						"Weight": {
+						"weight": {
 							SchemaProps: spec.SchemaProps{
 								Description: "A number expressing the preference to put an additional replica to this cluster workload object. 0 by default.",
 								Type:        []string{"integer"},
@@ -57,7 +57,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"Weight"},
 				},
 			},
 			Dependencies: []string{},
@@ -166,28 +165,28 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "ReplicaSchedulingPreferenceSpec defines the desired state of ReplicaSchedulingPreference",
 					Properties: map[string]spec.Schema{
-						"TargetKind": {
+						"targetKind": {
 							SchemaProps: spec.SchemaProps{
 								Description: "The idea of this API is to have a a set of preferences which can be used for a target FederatedDeployment or FederatedReplicaset. Although the set of preferences in question can be applied to multiple target objects using label selectors, but there are no clear advantages of doing that as of now. To keep the implementation and usage simple, matching ns/name of RSP resource to the target resource is sufficient and only additional information needed in RSP resource is a target kind (FederatedDeployment or FederatedReplicaset).",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
-						"TotalReplicas": {
+						"totalReplicas": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Total number of pods desired across federated clusters. Replicas specified in the spec for target deployment template or replicaset template will be discarded/overridden when scheduling preferences are specified.",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
-						"Rebalance": {
+						"rebalance": {
 							SchemaProps: spec.SchemaProps{
 								Description: "If set to true then already scheduled and running replicas may be moved to other clusters in order to match current state to the specified preferences. Otherwise, if set to false, up and running replicas will not be moved.",
 								Type:        []string{"boolean"},
 								Format:      "",
 							},
 						},
-						"Clusters": {
+						"clusters": {
 							SchemaProps: spec.SchemaProps{
 								Description: "A mapping between cluster names and preferences regarding a local workload object (dep, rs, .. ) in these clusters. \"*\" (if provided) applies to all clusters if an explicit mapping is not provided. If omitted, clusters without explicit preferences should not have any replicas scheduled.",
 								Type:        []string{"object"},
@@ -201,7 +200,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"TargetKind", "TotalReplicas"},
+					Required: []string{"targetKind", "totalReplicas"},
 				},
 			},
 			Dependencies: []string{

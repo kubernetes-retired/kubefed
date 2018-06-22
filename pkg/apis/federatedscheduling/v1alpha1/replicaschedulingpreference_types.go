@@ -53,26 +53,26 @@ type ReplicaSchedulingPreferenceSpec struct {
 	// To keep the implementation and usage simple, matching ns/name of RSP
 	// resource to the target resource is sufficient and only additional information
 	// needed in RSP resource is a target kind (FederatedDeployment or FederatedReplicaset).
-	TargetKind string
+	TargetKind string `json:"targetKind"`
 
 	// Total number of pods desired across federated clusters.
 	// Replicas specified in the spec for target deployment template or replicaset
 	// template will be discarded/overridden when scheduling preferences are
 	// specified.
-	TotalReplicas int32
+	TotalReplicas int32 `json:"totalReplicas"`
 
 	// If set to true then already scheduled and running replicas may be moved to other clusters
 	// in order to match current state to the specified preferences. Otherwise, if set to false,
 	// up and running replicas will not be moved.
 	// +optional
-	Rebalance bool
+	Rebalance bool `json:"rebalance,omitempty"`
 
 	// A mapping between cluster names and preferences regarding a local workload object (dep, rs, .. ) in
 	// these clusters.
 	// "*" (if provided) applies to all clusters if an explicit mapping is not provided.
 	// If omitted, clusters without explicit preferences should not have any replicas scheduled.
 	// +optional
-	Clusters map[string]ClusterPreferences
+	Clusters map[string]ClusterPreferences `json:"clusters,omitempty"`
 }
 
 // Preferences regarding number of replicas assigned to a cluster workload object (dep, rs, ..) within
@@ -80,16 +80,16 @@ type ReplicaSchedulingPreferenceSpec struct {
 type ClusterPreferences struct {
 	// Minimum number of replicas that should be assigned to this cluster workload object. 0 by default.
 	// +optional
-	MinReplicas int64
+	MinReplicas int64 `json:"minReplicas,omitempty"`
 
 	// Maximum number of replicas that should be assigned to this cluster workload object.
 	// Unbounded if no value provided (default).
 	// +optional
-	MaxReplicas *int64
+	MaxReplicas *int64 `json:"maxReplicas,omitempty"`
 
 	// A number expressing the preference to put an additional replica to this cluster workload object.
 	// 0 by default.
-	Weight int64
+	Weight int64 `json:"weight,omitempty"`
 }
 
 // ReplicaSchedulingPreferenceStatus defines the observed state of ReplicaSchedulingPreference
@@ -102,8 +102,17 @@ func (ReplicaSchedulingPreferenceStrategy) Validate(ctx request.Context, obj run
 	log.Printf("Validating fields for ReplicaSchedulingPreference %s\n", o.Name)
 	errors := field.ErrorList{}
 	if o.Spec.TotalReplicas < 1 {
-		errors = append(errors, field.Invalid(field.NewPath("replicaschedulingpreference.totalreplicas"), o.Spec.TotalReplicas, ""))
+		errors = append(errors, field.Invalid(field.NewPath("replicaschedulingpreference").Child("totalreplicas"), o.Spec.TotalReplicas, ""))
 	}
+
+	if len(o.Spec.TargetKind) == 0 {
+		errors = append(errors, field.Required(field.NewPath("replicaschedulingpreference").Child("spec").Child("kind"), "targetKind is required"))
+	}
+
+	if o.Spec.TargetKind != "FederatedDeployment" && o.Spec.TargetKind != "FederatedReplicaSet" {
+		errors = append(errors, field.Invalid(field.NewPath("replicaschedulingpreference").Child("spec").Child("kind"), o.Spec.TargetKind, "TargetKind accepts kinds: FederatedDeployment/FederatedReplicaSet"))
+	}
+
 	// perform validation here and add to errors using field.Invalid
 	return errors
 }
