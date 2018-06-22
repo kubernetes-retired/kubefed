@@ -20,12 +20,9 @@ set -o pipefail
 
 base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dockerfile_dir="${base_dir}/images/federation-v2"
-cd "$base_dir/bin" || {
-  echo "Cannot cd to '$base_dir/bin'. Aborting." >&2
-  exit 1
 
-}
-cd ${base_dir}
+[ -f "$base_dir/bin/apiserver" ] || { echo "$base_dir/bin/apiserver not found" ; exit 1 ;}
+[ -f "$base_dir/bin/controller-manager" ] || { echo "$base_dir/bin/controller-manager not found" ; exit 1 ;}
 
 if [[ "${TRAVIS_BRANCH}" != "master" ]]; then
   echo "Not on master branch. Image build skipped." >&2
