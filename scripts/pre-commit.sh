@@ -31,17 +31,21 @@ cd "$base_dir" || {
 
 rc=0
 
-echo "Downloading binary dependencies"
+# TODO(marun) FIX: building binaries is broken due to a dep issue.
+#echo "Building federation binaries"
+#go build -o bin/controller-manager ./cmd/controller-manager
+#go build -o bin/kubefnord ./cmd/kubefnord
+
+echo "Downloading test dependencies"
 ./scripts/download-binaries.sh
 rc=$((rc || $?))
 
-echo "Building federation binaries"
-PATH="${base_dir}/bin:${PATH}" apiserver-boot build executables
-go build -o bin/kubefnord cmd/kubefnord/kubefnord.go
-
 echo "Running go test"
 # Ensure the test binaries are in the path
-PATH="${base_dir}/bin:${PATH}" go test -v ./...
+export TEST_ASSET_PATH="${base_dir}/bin"
+export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
+export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
+go test -v ./test/integration ./test/e2e
 rc=$((rc || $?))
 
 exit $rc
