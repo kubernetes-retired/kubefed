@@ -38,7 +38,7 @@ echo "Copy controller manager"
 cp ${base_dir}/bin/controller-manager ${dockerfile_dir}/controller-manager
 
 echo "Building Federation-v2 docker image"
-docker login -u "${QUAY_USERNAME}" -p "{QUAY_PASSWORD}" quay.io
+docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 
 echo "Pushing images with default tags (git sha and 'canary')."
 docker build ${dockerfile_dir} -t ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
