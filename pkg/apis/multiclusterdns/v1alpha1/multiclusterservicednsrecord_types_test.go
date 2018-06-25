@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1_test
 
 import (
@@ -25,8 +23,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset/typed/multiclusterdns/v1alpha1"
+	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
 )
+
+// EDIT THIS FILE!
+// Created by "kubebuilder create resource" for you to implement the MultiClusterServiceDNSRecord resource tests
 
 var _ = Describe("MultiClusterServiceDNSRecord", func() {
 	var instance MultiClusterServiceDNSRecord
@@ -44,10 +45,13 @@ var _ = Describe("MultiClusterServiceDNSRecord", func() {
 		client.Delete(instance.Name, &metav1.DeleteOptions{})
 	})
 
+	// INSERT YOUR CODE HERE - add more "Describe" tests
+
+	// Automatically created storage tests
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords("multiclusterservicednsrecord-test-valid")
+				client = cs.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords("default")
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)
