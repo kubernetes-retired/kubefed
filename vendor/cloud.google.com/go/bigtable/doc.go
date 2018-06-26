@@ -19,6 +19,10 @@ Package bigtable is an API to Google Cloud Bigtable.
 
 See https://cloud.google.com/bigtable/docs/ for general product documentation.
 
+See https://godoc.org/cloud.google.com/go for authentication, timeouts,
+connection pooling and similar aspects of this package.
+
+
 Setup and Credentials
 
 Use NewClient or NewAdminClient to create a client that can be used to access

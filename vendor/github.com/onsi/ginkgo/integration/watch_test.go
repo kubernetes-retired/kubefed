@@ -34,14 +34,14 @@ var _ = Describe("Watch", func() {
 		err = os.MkdirAll(pathC, 0700)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		copyIn(filepath.Join("watch_fixtures", "A"), pathA)
-		copyIn(filepath.Join("watch_fixtures", "B"), pathB)
-		copyIn(filepath.Join("watch_fixtures", "C"), pathC)
+		copyIn(fixturePath(filepath.Join("watch_fixtures", "A")), pathA, false)
+		copyIn(fixturePath(filepath.Join("watch_fixtures", "B")), pathB, false)
+		copyIn(fixturePath(filepath.Join("watch_fixtures", "C")), pathC, false)
 	})
 
 	startGinkgoWithGopath := func(args ...string) *gexec.Session {
 		cmd := ginkgoCommand(rootPath, args...)
-		cmd.Env = append([]string{"GOPATH=" + rootPath + ":" + os.Getenv("GOPATH")}, os.Environ()...)
+		os.Setenv("GOPATH", rootPath+":"+os.Getenv("GOPATH"))
 		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 		Ω(err).ShouldNot(HaveOccurred())
 		return session
@@ -254,7 +254,7 @@ var _ = Describe("Watch", func() {
 			err := os.MkdirAll(pathD, 0700)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			copyIn(filepath.Join("watch_fixtures", "D"), pathD)
+			copyIn(fixturePath(filepath.Join("watch_fixtures", "D")), pathD, false)
 
 			Eventually(session).Should(gbytes.Say("Detected 1 new suite"))
 			Eventually(session).Should(gbytes.Say(`D \[1 dependency\]`))

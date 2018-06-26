@@ -101,9 +101,9 @@ required = ["github.com/kubernetes/repo-infra/verify/boilerplate/test"]
 
 [[constraint]]
   name = "k8s.io/cluster-registry"
-  source = "github.com/marun/cluster-registry"
-  branch = "vendorable"
+  version = "=v0.0.5"
 
 [[constraint]]
   branch = "master"
   name = "github.com/golang/groupcache"
+

@@ -27,12 +27,12 @@ import (
 	"golang.org/x/crypto/salsa20/salsa"
 )
 
-// XORKeyStream crypts bytes from in to out using the given key and nonce. In
-// and out may be the same slice but otherwise should not overlap. Nonce must
+// XORKeyStream crypts bytes from in to out using the given key and nonce.
+// In and out must overlap entirely or not at all. Nonce must
 // be either 8 or 24 bytes long.
 func XORKeyStream(out, in []byte, nonce []byte, key *[32]byte) {
 	if len(out) < len(in) {
-		in = in[:len(out)]
+		panic("salsa20: output smaller than input")
 	}
 
 	var subNonce [16]byte

@@ -197,3 +197,35 @@ func MockGrantAccessResponse(t *testing.T) {
 		fmt.Fprintf(w, grantAccessResponse)
 	})
 }
+
+var listAccessRightsRequest = `{
+		"access_list": null
+	}`
+
+var listAccessRightsResponse = `{
+		"access_list": [
+			{
+				"share_id": "011d21e2-fbc3-4e4a-9993-9ea223f73264",
+				"access_type": "ip",
+				"access_to": "0.0.0.0/0",
+				"access_key": "",
+				"access_level": "rw",
+				"state": "new",
+				"id": "a2f226a5-cee8-430b-8a03-78a59bd84ee8"
+			}
+		]
+	}`
+
+// MockListAccessRightsResponse creates a mock list access response
+func MockListAccessRightsResponse(t *testing.T) {
+	th.Mux.HandleFunc(shareEndpoint+"/"+shareID+"/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, listAccessRightsRequest)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, listAccessRightsResponse)
+	})
+}

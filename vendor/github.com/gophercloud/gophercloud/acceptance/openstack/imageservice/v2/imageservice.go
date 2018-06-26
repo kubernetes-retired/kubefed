@@ -8,6 +8,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateEmptyImage will create an image, but with no actual image data.
@@ -31,6 +32,7 @@ func CreateEmptyImage(t *testing.T, client *gophercloud.ServiceClient) (*images.
 		Properties: map[string]string{
 			"architecture": "x86_64",
 		},
+		Tags: []string{"foo", "bar", "baz"},
 	}
 
 	image, err := images.Create(client, createOpts).Extract()
@@ -38,8 +40,16 @@ func CreateEmptyImage(t *testing.T, client *gophercloud.ServiceClient) (*images.
 		return image, err
 	}
 
-	t.Logf("Created image %s: %#v", name, image)
-	return image, nil
+	newImage, err := images.Get(client, image.ID).Extract()
+	if err != nil {
+		return image, err
+	}
+
+	t.Logf("Created image %s: %#v", name, newImage)
+
+	th.CheckEquals(t, newImage.Name, name)
+	th.CheckEquals(t, newImage.Properties["architecture"], "x86_64")
+	return newImage, nil
 }
 
 // DeleteImage deletes an image.

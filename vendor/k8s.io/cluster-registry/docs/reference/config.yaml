@@ -1,0 +1,10 @@
+example_location: "examples"
+api_groups: 
+  - "Clusterregistry"
+resource_categories: 
+- name: "Clusterregistry"
+  include: "clusterregistry"
+  resources: 
+  - name: "Cluster"
+    version: "v1alpha1"
+    group: "clusterregistry"

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/groups"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/users"
 	"github.com/gophercloud/gophercloud/pagination"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -42,6 +43,38 @@ func TestListUsersAllPages(t *testing.T) {
 	th.CheckDeepEquals(t, ExpectedUsersSlice, actual)
 	th.AssertEquals(t, ExpectedUsersSlice[0].Extra["email"], "glance@localhost")
 	th.AssertEquals(t, ExpectedUsersSlice[1].Extra["email"], "jsmith@example.com")
+}
+
+func TestListUsersFiltersCheck(t *testing.T) {
+	type test struct {
+		filterName string
+		wantErr    bool
+	}
+	tests := []test{
+		{"foo__contains", false},
+		{"foo", true},
+		{"foo_contains", true},
+		{"foo__", true},
+		{"__foo", true},
+	}
+
+	var listOpts users.ListOpts
+	for _, _test := range tests {
+		listOpts.Filters = map[string]string{_test.filterName: "bar"}
+		_, err := listOpts.ToUserListQuery()
+
+		if !_test.wantErr {
+			th.AssertNoErr(t, err)
+		} else {
+			switch _t := err.(type) {
+			case nil:
+				t.Fatal("error expected but got a nil")
+			case users.InvalidListFilter:
+			default:
+				t.Fatalf("unexpected error type: [%T]", _t)
+			}
+		}
+	}
 }
 
 func TestGetUser(t *testing.T) {
@@ -127,6 +160,20 @@ func TestUpdateUser(t *testing.T) {
 	th.CheckDeepEquals(t, SecondUserUpdated, *actual)
 }
 
+func TestChangeUserPassword(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleChangeUserPasswordSuccessfully(t)
+
+	changePasswordOpts := users.ChangePasswordOpts{
+		OriginalPassword: "secretsecret",
+		Password:         "new_secretsecret",
+	}
+
+	res := users.ChangePassword(client.ServiceClient(), "9fe1d3", changePasswordOpts)
+	th.AssertNoErr(t, res.Err)
+}
+
 func TestDeleteUser(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -145,4 +192,57 @@ func TestListUserGroups(t *testing.T) {
 	actual, err := groups.ExtractGroups(allPages)
 	th.AssertNoErr(t, err)
 	th.CheckDeepEquals(t, ExpectedGroupsSlice, actual)
+}
+
+func TestAddToGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleAddToGroupSuccessfully(t)
+	res := users.AddToGroup(client.ServiceClient(), "ea167b", "9fe1d3")
+	th.AssertNoErr(t, res.Err)
+}
+
+func TestIsMemberOfGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleIsMemberOfGroupSuccessfully(t)
+	ok, err := users.IsMemberOfGroup(client.ServiceClient(), "ea167b", "9fe1d3").Extract()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, true, ok)
+}
+
+func TestRemoveFromGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleRemoveFromGroupSuccessfully(t)
+	res := users.RemoveFromGroup(client.ServiceClient(), "ea167b", "9fe1d3")
+	th.AssertNoErr(t, res.Err)
+}
+
+func TestListUserProjects(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleListUserProjectsSuccessfully(t)
+	allPages, err := users.ListProjects(client.ServiceClient(), "9fe1d3").AllPages()
+	th.AssertNoErr(t, err)
+	actual, err := projects.ExtractProjects(allPages)
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, ExpectedProjectsSlice, actual)
+}
+
+func TestListInGroup(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleListInGroupSuccessfully(t)
+
+	iTrue := true
+	listOpts := users.ListOpts{
+		Enabled: &iTrue,
+	}
+
+	allPages, err := users.ListInGroup(client.ServiceClient(), "ea167b", listOpts).AllPages()
+	th.AssertNoErr(t, err)
+	actual, err := users.ExtractUsers(allPages)
+	th.AssertNoErr(t, err)
+	th.CheckDeepEquals(t, ExpectedUsersSlice, actual)
 }

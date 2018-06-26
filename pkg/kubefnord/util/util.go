@@ -23,7 +23,7 @@ import (
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 // FedConfig provides a rest config based on the filesystem kubeconfig (via

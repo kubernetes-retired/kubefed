@@ -31,7 +31,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -47,7 +47,7 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 	clusterName := fedCluster.Name
 
 	// Retrieve the associated cluster
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Get(clusterName, metav1.GetOptions{})
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

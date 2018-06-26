@@ -78,7 +78,8 @@ func Get(client *gophercloud.ServiceClient, id string) (r GetResult) {
 	return
 }
 
-// GetExportLocations will get shareID's export locations
+// GetExportLocations will get shareID's export locations.
+// Client must have Microversion set; minimum supported microversion for GetExportLocations is 2.14.
 func GetExportLocations(client *gophercloud.ServiceClient, id string) (r GetExportLocationsResult) {
 	_, r.Err = client.Get(getExportLocationsURL(client, id), &r.Body, nil)
 	return
@@ -110,6 +111,7 @@ func (opts GrantAccessOpts) ToGrantAccessMap() (map[string]interface{}, error) {
 
 // GrantAccess will grant access to a Share based on the values in GrantAccessOpts. To extract
 // the GrantAccess object from the response, call the Extract method on the GrantAccessResult.
+// Client must have Microversion set; minimum supported microversion for GrantAccess is 2.7.
 func GrantAccess(client *gophercloud.ServiceClient, id string, opts GrantAccessOptsBuilder) (r GrantAccessResult) {
 	b, err := opts.ToGrantAccessMap()
 	if err != nil {
@@ -117,6 +119,17 @@ func GrantAccess(client *gophercloud.ServiceClient, id string, opts GrantAccessO
 		return
 	}
 	_, r.Err = client.Post(grantAccessURL(client, id), b, &r.Body, &gophercloud.RequestOpts{
+		OkCodes: []int{200},
+	})
+	return
+}
+
+// ListAccessRights lists all access rules assigned to a Share based on its id. To extract
+// the AccessRight slice from the response, call the Extract method on the ListAccessRightsResult.
+// Client must have Microversion set; minimum supported microversion for ListAccessRights is 2.7.
+func ListAccessRights(client *gophercloud.ServiceClient, id string) (r ListAccessRightsResult) {
+	requestBody := map[string]interface{}{"access_list": nil}
+	_, r.Err = client.Post(listAccessRightsURL(client, id), requestBody, &r.Body, &gophercloud.RequestOpts{
 		OkCodes: []int{200},
 	})
 	return
