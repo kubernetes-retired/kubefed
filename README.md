@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/kubernetes-sigs/federation-v2.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/federation-v2 "Travis")
+
 # Kubernetes Federation v2
 
 This repo contains an in-progress prototype of some of the
