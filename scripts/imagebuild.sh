@@ -31,6 +31,7 @@ fi
 
 echo "Starting image build"
 export REGISTRY=quay.io/
+export REPO=kubernetes-multicluster
 echo "Copy apiserver"
 cp ${base_dir}/bin/apiserver ${dockerfile_dir}/apiserver
 
@@ -41,8 +42,8 @@ echo "Building Federation-v2 docker image"
 docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 
 echo "Pushing images with default tags (git sha and 'canary')."
-docker build ${dockerfile_dir} -t ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
-docker push ${REGISTRY}${QUAY_USERNAME}/federation-v2:canary
+docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:canary
+docker push ${REGISTRY}${REPO}/federation-v2:canary
 
 rm ${dockerfile_dir}/apiserver
 rm ${dockerfile_dir}/controller-manager
