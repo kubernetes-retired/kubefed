@@ -31,17 +31,13 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
-	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	// "github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
-	// TODO(marun) Remove reference to this from commented-out code
-	// "github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
@@ -57,12 +53,12 @@ func main() {
 
 	flag.Parse()
 
-	err = utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
+	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
 	if err != nil {
 		log.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
-	stopCh := signals.SetupSignalHandler()
+	stopChan := signals.SetupSignalHandler()
 
 	config := configlib.GetConfigOrDie()
 
@@ -72,28 +68,9 @@ func main() {
 		}
 	}
 
-	// Configuration is passed in separately for the kube, federation
-	// and cluster registry clients.  When deployed in an aggregated
-	// configuration - as this controller manager is intended to run -
-	// requires that all 3 clients receive the same configuration.
-
 	// TODO(marun) Make the monitor period configurable
 	clusterMonitorPeriod := time.Second * 40
 	federatedcluster.StartClusterController(config, stopChan, clusterMonitorPeriod)
-
-	// TODO(marun) Rewrite for kubebuilder
-	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		// Initialize shared informer to enable reuse of the controller factory.
-		// TODO(marun) Shared informer doesn't makes sense for FederatedTypeConfig.
-		// si := &sharedinformers.SharedInformers{
-		// 	controllerlib.SharedInformersDefaults{},
-		// 	externalversions.NewSharedInformerFactory(clientset.NewForConfigOrDie(config), 10*time.Minute),
-		// }
-		// go si.Factory.Federation().V1alpha1().FederatedTypeConfigs().Informer().Run(stopChan)
-
-		// c := manager.NewFederatedTypeConfigController(config, si)
-		// c.Run(stopChan)
-	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		err = rspcontroller.StartReplicaSchedulingPreferenceController(config, stopChan, true)
@@ -103,10 +80,29 @@ func main() {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		err = servicedns.StartController(config, config, config, stopChan, false)
+		err = servicedns.StartController(config, stopChan, false)
 		if err != nil {
 			log.Fatalf("Error starting dns controller: %v", err)
 		}
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
+		// TODO(marun) Reconsider using kubebuilder framework to start
+		// the controller.  It's not a good fit.
+		inject.Inject = append(inject.Inject, func(arguments args.InjectArgs) error {
+			if c, err := federatedtypeconfig.ProvideController(arguments, stopChan); err != nil {
+				return err
+			} else {
+				arguments.ControllerManager.AddController(c)
+			}
+			return nil
+		})
+		// RunAll will never return - wrap in goroutine to avoid blocking
+		go func() {
+			if err := inject.RunAll(run.RunArguments{Stop: stopChan}, args.CreateInjectArgs(config)); err != nil {
+				log.Fatalf("%v", err)
+			}
+		}()
 	}
 
 	// Blockforever
