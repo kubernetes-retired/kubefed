@@ -36,7 +36,7 @@ import (
 
 const (
 	// TODO(marun) these should be configured rather than hard-coded
-	FederationSystemNamespace   = "federation"
+	FederationSystemNamespace   = "federation-system"
 	MulticlusterPublicNamespace = "kube-multicluster-public"
 
 	KubeAPIQPS              = 20.0
