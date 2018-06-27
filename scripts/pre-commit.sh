@@ -31,10 +31,9 @@ cd "$base_dir" || {
 
 rc=0
 
-# TODO(marun) FIX: building binaries is broken due to a dep issue.
-#echo "Building federation binaries"
-#go build -o bin/controller-manager ./cmd/controller-manager
-#go build -o bin/kubefnord ./cmd/kubefnord
+echo "Building federation binaries"
+go build -o bin/controller-manager ./cmd/controller-manager
+go build -o bin/kubefnord ./cmd/kubefnord
 
 echo "Downloading test dependencies"
 ./scripts/download-binaries.sh
