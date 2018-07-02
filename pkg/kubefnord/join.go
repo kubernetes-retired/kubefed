@@ -201,7 +201,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	}
 
 	glog.V(2).Infof("Creating %s namespace in joining cluster", federationNamespace)
-	_, err = createFederationNamespace(clusterClientset, federationNamespace,
+	_, err = util.CreateFederationNamespace(clusterClientset, federationNamespace,
 		joiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
@@ -369,28 +369,6 @@ func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterNam
 	}
 
 	return fedCluster, nil
-}
-
-// createFederationNamespace creates the federation namespace in the cluster
-// associated with clusterClientset, if it doesn't already exist.
-func createFederationNamespace(clusterClientset client.Interface, federationNamespace,
-	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
-	federationNS := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: federationNamespace,
-		},
-	}
-
-	if dryRun {
-		return federationNS, nil
-	}
-
-	_, err := clusterClientset.CoreV1().Namespaces().Create(federationNS)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		glog.V(2).Infof("Could not create %s namespace: %v", federationNamespace, err)
-		return nil, err
-	}
-	return federationNS, nil
 }
 
 // createRBACSecret creates a secret in the joining cluster using a service

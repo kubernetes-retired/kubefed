@@ -19,7 +19,12 @@ package util
 import (
 	"fmt"
 
+	"github.com/golang/glog"
+
 	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -118,4 +123,26 @@ func ClusterServiceAccountName(joiningClusterName, hostClusterName string) strin
 // access necessary resources on the cluster.
 func ClusterRoleName(serviceAccountName string) string {
 	return fmt.Sprintf("federation-controller-manager:%s", serviceAccountName)
+}
+
+// createFederationNamespace creates the federation namespace in the cluster
+// associated with clusterClientset, if it doesn't already exist.
+func CreateFederationNamespace(clusterClientset client.Interface, federationNamespace,
+	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
+	federationNS := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: federationNamespace,
+		},
+	}
+
+	if dryRun {
+		return federationNS, nil
+	}
+
+	_, err := clusterClientset.CoreV1().Namespaces().Create(federationNS)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		glog.V(2).Infof("Could not create %s namespace: %v", federationNamespace, err)
+		return nil, err
+	}
+	return federationNS, nil
 }
