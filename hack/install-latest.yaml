@@ -69,6 +69,8 @@ spec:
     kind: FederatedCluster
     plural: federatedclusters
   scope: Cluster
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -114,7 +116,6 @@ spec:
             zone:
               type: string
           type: object
-      type: object
   version: v1alpha1
 status:
   acceptedNames:
@@ -977,6 +978,8 @@ spec:
     kind: PropagatedVersion
     plural: propagatedversions
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -1004,7 +1007,6 @@ spec:
             templateVersion:
               type: string
           type: object
-      type: object
   version: v1alpha1
 status:
   acceptedNames:
@@ -1026,6 +1028,8 @@ spec:
     kind: MultiClusterServiceDNSRecord
     plural: multiclusterservicednsrecords
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -1058,7 +1062,6 @@ spec:
                 type: object
               type: array
           type: object
-      type: object
   version: v1alpha1
 status:
   acceptedNames:
