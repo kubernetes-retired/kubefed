@@ -14,10 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package certprovisioner
+/*
+Package certprovisioner provides an interface and implementation to provision certificates.
 
-// CertProvisioner is an interface to provision the serving certificate.
-type CertProvisioner interface {
-	// ProvisionServingCert returns the key, serving certificate and the CA certificate.
-	ProvisionServingCert() (key []byte, cert []byte, caCert []byte, err error)
-}
+Create a implementation instance of certprovisioner.
+
+	cp := SelfSignedCertProvisioner{
+		CommonName: "foo.bar.com"
+	}
+
+Provision the certificates.
+	certs, err := cp.ProvisionServingCert()
+	if err != nil {
+		// handle error
+	}
+*/
+package certprovisioner

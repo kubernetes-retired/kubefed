@@ -77,7 +77,17 @@ func (b *APIs) parseCRDs() {
 
 					if HasCategories(resource.Type) {
 						categoriesTag := getCategoriesTag(resource.Type)
-						resource.CRD.Spec.Names.Categories = strings.Split(categoriesTag, ",")
+						categories := strings.Split(categoriesTag, ",")
+						resource.CRD.Spec.Names.Categories = categories
+						resource.Categories = categories
+					}
+
+					if HasStatusSubresource(resource.Type) {
+						subresources := &v1beta1.CustomResourceSubresources{
+							Status: &v1beta1.CustomResourceSubresourceStatus{},
+						}
+						resource.CRD.Spec.Subresources = subresources
+						resource.HasStatusSubresource = true
 					}
 
 					if len(resource.ShortName) > 0 {
@@ -318,7 +328,7 @@ func (b *APIs) parseArrayValidation(t *types.Type, found sets.String, comments [
 
 type objectTemplateArgs struct {
 	v1beta1.JSONSchemaProps
-	Fields map[string]string
+	Fields   map[string]string
 	Required []string
 }
 
@@ -514,7 +524,7 @@ func (b *APIs) getMembers(t *types.Type, found sets.String) (map[string]v1beta1.
 
 		// Inline "inline" structs
 		if strat == "inline" {
-			m, r, re:= b.getMembers(member.Type, found)
+			m, r, re := b.getMembers(member.Type, found)
 			for n, v := range m {
 				members[n] = v
 			}

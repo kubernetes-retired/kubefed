@@ -26,15 +26,17 @@ import (
 )
 
 type resourceTemplateArgs struct {
-	BoilerPlate       string
-	Domain            string
-	Group             string
-	Version           string
-	Kind              string
-	Resource          string
-	Repo              string
-	PluralizedKind    string
-	NonNamespacedKind bool
+	BoilerPlate          string
+	Domain               string
+	Group                string
+	Version              string
+	Kind                 string
+	Resource             string
+	Repo                 string
+	PluralizedKind       string
+	NonNamespacedKind    bool
+	HasStatusSubresource bool
+	Categories           []string
 }
 
 func doResource(dir string, args resourceTemplateArgs) bool {

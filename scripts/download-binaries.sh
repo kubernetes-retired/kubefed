@@ -49,7 +49,7 @@ root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dest_dir="${root_dir}/bin"
 mkdir -p "${dest_dir}"
 
-kb_tgz="kubebuilder_0.1.11_linux_amd64.tar.gz"
+kb_tgz="kubebuilder_0.1.12_linux_amd64.tar.gz"
 kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v0.1.11/${kb_tgz}"
 curl "${curl_args}O" "${kb_url}" \
   && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
