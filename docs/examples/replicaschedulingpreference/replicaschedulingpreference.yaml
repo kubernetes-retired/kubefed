@@ -1,7 +1,0 @@
-note: ReplicaSchedulingPreference Example
-sample: |
-  apiVersion: scheduling.federation.k8s.io/v1alpha1
-  kind: ReplicaSchedulingPreference
-  metadata:
-    name: replicaschedulingpreference-example
-  spec:

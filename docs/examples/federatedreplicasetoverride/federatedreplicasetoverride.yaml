@@ -1,7 +1,0 @@
-note: FederatedReplicaSetOverride Example
-sample: |
-  apiVersion: federation.k8s.io/v1alpha1
-  kind: FederatedReplicaSetOverride
-  metadata:
-    name: federatedreplicasetoverride-example
-  spec:
