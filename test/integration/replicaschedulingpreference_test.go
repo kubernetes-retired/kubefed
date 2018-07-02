@@ -20,9 +20,9 @@ import (
 	"reflect"
 	"testing"
 
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	appsv1 "k8s.io/api/apps/v1"
@@ -30,10 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 )
 
 const (
-	defaultTestNS       = "fed-test-ns"
 	federatedDeployment = "FederatedDeployment"
 	federatedReplicaSet = "FederatedReplicaSet"
 )
@@ -50,6 +50,9 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 	if len(clusters) != 2 {
 		tl.Fatalf("Expected two clusters to be part of Federation Fixture setup")
 	}
+
+	kubeClient := FedFixture.KubeApi.NewClient(tl, "rsp")
+	testNamespace := framework.CreateTestNamespace(tl, kubeClient, "rsp-")
 
 	targetKinds := []string{
 		federatedDeployment,
@@ -86,17 +89,17 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 
 		for testName, testCase := range testCases {
 			t.Run(testName, func(t *testing.T) {
-				name, err := createTestObjs(testCase.rspSpec, defaultTestNS, targetKind, fedClient)
+				name, err := createTestObjs(testCase.rspSpec, testNamespace, targetKind, fedClient)
 				if err != nil {
 					tl.Fatalf("Creation of test objects failed in federation")
 				}
 
-				err = waitForMatchingPlacement(fedClient, name, defaultTestNS, targetKind, testCase.expected)
+				err = waitForMatchingPlacement(fedClient, name, testNamespace, targetKind, testCase.expected)
 				if err != nil {
 					tl.Fatalf("Failed waiting for matching placements")
 				}
 
-				err = waitForMatchingOverride(fedClient, name, defaultTestNS, targetKind, testCase.expected)
+				err = waitForMatchingOverride(fedClient, name, testNamespace, targetKind, testCase.expected)
 				if err != nil {
 					tl.Fatalf("Failed waiting for matching overrides")
 				}
@@ -106,11 +109,10 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 }
 
 func initRSPTest(tl common.TestLogger, fedFixture *framework.FederationFixture) (*framework.ControllerFixture, clientset.Interface) {
-	fedConfig := fedFixture.FedApi.NewConfig(tl)
-	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	crConfig := fedFixture.CrApi.NewConfig(tl)
-	fixture := framework.NewRSPControllerFixture(tl, fedConfig, kubeConfig, crConfig)
-	client := fedFixture.FedApi.NewClient(tl, "rsp-test")
+	config := fedFixture.KubeApi.NewConfig(tl)
+	fixture := framework.NewRSPControllerFixture(tl, config)
+	restclient.AddUserAgent(config, "rsp-test")
+	client := clientset.NewForConfigOrDie(config)
 
 	return fixture, client
 }
@@ -146,11 +148,11 @@ func createTestObjs(rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, n
 
 	switch targetKind {
 	case federatedDeployment:
-		t, err := fedClient.FederationV1alpha1().FederatedDeployments(namespace).Create(getFederatedDeploymentTemplate(namespace, replicas).(*fedv1a1.FederatedDeployment))
+		t, err := fedClient.CoreV1alpha1().FederatedDeployments(namespace).Create(getFederatedDeploymentTemplate(namespace, replicas).(*fedv1a1.FederatedDeployment))
 		name = t.Name
 		wrapErr = err
 	case federatedReplicaSet:
-		t, err := fedClient.FederationV1alpha1().FederatedReplicaSets(namespace).Create(getFederatedReplicaSetTemplate(namespace, replicas).(*fedv1a1.FederatedReplicaSet))
+		t, err := fedClient.CoreV1alpha1().FederatedReplicaSets(namespace).Create(getFederatedReplicaSetTemplate(namespace, replicas).(*fedv1a1.FederatedReplicaSet))
 		name = t.Name
 		wrapErr = err
 	}
@@ -166,7 +168,7 @@ func createTestObjs(rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, n
 		},
 		Spec: rspSpec,
 	}
-	_, err := fedClient.FederatedschedulingV1alpha1().ReplicaSchedulingPreferences(namespace).Create(rsp)
+	_, err := fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(namespace).Create(rsp)
 	if err != nil {
 		return "", err
 	}
@@ -180,11 +182,11 @@ func waitForMatchingPlacement(fedClient clientset.Interface, name, namespace, ta
 		clusterNames := []string{}
 		switch targetKind {
 		case federatedDeployment:
-			p, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(namespace).Get(name, metav1.GetOptions{})
+			p, err := fedClient.CoreV1alpha1().FederatedDeploymentPlacements(namespace).Get(name, metav1.GetOptions{})
 			clusterNames = p.Spec.ClusterNames
 			wrapErr = err
 		case federatedReplicaSet:
-			p, err := fedClient.FederationV1alpha1().FederatedReplicaSetPlacements(namespace).Get(name, metav1.GetOptions{})
+			p, err := fedClient.CoreV1alpha1().FederatedReplicaSetPlacements(namespace).Get(name, metav1.GetOptions{})
 			clusterNames = p.Spec.ClusterNames
 			wrapErr = err
 		}
@@ -219,9 +221,9 @@ func waitForMatchingOverride(fedClient clientset.Interface, name, namespace, tar
 		var wrapErr error
 		switch targetKind {
 		case federatedDeployment:
-			override, wrapErr = fedClient.FederationV1alpha1().FederatedDeploymentOverrides(namespace).Get(name, metav1.GetOptions{})
+			override, wrapErr = fedClient.CoreV1alpha1().FederatedDeploymentOverrides(namespace).Get(name, metav1.GetOptions{})
 		case federatedReplicaSet:
-			override, wrapErr = fedClient.FederationV1alpha1().FederatedReplicaSetOverrides(namespace).Get(name, metav1.GetOptions{})
+			override, wrapErr = fedClient.CoreV1alpha1().FederatedReplicaSetOverrides(namespace).Get(name, metav1.GetOptions{})
 		}
 		if wrapErr != nil {
 			return false, nil
@@ -263,7 +265,7 @@ func waitForMatchingOverride(fedClient clientset.Interface, name, namespace, tar
 func getClusterNames(fedClient clientset.Interface) []string {
 	clusters := []string{}
 
-	clusterList, err := fedClient.Federation().FederatedClusters().List(metav1.ListOptions{})
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 	if err != nil || clusterList == nil {
 		return clusters
 	}

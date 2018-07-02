@@ -22,70 +22,84 @@ import (
 	"strings"
 	"time"
 
-	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/informers_generated/externalversions"
+	// Import auth/gcp to connect to GKE clusters remotely
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
+	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
+	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
+	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
+	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
+	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/manager"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sharedinformers"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
+	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 )
 
 var kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig")
 var featureGates map[string]bool
+var installCRDs = flag.Bool("install-crds", true, "install the CRDs used by the controller as part of startup")
 
+// Controller-manager main.
 func main() {
 	flag.Var(flagutil.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
 		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
 
 	flag.Parse()
-	config, err := controllerlib.GetConfig(*kubeconfig)
-	if err != nil {
-		log.Fatalf("Could not create Config for talking to the apiserver: %v", err)
-	}
 
-	err = utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
+	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
 	if err != nil {
 		log.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
-	stopChan := make(chan struct{})
+	stopChan := signals.SetupSignalHandler()
 
-	// Configuration is passed in separately for the kube, federation
-	// and cluster registry clients.  When deployed in an aggregated
-	// configuration - as this controller manager is intended to run -
-	// requires that all 3 clients receive the same configuration.
+	config := configlib.GetConfigOrDie()
+
+	if *installCRDs {
+		if err := install.NewInstaller(config).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
+			log.Fatalf("Could not create CRDs: %v", err)
+		}
+	}
 
 	// TODO(marun) Make the monitor period configurable
 	clusterMonitorPeriod := time.Second * 40
-	federatedcluster.StartClusterController(config, config, config, stopChan, clusterMonitorPeriod)
+	federatedcluster.StartClusterController(config, stopChan, clusterMonitorPeriod)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		// Initialize shared informer to enable reuse of the controller factory.
-		// TODO(marun) Shared informer doesn't makes sense for FederatedTypeConfig.
-		si := &sharedinformers.SharedInformers{
-			controllerlib.SharedInformersDefaults{},
-			externalversions.NewSharedInformerFactory(clientset.NewForConfigOrDie(config), 10*time.Minute),
+		// TODO(marun) Reconsider using kubebuilder framework to start
+		// the controller.  It's not a good fit.
+		inject.Inject = append(inject.Inject, func(arguments args.InjectArgs) error {
+			if c, err := federatedtypeconfig.ProvideController(arguments, stopChan); err != nil {
+				return err
+			} else {
+				arguments.ControllerManager.AddController(c)
+			}
+			return nil
+		})
+		if err := inject.RunAll(run.RunArguments{Stop: stopChan}, args.CreateInjectArgs(config)); err != nil {
+			log.Fatalf("%v", err)
 		}
-		go si.Factory.Federation().V1alpha1().FederatedTypeConfigs().Informer().Run(stopChan)
 
-		c := manager.NewFederatedTypeConfigController(config, si)
-		c.Run(stopChan)
+		// TODO(marun) Need to shutdown!
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		err = rspcontroller.StartReplicaSchedulingPreferenceController(config, config, config, stopChan, true)
+		err = rspcontroller.StartReplicaSchedulingPreferenceController(config, stopChan, true)
 		if err != nil {
 			log.Fatalf("Error starting replicaschedulingpreference controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		err = servicedns.StartController(config, config, config, stopChan, false)
+		err = servicedns.StartController(config, stopChan, false)
 		if err != nil {
 			log.Fatalf("Error starting dns controller: %v", err)
 		}
@@ -93,4 +107,13 @@ func main() {
 
 	// Blockforever
 	select {}
+}
+
+type InstallStrategy struct {
+	install.EmptyInstallStrategy
+	crds []*extensionsv1beta1.CustomResourceDefinition
+}
+
+func (s *InstallStrategy) GetCRDs() []*extensionsv1beta1.CustomResourceDefinition {
+	return s.crds
 }

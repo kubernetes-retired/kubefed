@@ -23,8 +23,9 @@ import (
 
 	"github.com/golang/glog"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	controllerutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/util"
 	"github.com/spf13/cobra"
@@ -37,7 +38,7 @@ import (
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-	crclient "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -291,7 +292,7 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName s
 	glog.V(2).Infof("Verifying cluster %s exists in the cluster registry.",
 		joiningClusterName)
 
-	_, err = crClientset.ClusterregistryV1alpha1().Clusters().Get(joiningClusterName,
+	_, err = crClientset.ClusterregistryV1alpha1().Clusters(controllerutil.MulticlusterPublicNamespace).Get(joiningClusterName,
 		metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -332,7 +333,7 @@ func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName s
 		return cluster, nil
 	}
 
-	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters().Create(cluster)
+	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters(controllerutil.MulticlusterPublicNamespace).Create(cluster)
 	if err != nil {
 		return cluster, err
 	}
@@ -362,7 +363,7 @@ func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterNam
 		return fedCluster, nil
 	}
 
-	fedCluster, err := fedClientset.FederationV1alpha1().FederatedClusters().Create(fedCluster)
+	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters().Create(fedCluster)
 
 	if err != nil {
 		return fedCluster, err

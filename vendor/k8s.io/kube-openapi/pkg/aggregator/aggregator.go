@@ -58,8 +58,10 @@ func (s *referenceWalker) walkRef(ref spec.Ref) spec.Ref {
 	// We do not support external references yet.
 	if !s.alreadyVisited[refStr] && strings.HasPrefix(refStr, definitionPrefix) {
 		s.alreadyVisited[refStr] = true
-		def := s.root.Definitions[refStr[len(definitionPrefix):]]
+		k := refStr[len(definitionPrefix):]
+		def := s.root.Definitions[k]
 		s.walkSchema(&def)
+		s.root.Definitions[k] = def
 	}
 	return s.walkRefCallback(ref)
 }
@@ -69,23 +71,26 @@ func (s *referenceWalker) walkSchema(schema *spec.Schema) {
 		return
 	}
 	schema.Ref = s.walkRef(schema.Ref)
-	for _, v := range schema.Definitions {
+	for k, v := range schema.Definitions {
 		s.walkSchema(&v)
+		schema.Definitions[k] = v
 	}
-	for _, v := range schema.Properties {
+	for k, v := range schema.Properties {
 		s.walkSchema(&v)
+		schema.Properties[k] = v
 	}
-	for _, v := range schema.PatternProperties {
+	for k, v := range schema.PatternProperties {
 		s.walkSchema(&v)
+		schema.PatternProperties[k] = v
 	}
-	for _, v := range schema.AllOf {
-		s.walkSchema(&v)
+	for i, _ := range schema.AllOf {
+		s.walkSchema(&schema.AllOf[i])
 	}
-	for _, v := range schema.AnyOf {
-		s.walkSchema(&v)
+	for i, _ := range schema.AnyOf {
+		s.walkSchema(&schema.AnyOf[i])
 	}
-	for _, v := range schema.OneOf {
-		s.walkSchema(&v)
+	for i, _ := range schema.OneOf {
+		s.walkSchema(&schema.OneOf[i])
 	}
 	if schema.Not != nil {
 		s.walkSchema(schema.Not)
@@ -100,8 +105,8 @@ func (s *referenceWalker) walkSchema(schema *spec.Schema) {
 		if schema.Items.Schema != nil {
 			s.walkSchema(schema.Items.Schema)
 		}
-		for _, v := range schema.Items.Schemas {
-			s.walkSchema(&v)
+		for i, _ := range schema.Items.Schemas {
+			s.walkSchema(&schema.Items.Schemas[i])
 		}
 	}
 }
@@ -154,7 +159,7 @@ func (s *referenceWalker) Start() {
 	}
 }
 
-// usedDefinitionForSpec returns a map with all used definition in the provided spec as keys and true as values.
+// usedDefinitionForSpec returns a map with all used definitions in the provided spec as keys and true as values.
 func usedDefinitionForSpec(sp *spec.Swagger) map[string]bool {
 	usedDefinitions := map[string]bool{}
 	walkOnAllReferences(func(ref spec.Ref) spec.Ref {
@@ -167,7 +172,7 @@ func usedDefinitionForSpec(sp *spec.Swagger) map[string]bool {
 }
 
 // FilterSpecByPaths removes unnecessary paths and definitions used by those paths.
-// i.e. if a Path removed by this function, all definition used by it and not used
+// i.e. if a Path removed by this function, all definitions used by it and not used
 // anywhere else will also be removed.
 func FilterSpecByPaths(sp *spec.Swagger, keepPathPrefixes []string) {
 	// Walk all references to find all used definitions. This function
@@ -291,15 +296,29 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 			from, to string
 		}
 		renames := []Rename{}
+
+	OUTERLOOP:
 		for k, v := range source.Definitions {
 			if usedNames[k] {
 				v2, found := dest.Definitions[k]
-				// Reuse model iff they are exactly the same.
+				// Reuse model if they are exactly the same.
 				if found && reflect.DeepEqual(v, v2) {
 					continue
 				}
-				i := 2
-				newName := fmt.Sprintf("%s_v%d", k, i)
+
+				// Reuse previously renamed model if one exists
+				var newName string
+				i := 1
+				for found {
+					i++
+					newName = fmt.Sprintf("%s_v%d", k, i)
+					v2, found = dest.Definitions[newName]
+					if found && reflect.DeepEqual(v, v2) {
+						renames = append(renames, Rename{from: k, to: newName})
+						continue OUTERLOOP
+					}
+				}
+
 				_, foundInSource := source.Definitions[newName]
 				for usedNames[newName] || foundInSource {
 					i++
@@ -316,6 +335,9 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 	}
 	for k, v := range source.Definitions {
 		if _, found := dest.Definitions[k]; !found {
+			if dest.Definitions == nil {
+				dest.Definitions = spec.Definitions{}
+			}
 			dest.Definitions[k] = v
 		}
 	}

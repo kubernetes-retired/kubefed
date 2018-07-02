@@ -102,7 +102,7 @@ func (r *Image) UnmarshalJSON(b []byte) error {
 
 	switch t := s.SizeBytes.(type) {
 	case nil:
-		return nil
+		r.SizeBytes = 0
 	case float32:
 		r.SizeBytes = int64(t)
 	case float64:

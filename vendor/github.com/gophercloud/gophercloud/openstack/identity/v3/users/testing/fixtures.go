@@ -8,6 +8,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/groups"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/users"
 	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/gophercloud/gophercloud/testhelper/client"
@@ -128,7 +129,7 @@ const CreateNoOptionsRequest = `
 }
 `
 
-// UpdateRequest provides the input to as Update request.
+// UpdateRequest provides the input to an Update request.
 const UpdateRequest = `
 {
     "user": {
@@ -163,6 +164,16 @@ const UpdateOutput = `
 }
 `
 
+// ChangePasswordRequest provides the input to a ChangePassword request.
+const ChangePasswordRequest = `
+{
+    "user": {
+        "password": "new_secretsecret",
+        "original_password": "secretsecret"
+    }
+}
+`
+
 // ListGroupsOutput provides a ListGroups result.
 const ListGroupsOutput = `
 {
@@ -192,6 +203,41 @@ const ListGroupsOutput = `
         "previous": null,
         "next": null
     }
+}
+`
+
+// ListProjectsOutput provides a ListProjects result.
+const ListProjectsOutput = `
+{
+    "links": {
+        "next": null,
+        "previous": null,
+        "self": "http://localhost:5000/identity/v3/users/foobar/projects"
+    },
+    "projects": [
+        {
+            "description": "my first project",
+            "domain_id": "11111",
+            "enabled": true,
+            "id": "abcde",
+            "links": {
+                "self": "http://localhost:5000/identity/v3/projects/abcde"
+            },
+            "name": "project 1",
+            "parent_id": "11111"
+        },
+        {
+            "description": "my second project",
+            "domain_id": "22222",
+            "enabled": true,
+            "id": "bcdef",
+            "links": {
+                "self": "http://localhost:5000/identity/v3/projects/bcdef"
+            },
+            "name": "project 2",
+            "parent_id": "22222"
+        }
+    ]
 }
 `
 
@@ -300,6 +346,26 @@ var SecondGroup = groups.Group{
 
 var ExpectedGroupsSlice = []groups.Group{FirstGroup, SecondGroup}
 
+var FirstProject = projects.Project{
+	Description: "my first project",
+	DomainID:    "11111",
+	Enabled:     true,
+	ID:          "abcde",
+	Name:        "project 1",
+	ParentID:    "11111",
+}
+
+var SecondProject = projects.Project{
+	Description: "my second project",
+	DomainID:    "22222",
+	Enabled:     true,
+	ID:          "bcdef",
+	Name:        "project 2",
+	ParentID:    "22222",
+}
+
+var ExpectedProjectsSlice = []projects.Project{FirstProject, SecondProject}
+
 // HandleListUsersSuccessfully creates an HTTP handler at `/users` on the
 // test handler mux that responds with a list of two users.
 func HandleListUsersSuccessfully(t *testing.T) {
@@ -367,6 +433,18 @@ func HandleUpdateUserSuccessfully(t *testing.T) {
 	})
 }
 
+// HandleChangeUserPasswordSuccessfully creates an HTTP handler at `/users` on the
+// test handler mux that tests change user password.
+func HandleChangeUserPasswordSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/users/9fe1d3/password", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+		th.TestJSONRequest(t, r, ChangePasswordRequest)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
 // HandleDeleteUserSuccessfully creates an HTTP handler at `/users` on the
 // test handler mux that tests user deletion.
 func HandleDeleteUserSuccessfully(t *testing.T) {
@@ -379,7 +457,7 @@ func HandleDeleteUserSuccessfully(t *testing.T) {
 }
 
 // HandleListUserGroupsSuccessfully creates an HTTP handler at /users/{userID}/groups
-// on the test handler mux that respons wit a list of two groups
+// on the test handler mux that respons with a list of two groups
 func HandleListUserGroupsSuccessfully(t *testing.T) {
 	th.Mux.HandleFunc("/users/9fe1d3/groups", func(w http.ResponseWriter, r *http.Request) {
 		th.TestMethod(t, r, "GET")
@@ -389,5 +467,66 @@ func HandleListUserGroupsSuccessfully(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, ListGroupsOutput)
+	})
+}
+
+// HandleAddToGroupSuccessfully creates an HTTP handler at /groups/{groupID}/users/{userID}
+// on the test handler mux that tests adding user to group.
+func HandleAddToGroupSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/groups/ea167b/users/9fe1d3", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "PUT")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+// HandleIsMemberOfGroupSuccessfully creates an HTTP handler at /groups/{groupID}/users/{userID}
+// on the test handler mux that tests checking whether user belongs to group.
+func HandleIsMemberOfGroupSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/groups/ea167b/users/9fe1d3", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "HEAD")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+// HandleRemoveFromGroupSuccessfully creates an HTTP handler at /groups/{groupID}/users/{userID}
+// on the test handler mux that tests removing user from group.
+func HandleRemoveFromGroupSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/groups/ea167b/users/9fe1d3", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "DELETE")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+// HandleListUserProjectsSuccessfully creates an HTTP handler at /users/{userID}/projects
+// on the test handler mux that respons wit a list of two projects
+func HandleListUserProjectsSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/users/9fe1d3/projects", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListProjectsOutput)
+	})
+}
+
+// HandleListInGroupSuccessfully creates an HTTP handler at /groups/{groupID}/users
+// on the test handler mux that response with a list of two users
+func HandleListInGroupSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/groups/ea167b/users", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListOutput)
 	})
 }

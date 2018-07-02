@@ -19,7 +19,7 @@ package planner
 import (
 	"testing"
 
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	"github.com/stretchr/testify/assert"
 )
 

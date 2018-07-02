@@ -27,9 +27,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
 
-	informers "k8s.io/cluster-registry/pkg/client/informers_generated/externalversions"
+	clientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	informers "k8s.io/cluster-registry/pkg/client/informers/externalversions"
 )
 
 var (

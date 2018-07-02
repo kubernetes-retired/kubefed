@@ -48,46 +48,28 @@ echo "About to download some binaries. This might take a while..."
 root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dest_dir="${root_dir}/bin"
 mkdir -p "${dest_dir}"
-etcd_dest="${dest_dir}/etcd"
-kubectl_dest="${dest_dir}/kubectl"
-kube_apiserver_dest="${dest_dir}/kube-apiserver"
 
-curl "${curl_args}" "${BASE_URL}/etcd-${os}-${arch}" --output "$etcd_dest"
-curl "${curl_args}" "${BASE_URL}/kube-apiserver-${os}-${arch}" --output "$kube_apiserver_dest"
+kb_tgz="kubebuilder_0.1.12_linux_amd64.tar.gz"
+kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v0.1.11/${kb_tgz}"
+curl "${curl_args}O" "${kb_url}" \
+  && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
+  && rm "${kb_tgz}"
 
-kubectl_version="$(curl "$curl_args" https://storage.googleapis.com/kubernetes-release/release/stable.txt)"
-kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/${os_lowercase}/amd64/kubectl"
-curl "${curl_args}" "$kubectl_url" --output "$kubectl_dest"
-
-crc_dest="${dest_dir}/crinit"
-crc_tgz="clusterregistry-client.tar.gz"
-crc_url="https://storage.googleapis.com/crreleases/v0.0.4/${crc_tgz}"
-curl "${curl_args}O" "${crc_url}" \
-  && tar -xzf "${crc_tgz}" -C "${dest_dir}" ./crinit \
-  && rm "${crc_tgz}"
-
-crs_dest="${dest_dir}/clusterregistry"
-crs_tgz="clusterregistry-server.tar.gz"
-crs_url="https://storage.googleapis.com/crreleases/v0.0.4/${crs_tgz}"
-curl "${curl_args}O" "${crs_url}" \
-  && tar -xzf "${crs_tgz}" -C "${dest_dir}" ./clusterregistry \
-  && rm "${crs_tgz}"
-
-sb_dest="${dest_dir}/apiserver-boot"
-sb_tgz="apiserver-builder-v1.9-alpha.3-linux-amd64.tar.gz"
-sb_url="https://github.com/kubernetes-incubator/apiserver-builder/releases/download/v1.9-alpha.3/${sb_tgz}"
-curl "${curl_args}O" "${sb_url}" \
-  && tar xzfP "${sb_tgz}" -C "${dest_dir}" --strip-components=1 \
-  && rm "${sb_tgz}"
-
-chmod +x "$etcd_dest" "$kubectl_dest" "$kube_apiserver_dest"
+# Use a binary built from master; fedv2 requires >= 1.11 due to crd
+# validation changes and the most recent stable release (beta2) is not
+# compatible.
+# TODO(marun) Remove when kubebuilder includes released 1.11 binaries
+ci_version="$(curl "$curl_args" https://storage.googleapis.com/kubernetes-release-dev/ci/latest-green.txt)"
+ks_tgz="kubernetes-server-linux-amd64.tar.gz"
+ks_url="https://storage.googleapis.com/kubernetes-release-dev/ci/${ci_version}/${ks_tgz}"
+curl "${curl_args}O" "${ks_url}" \
+  && tar xzf "${ks_tgz}" kubernetes/server/bin/kube-apiserver -C "${dest_dir}" --strip-components=2 \
+  && rm "${ks_tgz}"
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
-echo -n "#   etcd:            "; "$etcd_dest" --version | head -n 1
-echo -n "#   kube-apiserver:  "; "$kube_apiserver_dest" --version
-echo -n "#   kubectl:         "; "$kubectl_dest" version --client --short
-echo -n "#   crinit:          "; "${crc_dest}" version --short
-echo -n "#   clusterregistry: "; "${crs_dest}" version --short
-echo -n "#   apiserver-boot:  "; "${sb_dest}" version
+echo -n "#   etcd:           "; "${dest_dir}/etcd" --version | head -n 1
+echo -n "#   kube-apiserver: "; "${dest_dir}/kube-apiserver" --version
+echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
+echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version

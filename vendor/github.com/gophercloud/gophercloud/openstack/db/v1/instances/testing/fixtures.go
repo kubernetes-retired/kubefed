@@ -86,26 +86,72 @@ var createReq = `
 }
 `
 
+var instanceWithFault = `
+{
+  "created": "` + timestamp + `",
+  "datastore": {
+    "type": "mysql",
+    "version": "5.6"
+  },
+  "flavor": {
+    "id": "1",
+    "links": [
+      {
+        "href": "https://openstack.example.com/v1.0/1234/flavors/1",
+        "rel": "self"
+      },
+      {
+        "href": "https://openstack.example.com/v1.0/1234/flavors/1",
+        "rel": "bookmark"
+      }
+    ]
+  },
+  "links": [
+    {
+      "href": "https://openstack.example.com/v1.0/1234/instances/1",
+      "rel": "self"
+    }
+  ],
+  "hostname": "e09ad9a3f73309469cf1f43d11e79549caf9acf2.openstack.example.com",
+  "id": "{instanceID}",
+  "name": "json_rack_instance",
+  "status": "BUILD",
+  "updated": "` + timestamp + `",
+  "volume": {
+    "size": 2
+  },
+  "fault": {
+    "message": "some error message",
+    "created": "` + timestamp + `",
+    "details": "some details about the error"
+  }
+}
+`
+
 var (
-	instanceID = "{instanceID}"
-	rootURL    = "/instances"
-	resURL     = rootURL + "/" + instanceID
-	uRootURL   = resURL + "/root"
-	aURL       = resURL + "/action"
+	instanceID    = "{instanceID}"
+	configGroupID = "00000000-0000-0000-0000-000000000000"
+	rootURL       = "/instances"
+	resURL        = rootURL + "/" + instanceID
+	uRootURL      = resURL + "/root"
+	aURL          = resURL + "/action"
 )
 
 var (
-	restartReq   = `{"restart": {}}`
-	resizeReq    = `{"resize": {"flavorRef": "2"}}`
-	resizeVolReq = `{"resize": {"volume": {"size": 4}}}`
+	restartReq                  = `{"restart": {}}`
+	resizeReq                   = `{"resize": {"flavorRef": "2"}}`
+	resizeVolReq                = `{"resize": {"volume": {"size": 4}}}`
+	attachConfigurationGroupReq = `{"instance": {"configuration": "00000000-0000-0000-0000-000000000000"}}`
+	detachConfigurationGroupReq = `{"instance": {}}`
 )
 
 var (
-	createResp        = fmt.Sprintf(`{"instance": %s}`, instance)
-	listInstancesResp = fmt.Sprintf(`{"instances":[%s]}`, instance)
-	getInstanceResp   = createResp
-	enableUserResp    = `{"user":{"name":"root","password":"secretsecret"}}`
-	isUserEnabledResp = `{"rootEnabled":true}`
+	createResp          = fmt.Sprintf(`{"instance": %s}`, instance)
+	createWithFaultResp = fmt.Sprintf(`{"instance": %s}`, instanceWithFault)
+	listInstancesResp   = fmt.Sprintf(`{"instances":[%s]}`, instance)
+	getInstanceResp     = createResp
+	enableUserResp      = `{"user":{"name":"root","password":"secretsecret"}}`
+	isUserEnabledResp   = `{"rootEnabled":true}`
 )
 
 var expectedInstance = instances.Instance{
@@ -132,8 +178,41 @@ var expectedInstance = instances.Instance{
 	},
 }
 
+var expectedInstanceWithFault = instances.Instance{
+	Created: timeVal,
+	Updated: timeVal,
+	Flavor: instances.Flavor{
+		ID: "1",
+		Links: []gophercloud.Link{
+			{Href: "https://openstack.example.com/v1.0/1234/flavors/1", Rel: "self"},
+			{Href: "https://openstack.example.com/v1.0/1234/flavors/1", Rel: "bookmark"},
+		},
+	},
+	Hostname: "e09ad9a3f73309469cf1f43d11e79549caf9acf2.openstack.example.com",
+	ID:       instanceID,
+	Links: []gophercloud.Link{
+		{Href: "https://openstack.example.com/v1.0/1234/instances/1", Rel: "self"},
+	},
+	Name:   "json_rack_instance",
+	Status: "BUILD",
+	Volume: instances.Volume{Size: 2},
+	Datastore: datastores.DatastorePartial{
+		Type:    "mysql",
+		Version: "5.6",
+	},
+	Fault: &instances.Fault{
+		Created: timeVal,
+		Message: "some error message",
+		Details: "some details about the error",
+	},
+}
+
 func HandleCreate(t *testing.T) {
 	fixture.SetupHandler(t, rootURL, "POST", createReq, createResp, 200)
+}
+
+func HandleCreateWithFault(t *testing.T) {
+	fixture.SetupHandler(t, rootURL, "POST", createReq, createWithFaultResp, 200)
 }
 
 func HandleList(t *testing.T) {
@@ -166,4 +245,12 @@ func HandleResize(t *testing.T) {
 
 func HandleResizeVol(t *testing.T) {
 	fixture.SetupHandler(t, aURL, "POST", resizeVolReq, "", 202)
+}
+
+func HandleAttachConfigurationGroup(t *testing.T) {
+	fixture.SetupHandler(t, resURL, "PUT", attachConfigurationGroupReq, "", 202)
+}
+
+func HandleDetachConfigurationGroup(t *testing.T) {
+	fixture.SetupHandler(t, resURL, "PUT", detachConfigurationGroupReq, "", 202)
 }

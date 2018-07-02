@@ -17,16 +17,14 @@ limitations under the License.
 package framework
 
 import (
-	"github.com/pborman/uuid"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 var (
@@ -82,16 +80,14 @@ func (f *ManagedFramework) AfterEach() {
 	}
 }
 
-func (f *ManagedFramework) FedConfig() *restclient.Config {
-	return fedFixture.FedApi.NewConfig(f.logger)
-}
-
 func (f *ManagedFramework) KubeConfig() *restclient.Config {
 	return fedFixture.KubeApi.NewConfig(f.logger)
 }
 
 func (f *ManagedFramework) FedClient(userAgent string) fedclientset.Interface {
-	return fedFixture.FedApi.NewClient(f.logger, userAgent)
+	config := fedFixture.KubeApi.NewConfig(f.logger)
+	restclient.AddUserAgent(config, userAgent)
+	return fedclientset.NewForConfigOrDie(config)
 }
 
 func (f *ManagedFramework) KubeClient(userAgent string) kubeclientset.Interface {
@@ -99,7 +95,9 @@ func (f *ManagedFramework) KubeClient(userAgent string) kubeclientset.Interface 
 }
 
 func (f *ManagedFramework) CrClient(userAgent string) crclientset.Interface {
-	return fedFixture.CrApi.NewClient(f.logger, userAgent)
+	config := fedFixture.KubeApi.NewConfig(f.logger)
+	restclient.AddUserAgent(config, userAgent)
+	return crclientset.NewForConfigOrDie(config)
 }
 
 func (f *ManagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
@@ -110,23 +108,20 @@ func (f *ManagedFramework) ClusterKubeClients(userAgent string) map[string]kubec
 	return fedFixture.ClusterKubeClients(f.logger, userAgent)
 }
 
+// TODO(marun) remove
 func (f *ManagedFramework) TestNamespaceName() string {
-	return uuid.New()
+	return ""
 }
 
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
-	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
-	crConfig := fedFixture.CrApi.NewConfig(f.logger)
-	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, kubeConfig)
 	f.fixtures = append(f.fixtures, fixture)
 }
 
 func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
-	fedConfig := fedFixture.FedApi.NewConfig(f.logger)
-	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
-	crConfig := fedFixture.CrApi.NewConfig(f.logger)
-	fixture := framework.NewServiceDNSControllerFixture(f.logger, fedConfig, kubeConfig, crConfig)
+	config := fedFixture.KubeApi.NewConfig(f.logger)
+	fixture := framework.NewServiceDNSControllerFixture(f.logger, config)
 	f.fixtures = append(f.fixtures, fixture)
 }

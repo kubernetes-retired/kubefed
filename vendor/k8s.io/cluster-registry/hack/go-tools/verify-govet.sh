@@ -18,5 +18,5 @@ set -euo pipefail
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_ROOT}/../.." && pwd)"
 pushd ${REPO_ROOT} > /dev/null
-go vet -v $(go list ./... | grep -v /vendor/)
+go vet -v $(go list ./... | grep -Ev '/(vendor|client)/')
 popd > /dev/null

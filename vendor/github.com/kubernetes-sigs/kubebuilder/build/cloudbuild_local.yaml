@@ -1,0 +1,39 @@
+#  Copyright 2018 The Kubernetes Authors.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+# Instructions to run locally:
+# Download google container builder: https://github.com/GoogleCloudPlatform/container-builder-local
+# Set you GOOS and GOARCH vars to match your system
+# Set OUTPUT to the location to write the directory containing the tar.gz
+# $ container-builder-local --config=build/cloudbuild_local.yaml --dryrun=false \
+# --write-workspace=/tmp/w .
+# Release tar will be in /tmp/w/workspace/dist
+
+steps:
+- name: "ubuntu"
+  args: ["mkdir", "-p", "/workspace/_output/linux_amd64"]
+- name: "gcr.io/kubebuilder/thirdparty-linux:1.10.1"
+  args: ["tar", "-xzvf", "/kubebuilder_linux_amd64.tar.gz"]
+  dir: "_output/linux_amd64"
+- name: "ubuntu"
+  args: ["mkdir", "-p", "/workspace/_output/darwin_amd64"]
+- name: "gcr.io/kubebuilder/thirdparty-darwin:1.10.1"
+  args: ["tar", "-xzvf", "/kubebuilder_darwin_amd64.tar.gz"]
+  dir: "_output/darwin_amd64"
+- name: "ubuntu"
+  args: ["bash", "build/build_vendor.sh"]
+- name: "gcr.io/kubebuilder/goreleaser_with_go_1.10:0.0.1"
+  args: ["bash", "build/build_kubebuilder.sh", "--snapshot"]
+  env:
+   - 'KUBERNETES_VERSION=1.10'
