@@ -81,9 +81,6 @@ var (
 				Plural: "multiclusterservicednsrecords",
 			},
 			Scope: "Namespaced",
-			Subresources: &v1beta1.CustomResourceSubresources{
-				Status: &v1beta1.CustomResourceSubresourceStatus{},
-			},
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
 					Properties: map[string]v1beta1.JSONSchemaProps{
@@ -137,6 +134,9 @@ var (
 						},
 					},
 				},
+			},
+			Subresources: &v1beta1.CustomResourceSubresources{
+				Status: &v1beta1.CustomResourceSubresourceStatus{},
 			},
 		},
 	}
