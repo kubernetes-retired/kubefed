@@ -140,7 +140,7 @@ func init() {
 		Verbs:     []string{"*"},
 	})
 	Injector.PolicyRules = append(Injector.PolicyRules, rbacv1.PolicyRule{
-		APIGroups: []string{"multiclusterdns.k8s.io"},
+		APIGroups: []string{"multiclusterdns.federation.k8s.io"},
 		Resources: []string{"*"},
 		Verbs:     []string{"*"},
 	})
@@ -155,7 +155,7 @@ func init() {
 		Version: "v1alpha1",
 	})
 	Injector.GroupVersions = append(Injector.GroupVersions, schema.GroupVersion{
-		Group:   "multiclusterdns.k8s.io",
+		Group:   "multiclusterdns.federation.k8s.io",
 		Version: "v1alpha1",
 	})
 	Injector.GroupVersions = append(Injector.GroupVersions, schema.GroupVersion{

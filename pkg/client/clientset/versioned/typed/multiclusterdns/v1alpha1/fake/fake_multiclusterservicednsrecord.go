@@ -34,9 +34,9 @@ type FakeMultiClusterServiceDNSRecords struct {
 	ns   string
 }
 
-var multiclusterservicednsrecordsResource = schema.GroupVersionResource{Group: "multiclusterdns.k8s.io", Version: "v1alpha1", Resource: "multiclusterservicednsrecords"}
+var multiclusterservicednsrecordsResource = schema.GroupVersionResource{Group: "multiclusterdns.federation.k8s.io", Version: "v1alpha1", Resource: "multiclusterservicednsrecords"}
 
-var multiclusterservicednsrecordsKind = schema.GroupVersionKind{Group: "multiclusterdns.k8s.io", Version: "v1alpha1", Kind: "MultiClusterServiceDNSRecord"}
+var multiclusterservicednsrecordsKind = schema.GroupVersionKind{Group: "multiclusterdns.federation.k8s.io", Version: "v1alpha1", Kind: "MultiClusterServiceDNSRecord"}
 
 // Get takes name of the multiClusterServiceDNSRecord, and returns the corresponding multiClusterServiceDNSRecord object, and an error if there is any.
 func (c *FakeMultiClusterServiceDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.MultiClusterServiceDNSRecord, err error) {

@@ -30,7 +30,7 @@ type MulticlusterdnsV1alpha1Interface interface {
 	MultiClusterServiceDNSRecordsGetter
 }
 
-// MulticlusterdnsV1alpha1Client is used to interact with features provided by the multiclusterdns.k8s.io group.
+// MulticlusterdnsV1alpha1Client is used to interact with features provided by the multiclusterdns.federation.k8s.io group.
 type MulticlusterdnsV1alpha1Client struct {
 	restClient rest.Interface
 }

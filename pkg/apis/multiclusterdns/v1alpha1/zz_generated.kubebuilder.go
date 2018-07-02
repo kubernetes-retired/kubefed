@@ -23,7 +23,7 @@ import (
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "multiclusterdns.k8s.io", Version: "v1alpha1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: "multiclusterdns.federation.k8s.io", Version: "v1alpha1"}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) schema.GroupKind {
@@ -71,10 +71,10 @@ var (
 	// Define CRDs for resources
 	MultiClusterServiceDNSRecordCRD = v1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "multiclusterservicednsrecords.multiclusterdns.k8s.io",
+			Name: "multiclusterservicednsrecords.multiclusterdns.federation.k8s.io",
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
-			Group:   "multiclusterdns.k8s.io",
+			Group:   "multiclusterdns.federation.k8s.io",
 			Version: "v1alpha1",
 			Names: v1beta1.CustomResourceDefinitionNames{
 				Kind:   "MultiClusterServiceDNSRecord",
