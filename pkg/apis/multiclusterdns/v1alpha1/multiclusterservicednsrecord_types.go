@@ -52,6 +52,7 @@ type ClusterDNS struct {
 // MultiClusterServiceDNSRecord
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=multiclusterservicednsrecords
+// +kubebuilder:subresource:status
 type MultiClusterServiceDNSRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

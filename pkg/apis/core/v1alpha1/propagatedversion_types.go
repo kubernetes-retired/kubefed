@@ -42,6 +42,7 @@ type ClusterObjectVersion struct {
 // PropagatedVersion
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=propagatedversions
+// +kubebuilder:subresource:status
 type PropagatedVersion struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
