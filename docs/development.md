@@ -45,7 +45,7 @@ non-generated code in the commit history.
 Implementing support for federation of a Kubernetes type requires
 the following steps:
 
- - add a new template type (as per the [instructions](#adding-a-new-type) for adding a new type)
+ - add a new template type (as per the [instructions](#adding-a-new-api-type) for adding a new API type)
    - Ensure the spec of the new type has a `Template` field of the target Kubernetes type.
    - e.g. [FederatedSecret](https://github.com/kubernetes-sigs/federation-v2/blob/master/pkg/apis/federation/v1alpha1/federatedsecret_types.go#L49)
 
