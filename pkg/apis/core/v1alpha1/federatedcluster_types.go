@@ -60,7 +60,6 @@ type FederatedClusterStatus struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
 
 // FederatedCluster
 // +k8s:openapi-gen=true
