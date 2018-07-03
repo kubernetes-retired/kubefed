@@ -30,10 +30,11 @@ import (
 // by the api server should be included here.
 func copyObjectMeta(obj metav1.ObjectMeta) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:        obj.Name,
-		Namespace:   obj.Namespace,
-		Labels:      obj.Labels,
-		Annotations: obj.Annotations,
+		Name:            obj.Name,
+		Namespace:       obj.Namespace,
+		Labels:          obj.Labels,
+		Annotations:     obj.Annotations,
+		ResourceVersion: obj.ResourceVersion,
 	}
 }
 

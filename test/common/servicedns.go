@@ -30,11 +30,11 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-func NewServiceDNSObject(name, namespace string) *dnsv1a1.MultiClusterServiceDNSRecord {
+func NewServiceDNSObject(baseName, namespace string) *dnsv1a1.MultiClusterServiceDNSRecord {
 	return &dnsv1a1.MultiClusterServiceDNSRecord{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			GenerateName: baseName,
+			Namespace:    namespace,
 		},
 	}
 }

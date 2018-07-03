@@ -1,8 +1,13 @@
 package users
 
 import (
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/groups"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
@@ -46,11 +51,30 @@ type ListOpts struct {
 
 	// UniqueID filters the response by unique ID.
 	UniqueID string `q:"unique_id"`
+
+	// Filters filters the response by custom filters such as
+	// 'name__contains=foo'
+	Filters map[string]string `q:"-"`
 }
 
 // ToUserListQuery formats a ListOpts into a query string.
 func (opts ListOpts) ToUserListQuery() (string, error) {
 	q, err := gophercloud.BuildQueryString(opts)
+	if err != nil {
+		return "", err
+	}
+
+	params := q.Query()
+	for k, v := range opts.Filters {
+		i := strings.Index(k, "__")
+		if i > 0 && i < len(k)-2 {
+			params.Add(k, v)
+		} else {
+			return "", InvalidListFilter{FilterName: k}
+		}
+	}
+
+	q = &url.URL{RawQuery: params.Encode()}
 	return q.String(), err
 }
 
@@ -203,6 +227,45 @@ func Update(client *gophercloud.ServiceClient, userID string, opts UpdateOptsBui
 	return
 }
 
+// ChangePasswordOptsBuilder allows extensions to add additional parameters to
+// the ChangePassword request.
+type ChangePasswordOptsBuilder interface {
+	ToUserChangePasswordMap() (map[string]interface{}, error)
+}
+
+// ChangePasswordOpts provides options for changing password for a user.
+type ChangePasswordOpts struct {
+	// OriginalPassword is the original password of the user.
+	OriginalPassword string `json:"original_password"`
+
+	// Password is the new password of the user.
+	Password string `json:"password"`
+}
+
+// ToUserChangePasswordMap formats a ChangePasswordOpts into a ChangePassword request.
+func (opts ChangePasswordOpts) ToUserChangePasswordMap() (map[string]interface{}, error) {
+	b, err := gophercloud.BuildRequestBody(opts, "user")
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+// ChangePassword changes password for a user.
+func ChangePassword(client *gophercloud.ServiceClient, userID string, opts ChangePasswordOptsBuilder) (r ChangePasswordResult) {
+	b, err := opts.ToUserChangePasswordMap()
+	if err != nil {
+		r.Err = err
+		return
+	}
+
+	_, r.Err = client.Post(changePasswordURL(client, userID), &b, nil, &gophercloud.RequestOpts{
+		OkCodes: []int{204},
+	})
+	return
+}
+
 // Delete deletes a user.
 func Delete(client *gophercloud.ServiceClient, userID string) (r DeleteResult) {
 	_, r.Err = client.Delete(deleteURL(client, userID), nil)
@@ -213,6 +276,63 @@ func Delete(client *gophercloud.ServiceClient, userID string) (r DeleteResult) {
 func ListGroups(client *gophercloud.ServiceClient, userID string) pagination.Pager {
 	url := listGroupsURL(client, userID)
 	return pagination.NewPager(client, url, func(r pagination.PageResult) pagination.Page {
-		return groups.GroupPage{pagination.LinkedPageBase{PageResult: r}}
+		return groups.GroupPage{LinkedPageBase: pagination.LinkedPageBase{PageResult: r}}
+	})
+}
+
+// AddToGroup adds a user to a group.
+func AddToGroup(client *gophercloud.ServiceClient, groupID, userID string) (r AddToGroupResult) {
+	url := addToGroupURL(client, groupID, userID)
+	_, r.Err = client.Put(url, nil, nil, &gophercloud.RequestOpts{
+		OkCodes: []int{204},
+	})
+	return
+}
+
+// IsMemberOfGroup checks whether a user belongs to a group.
+func IsMemberOfGroup(client *gophercloud.ServiceClient, groupID, userID string) (r IsMemberOfGroupResult) {
+	url := isMemberOfGroupURL(client, groupID, userID)
+	var response *http.Response
+	response, r.Err = client.Head(url, &gophercloud.RequestOpts{
+		OkCodes: []int{204, 404},
+	})
+	if r.Err == nil && response != nil {
+		if (*response).StatusCode == 204 {
+			r.isMember = true
+		}
+	}
+
+	return
+}
+
+// RemoveFromGroup removes a user from a group.
+func RemoveFromGroup(client *gophercloud.ServiceClient, groupID, userID string) (r RemoveFromGroupResult) {
+	url := removeFromGroupURL(client, groupID, userID)
+	_, r.Err = client.Delete(url, &gophercloud.RequestOpts{
+		OkCodes: []int{204},
+	})
+	return
+}
+
+// ListProjects enumerates groups user belongs to.
+func ListProjects(client *gophercloud.ServiceClient, userID string) pagination.Pager {
+	url := listProjectsURL(client, userID)
+	return pagination.NewPager(client, url, func(r pagination.PageResult) pagination.Page {
+		return projects.ProjectPage{LinkedPageBase: pagination.LinkedPageBase{PageResult: r}}
+	})
+}
+
+// ListInGroup enumerates users that belong to a group.
+func ListInGroup(client *gophercloud.ServiceClient, groupID string, opts ListOptsBuilder) pagination.Pager {
+	url := listInGroupURL(client, groupID)
+	if opts != nil {
+		query, err := opts.ToUserListQuery()
+		if err != nil {
+			return pagination.Pager{Err: err}
+		}
+		url += query
+	}
+	return pagination.NewPager(client, url, func(r pagination.PageResult) pagination.Page {
+		return UserPage{pagination.LinkedPageBase{PageResult: r}}
 	})
 }

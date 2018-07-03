@@ -20,7 +20,7 @@ import (
 	"hash/fnv"
 	"sort"
 
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 )
 
 // Planner decides how many out of the given replicas should be placed in each of the

@@ -1,7 +1,0 @@
-note: FederatedTypeConfig Example
-sample: |
-  apiVersion: federation.k8s.io/v1alpha1
-  kind: FederatedTypeConfig
-  metadata:
-    name: federatedtypeconfig-example
-  spec:

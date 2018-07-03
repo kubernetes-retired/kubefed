@@ -1,4 +1,4 @@
-apiVersion: federation.k8s.io/v1alpha1
+apiVersion: core.federation.k8s.io/v1alpha1
 kind: FederatedTypeConfig
 metadata:
   name: namespaces
@@ -13,6 +13,6 @@ spec:
     version: v1
     kind: Namespace
   placement:
-    group: federation.k8s.io
+    group: core.federation.k8s.io
     version: v1alpha1
     kind: FederatedNamespacePlacement

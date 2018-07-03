@@ -20,16 +20,25 @@ import (
 	"fmt"
 	"time"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
+
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 // TODO(marun) In fedv1 namespace cleanup required that a kube api
@@ -38,12 +47,19 @@ import (
 
 const userAgent = "federation-framework"
 
+type InstallStrategy struct {
+	install.EmptyInstallStrategy
+	crds []*extensionsv1beta1.CustomResourceDefinition
+}
+
+func (s *InstallStrategy) GetCRDs() []*extensionsv1beta1.CustomResourceDefinition {
+	return s.crds
+}
+
 // FederationFixture manages servers for kube, cluster registry and
 // federation along with a set of member clusters.
 type FederationFixture struct {
 	KubeApi           *KubernetesApiFixture
-	CrApi             *ClusterRegistryApiFixture
-	FedApi            *FederationApiFixture
 	Clusters          map[string]*KubernetesApiFixture
 	ClusterController *ControllerFixture
 }
@@ -61,20 +77,18 @@ func SetUpFederationFixture(tl common.TestLogger, clusterCount int) *FederationF
 func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	defer TearDownOnPanic(tl, f)
 
-	f.CrApi = SetUpClusterRegistryApiFixture(tl)
-	f.FedApi = SetUpFederationApiFixture(tl)
-
 	f.Clusters = make(map[string]*KubernetesApiFixture)
 	for i := 0; i < clusterCount; i++ {
 		clusterName := f.AddMemberCluster(tl)
 		tl.Logf("Added cluster %s to the federation", clusterName)
 	}
 
+	config := f.KubeApi.NewConfig(tl)
+
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	tl.Logf("Starting cluster controller")
-	f.ClusterController = NewClusterControllerFixture(f.FedApi.NewConfig(tl),
-		f.KubeApi.NewConfig(tl), f.CrApi.NewConfig(tl))
+	f.ClusterController = NewClusterControllerFixture(config)
 	tl.Log("Federation started.")
 }
 
@@ -83,8 +97,6 @@ func (f *FederationFixture) TearDown(tl common.TestLogger) {
 	// errors when the target urls become unavailable.
 	fixtures := []TestFixture{
 		f.ClusterController,
-		f.CrApi,
-		f.FedApi,
 		// KubeApi will be torn down via f.Clusters
 	}
 	for _, cluster := range f.Clusters {
@@ -104,13 +116,15 @@ func (f *FederationFixture) TearDown(tl common.TestLogger) {
 func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 	kubeApi := SetUpKubernetesApiFixture(tl)
 
-	clusterName := f.registerCluster(tl, kubeApi.Host)
-
 	// Pick the first added cluster to be the primary
 	if f.KubeApi == nil {
 		f.KubeApi = kubeApi
 		f.KubeApi.IsPrimary = true
+		f.ensureNamespaces(tl)
+		f.installCrds(tl)
 	}
+
+	clusterName := f.registerCluster(tl, kubeApi.Host)
 
 	secretName := f.createSecret(tl, kubeApi, clusterName)
 	f.createFederatedCluster(tl, clusterName, secretName)
@@ -124,8 +138,8 @@ func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 // registerCluster registers a cluster with the cluster registry
 func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) string {
 	// Registry the kube api with the cluster registry
-	crClient := f.CrApi.NewClient(tl, userAgent)
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Create(&crv1a1.Cluster{
+	crClient := f.NewCrClient(tl, userAgent)
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(util.MulticlusterPublicNamespace).Create(&crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-cluster-",
 		},
@@ -151,7 +165,7 @@ func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) s
 func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *KubernetesApiFixture, clusterName string) string {
 	// Do not include the host - it will need to be sourced from the
 	// Cluster resource.
-	config := clusterFixture.SecureConfigFixture.NewClientConfig(tl, "")
+	config := &rest.Config{}
 	kubeConfig := CreateKubeConfig(config)
 
 	// Flatten the kubeconfig to ensure that all the referenced file
@@ -186,8 +200,8 @@ func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *K
 // createFederatedCluster create a federated cluster resource that
 // associates the cluster and secret.
 func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, clusterName, secretName string) {
-	fedClient := f.FedApi.NewClient(tl, userAgent)
-	_, err := fedClient.FederationV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
+	fedClient := f.NewFedClient(tl, userAgent)
+	_, err := fedClient.CoreV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},
@@ -203,6 +217,18 @@ func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, cluster
 	if err != nil {
 		tl.Fatal(err)
 	}
+}
+
+func (f *FederationFixture) NewFedClient(tl common.TestLogger, userAgent string) fedclientset.Interface {
+	config := f.KubeApi.NewConfig(tl)
+	rest.AddUserAgent(config, userAgent)
+	return fedclientset.NewForConfigOrDie(config)
+}
+
+func (f *FederationFixture) NewCrClient(tl common.TestLogger, userAgent string) crclientset.Interface {
+	config := f.KubeApi.NewConfig(tl)
+	rest.AddUserAgent(config, userAgent)
+	return crclientset.NewForConfigOrDie(config)
 }
 
 func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
@@ -242,4 +268,75 @@ func (f *FederationFixture) ClusterNames() []string {
 		clusterNames = append(clusterNames, name)
 	}
 	return clusterNames
+}
+
+func (f *FederationFixture) installCrds(tl common.TestLogger) {
+	config := f.KubeApi.NewConfig(tl)
+	installer := install.NewInstaller(config)
+
+	tl.Logf("Creating Cluster Registry CRD")
+	crds := []*apiextv1b1.CustomResourceDefinition{&crv1a1.ClusterCRD}
+	err := installer.Install(&InstallStrategy{crds: crds})
+	if err != nil {
+		tl.Fatalf("Could not create Cluster Registry CRD: %v", err)
+	}
+
+	tl.Logf("Creating Federation CRDs")
+	err = installer.Install(&InstallStrategy{crds: inject.Injector.CRDs})
+	if err != nil {
+		tl.Fatalf("Could not create Federation CRDs: %v", err)
+	}
+
+	crds = append(crds, inject.Injector.CRDs...)
+	for _, crd := range inject.Injector.CRDs {
+		waitForCrd(tl, config, crd)
+	}
+}
+
+func (f *FederationFixture) ensureNamespaces(tl common.TestLogger) {
+	client := f.KubeApi.NewClient(tl, "federation-fixture")
+	systemNamespaces := []string{
+		util.FederationSystemNamespace,
+		util.MulticlusterPublicNamespace,
+	}
+	for _, namespaceName := range systemNamespaces {
+		namespaceObj := &apiv1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespaceName,
+			},
+		}
+		_, err := client.Core().Namespaces().Create(namespaceObj)
+		// Idempotent creation
+		if err == nil || errors.IsAlreadyExists(err) {
+			continue
+		}
+		tl.Fatalf("Error creating %s: %v", namespaceObj.Name, err)
+	}
+}
+
+func waitForCrd(tl common.TestLogger, config *rest.Config, crd *apiextv1b1.CustomResourceDefinition) {
+	apiResource := &metav1.APIResource{
+		Group:      crd.Spec.Group,
+		Version:    crd.Spec.Version,
+		Kind:       crd.Spec.Names.Kind,
+		Name:       crd.Spec.Names.Plural,
+		Namespaced: crd.Spec.Scope == apiextv1b1.NamespaceScoped,
+	}
+
+	client, err := util.NewResourceClientFromConfig(config, apiResource)
+	if err != nil {
+		tl.Fatalf("Error creating client for crd %q: %v", apiResource.Kind, err)
+	}
+	// Wait for crd api to become available
+	err = wait.PollImmediate(DefaultWaitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+		_, err := client.Resources("invalid").Get("invalid", metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		return (err == nil), err
+
+	})
+	if err != nil {
+		tl.Fatalf("Error waiting for crd %q to become established: %v", apiResource.Kind, err)
+	}
 }

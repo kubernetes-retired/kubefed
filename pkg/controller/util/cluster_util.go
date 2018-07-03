@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -31,23 +31,25 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
-	// TODO(marun) this should be discovered rather than hard-coded
-	FederationSystemNamespace = "federation"
-	KubeAPIQPS                = 20.0
-	KubeAPIBurst              = 30
-	KubeconfigSecretDataKey   = "kubeconfig"
-	getSecretTimeout          = 1 * time.Minute
+	// TODO(marun) these should be configured rather than hard-coded
+	FederationSystemNamespace   = "federation-system"
+	MulticlusterPublicNamespace = "kube-multicluster-public"
+
+	KubeAPIQPS              = 20.0
+	KubeAPIBurst            = 30
+	KubeconfigSecretDataKey = "kubeconfig"
+	getSecretTimeout        = 1 * time.Minute
 )
 
 func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	// Retrieve the associated cluster
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters().Get(clusterName, metav1.GetOptions{})
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(MulticlusterPublicNamespace).Get(clusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

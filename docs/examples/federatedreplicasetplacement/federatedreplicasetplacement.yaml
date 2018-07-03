@@ -1,7 +1,0 @@
-note: FederatedReplicaSetPlacement Example
-sample: |
-  apiVersion: federation.k8s.io/v1alpha1
-  kind: FederatedReplicaSetPlacement
-  metadata:
-    name: federatedreplicasetplacement-example
-  spec:

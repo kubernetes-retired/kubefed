@@ -37,11 +37,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -86,14 +86,12 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing MultiClusterServiceDNSRecord objects.
-func StartController(fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartController(config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
 	userAgent := "MultiClusterServiceDNS"
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
+	restclient.AddUserAgent(config, userAgent)
+	fedClient := fedclientset.NewForConfigOrDie(config)
+	kubeClient := kubeclientset.NewForConfigOrDie(config)
+	crClient := crclientset.NewForConfigOrDie(config)
 
 	controller, err := newController(fedClient, kubeClient, crClient)
 	if err != nil {

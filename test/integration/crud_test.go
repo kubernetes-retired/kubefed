@@ -21,9 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pborman/uuid"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
@@ -34,12 +32,8 @@ import (
 // TestCrud validates create/read/update/delete operations for federated types.
 var TestCrud = func(t *testing.T) {
 	t.Parallel()
-	typeConfigs, err := common.FederatedTypeConfigs()
-	if err != nil {
-		t.Fatalf("Error loading type configs: %v", err)
-	}
 
-	for _, typeConfig := range typeConfigs {
+	for _, typeConfig := range TypeConfigs {
 		templateKind := typeConfig.GetTemplate().Kind
 
 		// TODO (font): integration tests for federated Namespace does not work
@@ -53,8 +47,11 @@ var TestCrud = func(t *testing.T) {
 			fixture, crudTester := initCrudTest(tl, FedFixture, typeConfig, templateKind)
 			defer fixture.TearDown(tl)
 
+			baseName := fmt.Sprintf("crud-%s-", strings.ToLower(templateKind))
+			kubeClient := FedFixture.KubeApi.NewClient(tl, baseName)
+			testNamespace := framework.CreateTestNamespace(tl, kubeClient, baseName)
 			clusterNames := FedFixture.ClusterNames()
-			template, placement, override, err := common.NewTestObjects(typeConfig, uuid.New(), clusterNames)
+			template, placement, override, err := common.NewTestObjects(typeConfig, testNamespace, clusterNames)
 			if err != nil {
 				tl.Fatalf("Error creating test objects: %v", err)
 			}
@@ -66,17 +63,14 @@ var TestCrud = func(t *testing.T) {
 // initCrudTest initializes common elements of a crud test
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig typeconfig.Interface, templateKind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester) {
-	fedConfig := fedFixture.FedApi.NewConfig(tl)
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	crConfig := fedFixture.CrApi.NewConfig(tl)
-	fixture := framework.NewSyncControllerFixture(tl, typeConfig, fedConfig, kubeConfig, crConfig)
+	fixture := framework.NewSyncControllerFixture(tl, typeConfig, kubeConfig)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
-	rest.AddUserAgent(fedConfig, userAgent)
 	rest.AddUserAgent(kubeConfig, userAgent)
 	targetAPIResource := typeConfig.GetTarget()
 	clusterClients := fedFixture.ClusterDynamicClients(tl, &targetAPIResource, userAgent)
-	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, fedConfig, kubeConfig, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
+	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, clusterClients, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 	}

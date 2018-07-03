@@ -22,10 +22,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/placement"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
@@ -47,7 +47,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -117,8 +117,8 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, fedConfig, kubeConfig, crConfig)
+func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+	controller, err := newFederationSyncController(typeConfig, kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -131,32 +131,18 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, fedConfig, k
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kubeConfig, crConfig *restclient.Config) (*FederationSyncController, error) {
+func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
 	restclient.AddUserAgent(kubeConfig, userAgent)
+	fedClient := fedclientset.NewForConfigOrDie(kubeConfig)
 	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
+	crClient := crclientset.NewForConfigOrDie(kubeConfig)
 
-	// In testing where aggregation may not be configured, namespace
-	// and crd resources will need to use the kube config.  When
-	// aggregation is in use, both pools will use the same config.
-	fedPool := dynamic.NewDynamicClientPool(fedConfig)
-	kubePool := dynamic.NewDynamicClientPool(kubeConfig)
-	clientFor := func(apiResource metav1.APIResource) (util.ResourceClient, error) {
-		pool := fedPool
-		// TODO(marun) Revisit this when federation of primary types to CRD
-		if apiResource.Group != "federation.k8s.io" {
-			pool = kubePool
-		}
-		return util.NewResourceClient(pool, &apiResource)
-	}
+	pool := dynamic.NewDynamicClientPool(kubeConfig)
 
-	templateClient, err := clientFor(templateAPIResource)
+	templateClient, err := util.NewResourceClient(pool, &templateAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -191,14 +177,15 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, metav1.NamespaceAll, deliverObj)
 
 	if overrideAPIResource := typeConfig.GetOverride(); overrideAPIResource != nil {
-		client, err := clientFor(*overrideAPIResource)
+		client, err := util.NewResourceClient(pool, overrideAPIResource)
 		if err != nil {
 			return nil, err
 		}
 		s.overrideStore, s.overrideController = util.NewResourceInformer(client, metav1.NamespaceAll, deliverObj)
 	}
 
-	placementClient, err := clientFor(typeConfig.GetPlacement())
+	placementAPIResource := typeConfig.GetPlacement()
+	placementClient, err := util.NewResourceClient(pool, &placementAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -212,10 +199,10 @@ func newFederationSyncController(typeConfig typeconfig.Interface, fedConfig, kub
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().PropagatedVersions(metav1.NamespaceAll).List(options)
+				return fedClient.CoreV1alpha1().PropagatedVersions(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().PropagatedVersions(metav1.NamespaceAll).Watch(options)
+				return fedClient.CoreV1alpha1().PropagatedVersions(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&fedv1a1.PropagatedVersion{},
@@ -573,7 +560,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 	}
 
 	versionName := s.versionName(qualifiedName.Name)
-	err = s.fedClient.FederationV1alpha1().PropagatedVersions(qualifiedName.Namespace).Delete(versionName, nil)
+	err = s.fedClient.CoreV1alpha1().PropagatedVersions(qualifiedName.Namespace).Delete(versionName, nil)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
@@ -683,16 +670,16 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 
 	if version == nil {
 		version := newVersion(updatedVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
-		_, err := fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).Create(version)
+		createdVersion, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
 		}
 
-		key := util.NewQualifiedName(version).String()
+		key := util.NewQualifiedName(createdVersion).String()
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
 		pendingVersionUpdates.Insert(key)
 
-		_, err = fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
+		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(createdVersion)
 		if err != nil {
 			pendingVersionUpdates.Delete(key)
 		}
@@ -720,7 +707,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 	key := util.NewQualifiedName(version).String()
 	pendingVersionUpdates.Insert(key)
 
-	_, err := fedClient.FederationV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
+	_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 	if err != nil {
 		pendingVersionUpdates.Delete(key)
 	}
@@ -835,7 +822,12 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				}
 			}
 
-			desiredObj = s.objectForUpdateOp(desiredObj, clusterObj)
+			desiredObj, err = s.objectForUpdateOp(desiredObj, clusterObj)
+			if err != nil {
+				wrappedErr := fmt.Errorf("Failed to determine desired object %s %q for cluster %q: %v", targetKind, key, clusterName, err)
+				runtime.HandleError(wrappedErr)
+				return nil, wrappedErr
+			}
 
 			version, ok := clusterVersions[clusterName]
 			if !ok {
@@ -903,7 +895,10 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	targetKind := s.typeConfig.GetTarget().Kind
 	obj := &unstructured.Unstructured{}
 	if targetKind == util.NamespaceKind {
-		metadata, ok := unstructured.NestedMap(template.Object, "metadata")
+		metadata, ok, err := unstructured.NestedMap(template.Object, "metadata")
+		if err != nil {
+			return nil, fmt.Errorf("Error retrieving namespace metadata", err)
+		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
 		}
@@ -918,7 +913,11 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 		obj.Object["metadata"] = metadata
 	} else {
 		var ok bool
-		obj.Object, ok = unstructured.NestedMap(template.Object, "spec", "template")
+		var err error
+		obj.Object, ok, err = unstructured.NestedMap(template.Object, "spec", "template")
+		if err != nil {
+			return nil, fmt.Errorf("Error retrieving template body", err)
+		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve template body")
 		}
@@ -937,9 +936,12 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	if override == nil {
 		return obj, nil
 	}
-	overrides, ok := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	overrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving overrides for %q: %v", targetKind, err)
+	}
 	if !ok {
-		return nil, fmt.Errorf("Overrides field is missing for %q", targetKind)
+		return obj, nil
 	}
 	overridePath := s.typeConfig.GetOverridePath()
 	if len(overridePath) == 0 {
@@ -962,32 +964,48 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 }
 
 // TODO(marun) Support webhooks for custom update behavior
-func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
+func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
 	if s.typeConfig.GetTarget().Kind == util.ServiceKind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
-	return desiredObj
+	return desiredObj, nil
 }
 
-func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unstructured.Unstructured {
+func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// ClusterIP and NodePort are allocated to Service by cluster, so retain the same if any while updating
 
 	// Retain clusterip
-	clusterIP, ok := unstructured.NestedString(clusterObj.Object, "spec", "clusterIP")
+	clusterIP, ok, err := unstructured.NestedString(clusterObj.Object, "spec", "clusterIP")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving clusterIP from cluster service: %v", err)
+	}
 	// !ok could indicate that a cluster ip was not assigned
 	if ok && clusterIP != "" {
-		unstructured.SetNestedField(desiredObj.Object, clusterIP, "spec", "clusterIP")
+		err := unstructured.SetNestedField(desiredObj.Object, clusterIP, "spec", "clusterIP")
+		if err != nil {
+			return nil, fmt.Errorf("Error setting clusterIP for service: %v", err)
+		}
 	}
 
 	// Retain nodeports
-	clusterPorts, ok := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
-	if !ok {
-		return desiredObj
+	clusterPorts, ok, err := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ports from cluster service: %v", err)
 	}
-	desiredPorts, ok := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
+	if !ok {
+		return desiredObj, nil
+	}
+	var desiredPorts []interface{}
+	desiredPorts, ok, err = unstructured.NestedSlice(desiredObj.Object, "spec", "ports")
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ports from service: %v", err)
+	}
+	if !ok {
+		desiredPorts = []interface{}{}
+	}
 	for desiredIndex, _ := range desiredPorts {
 		for clusterIndex, _ := range clusterPorts {
 			fPort := desiredPorts[desiredIndex].(map[string]interface{})
@@ -1001,12 +1019,12 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) *unst
 			}
 		}
 	}
-	ok = unstructured.SetNestedSlice(desiredObj.Object, desiredPorts, "spec", "ports")
-	if !ok {
-		// TODO(marun) Handle this error
+	err = unstructured.SetNestedSlice(desiredObj.Object, desiredPorts, "spec", "ports")
+	if err != nil {
+		return nil, fmt.Errorf("Error setting ports for service: %v", err)
 	}
 
-	return desiredObj
+	return desiredObj, nil
 }
 
 // TODO (font): Externalize this list to a package var to allow it to be

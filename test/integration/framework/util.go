@@ -22,6 +22,9 @@ import (
 	"time"
 
 	"github.com/kubernetes-sigs/federation-v2/test/common"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -103,4 +106,16 @@ func CreateKubeConfig(clientCfg *rest.Config) *clientcmdapi.Config {
 	config.CurrentContext = contextNick
 
 	return config
+}
+
+func CreateTestNamespace(tl common.TestLogger, client kubeclientset.Interface, baseName string) string {
+	namespace, err := client.Core().Namespaces().Create(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: baseName,
+		},
+	})
+	if err != nil {
+		tl.Fatalf("Error creating test namespace.")
+	}
+	return namespace.Name
 }

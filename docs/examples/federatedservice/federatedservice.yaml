@@ -1,7 +1,0 @@
-note: FederatedService Example
-sample: |
-  apiVersion: federation.k8s.io/v1alpha1
-  kind: FederatedService
-  metadata:
-    name: federatedservice-example
-  spec:

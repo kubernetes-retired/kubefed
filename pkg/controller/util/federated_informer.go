@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -32,7 +32,7 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	"github.com/golang/glog"
 )
@@ -176,10 +176,10 @@ func NewFederatedInformer(
 	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederationV1alpha1().FederatedClusters().List(options)
+				return fedClient.CoreV1alpha1().FederatedClusters().List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederationV1alpha1().FederatedClusters().Watch(options)
+				return fedClient.CoreV1alpha1().FederatedClusters().Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},

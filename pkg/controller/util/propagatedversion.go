@@ -22,8 +22,8 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

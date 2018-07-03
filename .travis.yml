@@ -15,7 +15,7 @@ install:
   -
 
 script:
-  - ./scripts/pre-commit.sh
+  - bash -x ./scripts/pre-commit.sh
   - vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
 
 after_success:

@@ -21,10 +21,10 @@ import (
 	"sort"
 	"time"
 
-	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
@@ -36,7 +36,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -56,7 +56,7 @@ func SetUpUnmanagedFederation() {
 	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 	Expect(err).NotTo(HaveOccurred())
 
-	clusterControllerFixture = framework.NewClusterControllerFixture(config, config, config)
+	clusterControllerFixture = framework.NewClusterControllerFixture(config)
 }
 
 func TearDownUnmanagedFederation() {
@@ -164,22 +164,18 @@ func (f *UnmanagedFramework) AfterEach() {
 	}
 }
 
-func (f *UnmanagedFramework) FedConfig() *restclient.Config {
-	return f.Config
-}
-
 func (f *UnmanagedFramework) KubeConfig() *restclient.Config {
 	return f.Config
-}
-
-func (f *UnmanagedFramework) FedClient(userAgent string) fedclientset.Interface {
-	restclient.AddUserAgent(f.Config, userAgent)
-	return fedclientset.NewForConfigOrDie(f.Config)
 }
 
 func (f *UnmanagedFramework) KubeClient(userAgent string) kubeclientset.Interface {
 	restclient.AddUserAgent(f.Config, userAgent)
 	return kubeclientset.NewForConfigOrDie(f.Config)
+}
+
+func (f *UnmanagedFramework) FedClient(userAgent string) fedclientset.Interface {
+	restclient.AddUserAgent(f.Config, userAgent)
+	return fedclientset.NewForConfigOrDie(f.Config)
 }
 
 func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
@@ -227,7 +223,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 
 	By("Obtaining a list of federated clusters")
 	fedClient := f.FedClient(userAgent)
-	clusterList, err := fedClient.FederationV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
 	if len(clusterList.Items) == 0 {
@@ -248,16 +244,9 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 	return clusterConfigs
 }
 
+// TODO(marun) remove
 func (f *UnmanagedFramework) TestNamespaceName() string {
-	if f.testNamespaceName == "" {
-		By("Creating a namespace to execute the test in")
-		client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
-		namespaceName, err := createNamespace(client, f.BaseName)
-		Expect(err).NotTo(HaveOccurred())
-		f.testNamespaceName = namespaceName
-		By(fmt.Sprintf("Created test namespace %s", namespaceName))
-	}
-	return f.testNamespaceName
+	return ""
 }
 
 func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
@@ -265,39 +254,16 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, f.Config, f.Config)
+		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, f.Config, f.Config)
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config)
 		f.fixtures = append(f.fixtures, fixture)
 	}
-}
-
-func createNamespace(client kubeclientset.Interface, baseName string) (string, error) {
-	namespaceObj := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("e2e-tests-%v-", baseName),
-		},
-	}
-	// Be robust about making the namespace creation call.
-	// TODO(marun) should all api calls be made 'robustly'?
-	var namespaceName string
-	if err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
-		namespace, err := client.Core().Namespaces().Create(namespaceObj)
-		if err != nil {
-			Logf("Unexpected error while creating namespace: %v", err)
-			return false, nil
-		}
-		namespaceName = namespace.Name
-		return true, nil
-	}); err != nil {
-		return "", err
-	}
-	return namespaceName, nil
 }
 
 func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
@@ -357,7 +323,7 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 // without error.
 func waitForApiserver(client fedclientset.Interface) error {
 	return wait.PollImmediate(time.Second, 1*time.Minute, func() (bool, error) {
-		_, err := client.FederationV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+		_, err := client.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -413,7 +379,7 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.Federa
 			}
 		}
 		var err error
-		cluster, err = client.FederationV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		cluster, err = client.CoreV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

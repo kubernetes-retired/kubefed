@@ -177,3 +177,17 @@ func (r GrantAccessResult) Extract() (*AccessRight, error) {
 type GrantAccessResult struct {
 	gophercloud.Result
 }
+
+// Extract will get a slice of AccessRight objects from the commonResult
+func (r ListAccessRightsResult) Extract() ([]AccessRight, error) {
+	var s struct {
+		AccessRights []AccessRight `json:"access_list"`
+	}
+	err := r.ExtractInto(&s)
+	return s.AccessRights, err
+}
+
+// ListAccessRightsResult contains the result body and error from a ListAccessRights request.
+type ListAccessRightsResult struct {
+	gophercloud.Result
+}

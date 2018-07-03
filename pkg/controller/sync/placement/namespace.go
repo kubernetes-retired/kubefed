@@ -59,7 +59,10 @@ func (p *NamespacePlacementPlugin) ComputePlacement(key string, clusterNames []s
 	}
 	unstructuredObj := cachedObj.(*unstructured.Unstructured)
 
-	selectedNames := util.GetClusterNames(unstructuredObj)
+	selectedNames, err := util.GetClusterNames(unstructuredObj)
+	if err != nil {
+		return nil, nil, err
+	}
 	clusterSet := sets.NewString(clusterNames...)
 	selectedSet := sets.NewString(selectedNames...)
 	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), nil

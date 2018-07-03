@@ -24,7 +24,9 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 KCD="kubectl --ignore-not-found=true delete"
-NS=federation
+NS=federation-system
+
+PUBLIC_NS=kube-multicluster-public
 
 # Remove the federation service account for the current context.
 CONTEXT="$(kubectl config current-context)"
@@ -33,15 +35,33 @@ ${KCD} -n ${NS} sa "${SA_NAME}"
 ${KCD} -n ${NS} clusterrole "${NS}-controller-manager:${SA_NAME}"
 ${KCD} -n ${NS} clusterrolebinding "${NS}-controller-manager:${SA_NAME}"
 
+CONTEXT="$(kubectl config current-context)"
+
 # Remove permissive rolebinding that allows federation controllers to run.
 ${KCD} clusterrolebinding federation-admin
 
-# Remove federation
-${KCD} apiservice v1alpha1.federation.k8s.io
-${KCD} namespace ${NS}
+# Remove role and role binding added by kubefed
+CONTROLLER_ROLE="federation-controller-manager:${CONTEXT}-${CONTEXT}"
+${KCD} clusterrolebinding "${CONTROLLER_ROLE}"
+${KCD} clusterrole "${CONTROLLER_ROLE}"
 
-# Remove cluster registry
-crinit aggregated delete mycr
+# Delete federated cluster
+# TODO(marun) Remove when federated clusters are stored in federation namespace
+if kubectl get federatedcluster &>/dev/null; then
+  ${KCD} federatedcluster "${CONTEXT}"
+fi
+
+${KCD} -f hack/install.yaml
+${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+
+# Remove public namespace
+${KCD} namespace ${PUBLIC_NS}
+
+# Remove crds
+# Enable available types
+for filename in ./config/federatedtypes/*.yaml; do
+  ${KCD} -f "${filename}"
+done
 
 # Wait for the namespaces to be removed
 function ns-deleted() {
@@ -49,4 +69,4 @@ function ns-deleted() {
   [[ "$?" = "1" ]]
 }
 util::wait-for-condition "removal of namespace '${NS}'" "ns-deleted ${NS}" 120
-util::wait-for-condition "removal of namespace 'clusterregistry'" "ns-deleted clusterregistry" 120
+util::wait-for-condition "removal of namespace '${PUBLIC_NS}'" "ns-deleted ${PUBLIC_NS}" 120

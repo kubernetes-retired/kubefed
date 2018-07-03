@@ -28,8 +28,8 @@
 #
 #   $ minikube start
 #
-# This script depends on crinit, kubectl, and apiserver-boot being
-# installed in the path.  These binaries can be installed via the
+# This script depends on kubectl and kubebuilder being installed in
+# the path.  These and other test binaries can be installed via the
 # download-binaries.sh script, which downloads to ./bin:
 #
 #   $ ./scripts/download-binaries.sh
@@ -47,8 +47,19 @@ set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
-NS=federation
+NS=federation-system
+PUBLIC_NS=kube-multicluster-public
 IMAGE_NAME="${1:-}"
+
+# TODO(marun) Replace with name of ci-built image
+LATEST_IMAGE_NAME=docker.io/maru/federation-v2:test
+if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
+  USE_LATEST=y
+  INSTALL_YAML=hack/install-latest.yaml
+else
+  USE_LATEST=
+  INSTALL_YAML=hack/install.yaml
+fi
 
 if [[ -z "${IMAGE_NAME}" ]]; then
   >&2 echo "Usage: $0 <image> [join-cluster]...
@@ -73,38 +84,33 @@ fi
 shift
 JOIN_CLUSTERS="${*}"
 
-# Wait for the storage provisioner to be ready.  If crinit is called
-# before dynamic provisioning is enabled, the pvc for etcd will never
-# be bound.
-function storage-provisioner-ready() {
-  local result="$(kubectl -n kube-system get pod storage-provisioner -o jsonpath='{.status.conditions[?(@.type == "Ready")].status}' 2> /dev/null)"
-  [[ "${result}" = "True" ]]
-}
-util::wait-for-condition "storage provisioner readiness" 'storage-provisioner-ready' 60
-
-crinit aggregated init mycr
+if [[ ! "${USE_LATEST}" ]]; then
+  docker build . -f Dockerfile.controller -t "${IMAGE_NAME}"
+fi
 
 kubectl create ns "${NS}"
-
-apiserver-boot run in-cluster --name "${NS}" --namespace "${NS}" --image "${IMAGE_NAME}" --controller-args="-logtostderr,-v=4"
+kubectl create ns "${PUBLIC_NS}"
 
 # Create a permissive rolebinding to allow federation controllers to run.
 # TODO(marun) Make this more restrictive.
 kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
 
-# Increase the memory limit of the apiserver to ensure it can start.
-kubectl -n federation patch deploy federation -p '{"spec":{"template":{"spec":{"containers":[{"name":"apiserver","resources":{"limits":{"memory":"128Mi"},"requests":{"memory":"64Mi"}}}]}}}}'
+if [[ ! "${USE_LATEST}" ]]; then
+  kubebuilder create config --controller-image "${IMAGE_NAME}" --name federation
+fi
 
-# Wait for the apiserver to become available so that join can be performed.
-function apiserver-available() {
-  # Being able to retrieve without error indicates the apiserver is available
-  kubectl get federatedcluster 2> /dev/null
-}
-util::wait-for-condition "apiserver availability" 'apiserver-available' 60
+# TODO(marun) kubebuilder-generated installation yaml fails validation
+# for seemingly harmless reasons on kube >= 1.11.  Ignore validation
+# until the generated crd yaml can pass it.
+kubectl apply --validate=false -f "${INSTALL_YAML}"
+kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+
+# TODO(marun) Ensure federatdtypeconfig is available before creating instances
+# TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
 
 # Enable available types
 for filename in ./config/federatedtypes/*.yaml; do
-  kubectl create -f "${filename}"
+  kubectl apply -f "${filename}"
 done
 
 # Join the host cluster

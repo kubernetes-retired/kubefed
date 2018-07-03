@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	"github.com/golang/glog"
 )
@@ -254,9 +254,12 @@ func (s *Scheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaScheduling
 		if err != nil {
 			return nil, err
 		}
-		selectorLabels, ok := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
+		selectorLabels, ok, err := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
 		if !ok {
-			return nil, fmt.Errorf("missing selector on object: %v", err)
+			return nil, fmt.Errorf("missing selector on object")
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving selector from object: %v", err)
 		}
 
 		label := labels.SelectorFromSet(labels.Set(selectorLabels))
@@ -344,11 +347,17 @@ func clustersReplicaState(
 		}
 
 		unstructuredObj := obj.(*unstructured.Unstructured)
-		replicas, ok := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
+		replicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
+		if err != nil {
+			return nil, nil, fmt.Errorf("Error retrieving 'replicas' field: %v", err)
+		}
 		if !ok {
 			replicas = int64(0)
 		}
-		readyReplicas, ok := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
+		readyReplicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
+		if err != nil {
+			return nil, nil, fmt.Errorf("Error retrieving 'readyreplicas' field: %v", err)
+		}
 		if !ok {
 			readyReplicas = int64(0)
 		}

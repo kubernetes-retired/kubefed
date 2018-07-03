@@ -67,6 +67,9 @@ const (
 	Alpha = prerelease("ALPHA")
 	Beta  = prerelease("BETA")
 	GA    = prerelease("")
+
+	// Deprecated
+	Deprecated = prerelease("DEPRECATED")
 )
 
 // FeatureGate parses and stores flag gates for known features from
@@ -85,6 +88,10 @@ type FeatureGate interface {
 	Add(features map[Feature]FeatureSpec) error
 	// KnownFeatures returns a slice of strings describing the FeatureGate's known features.
 	KnownFeatures() []string
+	// DeepCopy returns a deep copy of the FeatureGate object, such that gates can be
+	// set on the copy without mutating the original. This is useful for validating
+	// config against potential feature gate changes before committing those changes.
+	DeepCopy() FeatureGate
 }
 
 // featureGate implements FeatureGate as well as pflag.Value for flag parsing.
@@ -157,7 +164,7 @@ func (f *featureGate) Set(value string) error {
 		}
 		arr := strings.SplitN(s, "=", 2)
 		k := Feature(strings.TrimSpace(arr[0]))
-		_, ok := known[k]
+		featureSpec, ok := known[k]
 		if !ok {
 			return fmt.Errorf("unrecognized key: %s", k)
 		}
@@ -170,6 +177,9 @@ func (f *featureGate) Set(value string) error {
 			return fmt.Errorf("invalid value of %s: %s, err: %v", k, v, err)
 		}
 		enabled[k] = boolValue
+		if boolValue && featureSpec.PreRelease == Deprecated {
+			glog.Warningf("enabling deprecated feature gate %s", k)
+		}
 
 		// Handle "special" features like "all alpha gates"
 		if fn, found := f.special[k]; found {
@@ -278,6 +288,10 @@ func (f *featureGate) Enabled(key Feature) bool {
 // AddFlag adds a flag for setting global feature gates to the specified FlagSet.
 func (f *featureGate) AddFlag(fs *pflag.FlagSet) {
 	f.lock.Lock()
+	// TODO(mtaufen): Shouldn't we just close it on the first Set/SetFromMap instead?
+	// Not all components expose a feature gates flag using this AddFlag method, and
+	// in the future, all components will completely stop exposing a feature gates flag,
+	// in favor of componentconfig.
 	f.closed = true
 	f.lock.Unlock()
 
@@ -299,4 +313,35 @@ func (f *featureGate) KnownFeatures() []string {
 	}
 	sort.Strings(known)
 	return known
+}
+
+// DeepCopy returns a deep copy of the FeatureGate object, such that gates can be
+// set on the copy without mutating the original. This is useful for validating
+// config against potential feature gate changes before committing those changes.
+func (f *featureGate) DeepCopy() FeatureGate {
+	// Copy existing state.
+	known := map[Feature]FeatureSpec{}
+	for k, v := range f.known.Load().(map[Feature]FeatureSpec) {
+		known[k] = v
+	}
+	enabled := map[Feature]bool{}
+	for k, v := range f.enabled.Load().(map[Feature]bool) {
+		enabled[k] = v
+	}
+
+	// Store copied state in new atomics.
+	knownValue := &atomic.Value{}
+	knownValue.Store(known)
+	enabledValue := &atomic.Value{}
+	enabledValue.Store(enabled)
+
+	// Construct a new featureGate around the copied state.
+	// Note that specialFeatures is treated as immutable by convention,
+	// and we maintain the value of f.closed across the copy.
+	return &featureGate{
+		special: specialFeatures,
+		known:   knownValue,
+		enabled: enabledValue,
+		closed:  f.closed,
+	}
 }

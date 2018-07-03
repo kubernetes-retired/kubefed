@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"sort"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,11 +44,11 @@ func (d *FederatedDeploymentAdapter) TemplateObject() pkgruntime.Object {
 }
 
 func (d *FederatedDeploymentAdapter) TemplateList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return d.fedClient.FederationV1alpha1().FederatedDeployments(namespace).List(options)
+	return d.fedClient.CoreV1alpha1().FederatedDeployments(namespace).List(options)
 }
 
 func (d *FederatedDeploymentAdapter) TemplateWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return d.fedClient.FederationV1alpha1().FederatedDeployments(namespace).Watch(options)
+	return d.fedClient.CoreV1alpha1().FederatedDeployments(namespace).Watch(options)
 }
 
 func (d *FederatedDeploymentAdapter) OverrideObject() pkgruntime.Object {
@@ -56,11 +56,11 @@ func (d *FederatedDeploymentAdapter) OverrideObject() pkgruntime.Object {
 }
 
 func (d *FederatedDeploymentAdapter) OverrideList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return d.fedClient.FederationV1alpha1().FederatedDeploymentOverrides(namespace).List(options)
+	return d.fedClient.CoreV1alpha1().FederatedDeploymentOverrides(namespace).List(options)
 }
 
 func (d *FederatedDeploymentAdapter) OverrideWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return d.fedClient.FederationV1alpha1().FederatedDeploymentOverrides(namespace).Watch(options)
+	return d.fedClient.CoreV1alpha1().FederatedDeploymentOverrides(namespace).Watch(options)
 }
 
 func (d *FederatedDeploymentAdapter) PlacementObject() pkgruntime.Object {
@@ -68,17 +68,17 @@ func (d *FederatedDeploymentAdapter) PlacementObject() pkgruntime.Object {
 }
 
 func (d *FederatedDeploymentAdapter) PlacementList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return d.fedClient.FederationV1alpha1().FederatedDeploymentPlacements(namespace).List(options)
+	return d.fedClient.CoreV1alpha1().FederatedDeploymentPlacements(namespace).List(options)
 }
 
 func (d *FederatedDeploymentAdapter) PlacementWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return d.fedClient.FederationV1alpha1().FederatedDeploymentPlacements(namespace).Watch(options)
+	return d.fedClient.CoreV1alpha1().FederatedDeploymentPlacements(namespace).Watch(options)
 }
 
 // TODO: Below methods can also be made common among FederatedDeployment
 // and FederatedReplicaset using reflect if really needed.
 func (d *FederatedDeploymentAdapter) ReconcilePlacement(fedClient fedclientset.Interface, qualifiedName util.QualifiedName, newClusterNames []string) error {
-	placement, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	placement, err := fedClient.CoreV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -92,14 +92,14 @@ func (d *FederatedDeploymentAdapter) ReconcilePlacement(fedClient fedclientset.I
 				ClusterNames: newClusterNames,
 			},
 		}
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Create(newPlacement)
+		_, err := fedClient.CoreV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Create(newPlacement)
 		return err
 	}
 
 	if PlacementUpdateNeeded(placement.Spec.ClusterNames, newClusterNames) {
 		newPlacement := placement
 		newPlacement.Spec.ClusterNames = newClusterNames
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Update(newPlacement)
+		_, err := fedClient.CoreV1alpha1().FederatedDeploymentPlacements(qualifiedName.Namespace).Update(newPlacement)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (d *FederatedDeploymentAdapter) ReconcilePlacement(fedClient fedclientset.I
 }
 
 func (d *FederatedDeploymentAdapter) ReconcileOverride(fedClient fedclientset.Interface, qualifiedName util.QualifiedName, result map[string]int64) error {
-	override, err := fedClient.FederationV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	override, err := fedClient.CoreV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -132,7 +132,7 @@ func (d *FederatedDeploymentAdapter) ReconcileOverride(fedClient fedclientset.In
 			newOverride.Spec.Overrides = append(newOverride.Spec.Overrides, clusterOverride)
 		}
 
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Create(newOverride)
+		_, err := fedClient.CoreV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Create(newOverride)
 		return err
 	}
 
@@ -147,7 +147,7 @@ func (d *FederatedDeploymentAdapter) ReconcileOverride(fedClient fedclientset.In
 			}
 			newOverride.Spec.Overrides = append(newOverride.Spec.Overrides, clusterOverride)
 		}
-		_, err := fedClient.FederationV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Update(newOverride)
+		_, err := fedClient.CoreV1alpha1().FederatedDeploymentOverrides(qualifiedName.Namespace).Update(newOverride)
 		if err != nil {
 			return err
 		}

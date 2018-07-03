@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federatedscheduling/v1alpha1"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference/scheduler"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +40,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset_generated/clientset"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -85,15 +85,12 @@ type ReplicaSchedulingPreferenceController struct {
 }
 
 // ReplicaSchedulingPreferenceController starts a new controller for ReplicaSchedulingPreferences
-func StartReplicaSchedulingPreferenceController(fedConfig, kubeConfig, crConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
-	userAgent := "replicaschedulingpreference-controller"
-	restclient.AddUserAgent(fedConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(fedConfig)
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	restclient.AddUserAgent(crConfig, userAgent)
-	crClient := crclientset.NewForConfigOrDie(crConfig)
-	controller, err := newReplicaSchedulingPreferenceController(fedConfig, fedClient, kubeClient, crClient)
+func StartReplicaSchedulingPreferenceController(config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+	restclient.AddUserAgent(config, "replicaschedulingpreference-controller")
+	fedClient := fedclientset.NewForConfigOrDie(config)
+	kubeClient := kubeclientset.NewForConfigOrDie(config)
+	crClient := crclientset.NewForConfigOrDie(config)
+	controller, err := newReplicaSchedulingPreferenceController(fedClient, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
@@ -106,7 +103,7 @@ func StartReplicaSchedulingPreferenceController(fedConfig, kubeConfig, crConfig 
 }
 
 // newReplicaSchedulingPreferenceController returns a new ReplicaSchedulingPreference Controller for the given client
-func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*ReplicaSchedulingPreferenceController, error) {
+func newReplicaSchedulingPreferenceController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*ReplicaSchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
@@ -129,10 +126,10 @@ func newReplicaSchedulingPreferenceController(fedConfig *restclient.Config, fedC
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.FederatedschedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
+				return fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.FederatedschedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
+				return fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&fedschedulingv1a1.ReplicaSchedulingPreference{},

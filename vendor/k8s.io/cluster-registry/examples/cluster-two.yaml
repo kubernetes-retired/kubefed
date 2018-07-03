@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: clusterregistry.k8s.io/v1alpha1
+metadata:
+  name: also-my-cluster
+  namespace: default
+  labels:
+    foo: bar
+spec:
+  kubernetesApiEndpoints:
+    serverEndpoints:
+      - clientCIDR: "0.0.0.0"
+        serverAddress: "127.0.0.1"

@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/federation/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset_generated/clientset"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,8 +47,7 @@ type FederatedTypeCrudTester struct {
 	typeConfig       typeconfig.Interface
 	comparisonHelper util.ComparisonHelper
 	fedClient        clientset.Interface
-	fedPool          dynamic.ClientPool
-	kubePool         dynamic.ClientPool
+	pool             dynamic.ClientPool
 	testClusters     map[string]TestCluster
 	waitInterval     time.Duration
 	// Federation operations will use wait.ForeverTestTimeout.  Any
@@ -62,7 +61,7 @@ type TestCluster struct {
 	IsPrimary bool
 }
 
-func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, fedConfig, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
+func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
 	compare, err := util.NewComparisonHelper(typeConfig.GetComparisonField())
 	if err != nil {
 		return nil, err
@@ -72,9 +71,8 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
 		comparisonHelper:   compare,
-		fedClient:          clientset.NewForConfigOrDie(fedConfig),
-		fedPool:            dynamic.NewDynamicClientPool(fedConfig),
-		kubePool:           dynamic.NewDynamicClientPool(kubeConfig),
+		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
+		pool:               dynamic.NewDynamicClientPool(kubeConfig),
 		testClusters:       testClusters,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
@@ -135,12 +133,7 @@ func (c *FederatedTypeCrudTester) createFedResource(apiResource metav1.APIResour
 }
 
 func (c *FederatedTypeCrudTester) fedResourceClient(apiResource metav1.APIResource) util.ResourceClient {
-	pool := c.fedPool
-	// TODO(marun) Revisit this when federation of primary types to CRD
-	if apiResource.Group != "federation.k8s.io" {
-		pool = c.kubePool
-	}
-	client, err := util.NewResourceClient(pool, &apiResource)
+	client, err := util.NewResourceClient(c.pool, &apiResource)
 	if err != nil {
 		c.tl.Fatalf("Error creating resource client: %v", err)
 	}
@@ -208,7 +201,10 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 	placementKind := placementAPIResource.Kind
 	qualifiedName := util.NewQualifiedName(placement)
 
-	clusterNames := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 
 	// Skip if we're a namespace, we only have one cluster, and it's the
 	// primary cluster. Skipping avoids deleting the namespace from the entire
@@ -223,9 +219,12 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 
 	c.tl.Logf("Updating %s %q", placementKind, qualifiedName)
 	updatedPlacement, err := c.updateFedObject(placementAPIResource, placement, func(placement *unstructured.Unstructured) {
-		clusterNames := util.GetClusterNames(placement)
+		clusterNames, err := util.GetClusterNames(placement)
+		if err != nil {
+			c.tl.Fatalf("Error retrieving cluster names: %v", err)
+		}
 		clusterNames = c.deleteOneNonPrimaryCluster(clusterNames)
-		err := util.SetClusterNames(placement, clusterNames)
+		err = util.SetClusterNames(placement, clusterNames)
 		if err != nil {
 			c.tl.Fatalf("Error setting cluster names for %s %q: %v", placementKind, qualifiedName, err)
 		}
@@ -235,7 +234,10 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 	}
 
 	// updateFedObject is expected to have reduced the size of the cluster list
-	updatedClusterNames := util.GetClusterNames(updatedPlacement)
+	updatedClusterNames, err := util.GetClusterNames(updatedPlacement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 	if len(updatedClusterNames) > len(clusterNames) {
 		c.tl.Fatalf("%s %q not mutated", placementKind, qualifiedName)
 	}
@@ -285,9 +287,9 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 	versionName := common.PropagatedVersionName(targetKind, name)
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		if targetKind == util.NamespaceKind {
-			_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
+			_, err = c.fedClient.CoreV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
 		} else {
-			_, err = c.fedClient.FederationV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
+			_, err = c.fedClient.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
 		}
 		if errors.IsNotFound(err) {
 			return true, nil
@@ -320,7 +322,10 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	targetKind := c.typeConfig.GetTarget().Kind
 	qualifiedName := util.NewQualifiedName(template)
 
-	clusterNames := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 	selectedClusters := sets.NewString(clusterNames...)
 
 	// If we are a namespace, there is only one cluster, and the cluster is the
@@ -437,7 +442,10 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	versionName := common.PropagatedVersionName(targetKind, name)
 	versionNamespace := namespace
 
-	clusterNames := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
 	selectedClusters := sets.NewString(clusterNames...)
 
 	if targetKind == util.NamespaceKind {
@@ -450,9 +458,9 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	client := c.fedResourceClient(c.typeConfig.GetTemplate())
 
 	var version *fedv1a1.PropagatedVersion
-	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+	err = wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		var err error
-		version, err = c.fedClient.FederationV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
+		version, err = c.fedClient.CoreV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
