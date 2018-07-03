@@ -30,7 +30,7 @@ import (
 // FederatedClustersGetter has a method to return a FederatedClusterInterface.
 // A group's client should implement this interface.
 type FederatedClustersGetter interface {
-	FederatedClusters() FederatedClusterInterface
+	FederatedClusters(namespace string) FederatedClusterInterface
 }
 
 // FederatedClusterInterface has methods to work with FederatedCluster resources.
@@ -50,12 +50,14 @@ type FederatedClusterInterface interface {
 // federatedClusters implements FederatedClusterInterface
 type federatedClusters struct {
 	client rest.Interface
+	ns     string
 }
 
 // newFederatedClusters returns a FederatedClusters
-func newFederatedClusters(c *CoreV1alpha1Client) *federatedClusters {
+func newFederatedClusters(c *CoreV1alpha1Client, namespace string) *federatedClusters {
 	return &federatedClusters{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -63,6 +65,7 @@ func newFederatedClusters(c *CoreV1alpha1Client) *federatedClusters {
 func (c *federatedClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.FederatedCluster, err error) {
 	result = &v1alpha1.FederatedCluster{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -75,6 +78,7 @@ func (c *federatedClusters) Get(name string, options v1.GetOptions) (result *v1a
 func (c *federatedClusters) List(opts v1.ListOptions) (result *v1alpha1.FederatedClusterList, err error) {
 	result = &v1alpha1.FederatedClusterList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -86,6 +90,7 @@ func (c *federatedClusters) List(opts v1.ListOptions) (result *v1alpha1.Federate
 func (c *federatedClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -95,6 +100,7 @@ func (c *federatedClusters) Watch(opts v1.ListOptions) (watch.Interface, error) 
 func (c *federatedClusters) Create(federatedCluster *v1alpha1.FederatedCluster) (result *v1alpha1.FederatedCluster, err error) {
 	result = &v1alpha1.FederatedCluster{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		Body(federatedCluster).
 		Do().
@@ -106,6 +112,7 @@ func (c *federatedClusters) Create(federatedCluster *v1alpha1.FederatedCluster) 
 func (c *federatedClusters) Update(federatedCluster *v1alpha1.FederatedCluster) (result *v1alpha1.FederatedCluster, err error) {
 	result = &v1alpha1.FederatedCluster{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		Name(federatedCluster.Name).
 		Body(federatedCluster).
@@ -120,6 +127,7 @@ func (c *federatedClusters) Update(federatedCluster *v1alpha1.FederatedCluster) 
 func (c *federatedClusters) UpdateStatus(federatedCluster *v1alpha1.FederatedCluster) (result *v1alpha1.FederatedCluster, err error) {
 	result = &v1alpha1.FederatedCluster{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		Name(federatedCluster.Name).
 		SubResource("status").
@@ -132,6 +140,7 @@ func (c *federatedClusters) UpdateStatus(federatedCluster *v1alpha1.FederatedClu
 // Delete takes name of the federatedCluster and deletes it. Returns an error if one occurs.
 func (c *federatedClusters) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		Name(name).
 		Body(options).
@@ -142,6 +151,7 @@ func (c *federatedClusters) Delete(name string, options *v1.DeleteOptions) error
 // DeleteCollection deletes a collection of objects.
 func (c *federatedClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -153,6 +163,7 @@ func (c *federatedClusters) DeleteCollection(options *v1.DeleteOptions, listOpti
 func (c *federatedClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FederatedCluster, err error) {
 	result = &v1alpha1.FederatedCluster{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("federatedclusters").
 		SubResource(subresources...).
 		Name(name).

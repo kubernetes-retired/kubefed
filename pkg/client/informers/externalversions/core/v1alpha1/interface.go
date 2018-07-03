@@ -81,7 +81,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // FederatedClusters returns a FederatedClusterInformer.
 func (v *version) FederatedClusters() FederatedClusterInformer {
-	return &federatedClusterInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &federatedClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedConfigMaps returns a FederatedConfigMapInformer.
