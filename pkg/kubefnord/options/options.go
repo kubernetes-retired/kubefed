@@ -37,7 +37,6 @@ type SubcommandOptions struct {
 func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.Host, "host-cluster-context", "", "Host cluster context")
-	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.FederationSystemNamespace, "Namespace in the host cluster where the federation system components are installed")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
@@ -49,6 +48,12 @@ func (o *SubcommandOptions) SetName(args []string) error {
 		return fmt.Errorf("NAME is required")
 	}
 
+	// Hard-code the federation namespace until a canonical way of
+	// configuring federation (e.g. via configmap) exists.  In the
+	// absence of canonical configuration, allowing override of the
+	// system namespace for a kubefnord command is a likely source of
+	// problems since only the hard-coded namespace is valid.
+	o.FederationNamespace = util.FederationSystemNamespace
 	o.ClusterName = args[0]
 	return nil
 }
