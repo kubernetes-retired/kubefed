@@ -148,11 +148,6 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // federation provided the required set of parameters are passed in.
 func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	host, unjoiningClusterName string, removeFromRegistry, dryRun bool) error {
-	hostClientset, err := util.HostClientset(hostConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
-		return err
-	}
 
 	clusterClientset, err := util.ClusterClientset(clusterConfig)
 	if err != nil {
@@ -184,33 +179,22 @@ func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	_, err = deleteFederatedCluster(clusterClientset, fedClientset, federationNamespace,
 		unjoiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Failed to create federated cluster resource: %v", err)
+		glog.V(2).Infof("Failed to delete federated cluster resource: %v", err)
 		return err
 	}
 
 	glog.V(2).Info("Deleted federated cluster resource")
 
-	glog.V(2).Infof("Creating %s namespace in unjoining cluster", federationNamespace)
-	_, err = util.CreateFederationNamespace(clusterClientset, federationNamespace,
-		unjoiningClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Error creating %s namespace in unjoining cluster: %v",
-			federationNamespace, err)
-		return err
-	}
-	glog.V(2).Infof("Created %s namespace in unjoining cluster", federationNamespace)
+	glog.V(2).Infof("Deleting namespace %s in unjoining cluster", federationNamespace)
 
-	// Delete a service account and use its credentials.
-	glog.V(2).Info("Deleting cluster credentials secret")
-
-	err = deleteRBACSecret(hostClientset, clusterClientset,
-		federationNamespace, unjoiningClusterName, host, dryRun)
+	err = clusterClientset.CoreV1().Namespaces().Delete(federationNamespace,
+		&metav1.DeleteOptions{})
 	if err != nil {
-		glog.V(2).Infof("Could not delete cluster credentials secret: %v", err)
+		glog.V(2).Infof("Could not delete %s namespace: %v", federationNamespace, err)
 		return err
 	}
 
-	glog.V(2).Info("Cluster credentials secret deleted")
+	glog.V(2).Infof("Deleted namespace %s in unjoining cluster", federationNamespace)
 
 	return nil
 }
@@ -246,7 +230,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 		return err
 	}
 
-	glog.V(2).Info("UnRegistering cluster with the cluster registry.")
+	glog.V(2).Info("Removing cluster from the cluster registry.")
 
 	err = unRegisterCluster(crClientset, host, unjoiningClusterName, dryRun)
 	if err != nil {
@@ -254,11 +238,11 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 		return err
 	}
 
-	glog.V(2).Info("UnRegistered cluster with the cluster registry.")
+	glog.V(2).Info("Removed cluster from the cluster registry.")
 	return nil
 }
 
-// unRegisterCluster unregisters a cluster with the cluster registry.
+// unRegisterCluster removes a cluster with the cluster registry.
 func unRegisterCluster(crClientset *crclient.Clientset, host, unjoiningClusterName string,
 	dryRun bool) error {
 	if dryRun {
@@ -301,87 +285,4 @@ func deleteFederatedCluster(clusterClientset client.Interface, fedClientset *fed
 	}
 
 	return nil, nil
-}
-
-// deleteRBACSecret deletes a secret in the unjoining cluster using a service
-// account, and populate that secret into the host cluster to allow it to
-// access the unjoining cluster.
-func deleteRBACSecret(hostClusterClientset, unjoiningClusterClientset client.Interface,
-	namespace, unjoiningClusterName, hostClusterName string, dryRun bool) error {
-
-	glog.V(2).Info("Deleting role binding for service account in unjoining cluster")
-
-	saName := util.ClusterServiceAccountName(unjoiningClusterName, hostClusterName)
-	err := deleteClusterRoleBinding(unjoiningClusterClientset, saName, namespace,
-		unjoiningClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Error deleting role binding for service account in unjoining cluster: %v",
-			err)
-		return err
-	}
-
-	glog.V(2).Info("Deleted role binding for service account in unjoining cluster")
-
-	glog.V(2).Info("Deleting service account in unjoining cluster")
-
-	err = deleteServiceAccount(unjoiningClusterClientset, namespace,
-		unjoiningClusterName, hostClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Error creating service account in joining cluster: %v", err)
-		return err
-	}
-
-	glog.V(2).Infof("Deleted service account in unjoining cluster")
-
-	return nil
-}
-
-// deleteServiceAccount deletes a service account in the cluster associated
-// with clusterClientset with credentials that will be used by the host cluster
-// to access its API server.
-func deleteServiceAccount(clusterClientset client.Interface, namespace,
-	unjoiningClusterName, hostClusterName string, dryRun bool) error {
-	if dryRun {
-		return nil
-	}
-
-	saName := util.ClusterServiceAccountName(unjoiningClusterName, hostClusterName)
-
-	// Delete a service account.
-	err := clusterClientset.CoreV1().ServiceAccounts(namespace).Delete(saName,
-		&metav1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// deleteClusterRoleBinding deletes an RBAC cluster role and binding that
-// allows the service account identified by saName to access all resources in
-// all namespaces in the cluster associated with clusterClientset.
-func deleteClusterRoleBinding(clusterClientset client.Interface, saName, namespace,
-	unjoiningClusterName string, dryRun bool) error {
-
-	if dryRun {
-		return nil
-	}
-
-	roleName := util.ClusterRoleName(saName)
-
-	err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(roleName, &metav1.DeleteOptions{})
-	if err != nil {
-		glog.V(2).Infof("Could not delete cluster role binding for service account in unjoining cluster: %v",
-			err)
-		return err
-	}
-
-	err = clusterClientset.RbacV1().ClusterRoles().Delete(roleName, &metav1.DeleteOptions{})
-	if err != nil {
-		glog.V(2).Infof("Could not delete cluster role for service account in unjoining cluster: %v",
-			err)
-		return err
-	}
-
-	return nil
 }
