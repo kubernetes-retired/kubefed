@@ -201,7 +201,7 @@ func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *K
 // associates the cluster and secret.
 func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, clusterName, secretName string) {
 	fedClient := f.NewFedClient(tl, userAgent)
-	_, err := fedClient.CoreV1alpha1().FederatedClusters().Create(&fedv1a1.FederatedCluster{
+	_, err := fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Create(&fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},

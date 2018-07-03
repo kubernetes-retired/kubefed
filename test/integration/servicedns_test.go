@@ -32,6 +32,7 @@ import (
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 )
@@ -172,12 +173,12 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 		}
 		f.clusterRegionZones[clusterName] = regionZones
 
-		federatedCluster, err := f.client.CoreV1alpha1().FederatedClusters().Get(clusterName, metav1.GetOptions{})
+		federatedCluster, err := f.client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			tl.Fatal("Error retrieving federated cluster %q: %v", clusterName, err)
 		}
 		federatedCluster.Status = f.clusterRegionZones[clusterName]
-		_, err = f.client.CoreV1alpha1().FederatedClusters().UpdateStatus(federatedCluster)
+		_, err = f.client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(federatedCluster)
 		if err != nil {
 			tl.Fatal("Error updating federated cluster status %q: %v", clusterName, err)
 		}

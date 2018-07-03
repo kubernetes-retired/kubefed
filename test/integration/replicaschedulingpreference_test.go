@@ -23,6 +23,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	appsv1 "k8s.io/api/apps/v1"
@@ -265,7 +266,7 @@ func waitForMatchingOverride(fedClient clientset.Interface, name, namespace, tar
 func getClusterNames(fedClient clientset.Interface) []string {
 	clusters := []string{}
 
-	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(metav1.ListOptions{})
 	if err != nil || clusterList == nil {
 		return clusters
 	}
