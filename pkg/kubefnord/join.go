@@ -414,7 +414,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 
 	glog.V(2).Info("Creating role binding for service account in joining cluster")
 
-	_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
+	_, err = createClusterRoleBinding(joiningClusterClientset, saName,
 		joiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Error creating role binding for service account in joining cluster: %v",
@@ -467,7 +467,7 @@ func createServiceAccount(clusterClientset client.Interface, namespace,
 // createClusterRoleBinding creates an RBAC cluster role and binding that
 // allows the service account identified by saName to access all resources in
 // all namespaces in the cluster associated with clusterClientset.
-func createClusterRoleBinding(clusterClientset client.Interface, saName, namespace,
+func createClusterRoleBinding(clusterClientset client.Interface, saName,
 	joiningClusterName string, dryRun bool) (*rbacv1.ClusterRoleBinding, error) {
 
 	roleName := util.ClusterRoleName(saName)
@@ -486,8 +486,7 @@ func createClusterRoleBinding(clusterClientset client.Interface, saName, namespa
 
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      roleName,
-			Namespace: namespace,
+			Name: roleName,
 		},
 		Rules: rules,
 	}
@@ -495,14 +494,12 @@ func createClusterRoleBinding(clusterClientset client.Interface, saName, namespa
 	// TODO: This should limit its access to only necessary resources.
 	clusterRoleBinding := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      roleName,
-			Namespace: namespace,
+			Name: roleName,
 		},
 		Subjects: []rbacv1.Subject{
 			{
-				Kind:      rbacv1.ServiceAccountKind,
-				Name:      saName,
-				Namespace: namespace,
+				Kind: rbacv1.ServiceAccountKind,
+				Name: saName,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
