@@ -20,10 +20,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!
@@ -51,7 +51,7 @@ var _ = Describe("FederatedCluster", func() {
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.CoreV1alpha1().FederatedClusters()
+				client = cs.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace)
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)
