@@ -51,7 +51,7 @@ if kubectl get federatedcluster &>/dev/null; then
   ${KCD} federatedcluster "${CONTEXT}"
 fi
 
-${KCD} -f hack/install.yaml
+${KCD} -f hack/install-latest.yaml
 ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
 
 # Remove public namespace

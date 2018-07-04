@@ -68,7 +68,7 @@ spec:
   names:
     kind: FederatedCluster
     plural: federatedclusters
-  scope: Cluster
+  scope: Namespaced
   subresources:
     status: {}
   validation:
@@ -1167,7 +1167,7 @@ spec:
         - --install-crds=false
         command:
         - /root/controller-manager
-        image: docker.io/maru/federation-v2:test
+        image: quay.io/kubernetes-multicluster/federation-v2:canary
         name: controller-manager
         resources:
           limits:
