@@ -52,7 +52,7 @@ PUBLIC_NS=kube-multicluster-public
 IMAGE_NAME="${1:-}"
 
 # TODO(marun) Replace with name of ci-built image
-LATEST_IMAGE_NAME=docker.io/maru/federation-v2:test
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:canary
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
   INSTALL_YAML=hack/install-latest.yaml
