@@ -115,13 +115,13 @@ The read operation is implicit.
 #### Managed
 
 The E2E managed tests will spin up the same environment as the
-[Integration](README.md#integration) tests described above and run [CRUD
+[Integration](development.md#integration) tests described above and run [CRUD
 (create-read-update-delete)
 checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/e2e/crud.go) for
 federated types against that federation. To run:
 
  - ensure the same binaries are available as described in the
-   [Integration](README.md#integration) section.
+   [Integration](development.md#integration) section.
 
 To run tests for all types:
 
