@@ -176,10 +176,10 @@ func NewFederatedInformer(
 	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters().List(options)
+				return fedClient.CoreV1alpha1().FederatedClusters(FederationSystemNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters().Watch(options)
+				return fedClient.CoreV1alpha1().FederatedClusters(FederationSystemNamespace).Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},
@@ -383,7 +383,8 @@ func (f *federatedInformerImpl) GetReadyCluster(name string) (*fedv1a1.Federated
 }
 
 func (f *federatedInformerImpl) getReadyClusterUnlocked(name string) (*fedv1a1.FederatedCluster, bool, error) {
-	if obj, exist, err := f.clusterInformer.store.GetByKey(name); exist && err == nil {
+	key := fmt.Sprintf("%s/%s", FederationSystemNamespace, name)
+	if obj, exist, err := f.clusterInformer.store.GetByKey(key); exist && err == nil {
 		if cluster, ok := obj.(*fedv1a1.FederatedCluster); ok {
 			if isClusterReady(cluster) {
 				return cluster, true, nil

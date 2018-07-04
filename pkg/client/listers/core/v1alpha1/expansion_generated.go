@@ -22,6 +22,10 @@ package v1alpha1
 // FederatedClusterLister.
 type FederatedClusterListerExpansion interface{}
 
+// FederatedClusterNamespaceListerExpansion allows custom methods to be added to
+// FederatedClusterNamespaceLister.
+type FederatedClusterNamespaceListerExpansion interface{}
+
 // FederatedConfigMapListerExpansion allows custom methods to be added to
 // FederatedConfigMapLister.
 type FederatedConfigMapListerExpansion interface{}

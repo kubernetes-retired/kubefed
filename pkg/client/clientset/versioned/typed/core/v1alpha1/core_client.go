@@ -55,8 +55,8 @@ type CoreV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *CoreV1alpha1Client) FederatedClusters() FederatedClusterInterface {
-	return newFederatedClusters(c)
+func (c *CoreV1alpha1Client) FederatedClusters(namespace string) FederatedClusterInterface {
+	return newFederatedClusters(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) FederatedConfigMaps(namespace string) FederatedConfigMapInterface {

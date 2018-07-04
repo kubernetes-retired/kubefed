@@ -29,8 +29,8 @@ import (
 type FederatedClusterLister interface {
 	// List lists all FederatedClusters in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.FederatedCluster, err error)
-	// Get retrieves the FederatedCluster from the index for a given name.
-	Get(name string) (*v1alpha1.FederatedCluster, error)
+	// FederatedClusters returns an object that can list and get FederatedClusters.
+	FederatedClusters(namespace string) FederatedClusterNamespaceLister
 	FederatedClusterListerExpansion
 }
 
@@ -52,9 +52,38 @@ func (s *federatedClusterLister) List(selector labels.Selector) (ret []*v1alpha1
 	return ret, err
 }
 
-// Get retrieves the FederatedCluster from the index for a given name.
-func (s *federatedClusterLister) Get(name string) (*v1alpha1.FederatedCluster, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// FederatedClusters returns an object that can list and get FederatedClusters.
+func (s *federatedClusterLister) FederatedClusters(namespace string) FederatedClusterNamespaceLister {
+	return federatedClusterNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// FederatedClusterNamespaceLister helps list and get FederatedClusters.
+type FederatedClusterNamespaceLister interface {
+	// List lists all FederatedClusters in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.FederatedCluster, err error)
+	// Get retrieves the FederatedCluster from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.FederatedCluster, error)
+	FederatedClusterNamespaceListerExpansion
+}
+
+// federatedClusterNamespaceLister implements the FederatedClusterNamespaceLister
+// interface.
+type federatedClusterNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all FederatedClusters in the indexer for a given namespace.
+func (s federatedClusterNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.FederatedCluster, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.FederatedCluster))
+	})
+	return ret, err
+}
+
+// Get retrieves the FederatedCluster from the indexer for a given namespace and name.
+func (s federatedClusterNamespaceLister) Get(name string) (*v1alpha1.FederatedCluster, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

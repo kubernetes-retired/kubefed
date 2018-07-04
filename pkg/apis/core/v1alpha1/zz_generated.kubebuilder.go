@@ -280,7 +280,7 @@ var (
 				Kind:   "FederatedCluster",
 				Plural: "federatedclusters",
 			},
-			Scope: "Cluster",
+			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
 					Properties: map[string]v1beta1.JSONSchemaProps{

@@ -29,6 +29,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -48,7 +49,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
-		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters().List(metav1.ListOptions{})
+		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(metav1.ListOptions{})
 		framework.ExpectNoError(err, "Error listing federated clusters")
 		clusterRegionZones = make(map[string]fedv1a1.FederatedClusterStatus)
 		for _, cluster := range federatedClusters.Items {
