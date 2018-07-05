@@ -250,7 +250,7 @@ func performPreflightChecks(clusterClientset client.Interface, name, host,
 	} else if err != nil {
 		return err
 	} else if sa != nil {
-		return fmt.Errorf("service account %s already exists in joining cluster: %s", saName, host)
+		return fmt.Errorf("service account: %s already exists in joining cluster: %s", saName, name)
 	}
 
 	return nil
@@ -267,16 +267,16 @@ func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName stri
 		return err
 	}
 
-	glog.V(2).Info("Registering cluster %s with the cluster registry.", joiningClusterName)
+	glog.V(2).Info("Registering cluster: %s with the cluster registry.", joiningClusterName)
 
 	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Could not register cluster %s with the cluster registry: %v",
+		glog.V(2).Infof("Could not register cluster: %s with the cluster registry: %v",
 			joiningClusterName, err)
 		return err
 	}
 
-	glog.V(2).Info("Registered cluster %s with the cluster registry.", joiningClusterName)
+	glog.V(2).Info("Registered cluster: %s with the cluster registry.", joiningClusterName)
 	return nil
 }
 
@@ -290,7 +290,7 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, joiningClusterName s
 		return err
 	}
 
-	glog.V(2).Infof("Verifying cluster %s exists in the cluster registry.",
+	glog.V(2).Infof("Verifying cluster: %s exists in the cluster registry.",
 		joiningClusterName)
 
 	_, err = crClientset.ClusterregistryV1alpha1().Clusters(controllerutil.MulticlusterPublicNamespace).Get(joiningClusterName,
@@ -407,24 +407,24 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
 		joiningClusterName, hostClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating service account %s in joining cluster: %v",
-			saName, err)
+		glog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Created service account %s in joining cluster: %s", saName, joiningClusterName)
+	glog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	glog.V(2).Info("Creating role binding for service account %s in joining cluster: %s", saName, joiningClusterName)
+	glog.V(2).Info("Creating role binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 	_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
 		joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating role binding for service account %s in joining cluster: %v",
-			saName, err)
+		glog.V(2).Infof("Error creating role binding for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
 		return nil, err
 	}
 
-	glog.V(2).Info("Created role binding for service account %s in joining cluster: %s",
+	glog.V(2).Info("Created role binding for service account: %s in joining cluster: %s",
 		saName, joiningClusterName)
 
 	glog.V(2).Info("Creating secret in host cluster: %s", hostClusterName)
@@ -519,15 +519,15 @@ func createClusterRoleBinding(clusterClientset client.Interface, saName, namespa
 
 	_, err := clusterClientset.RbacV1().ClusterRoles().Create(clusterRole)
 	if err != nil {
-		glog.V(2).Infof("Could not create cluster role for service account %s in joining cluster: %v",
-			saName, err)
+		glog.V(2).Infof("Could not create cluster role for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
 		return nil, err
 	}
 
 	_, err = clusterClientset.RbacV1().ClusterRoleBindings().Create(&clusterRoleBinding)
 	if err != nil {
-		glog.V(2).Infof("Could not create cluster role binding for service account %s in joining cluster: %v",
-			saName, err)
+		glog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
 		return nil, err
 	}
 
