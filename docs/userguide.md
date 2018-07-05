@@ -184,8 +184,8 @@ clusters that you want to test against.
     ```
 1. Join Cluster(s)
     ```bash
-    ./bin/kubefnord join cluster1 --host-cluster-context cluster1 --add-to-registry --v=2
-    ./bin/kubefnord join cluster2 --host-cluster-context cluster1 --add-to-registry --v=2
+    ./bin/kubefnord join cluster1 --cluster-context cluster1 --host-cluster-context cluster1 --add-to-registry --v=2
+    ./bin/kubefnord join cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --add-to-registry --v=2
     ```
 You can repeat these steps to join any additional clusters.
 
