@@ -9,6 +9,34 @@ metadata:
 spec: {}
 status: {}
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 0.1.12
+  name: kube-multicluster-public
+spec: {}
+status: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: federation-admin
+  resourceVersion: "261"
+  selfLink: /apis/rbac.authorization.k8s.io/v1/clusterrolebindings/federation-admin
+  uid: 2882fc75-8077-11e8-a5fe-5254003db9b1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: federation-system
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -1180,3 +1208,268 @@ spec:
   updateStrategy: {}
 status:
   replicas: 0
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apiextensions.k8s.io/v1beta1","kind":"CustomResourceDefinition","metadata":{"annotations":{},"creationTimestamp":null,"labels":{"api":"","kubebuilder.k8s.io":"0.1.10"},"name":"clusters.clusterregistry.k8s.io","namespace":""},"spec":{"group":"clusterregistry.k8s.io","names":{"kind":"Cluster","plural":"clusters"},"scope":"Namespaced","validation":{"openAPIV3Schema":{"properties":{"apiVersion":{"type":"string"},"kind":{"type":"string"},"metadata":{"type":"object"},"spec":{"properties":{"authInfo":{"properties":{"controller":{"properties":{"kind":{"type":"string"},"name":{"type":"string"},"namespace":{"type":"string"}},"type":"object"},"user":{"properties":{"kind":{"type":"string"},"name":{"type":"string"},"namespace":{"type":"string"}},"type":"object"}},"type":"object"},"kubernetesApiEndpoints":{"properties":{"caBundle":{"items":{"type":"byte"},"type":"string"},"serverEndpoints":{"items":{"properties":{"clientCIDR":{"type":"string"},"serverAddress":{"type":"string"}},"type":"object"},"type":"array"}},"type":"object"}},"type":"object"},"status":{"properties":{"conditions":{"items":{"properties":{"lastHeartbeatTime":{"format":"date-time","type":"string"},"lastTransitionTime":{"format":"date-time","type":"string"},"message":{"type":"string"},"reason":{"type":"string"},"status":{"type":"string"},"type":{"type":"string"}},"type":"object"},"type":"array"}},"type":"object"}},"type":"object"}},"version":"v1alpha1"},"status":{"acceptedNames":{"kind":"","plural":""},"conditions":null}}
+  creationTimestamp: 2018-07-05T17:18:43Z
+  generation: 1
+  labels:
+    api: ""
+    kubebuilder.k8s.io: 0.1.10
+  name: clusters.clusterregistry.k8s.io
+  resourceVersion: "347"
+  selfLink: /apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/clusters.clusterregistry.k8s.io
+  uid: 77db2639-8077-11e8-a5fe-5254003db9b1
+spec:
+  group: clusterregistry.k8s.io
+  names:
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            authInfo:
+              properties:
+                controller:
+                  properties:
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                user:
+                  properties:
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+              type: object
+            kubernetesApiEndpoints:
+              properties:
+                caBundle:
+                  items:
+                    type: byte
+                  type: string
+                serverEndpoints:
+                  items:
+                    properties:
+                      clientCIDR:
+                        type: string
+                      serverAddress:
+                        type: string
+                    type: object
+                  type: array
+              type: object
+          type: object
+        status:
+          properties:
+            conditions:
+              items:
+                properties:
+                  lastHeartbeatTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                type: object
+              type: array
+          type: object
+      type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
+  conditions:
+  - lastTransitionTime: 2018-07-05T17:18:43Z
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: 2018-07-05T17:18:43Z
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: configmaps
+spec:
+  target:
+    version: v1
+    kind: ConfigMap
+  namespaced: true
+  comparisonField: ResourceVersion
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedConfigMap
+  placement:
+    kind: FederatedConfigMapPlacement
+  override:
+    kind: FederatedConfigMapOverride
+  overridePath:
+    - data
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: secrets
+spec:
+  target:
+    version: v1
+    kind: Secret
+  namespaced: true
+  comparisonField: ResourceVersion
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedSecret
+  placement:
+    kind: FederatedSecretPlacement
+  override:
+    kind: FederatedSecretOverride
+  overridePath:
+    - data
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: namespaces
+spec:
+  target:
+    version: v1
+    kind: Namespace
+  namespaced: false
+  comparisonField: ResourceVersion
+  propagationEnabled: true
+  template:
+    version: v1
+    kind: Namespace
+  placement:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedNamespacePlacement
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: deployments.apps
+spec:
+  target:
+    version: v1
+    kind: Deployment
+  namespaced: true
+  comparisonField: Generation
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedDeployment
+  placement:
+    kind: FederatedDeploymentPlacement
+  override:
+    kind: FederatedDeploymentOverride
+  overridePath:
+    - spec
+    - replicas
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: replicasets.apps
+spec:
+  target:
+    version: v1
+    kind: ReplicaSet
+  namespaced: true
+  comparisonField: Generation
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedReplicaSet
+  placement:
+    kind: FederatedReplicaSetPlacement
+  override:
+    kind: FederatedReplicaSetOverride
+  overridePath:
+    - spec
+    - replicas
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: services
+spec:
+  target:
+    version: v1
+    kind: Service
+  namespaced: true
+  comparisonField: Generation
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedService
+  placement:
+    kind: FederatedServicePlacement
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: jobs.batch
+spec:
+  target:
+    version: v1
+    kind: Job
+  namespaced: true
+  comparisonField: Generation
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedJob
+  placement:
+    kind: FederatedJobPlacement
+  override:
+    kind: FederatedJobOverride
+  overridePath:
+    - spec
+    - parallelism
+

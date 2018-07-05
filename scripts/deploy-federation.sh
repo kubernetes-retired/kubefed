@@ -82,36 +82,40 @@ to ensure credentials are available for push:
 fi
 
 shift
+
 JOIN_CLUSTERS="${*}"
 
 if [[ ! "${USE_LATEST}" ]]; then
   docker build . -f Dockerfile.controller -t "${IMAGE_NAME}"
-fi
 
-kubectl create ns "${NS}"
-kubectl create ns "${PUBLIC_NS}"
+  kubectl create ns "${NS}"
+  kubectl create ns "${PUBLIC_NS}"
 
-# Create a permissive rolebinding to allow federation controllers to run.
-# TODO(marun) Make this more restrictive.
-kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
+  # Create a permissive rolebinding to allow federation controllers to run.
+  # TODO(marun) Make this more restrictive.
+  kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
 
-if [[ ! "${USE_LATEST}" ]]; then
   kubebuilder create config --controller-image "${IMAGE_NAME}" --name federation
+
+  # TODO(marun) kubebuilder-generated installation yaml fails validation
+  # for seemingly harmless reasons on kube >= 1.11.  Ignore validation
+  # until the generated crd yaml can pass it
+  kubectl apply --validate=false -f "${INSTALL_YAML}"
+  kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yam
+
+  # TODO(marun) Ensure federatdtypeconfig is available before creating instances
+  # TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
+
+  # Enable available types
+    for filename in ./config/federatedtypes/*.yaml; do
+    kubectl apply -f "${filename}"
+  done
+
+else
+
+  kubectl apply --validate=false -f "${INSTALL_YAML}"
+
 fi
-
-# TODO(marun) kubebuilder-generated installation yaml fails validation
-# for seemingly harmless reasons on kube >= 1.11.  Ignore validation
-# until the generated crd yaml can pass it.
-kubectl apply --validate=false -f "${INSTALL_YAML}"
-kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
-
-# TODO(marun) Ensure federatdtypeconfig is available before creating instances
-# TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
-
-# Enable available types
-for filename in ./config/federatedtypes/*.yaml; do
-  kubectl apply -f "${filename}"
-done
 
 # Join the host cluster
 go build -o bin/kubefnord cmd/kubefnord/kubefnord.go
