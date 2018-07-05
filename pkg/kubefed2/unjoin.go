@@ -128,7 +128,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	clusterConfig, err := config.ClusterConfig(j.clusterContext, j.Kubeconfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster config: %v", err)
+		glog.V(2).Infof("Failed to get unjoining cluster config: %v", err)
 		return err
 	}
 
@@ -148,7 +148,7 @@ func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 
 	clusterClientset, err := util.ClusterClientset(clusterConfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
+		glog.V(2).Infof("Failed to get unjoining cluster clientset: %v", err)
 		return err
 	}
 
@@ -231,7 +231,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 
 	err = unRegisterCluster(crClientset, host, unjoiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Could not unregister cluster with the cluster registry: %v", err)
+		glog.V(2).Infof("Could not remove cluster from the cluster registry: %v", err)
 		return err
 	}
 
@@ -239,7 +239,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 	return nil
 }
 
-// unRegisterCluster removes a cluster with the cluster registry.
+// unRegisterCluster removes a cluster from the cluster registry.
 func unRegisterCluster(crClientset *crclient.Clientset, host, unjoiningClusterName string,
 	dryRun bool) error {
 	if dryRun {
