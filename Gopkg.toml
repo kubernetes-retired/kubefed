@@ -180,6 +180,4 @@ revision="f53464b8b84b4507805a0b033a8377b225163fea"
 
 [[override]]
 name = "github.com/kubernetes-sigs/kubebuilder"
-version="0.1.11"
-
-
+version="v1.0.0"
