@@ -250,7 +250,7 @@ func performPreflightChecks(clusterClientset client.Interface, name, host,
 	} else if err != nil {
 		return err
 	} else if sa != nil {
-		return fmt.Errorf("service account already exists in joining cluster")
+		return fmt.Errorf("service account %s already exists in joining cluster: %s", saName, host)
 	}
 
 	return nil
@@ -267,15 +267,16 @@ func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName stri
 		return err
 	}
 
-	glog.V(2).Info("Registering cluster with the cluster registry.")
+	glog.V(2).Info("Registering cluster %s with the cluster registry.", joiningClusterName)
 
 	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Could not register cluster with the cluster registry: %v", err)
+		glog.V(2).Infof("Could not register cluster %s with the cluster registry: %v",
+			joiningClusterName, err)
 		return err
 	}
 
-	glog.V(2).Info("Registered cluster with the cluster registry.")
+	glog.V(2).Info("Registered cluster %s with the cluster registry.", joiningClusterName)
 	return nil
 }
 
@@ -401,30 +402,32 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 	namespace, joiningClusterName, hostClusterName,
 	secretName string, dryRun bool) (*corev1.Secret, error) {
 
-	glog.V(2).Info("Creating service account in joining cluster")
+	glog.V(2).Info("Creating service account in joining cluster: %s", joiningClusterName)
 
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
 		joiningClusterName, hostClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating service account in joining cluster: %v", err)
+		glog.V(2).Infof("Error creating service account %s in joining cluster: %v",
+			saName, err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Created service account in joining cluster")
+	glog.V(2).Infof("Created service account %s in joining cluster: %s", saName, joiningClusterName)
 
-	glog.V(2).Info("Creating role binding for service account in joining cluster")
+	glog.V(2).Info("Creating role binding for service account %s in joining cluster: %s", saName, joiningClusterName)
 
 	_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
 		joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating role binding for service account in joining cluster: %v",
-			err)
+		glog.V(2).Infof("Error creating role binding for service account %s in joining cluster: %v",
+			saName, err)
 		return nil, err
 	}
 
-	glog.V(2).Info("Created role binding for service account in joining cluster")
+	glog.V(2).Info("Created role binding for service account %s in joining cluster: %s",
+		saName, joiningClusterName)
 
-	glog.V(2).Info("Creating secret in host cluster")
+	glog.V(2).Info("Creating secret in host cluster: %s", hostClusterName)
 
 	secret, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
 		saName, namespace, joiningClusterName, secretName, dryRun)
@@ -433,7 +436,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 		return nil, err
 	}
 
-	glog.V(2).Info("Created secret in host cluster")
+	glog.V(2).Info("Created secret in host cluster: %s", hostClusterName)
 
 	return secret, nil
 }
@@ -516,15 +519,15 @@ func createClusterRoleBinding(clusterClientset client.Interface, saName, namespa
 
 	_, err := clusterClientset.RbacV1().ClusterRoles().Create(clusterRole)
 	if err != nil {
-		glog.V(2).Infof("Could not create cluster role for service account in joining cluster: %v",
-			err)
+		glog.V(2).Infof("Could not create cluster role for service account %s in joining cluster: %v",
+			saName, err)
 		return nil, err
 	}
 
 	_, err = clusterClientset.RbacV1().ClusterRoleBindings().Create(&clusterRoleBinding)
 	if err != nil {
-		glog.V(2).Infof("Could not create cluster role binding for service account in joining cluster: %v",
-			err)
+		glog.V(2).Infof("Could not create cluster role binding for service account %s in joining cluster: %v",
+			saName, err)
 		return nil, err
 	}
 
