@@ -16,7 +16,8 @@
 FROM ubuntu:latest
 RUN apt-get update
 RUN apt-get install -y ca-certificates
-ADD controller-manager .
+WORKDIR /root/
+COPY /controller-manager .
 ENTRYPOINT ["./controller-manager"]
 CMD ["--install-crds=false"]
 
