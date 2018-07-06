@@ -13,9 +13,10 @@
 # limitations under the License.
 
 
-FROM ubuntu:14.04
+FROM ubuntu:latest
 RUN apt-get update
 RUN apt-get install -y ca-certificates
-ADD apiserver .
 ADD controller-manager .
+ENTRYPOINT ["./controller-manager"]
+CMD ["--install-crds=false"]
 
