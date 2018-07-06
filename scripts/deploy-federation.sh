@@ -38,7 +38,7 @@
 # To redeploy federation from scratch, prefix the deploy invocation with the deletion script:
 #
 #   # WARNING: The deletion script will remove federation and cluster registry data
-#   $ ./scripts/delete-federation.sh && ./scripts/deploy-federation.sh <image> [join-cluster]...
+#   $ ./scripts/delete-federation.sh [join-cluster]... && ./scripts/deploy-federation.sh <image> [join-cluster]...
 #
 
 set -o errexit
