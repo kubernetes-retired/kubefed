@@ -20,4 +20,4 @@ set -o pipefail
 
 # Call the deploy script with the name of the latest image to use
 # committed install yaml and a prebuilt image.
-"$(dirname "${BASH_SOURCE}")"/deploy-federation.sh quay.io/kubernetes-multicluster/federation-v2:canary
+"$(dirname "${BASH_SOURCE}")"/deploy-federation.sh quay.io/kubernetes-multicluster/federation-v2:canary "${@}"
