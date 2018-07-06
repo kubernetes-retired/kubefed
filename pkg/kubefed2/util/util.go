@@ -39,7 +39,7 @@ type fedConfig struct {
 	pathOptions *clientcmd.PathOptions
 }
 
-// NewFedConfig creates a fedConfig for `kubefnord` commands.
+// NewFedConfig creates a fedConfig for `kubefed2` commands.
 func NewFedConfig(pathOptions *clientcmd.PathOptions) FedConfig {
 	return &fedConfig{
 		pathOptions: pathOptions,

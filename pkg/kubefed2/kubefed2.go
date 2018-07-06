@@ -14,26 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubefnord
+package kubefed2
 
 import (
 	"flag"
 	"io"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// NewKubeFnordCommand creates the `kubefnord` command and its nested children.
-func NewKubeFnordCommand(out io.Writer) *cobra.Command {
+// NewKubeFnordCommand creates the `kubefed2` command and its nested children.
+func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	rootCmd := &cobra.Command{
-		Use:   "kubefnord",
-		Short: "kubefnord controls a Kubernetes Cluster Federation",
-		Long:  "kubefnord controls a Kubernetes Cluster Federation. Find more information at https://github.com/kubernetes-sigs/federation-v2.",
+		Use:   "kubefed2",
+		Short: "kubefed2 controls a Kubernetes Cluster Federation",
+		Long:  "kubefed2 controls a Kubernetes Cluster Federation. Find more information at https://github.com/kubernetes-sigs/federation-v2.",
 
 		Run: runHelp,
 	}
