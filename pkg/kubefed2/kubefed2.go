@@ -48,6 +48,7 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	rootCmd.SetGlobalNormalizationFunc(apiserverflag.WarnWordSepNormalizeFunc)
 
 	rootCmd.AddCommand(NewCmdJoin(out, util.NewFedConfig(clientcmd.NewDefaultPathOptions())))
+	rootCmd.AddCommand(NewCmdVersion(out))
 	return rootCmd
 }
 
