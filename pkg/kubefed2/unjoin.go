@@ -37,8 +37,8 @@ var (
 	unjoin_long = `
 		Unjoin removes a cluster from a federation.
 		Current context is assumed to be a Kubernetes cluster
-		with register CRD. Please use the --host-cluster-context
-		flag otherwise.`
+		hosting the federation control plane. Please use the
+		--host-cluster-context flag otherwise.`
 	unjoin_example = `
 		# Unjoin a cluster from a federation by specifying the
 		# cluster name and the context name of the federation
@@ -65,7 +65,7 @@ func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.clusterContext, "cluster-context", "",
 		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
 	flags.BoolVar(&o.removeFromRegistry, "remove-from-registry", false,
-		"Remove the cluster from the cluster registry that is register CRD running in the host cluster context.")
+		"Remove the cluster from the cluster registry running in the host cluster context.")
 }
 
 // NewCmdUnJoin defines the `unjoin` command that unjoins a cluster from a
