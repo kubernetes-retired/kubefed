@@ -87,7 +87,6 @@ if [[ ! "${USE_LATEST}" ]]; then
   docker build . -f Dockerfile.controller -t "${IMAGE_NAME}"
 fi
 
-kubectl create ns "${NS}"
 kubectl create ns "${PUBLIC_NS}"
 
 # Create a permissive rolebinding to allow federation controllers to run.
