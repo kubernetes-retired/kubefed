@@ -75,10 +75,15 @@ run [CRUD (create-read-update-delete)
 checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/integration/crud_test.go)
 for federated types against that federation.  To run:
 
- - ensure binaries for `etcd`, `kube-apiserver` and `clusterregistry` are in the path
-   - https://github.com/coreos/etcd/releases
-   - https://storage.googleapis.com/kubernetes-release/release/v1.9.6/bin/linux/amd64/kube-apiserver
-   - https://github.com/kubernetes/cluster-registry/releases
+ - Download required binaries via [download-binaries.sh](https://github.com/kubernetes-sigs/federation-v2/blob/master/scripts/download-binaries.sh),
+   this will generate a `bin` folder under your current directory.
+ - Set three environment variables with above `bin` directory.
+ ```bash
+base_dir=/path/to/your/bin
+export TEST_ASSET_PATH=${base_dir}/bin
+export TEST_ASSET_ETCD=${TEST_ASSET_PATH}/etcd
+export TEST_ASSET_KUBE_APISERVER=${TEST_ASSET_PATH}/kube-apiserver
+```
  - `cd test/integration && go test -i && go test -v`
 
 To run tests for a single type:
