@@ -3,3 +3,4 @@
 /default.etcd
 /kubeconfig
 /config
+/hack/install.yaml
