@@ -24,7 +24,7 @@ import (
 )
 
 // SubcommandOptions holds the configuration required by the subcommands of
-// `kubefnord`.
+// `kubefed2`.
 type SubcommandOptions struct {
 	ClusterName         string
 	Host                string
@@ -51,7 +51,7 @@ func (o *SubcommandOptions) SetName(args []string) error {
 	// Hard-code the federation namespace until a canonical way of
 	// configuring federation (e.g. via configmap) exists.  In the
 	// absence of canonical configuration, allowing override of the
-	// system namespace for a kubefnord command is a likely source of
+	// system namespace for a kubefed2 command is a likely source of
 	// problems since only the hard-coded namespace is valid.
 	o.FederationNamespace = util.FederationSystemNamespace
 	o.ClusterName = args[0]

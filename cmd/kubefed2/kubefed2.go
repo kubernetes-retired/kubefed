@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// kubefnord is a tool for managing clusters in a federation.
+// kubefed2 is a tool for managing clusters in a federation.
 package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefnord"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, etc
 )
@@ -30,7 +30,7 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	err := kubefnord.NewKubeFnordCommand(os.Stdout).Execute()
+	err := kubefed2.NewKubeFed2Command(os.Stdout).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

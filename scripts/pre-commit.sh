@@ -33,7 +33,7 @@ rc=0
 
 echo "Building federation binaries"
 go build -o bin/controller-manager ./cmd/controller-manager
-go build -o bin/kubefnord ./cmd/kubefnord
+go build -o bin/kubefed2 ./cmd/kubefed2
 
 echo "Downloading test dependencies"
 ./scripts/download-binaries.sh

@@ -174,18 +174,18 @@ can proceed to join clusters.
 
 ### Join Clusters
 
-Next, you'll want to use the `kubefnord` tool to join all your
+Next, you'll want to use the `kubefed2` tool to join all your
 clusters that you want to test against.
 
-1. Build kubefnord
+1. Build kubefed2
     ```bash
-    go build -o bin/kubefnord cmd/kubefnord/kubefnord.go
+    go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
 
     ```
 1. Join Cluster(s)
     ```bash
-    ./bin/kubefnord join cluster1 --host-cluster-context cluster1 --add-to-registry --v=2
-    ./bin/kubefnord join cluster2 --host-cluster-context cluster1 --add-to-registry --v=2
+    ./bin/kubefed2 join cluster1 --host-cluster-context cluster1 --add-to-registry --v=2
+    ./bin/kubefed2 join cluster2 --host-cluster-context cluster1 --add-to-registry --v=2
     ```
 You can repeat these steps to join any additional clusters.
 
@@ -292,7 +292,7 @@ kubectl delete ns test-namespace
 
 In order to unjoin, you will have to manually or script an unjoin
 operation by deleting all the relevant objects. The ability to unjoin via
-`kubefnord` will be added in the future.  For now you can run the following
+`kubefed2` will be added in the future.  For now you can run the following
 commands to take care of it:
 
 ```bash

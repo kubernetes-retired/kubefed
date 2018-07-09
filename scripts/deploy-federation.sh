@@ -113,10 +113,10 @@ for filename in ./config/federatedtypes/*.yaml; do
 done
 
 # Join the host cluster
-go build -o bin/kubefnord cmd/kubefnord/kubefnord.go
+go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
 CONTEXT="$(kubectl config current-context)"
-./bin/kubefnord join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2
+./bin/kubefed2 join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2
 
 for c in ${JOIN_CLUSTERS}; do
-    ./bin/kubefnord join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2
+    ./bin/kubefed2 join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2
 done
