@@ -39,10 +39,6 @@ trap 'logEnd $?' EXIT
 # from a different bucket
 : "${BASE_URL:="https://storage.googleapis.com/k8s-c10s-test-binaries"}"
 
-os="$(uname -s)"
-os_lowercase="$(echo "$os" | tr '[:upper:]' '[:lower:]' )"
-arch="$(uname -m)"
-
 echo "About to download some binaries. This might take a while..."
 
 root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
