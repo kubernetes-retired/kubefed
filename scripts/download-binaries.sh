@@ -39,10 +39,6 @@ trap 'logEnd $?' EXIT
 # from a different bucket
 : "${BASE_URL:="https://storage.googleapis.com/k8s-c10s-test-binaries"}"
 
-os="$(uname -s)"
-os_lowercase="$(echo "$os" | tr '[:upper:]' '[:lower:]' )"
-arch="$(uname -m)"
-
 echo "About to download some binaries. This might take a while..."
 
 root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
@@ -56,21 +52,17 @@ curl "${curl_args}O" "${kb_url}" \
   && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
   && rm "${kb_tgz}"
 
-# Use a binary built from master; fedv2 requires >= 1.11 due to crd
-# validation changes and the most recent stable release (beta2) is not
-# compatible.
+# Use a stable version of kube-apiserver to ensure a version >= 1.11.
 # TODO(marun) Remove when kubebuilder includes released 1.11 binaries
-ci_version="$(curl "$curl_args" https://storage.googleapis.com/kubernetes-release-dev/ci/latest-green.txt)"
-ks_tgz="kubernetes-server-linux-amd64.tar.gz"
-ks_url="https://storage.googleapis.com/kubernetes-release-dev/ci/${ci_version}/${ks_tgz}"
-curl "${curl_args}O" "${ks_url}" \
-  && tar xzf "${ks_tgz}" kubernetes/server/bin/kube-apiserver -C "${dest_dir}" --strip-components=2 \
-  && rm "${ks_tgz}"
+stable_version="$(curl "${curl_args}" https://storage.googleapis.com/kubernetes-release/release/stable.txt)"
+ks_url="https://storage.googleapis.com/kubernetes-release/release/${stable_version}/bin/linux/amd64/kube-apiserver"
+ks_dest="${dest_dir}/kube-apiserver"
+curl "${curl_args}" "${ks_url}" --output "${ks_dest}"
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
 echo -n "#   etcd:           "; "${dest_dir}/etcd" --version | head -n 1
-echo -n "#   kube-apiserver: "; "${dest_dir}/kube-apiserver" --version
+echo -n "#   kube-apiserver: "; "${ks_dest}" --version
 echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
