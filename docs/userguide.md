@@ -5,11 +5,20 @@ is a walkthrough tutorial for how to deploy the federation v2 control plane.
 
 ## Prerequisites
 
+The federation v2 deployment requires kubernetes version >= 1.11. The following
+is a detailed list of binaries required.
+
 ### Binaries
 
-The federation deployment depends on `apiserver-boot`, `crinit`, and `kubectl`
-being installed in the path. These binaries can be installed via the
-`download-binaries.sh` script, which downloads them to `./bin`:
+The federation deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
+`kube-apiserver` >= v1.11 being installed in the path. The `kubebuilder`
+release packages all of these dependencies together, but the latest version of
+`kubebuilder` (v0.1.12 as of this writing) only includes binaries for
+kubernetes 1.10. Once `kubebuilder` bundles binaries >= 1.11, it will
+only require downloading the `kubebuilder` release.
+
+These binaries can be installed via the `download-binaries.sh` script, which
+downloads them to `./bin`:
 
 ```bash
 ./scripts/download-binaries.sh
@@ -18,42 +27,49 @@ export PATH=$(pwd)/bin:${PATH}
 
 Or you can install them manually yourself using the guidelines provided below.
 
-#### apiserver-builder
+#### kubebuilder
 
 This repo depends on
-[apiserver-builder](https://github.com/kubernetes-incubator/apiserver-builder)
-to generate code and build binaries. Download a [recent
-release](https://github.com/kubernetes-incubator/apiserver-builder/releases)
-and install it in your `PATH`.
-
-#### cluster-registry
-
-Get version 0.0.4 of the [Cluster
-Registry](https://github.com/kubernetes/cluster-registry/releases/tag/v0.0.4)
+[kubebuilder](https://github.com/kubernetes-sigs/kubebuilder)
+to generate code and build binaries. Download the [v0.1.12
+release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v0.1.12)
 and install it in your `PATH`.
 
 #### kubectl
 
 Download a version of
-[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) and
-install it in your `PATH`.
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) >= v1.11 and
+install it in your `PATH`. To download version 1.11:
+  - https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kubectl
+
+#### kube-apiserver
+
+Download a version of
+[`kube-apiserver`](https://github.com/kubernetes/kubernetes/releases) >= 1.11
+and install it in your `PATH`. Make sure the path to this binary comes before
+the path to the `kubebuilder` installation, otherwise you will use the
+`kube-apiserver` from `kubebuilder` instead. To download version 1.11:
+  - https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kube-apiserver
 
 ### Create Clusters
 
 The quickest way to set up clusters for use with the federation-v2 control
 plane is to use [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
 
-**NOTE: You will need to use minikube version
-[0.25.2](https://github.com/kubernetes/minikube/releases/tag/v0.25.2) in order
-to avoid an issue with profiles, which is required for testing multiple
-clusters. See issue https://github.com/kubernetes/minikube/issues/2717 for more
-details.**
+**NOTE: You will need to use a minikube version that supports deploying a
+kubernetes cluster >= 1.11. Currently there is no released version of minikube
+that supports kube v1.11 with profiles so you'll need to either:**
+
+1. Build minikube from master by following these
+   [instructions](https://github.com/kubernetes/minikube/blob/master/docs/contributors/build_guide.md).
+2. Or use a recent CI build such as [this one from PR
+   2943](http://storage.googleapis.com/minikube-builds/2943/minikube-linux-amd64).
 
 Once you have minikube installed run:
 
 ```bash
-minikube start -p cluster1
-minikube start -p cluster2
+minikube start -p cluster1 --kubernetes-version v1.11.0
+minikube start -p cluster2 --kubernetes-version v1.11.0
 kubectl config use-context cluster1
 ```
 
@@ -70,91 +86,63 @@ federation-v2 control plane.
 
 ## Automated Deployment
 
-If you would like to have the deployment of the cluster registry and
-federation-v2 control plane automated, then invoke the deployment script by
-running:
+If you would like to have the deployment of the federation-v2 control plane
+automated, then invoke the deployment script by running:
 
 ```bash
-./scripts/deploy-federation.sh <image> cluster2
+./scripts/deploy-federation-latest.sh cluster2
 ```
-
-Where `<image>` is in the form
-`<containerregistry>/<username>/<imagename>:<tagname>` e.g.
-`docker.io/<username>/federation-v2:test`.
 
 ## Manual Deployment
 
 If you'd like to understand what the script is automating for you, then proceed
 by manually running the commands below.
 
-### Deploy the Cluster Registry
+### Deploy the Cluster Registry CRD
 
-Make sure the storage provisioner is ready before deploying the Cluster
-Registry.
+First you'll need to create the reserved namespace for registering clusters
+with the cluster registry:
 
 ```bash
-kubectl -n kube-system get pod storage-provisioner
+kubectl create ns kube-multicluster-public
 ```
 
-Get version 0.0.4 of the [Cluster
-Registry](https://github.com/kubernetes/cluster-registry/releases/tag/v0.0.4) and run the
+Using this repo's vendored version of the [Cluster
+Registry](https://github.com/kubernetes/cluster-registry), run the
 following:
 
 ```bash
-crinit aggregated init mycr --host-cluster-context=cluster1
+kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
 ```
-
-You can also specify your own cluster registry image using the `--image` flag.
 
 ### Deploy Federation
 
-First you'll need to create the namespace to deploy the federation into:
+First you'll need to create a permissive rolebinding to allow federation
+controllers to run. This will eventually be made more restrictive, but for now
+run:
 
 ```bash
-kubectl create ns federation
+kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin \
+    --serviceaccount="federation-system:default"
 ```
 
-Then run `apiserver-boot` to deploy. This will build the federated `apiserver`
-and `controller`, build an image containing them, push the image to the
-requested registry, generate a k8s YAML config `config/apiserver.yaml`
-with the name and namespace requested, and deploy the config to the
-cluster specified in your `kubeconfig config current-context`.
-
-If intending to use the docker hub as the container registry to push
-the federation image to, make sure to login to the local docker daemon
-to ensure credentials are available for push:
+Now you're ready to deploy federation v2 using the existing YAML config. This
+config creates the `federation-system` namespace, RBAC resources, all the CRDs
+supported, along with the service and statefulset for the
+federation-controller-manager.
 
 ```bash
-docker login --username <username>
+kubectl apply --validate=false -f hack/install-latest.yaml
 ```
 
-Once you're ready, run the following command. An example of the `--image`
-argument is `docker.io/<username>/federation-v2:test`.
-
-```bash
-apiserver-boot run in-cluster --name federation --namespace federation \
-    --image <containerregistry>/<username>/<imagename>:<tagname> \
-    --controller-args="-logtostderr,-v=4"
-```
-
-You will most likely need to increase the limit on the amount of memory
-required by the `apiserver` as there isn't a way to request it via
-`apiserver-boot` at the moment. Otherwise the federation pod may be terminated
-with `OOMKilled`. In order to do that you will need to patch the deployment:
-
-```bash
-kubectl -n federation patch deploy federation -p \
-    '{"spec":{"template":{"spec":{"containers":[{"name":"apiserver","resources":{"limits":{"memory":"128Mi"},"requests":{"memory":"64Mi"}}}]}}}}'
-```
-
-If you also run into `OOMKilled` on either the `etcd` or the `controller`, just
-run the same command but replace `apiserver` with `etcd` or `controller`.
+**NOTE: The validation fails for harmless reasons on kube >= 1.11 so ignore validation
+until `kubebuilder` generation can pass validation.**
 
 Verify that the deployment succeeded and is available to serve its API by
 seeing if we can retrieve one of its API resources:
 
 ```bash
-kubectl get federatedcluster
+kubectl -n federation-system get federatedcluster
 ```
 
 It should successfully report that no resources are found.
@@ -166,7 +154,9 @@ FederatedTypeConfig resources. To enable propagation for default
 supported types, run the following command:
 
 ```bash
-for tc in ./config/federatedtypes/*.yaml; do kubectl create -f "${tc}"; done
+for f in ./config/federatedtypes/*.yaml; do
+    kubectl apply -f "${f}"
+done
 ```
 
 Once this is complete, you now have a working federation-v2 control plane and
@@ -184,17 +174,21 @@ clusters that you want to test against.
     ```
 1. Join Cluster(s)
     ```bash
-    ./bin/kubefed2 join cluster1 --host-cluster-context cluster1 --add-to-registry --v=2
-    ./bin/kubefed2 join cluster2 --host-cluster-context cluster1 --add-to-registry --v=2
+    ./bin/kubefed2 join cluster1 --cluster-context cluster1 \
+        --host-cluster-context cluster1 --add-to-registry --v=2
+    ./bin/kubefed2 join cluster2 --cluster-context cluster2 \
+        --host-cluster-context cluster1 --add-to-registry --v=2
     ```
 You can repeat these steps to join any additional clusters.
+
+**NOTE: `cluster-context` will default to use cluster name if not specified.**
 
 #### Check Status of Joined Clusters
 
 Check the status of the joined clusters until you verify they are ready:
 
 ```bash
-kubectl -n federation describe federatedclusters
+kubectl -n federation-system describe federatedclusters
 ```
 
 ## Example
@@ -206,12 +200,21 @@ override, and placement resources for the following k8s resources: `configmap`,
 `secret`, and `deployment`. It will then show how to update the
 `federatednamespaceplacement` resource to move resources.
 
+### Create the Test Namespace
+
+First create the `test-namespace` for the test resources:
+
+```bash
+kubectl apply -f example/sample1/federatednamespace-template.yaml \
+    -f example/sample1/federatednamespace-placement.yaml
+```
+
 ### Create Test Resources
 
 Create all the test resources by running:
 
 ```bash
-kubectl create -f example/sample1
+kubectl apply -R -f example/sample1
 ```
 
 ### Check Status of Resources
@@ -233,8 +236,8 @@ done
 Remove `cluster2` via a patch command or manually:
 
 ```bash
-kubectl -n test-namespace patch federatednamespaceplacement test-namespace -p \
-    '{"spec":{"clusternames": ["cluster1"]}}'
+kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
+    --type=merge -p '{"spec":{"clusternames": ["cluster1"]}}'
 
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
@@ -256,8 +259,8 @@ We can quickly add back all the resources by simply updating the
 manually:
 
 ```bash
-kubectl -n test-namespace patch federatednamespaceplacement test-namespace -p \
-    '{"spec":{"clusternames": ["cluster1", "cluster2"]}}'
+kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
+    --type=merge -p '{"spec":{"clusternames": ["cluster1", "cluster2"]}}'
 
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
@@ -282,38 +285,11 @@ successfully verified a working federation-v2 deployment.
 To cleanup the example simply delete the namespace and its placement:
 
 ```bash
-kubectl delete federatednamespaceplacement test-namespace
 kubectl delete ns test-namespace
+kubectl delete federatednamespaceplacement test-namespace
 ```
 
 ## Cleanup
-
-### Unjoin Clusters
-
-In order to unjoin, you will have to manually or script an unjoin
-operation by deleting all the relevant objects. The ability to unjoin via
-`kubefed2` will be added in the future.  For now you can run the following
-commands to take care of it:
-
-```bash
-HOST_CLUSTER=cluster1
-for c in cluster1 cluster2; do
-    if [[ "${c}" != "${HOST_CLUSTER}" ]]; then
-        kubectl --context=${c} delete ns federation
-    else
-        kubectl --context=${c} -n federation delete sa ${c}-${HOST_CLUSTER}
-    fi
-    kubectl --context=${c} delete clusterrolebinding \
-        federation-controller-manager:${c}-${HOST_CLUSTER}
-    kubectl --context=${c} delete clusterrole \
-        federation-controller-manager:${c}-${HOST_CLUSTER}
-    kubectl delete clusters ${c}
-    kubectl delete federatedclusters ${c}
-    CLUSTER_SECRET=$(kubectl -n federation get secrets \
-        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | grep "${c}-*")
-    kubectl -n federation delete secret ${CLUSTER_SECRET}
-done
-```
 
 ### Deployment Cleanup
 
@@ -321,5 +297,5 @@ Run the following command to perform a cleanup of the cluster registry and
 federation deployments:
 
 ```bash
-./scripts/delete-federation.sh
+./scripts/delete-federation.sh cluster2
 ```

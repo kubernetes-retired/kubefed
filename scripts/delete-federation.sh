@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script removes the cluster registry and federation from the
-# current kubectl context.
+# This script removes the cluster registry, unjoins any clusters passed as
+# arguments, and removes the federation from the current kubectl context.
 
 set -o errexit
 set -o nounset
@@ -28,40 +28,44 @@ NS=federation-system
 
 PUBLIC_NS=kube-multicluster-public
 
-# Remove the federation service account for the current context.
-CONTEXT="$(kubectl config current-context)"
-SA_NAME="${CONTEXT}-${CONTEXT}"
-${KCD} -n ${NS} sa "${SA_NAME}"
-${KCD} -n ${NS} clusterrole "${NS}-controller-manager:${SA_NAME}"
-${KCD} -n ${NS} clusterrolebinding "${NS}-controller-manager:${SA_NAME}"
-
-CONTEXT="$(kubectl config current-context)"
-
-# Remove permissive rolebinding that allows federation controllers to run.
-${KCD} clusterrolebinding federation-admin
-
-# Remove role and role binding added by kubefed
-CONTROLLER_ROLE="federation-controller-manager:${CONTEXT}-${CONTEXT}"
-${KCD} clusterrolebinding "${CONTROLLER_ROLE}"
-${KCD} clusterrole "${CONTROLLER_ROLE}"
-
-# Delete federated cluster
-# TODO(marun) Remove when federated clusters are stored in federation namespace
-if kubectl get federatedcluster &>/dev/null; then
-  ${KCD} federatedcluster "${CONTEXT}"
-fi
-
-${KCD} -f hack/install-latest.yaml
-${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
-
 # Remove public namespace
 ${KCD} namespace ${PUBLIC_NS}
 
-# Remove crds
-# Enable available types
+# Remove cluster registry CRD
+${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+
+# Unjoin clusters by removing objects added by kubefed2.
+HOST_CLUSTER="$(kubectl config current-context)"
+JOIN_CLUSTERS="${HOST_CLUSTER} ${@}"
+for c in ${JOIN_CLUSTERS}; do
+  SA_NAME="${c}-${HOST_CLUSTER}"
+  CONTROLLER_ROLE="federation-controller-manager:${SA_NAME}"
+
+  if [[ "${c}" != "${HOST_CLUSTER}" ]]; then
+    ${KCD} ns ${NS} --context=${c}
+  else
+    ${KCD} sa ${SA_NAME} --context=${c} -n ${NS}
+  fi
+
+  ${KCD} clusterrolebinding ${CONTROLLER_ROLE} --context=${c}
+  ${KCD} clusterrole ${CONTROLLER_ROLE} --context=${c}
+  ${KCD} clusters ${c} -n ${PUBLIC_NS}
+  ${KCD} federatedclusters ${c} -n ${NS}
+  CLUSTER_SECRET=$(kubectl -n ${NS} get secrets \
+    -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | grep "${c}-*")
+  ${KCD} secret ${CLUSTER_SECRET} -n ${NS}
+done
+
+# Disable available types
 for filename in ./config/federatedtypes/*.yaml; do
   ${KCD} -f "${filename}"
 done
+
+# Remove federation CRDs, namespace, RBAC and deployment resources.
+${KCD} -f hack/install-latest.yaml
+
+# Remove permissive rolebinding that allows federation controllers to run.
+${KCD} clusterrolebinding federation-admin
 
 # Wait for the namespaces to be removed
 function ns-deleted() {
