@@ -23,7 +23,7 @@ dockerfile_dir="${base_dir}/images/federation-v2"
 
 [ -f "$base_dir/bin/controller-manager" ] || { echo "$base_dir/bin/controller-manager not found" ; exit 1 ;}
 
-if [[ "${TRAVIS_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]?\d$ ]]; then
+if [[ "${TRAVIS_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]?\d ]]; then
     echo "Pushing images with tag '${TRAVIS_TAG}'."
     TAG="${TRAVIS_TAG}"
 elif [[ "${TRAVIS_BRANCH}" == "master" ]]; then
