@@ -432,7 +432,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 	secret, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
 		saName, namespace, joiningClusterName, secretName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating secret in host cluster: %v", err)
+		glog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
 		return nil, err
 	}
 
