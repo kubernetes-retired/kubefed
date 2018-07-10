@@ -23,6 +23,7 @@ import (
 	"time"
 
 	// Import auth/gcp to connect to GKE clusters remotely
+	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
 	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
@@ -52,6 +53,9 @@ func main() {
 		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
 
 	flag.Parse()
+
+	logs.InitLogs()
+	defer logs.FlushLogs()
 
 	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
 	if err != nil {
