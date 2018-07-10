@@ -180,7 +180,7 @@ func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	glog.V(2).Infof("Deleting federated cluster resource from namespace: %s for unjoin cluster: %s",
 		federationNamespace, unjoiningClusterName)
 
-	_, err = deleteFederatedCluster(clusterClientset, fedClientset, federationNamespace,
+	_, err = deleteFederatedCluster(hostClientset, fedClientset, federationNamespace,
 		unjoiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Failed to delete federated cluster resource from namespace: %s for unjoin cluster: %s due to: %v",
@@ -263,7 +263,7 @@ func unRegisterCluster(crClientset *crclient.Clientset, host, unjoiningClusterNa
 
 // deleteFederatedCluster deletes a federated cluster resource that associates
 // the cluster and secret.
-func deleteFederatedCluster(clusterClientset client.Interface, fedClientset *fedclient.Clientset,
+func deleteFederatedCluster(hostClientset client.Interface, fedClientset *fedclient.Clientset,
 	federationNamespace, unjoiningClusterName string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
 	if dryRun {
 		return nil, nil
@@ -275,7 +275,7 @@ func deleteFederatedCluster(clusterClientset client.Interface, fedClientset *fed
 		return fedCluster, err
 	}
 
-	err = clusterClientset.CoreV1().Secrets(federationNamespace).Delete(fedCluster.Spec.SecretRef.Name,
+	err = hostClientset.CoreV1().Secrets(federationNamespace).Delete(fedCluster.Spec.SecretRef.Name,
 		&metav1.DeleteOptions{})
 	if err != nil {
 		return nil, err
