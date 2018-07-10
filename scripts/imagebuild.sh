@@ -23,9 +23,15 @@ dockerfile_dir="${base_dir}/images/federation-v2"
 
 [ -f "$base_dir/bin/controller-manager" ] || { echo "$base_dir/bin/controller-manager not found" ; exit 1 ;}
 
-if [[ "${TRAVIS_BRANCH}" != "master" ]]; then
-  echo "Not on master branch. Image build skipped." >&2
-  exit 0
+if [[ "${TRAVIS_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]?\d$ ]]; then
+    echo "Pushing images with tag '${TRAVIS_TAG}'."
+    TAG="${TRAVIS_TAG}"
+elif [[ "${TRAVIS_BRANCH}" == "master" ]]; then
+    echo "Pushing images with default tag 'canary'."
+    TAG="canary"
+else
+    echo "Nothing to deploy. Image build skipped." >&2
+    exit 0
 fi
 
 echo "Starting image build"
@@ -39,9 +45,9 @@ echo "Logging into registry ${REGISTRY///}"
 docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 
 echo "Building Federation-v2 docker image"
-docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:canary
+docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:${TAG}
 
 echo "Pushing images with default tags (git sha and 'canary')."
-docker push ${REGISTRY}${REPO}/federation-v2:canary
+docker push ${REGISTRY}${REPO}/federation-v2:${TAG}
 
 rm ${dockerfile_dir}/controller-manager
