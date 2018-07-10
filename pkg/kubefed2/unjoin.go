@@ -269,7 +269,7 @@ func deleteFederatedCluster(clusterClientset client.Interface, fedClientset *fed
 		return nil, nil
 	}
 
-	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(controllerutil.FederationSystemNamespace).Get(
+	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Get(
 		unjoiningClusterName, metav1.GetOptions{})
 	if err != nil {
 		return fedCluster, err
@@ -281,7 +281,7 @@ func deleteFederatedCluster(clusterClientset client.Interface, fedClientset *fed
 		return nil, err
 	}
 
-	err = fedClientset.CoreV1alpha1().FederatedClusters(controllerutil.FederationSystemNamespace).Delete(
+	err = fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Delete(
 		unjoiningClusterName, &metav1.DeleteOptions{})
 	if err != nil {
 		return nil, err
