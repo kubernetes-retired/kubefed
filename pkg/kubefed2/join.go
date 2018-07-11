@@ -267,7 +267,7 @@ func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName stri
 		return err
 	}
 
-	glog.V(2).Info("Registering cluster: %s with the cluster registry.", joiningClusterName)
+	glog.V(2).Infof("Registering cluster: %s with the cluster registry.", joiningClusterName)
 
 	_, err = registerCluster(crClientset, host, joiningClusterName, dryRun)
 	if err != nil {
@@ -276,7 +276,7 @@ func addToClusterRegistry(hostConfig *rest.Config, host, joiningClusterName stri
 		return err
 	}
 
-	glog.V(2).Info("Registered cluster: %s with the cluster registry.", joiningClusterName)
+	glog.V(2).Infof("Registered cluster: %s with the cluster registry.", joiningClusterName)
 	return nil
 }
 
@@ -402,7 +402,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 	namespace, joiningClusterName, hostClusterName,
 	secretName string, dryRun bool) (*corev1.Secret, error) {
 
-	glog.V(2).Info("Creating service account in joining cluster: %s", joiningClusterName)
+	glog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
 		joiningClusterName, hostClusterName, dryRun)
@@ -414,20 +414,20 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 
 	glog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	glog.V(2).Info("Creating role binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+	glog.V(2).Infof("Creating cluster role binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 	_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
 		joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating role binding for service account: %s in joining cluster: %s due to: %v",
+		glog.V(2).Infof("Error creating cluster role binding for service account: %s in joining cluster: %s due to: %v",
 			saName, joiningClusterName, err)
 		return nil, err
 	}
 
-	glog.V(2).Info("Created role binding for service account: %s in joining cluster: %s",
+	glog.V(2).Infof("Created cluster role binding for service account: %s in joining cluster: %s",
 		saName, joiningClusterName)
 
-	glog.V(2).Info("Creating secret in host cluster: %s", hostClusterName)
+	glog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
 
 	secret, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
 		saName, namespace, joiningClusterName, secretName, dryRun)
@@ -436,7 +436,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 		return nil, err
 	}
 
-	glog.V(2).Info("Created secret in host cluster: %s", hostClusterName)
+	glog.V(2).Infof("Created secret in host cluster: %s", hostClusterName)
 
 	return secret, nil
 }
