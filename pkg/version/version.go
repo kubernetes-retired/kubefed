@@ -31,11 +31,6 @@ type Info struct {
 	Platform     string `json:"platform"`
 }
 
-// String returns info as a human-friendly version string.
-func (info Info) String() string {
-	return info.Version
-}
-
 // Get returns the overall codebase version. It's for detecting
 // what code a binary was built from.
 func Get() Info {

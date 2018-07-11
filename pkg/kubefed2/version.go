@@ -40,9 +40,9 @@ func NewCmdVersion(out io.Writer) *cobra.Command {
 		Long:    version_long,
 		Example: version_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(out, "kubefed2 version: %s\n", version.Get())
+			fmt.Fprintf(out, "kubefed2 version: %s\n", fmt.Sprintf("%#v", version.Get()))
 		},
 	}
-	// TODO (irfanurrehman): implement a longer version info with all details.
+
 	return cmd
 }
