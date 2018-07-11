@@ -95,6 +95,15 @@ kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin -
 
 if [[ ! "${USE_LATEST}" ]]; then
   kubebuilder create config --controller-image "${IMAGE_NAME}" --name federation
+
+  # Delete the 'type' field from the openapi schema to avoid
+  # triggering validation errors in kube < 1.12 when a type specifies
+  # a subresource (e.g. status).  The 'type' field only triggers
+  # validation errors for resource types that define subresources, but
+  # it is simpler to fix for all types.
+  #
+  # Reference: https://github.com/kubernetes/kubernetes/issues/65293
+  sed -i -e '/^      type: object$/d' "${INSTALL_YAML}"
 fi
 
 # TODO(marun) kubebuilder-generated installation yaml fails validation
