@@ -25,11 +25,12 @@ dockerfile_dir="${base_dir}/images/federation-v2"
 
 echo "travis tag: ${TRAVIS_TAG}"
 echo "travis branch:${TRAVIS_BRANCH}"
-if [[ "${TRAVIS_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]?\d+([-a-zA-Z0-9-]*)? ]]; then
-    echo "Pushing images with tag '${TRAVIS_TAG}'."
+if [[ "${TRAVIS_TAG}" =~ ^v([0-9]\.)+([0-9])[-a-zA-Z0-9]*([.0-9])* ]]; then
+   echo "Using tag: '${TRAVIS_TAG}' and 'latest' ."
     TAG="${TRAVIS_TAG}"
+    LATEST="latest"
 elif [[ "${TRAVIS_BRANCH}" == "master" ]]; then
-    echo "Pushing images with default tag 'canary'."
+   echo "Using tag: 'canary'."
     TAG="canary"
 else
     echo "Nothing to deploy. Image build skipped." >&2
@@ -49,7 +50,12 @@ docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 echo "Building Federation-v2 docker image"
 docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:${TAG}
 
-echo "Pushing images with default tags (git sha and 'canary')."
+echo "Pushing image with tag '${TAG}'."
 docker push ${REGISTRY}${REPO}/federation-v2:${TAG}
+
+if ! [ -z "${LATEST}" ]; then
+   echo "Pushing image with tag '${LATEST}'."
+   docker push ${REGISTRY}${REPO}/federation-v2:${LATEST}
+fi
 
 rm ${dockerfile_dir}/controller-manager
