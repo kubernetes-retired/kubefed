@@ -15,7 +15,7 @@
 
 TARGET = federation-v2
 GOTARGET = github.com/kubernetes-sigs/$(TARGET)
-REGISTRY ?= quay.io/kubernetes-federation
+REGISTRY ?= quay.io/kubernetes-multicluster
 IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
 DOCKER ?= docker
@@ -23,7 +23,7 @@ DOCKER ?= docker
 GIT_VERSION ?= $(shell git describe --always --dirty)
 GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
 GIT_HASH ?= $(shell git rev-parse HEAD)
-BUIDLDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 GIT_TREESTATE = "clean"
 DIFF = $(shell git diff --quiet >/dev/null 2>&1; if [ $$? -eq 1 ]; then echo "1"; fi)
@@ -35,7 +35,7 @@ ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
 endif
 BUILDMNT = /go/src/$(GOTARGET)
-BUILD_IMAGE ?= golang:1.9.3
+BUILD_IMAGE ?= golang:1.10.3
 
 CONTROLLER_TARGET = bin/controller-manager
 KUBEFED2_TARGET = bin/kubefed2
@@ -43,7 +43,7 @@ KUBEFED2_TARGET = bin/kubefed2
 LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/version.version=$(GIT_VERSION) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitTreeState=$(GIT_TREESTATE) \
-                      -X github.com/kubernetes-sigs/federation-v2/pkg/version.buildDate=$(BUIDLDATE)"
+                      -X github.com/kubernetes-sigs/federation-v2/pkg/version.buildDate=$(BUILDDATE)"
 BUILDCMD_CONTROLLER = go build -o $(CONTROLLER_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 BUILDCMD_KUBEFED2 = go build -o $(KUBEFED2_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
@@ -78,10 +78,11 @@ vet:
 fmt:
 	$(FMT)
 
-container:
-	$(DOCKER) build -f Dockerfile.controller \
-		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION) \
-		.
+container: controller
+	cp -f bin/controller-manager images/federation-v2/
+	$(DOCKER) build images/federation-v2 \
+		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION)
+	rm -f images/federation-v2/controller-manager
 
 controller:
 	$(DOCKER_BUILD) '$(BUILD_CONTROLLER)'
