@@ -276,11 +276,12 @@ by following the below instructions.
 
 #### Build Federation Container Image
 
-Run the following commands using the committed `Dockerfile.controller` to build
+Run the following commands using the committed `images/scrips/Dockerfile` to build
 and push a container image to use for deployment:
 
 ```bash
-docker build . -f Dockerfile.controller -t <containerregistry>/<username>/federation-v2:test
+go build -o images/federation-v2/controller-manager cmd/controller-manager/main.go
+docker build images/federation-v2 -t <containerregistry>/<username>/federation-v2:test
 docker push <containerregistry>/<username>/federation-v2:test
 ```
 

@@ -51,7 +51,7 @@ NS=federation-system
 PUBLIC_NS=kube-multicluster-public
 IMAGE_NAME="${1:-}"
 
-LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:canary
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
   INSTALL_YAML=hack/install-latest.yaml
@@ -84,7 +84,16 @@ shift
 JOIN_CLUSTERS="${*}"
 
 if [[ ! "${USE_LATEST}" ]]; then
-  docker build . -f Dockerfile.controller -t "${IMAGE_NAME}"
+  base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
+  dockerfile_dir="${base_dir}/images/federation-v2"
+  if [[ ! -f "${base_dir}/bin/controller-manager" && ! -f "${dockerfile_dir}/controller-manager" ]] ; then
+    echo "${base_dir}/bin/controller-manager not found, building"
+    go build -o "${dockerfile_dir}"/controller-manager "${base_dir}"/cmd/controller-manager/main.go
+  elif [[ -f "${base_dir}/bin/controller-manager" && ! -f "${dockerfile_dir}/controller-manager" ]]; then
+    cp ${base_dir}/bin/controller-manager ${dockerfile_dir}/controller-manager
+  fi
+  docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
+  rm -f ${dockerfile_dir}/controller-manager
 fi
 
 kubectl create ns "${PUBLIC_NS}"
