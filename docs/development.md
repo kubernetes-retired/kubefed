@@ -261,13 +261,21 @@ to build an image and a deployment config.
 
 ### Automated Deployment
 
-If you just want to have this automated, then jump to the [automated deployment
-steps in the userguide](userguide.md#automated-deployment) but be sure to
-specify your own image such as:
+If you just want to have this automated, then run the following command
+specifying your own image. This assumes you've used the steps [documented
+above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane) to
+set up two minikube clusters (`cluster1` and `cluster2`):
 
 ```bash
-./scripts/deploy-federation-latest.sh <containerregistry>/<username>/federation-v2:test cluster2
+./scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
 ```
+
+**NOTE:** You can list multiple joining cluster names in the above command.
+Also, please make sure the joining cluster name(s) provided matches the joining
+cluster context from your kubeconfig. This will already be the case if you used
+the steps [documented
+above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
+to create your clusters.
 
 ### Manual Deployment
 
