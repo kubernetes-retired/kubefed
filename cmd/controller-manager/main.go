@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -36,6 +38,7 @@ import (
 	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
+	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
 
@@ -48,10 +51,15 @@ var installCRDs = flag.Bool("install-crds", true, "install the CRDs used by the 
 
 // Controller-manager main.
 func main() {
+	verFlag := flag.Bool("version", false, "Prints the version info of controller-manager")
 	flag.Var(flagutil.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
 		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
 
 	flag.Parse()
+	if *verFlag {
+		fmt.Fprintf(os.Stdout, "Federation v2 controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
+		os.Exit(0)
+	}
 
 	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
 	if err != nil {

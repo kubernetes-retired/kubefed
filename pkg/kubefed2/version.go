@@ -20,12 +20,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 	"github.com/spf13/cobra"
-)
-
-const (
-	// TODO (irfanurrehman): Fix a versioning strategy consistent across federation binaries.
-	kubefedVersion = "v0.0.1-alpha.0"
 )
 
 var (
@@ -36,28 +32,17 @@ var (
 		kubefed version`
 )
 
-type versionInfo struct {
-	version string
-}
-
-// Get allows to enable getting command version from different sources
-// and appending suffixes like (clean/dirty+git hash).
-func (v *versionInfo) Get() string {
-	version := kubefedVersion
-	return version
-}
-
 // NewCmdVersion prints out the release version info for this command binary.
 func NewCmdVersion(out io.Writer) *cobra.Command {
-	version := &versionInfo{}
 	cmd := &cobra.Command{
 		Use:     "version",
 		Short:   "Print the version info",
 		Long:    version_long,
 		Example: version_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(out, "kubefed version: %s\n", version.Get())
+			fmt.Fprintf(out, "kubefed2 version: %s\n", fmt.Sprintf("%#v", version.Get()))
 		},
 	}
+
 	return cmd
 }
