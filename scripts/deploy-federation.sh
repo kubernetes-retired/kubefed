@@ -93,6 +93,7 @@ if [[ ! "${USE_LATEST}" ]]; then
     cp ${base_dir}/bin/controller-manager ${dockerfile_dir}/controller-manager
   fi
   docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
+  docker push "${IMAGE_NAME}"
   rm -f ${dockerfile_dir}/controller-manager
 fi
 
