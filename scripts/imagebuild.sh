@@ -22,7 +22,6 @@ base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dockerfile_dir="${base_dir}/images/federation-v2"
 
 [ -f "$base_dir/bin/controller-manager" ] || { echo "$base_dir/bin/controller-manager not found" ; exit 1 ;}
-
 echo "travis tag: ${TRAVIS_TAG}"
 echo "travis branch:${TRAVIS_BRANCH}"
 if [[ "${TRAVIS_TAG}" =~ ^v([0-9]\.)+([0-9])[-a-zA-Z0-9]*([.0-9])* ]]; then
@@ -32,6 +31,7 @@ if [[ "${TRAVIS_TAG}" =~ ^v([0-9]\.)+([0-9])[-a-zA-Z0-9]*([.0-9])* ]]; then
 elif [[ "${TRAVIS_BRANCH}" == "master" ]]; then
    echo "Using tag: 'canary'."
     TAG="canary"
+    LATEST=""
 else
     echo "Nothing to deploy. Image build skipped." >&2
     exit 0
@@ -53,7 +53,9 @@ docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:${TAG}
 echo "Pushing image with tag '${TAG}'."
 docker push ${REGISTRY}${REPO}/federation-v2:${TAG}
 
-if ! [ -z "${LATEST}" ]; then
+if [ "$LATEST" == "latest" ]; then
+
+   docker tag ${REGISTRY}${REPO}/federation-v2:${TAG} ${REGISTRY}${REPO}/federation-v2:${LATEST}
    echo "Pushing image with tag '${LATEST}'."
    docker push ${REGISTRY}${REPO}/federation-v2:${LATEST}
 fi
