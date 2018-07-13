@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// NewKubeFnordCommand creates the `kubefed2` command and its nested children.
+// NewKubeFed2Command creates the `kubefed2` command and its nested children.
 func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	rootCmd := &cobra.Command{
