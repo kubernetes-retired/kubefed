@@ -173,15 +173,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 		}
 		f.clusterRegionZones[clusterName] = regionZones
 
-		federatedCluster, err := f.client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
-		if err != nil {
-			tl.Fatal("Error retrieving federated cluster %q: %v", clusterName, err)
-		}
-		federatedCluster.Status = f.clusterRegionZones[clusterName]
-		_, err = f.client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(federatedCluster)
-		if err != nil {
-			tl.Fatal("Error updating federated cluster status %q: %v", clusterName, err)
-		}
+		updateFederatedClusterStatus(tl, f.client, clusterName, f.clusterRegionZones[clusterName])
 
 		clusterDNS := dnsv1a1.ClusterDNS{
 			Cluster: clusterName,
@@ -203,4 +195,28 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	})
 
 	return f
+}
+
+func updateFederatedClusterStatus(tl common.TestLogger, client fedclientset.Interface, clusterName string, clusterStatus fedv1a1.FederatedClusterStatus) {
+	err := wait.PollImmediate(framework.DefaultWaitInterval, wait.ForeverTestTimeout, func() (exist bool, err error) {
+		federatedCluster, err := client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
+		if err != nil {
+			tl.Logf("Error retrieving federated cluster %q: %v", clusterName, err)
+			return false, err
+		}
+
+		// Update just the Region & Zone fields in Status instead of writing complete structure
+		// so as not to overwrite other fields in Status of existing object.
+		federatedCluster.Status.Region = clusterStatus.Region
+		federatedCluster.Status.Zone = clusterStatus.Zone
+		_, err = client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(federatedCluster)
+		if err != nil {
+			tl.Logf("Retry updating federated cluster status %q: %v", clusterName, err)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		tl.Fatalf("Error updating status for cluster %q:%v", clusterName, err)
+	}
 }
