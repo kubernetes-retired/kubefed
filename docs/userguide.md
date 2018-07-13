@@ -56,9 +56,9 @@ the path to the `kubebuilder` installation, otherwise you will use the
 The quickest way to set up clusters for use with the federation-v2 control
 plane is to use [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
 
-**NOTE: You will need to use a minikube version that supports deploying a
+**NOTE:** You will need to use a minikube version that supports deploying a
 kubernetes cluster >= 1.11. Currently there is no released version of minikube
-that supports kube v1.11 with profiles so you'll need to either:**
+that supports kube v1.11 with profiles so you'll need to either:
 
 1. Build minikube from master by following these
    [instructions](https://github.com/kubernetes/minikube/blob/master/docs/contributors/build_guide.md).
@@ -92,6 +92,11 @@ automated, then invoke the deployment script by running:
 ```bash
 ./scripts/deploy-federation-latest.sh cluster2
 ```
+
+**NOTE:** You can list multiple joining cluster names in the above command.
+Also, please make sure the joining cluster name(s) provided matches the joining
+cluster context from your kubeconfig. This will already be the case if you used
+the minikube instructions above to create your clusters.
 
 ## Manual Deployment
 
@@ -135,8 +140,8 @@ federation-controller-manager.
 kubectl apply --validate=false -f hack/install-latest.yaml
 ```
 
-**NOTE: The validation fails for harmless reasons on kube >= 1.11 so ignore validation
-until `kubebuilder` generation can pass validation.**
+**NOTE:** The validation fails for harmless reasons on kube >= 1.11 so ignore validation
+until `kubebuilder` generation can pass validation.
 
 Verify that the deployment succeeded and is available to serve its API by
 seeing if we can retrieve one of its API resources:
@@ -181,7 +186,8 @@ clusters that you want to test against.
     ```
 You can repeat these steps to join any additional clusters.
 
-**NOTE: `cluster-context` will default to use cluster name if not specified.**
+**NOTE:** `cluster-context` will default to use the joining cluster name if not
+specified.
 
 #### Check Status of Joined Clusters
 
