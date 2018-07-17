@@ -25,6 +25,7 @@ import (
 	"time"
 
 	// Import auth/gcp to connect to GKE clusters remotely
+	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
 	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
@@ -60,6 +61,9 @@ func main() {
 		fmt.Fprintf(os.Stdout, "Federation v2 controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
 		os.Exit(0)
 	}
+
+	logs.InitLogs()
+	defer logs.FlushLogs()
 
 	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
 	if err != nil {
