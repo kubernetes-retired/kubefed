@@ -276,7 +276,7 @@ by following the below instructions.
 
 #### Build Federation Container Image
 
-Run the following commands using the committed `images/scrips/Dockerfile` to build
+Run the following commands using the committed `images/federation-v2/Dockerfile` to build
 and push a container image to use for deployment:
 
 ```bash
