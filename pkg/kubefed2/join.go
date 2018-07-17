@@ -226,7 +226,8 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 
 	glog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createFederatedCluster(fedClientset, joiningClusterName, secret.Name, dryRun)
+	_, err = createFederatedCluster(fedClientset, joiningClusterName, secret.Name,
+		federationNamespace, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return err
@@ -345,7 +346,7 @@ func registerCluster(crClientset *crclient.Clientset, host, joiningClusterName s
 // createFederatedCluster creates a federated cluster resource that associates
 // the cluster and secret.
 func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterName,
-	secretName string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
+	secretName, federationNamespace string, dryRun bool) (*fedv1a1.FederatedCluster, error) {
 	fedCluster := &fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: joiningClusterName,
@@ -364,7 +365,7 @@ func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterNam
 		return fedCluster, nil
 	}
 
-	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(controllerutil.FederationSystemNamespace).Create(fedCluster)
+	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Create(fedCluster)
 
 	if err != nil {
 		return fedCluster, err
