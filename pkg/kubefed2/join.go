@@ -127,7 +127,7 @@ func (j *joinFederation) Complete(args []string) error {
 	}
 
 	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
-		j.ClusterName, j.Host, j.FederationNamespace, j.Kubeconfig, j.clusterContext,
+		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.clusterContext,
 		j.secretName, j.DryRun)
 
 	return nil
@@ -135,7 +135,7 @@ func (j *joinFederation) Complete(args []string) error {
 
 // Run is the implementation of the `join federation` command.
 func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
-	hostConfig, err := config.HostConfig(j.Host, j.Kubeconfig)
+	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
@@ -150,7 +150,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	err = JoinCluster(hostConfig, clusterConfig, j.FederationNamespace,
-		j.Host, j.ClusterName, j.secretName, j.addToRegistry, j.DryRun)
+		j.HostClusterContext, j.ClusterName, j.secretName, j.addToRegistry, j.DryRun)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // JoinCluster performs all the necessary steps to join a cluster to the
 // federation provided the required set of parameters are passed in.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
-	host, joiningClusterName, secretName string, addToRegistry, dryRun bool) error {
+	hostClusterContext, joiningClusterName, secretName string, addToRegistry, dryRun bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
@@ -181,7 +181,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	}
 
 	glog.V(2).Infof("Performing preflight checks.")
-	err = performPreflightChecks(clusterClientset, joiningClusterName, host, federationNamespace)
+	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterContext, federationNamespace)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 	glog.V(2).Info("Creating cluster credentials secret")
 
 	secret, err := createRBACSecret(hostClientset, clusterClientset,
-		federationNamespace, joiningClusterName, host,
+		federationNamespace, joiningClusterName, hostClusterContext,
 		secretName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not create cluster credentials secret: %v", err)
@@ -238,10 +238,10 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
-func performPreflightChecks(clusterClientset client.Interface, name, host,
+func performPreflightChecks(clusterClientset client.Interface, name, hostClusterContext,
 	federationNamespace string) error {
 	// Make sure there is no existing service account in the joining cluster.
-	saName := util.ClusterServiceAccountName(name, host)
+	saName := util.ClusterServiceAccountName(name, hostClusterContext)
 	sa, err := clusterClientset.CoreV1().ServiceAccounts(federationNamespace).Get(saName,
 		metav1.GetOptions{})
 

@@ -27,7 +27,7 @@ import (
 // `kubefed2`.
 type SubcommandOptions struct {
 	ClusterName         string
-	Host                string
+	HostClusterContext  string
 	FederationNamespace string
 	Kubeconfig          string
 	DryRun              bool
@@ -36,7 +36,7 @@ type SubcommandOptions struct {
 // CommonBind adds the common flags to the flagset passed in.
 func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
-	flags.StringVar(&o.Host, "host-cluster-context", "", "Host cluster context")
+	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
