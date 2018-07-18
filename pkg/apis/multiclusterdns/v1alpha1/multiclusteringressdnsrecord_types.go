@@ -17,24 +17,30 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the MultiClusterIngressDNSRecord resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // MultiClusterIngressDNSRecordSpec defines the desired state of MultiClusterIngressDNSRecord
 type MultiClusterIngressDNSRecordSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	// Host from the IngressRule in Cluster Ingress Spec
+	Hosts []string `json:"hosts,omitempty"`
+	// RecordTTL is the TTL in seconds for DNS records created for the Ingress, if omitted a default would be used
+	RecordTTL TTL `json:"recordTTL,omitempty"`
 }
 
 // MultiClusterIngressDNSRecordStatus defines the observed state of MultiClusterIngressDNSRecord
 type MultiClusterIngressDNSRecordStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	// Array of Ingress Controller LoadBalancers
+	DNS []ClusterIngressDNS `json:"dns,omitempty"`
+}
+
+// ClusterIngressDNS defines the observed status of Ingress within a cluster.
+type ClusterIngressDNS struct {
+	// Cluster name
+	Cluster string `json:"cluster,omitempty"`
+	// LoadBalancer for the corresponding ingress controller
+	LoadBalancer corev1.LoadBalancerStatus `json:"loadBalancer,omitempty"`
 }
 
 // +genclient
@@ -43,6 +49,7 @@ type MultiClusterIngressDNSRecordStatus struct {
 // MultiClusterIngressDNSRecord
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=multiclusteringressdnsrecords
+// +kubebuilder:subresource:status
 type MultiClusterIngressDNSRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
