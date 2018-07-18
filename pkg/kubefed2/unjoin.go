@@ -68,9 +68,9 @@ func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Remove the cluster from the cluster registry running in the host cluster context.")
 }
 
-// NewCmdUnJoin defines the `unjoin` command that unjoins a cluster from a
+// NewCmdUnjoin defines the `unjoin` command that unjoins a cluster from a
 // federation.
-func NewCmdUnJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
+func NewCmdUnjoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &unjoinFederation{}
 
 	cmd := &cobra.Command{
@@ -110,15 +110,15 @@ func (j *unjoinFederation) Complete(args []string) error {
 		j.clusterContext = j.ClusterName
 	}
 
-	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, dry-run: %v",
-		j.ClusterName, j.Host, j.FederationNamespace, j.Kubeconfig, j.clusterContext, j.DryRun)
+	glog.V(2).Infof("Args and flags: name %s, host-cluster-context: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, dry-run: %v",
+		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.clusterContext, j.DryRun)
 
 	return nil
 }
 
 // Run is the implementation of the `unjoin federation` command.
 func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
-	hostConfig, err := config.HostConfig(j.Host, j.Kubeconfig)
+	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
@@ -132,8 +132,8 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	err = UnJoinCluster(hostConfig, clusterConfig, j.FederationNamespace,
-		j.Host, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.DryRun)
+	err = UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace,
+		j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.DryRun)
 	if err != nil {
 		return err
 	}
@@ -141,9 +141,9 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	return nil
 }
 
-// UnJoinCluster performs all the necessary steps to unjoin a cluster from the
+// UnjoinCluster performs all the necessary steps to unjoin a cluster from the
 // federation provided the required set of parameters are passed in.
-func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, host,
+func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, hostClusterContext,
 	unjoiningClusterContext, unjoiningClusterName string, removeFromRegistry, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
@@ -165,7 +165,7 @@ func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 	}
 
 	glog.V(2).Infof("Performing preflight checks for unjoin cluster: %s.", unjoiningClusterName)
-	err = performPreflightChecksForUnjoin(clusterClientset, unjoiningClusterName, host, federationNamespace)
+	err = performPreflightChecksForUnjoin(clusterClientset, unjoiningClusterName, hostClusterContext, federationNamespace)
 	if err != nil {
 		return err
 	}
@@ -192,21 +192,21 @@ func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 		federationNamespace, unjoiningClusterName)
 
 	err = deleteRBACResources(hostClientset, clusterClientset,
-		federationNamespace, unjoiningClusterName, host, dryRun)
+		federationNamespace, unjoiningClusterName, hostClusterContext, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not delete cluster RBAC resources: %v", err)
 		return err
 	}
 
-	if unjoiningClusterContext == host {
+	if unjoiningClusterContext == hostClusterContext {
 		glog.V(2).Infof("Host cluster: %s and unjoin cluster: %s are same, no need to delete federation namespace: %s from unjoin cluster.",
-			host, unjoiningClusterContext, federationNamespace)
+			hostClusterContext, unjoiningClusterContext, federationNamespace)
 	} else {
 		glog.V(2).Infof("Deleting federation namespace: %s from unjoin cluster: %s",
 			federationNamespace, unjoiningClusterName)
 
 		err = deleteFedNSFromUnjoinCluster(clusterClientset,
-			federationNamespace, unjoiningClusterName, host, dryRun)
+			federationNamespace, unjoiningClusterName, hostClusterContext, dryRun)
 		if err != nil {
 			glog.V(2).Infof("Could not delete cluster RBAC resources: %v", err)
 			return err
@@ -221,10 +221,10 @@ func UnJoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 // performPreflightChecksForUnjoin checks that the host and unjoining clusters are in
 // a consistent state.
-func performPreflightChecksForUnjoin(clusterClientset client.Interface, name, host,
+func performPreflightChecksForUnjoin(clusterClientset client.Interface, name, hostClusterContext,
 	federationNamespace string) error {
 	// Make sure there is a existing service account in the unjoining cluster.
-	saName := util.ClusterServiceAccountName(name, host)
+	saName := util.ClusterServiceAccountName(name, hostClusterContext)
 	sa, err := clusterClientset.CoreV1().ServiceAccounts(federationNamespace).Get(saName,
 		metav1.GetOptions{})
 
@@ -253,7 +253,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 
 	glog.V(2).Infof("Removing cluster: %s from the cluster registry.", unjoiningClusterName)
 
-	err = unRegisterCluster(crClientset, host, unjoiningClusterName, dryRun)
+	err = unregisterCluster(crClientset, host, unjoiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not remove cluster from the cluster registry: %v", err)
 		return err
@@ -263,8 +263,8 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 	return nil
 }
 
-// unRegisterCluster removes a cluster from the cluster registry.
-func unRegisterCluster(crClientset *crclient.Clientset, host, unjoiningClusterName string,
+// unregisterCluster removes a cluster from the cluster registry.
+func unregisterCluster(crClientset *crclient.Clientset, host, unjoiningClusterName string,
 	dryRun bool) error {
 	if dryRun {
 		return nil
@@ -293,14 +293,14 @@ func deleteFederatedClusterAndSecret(hostClientset client.Interface, fedClientse
 		return fedCluster, err
 	}
 
-	err = fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Delete(
-		unjoiningClusterName, &metav1.DeleteOptions{})
+	err = hostClientset.CoreV1().Secrets(federationNamespace).Delete(fedCluster.Spec.SecretRef.Name,
+		&metav1.DeleteOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	err = hostClientset.CoreV1().Secrets(federationNamespace).Delete(fedCluster.Spec.SecretRef.Name,
-		&metav1.DeleteOptions{})
+	err = fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Delete(
+		unjoiningClusterName, &metav1.DeleteOptions{})
 	if err != nil {
 		return nil, err
 	}
