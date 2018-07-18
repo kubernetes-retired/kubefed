@@ -20,21 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the FederatedIngressPlacement resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // FederatedIngressPlacementSpec defines the desired state of FederatedIngressPlacement
 type FederatedIngressPlacementSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	// Names of the clusters that a federated resource should exist in.
+	ClusterNames []string `json:"clusterNames,omitempty"`
 }
 
 // FederatedIngressPlacementStatus defines the observed state of FederatedIngressPlacement
 type FederatedIngressPlacementStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
 }
 
 // +genclient
