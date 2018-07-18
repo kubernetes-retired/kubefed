@@ -123,7 +123,7 @@ func setStringDefault(value *string, defaultValue string) {
 // lowercasing and suffixing with 's'.
 func pluralName(kind string) string {
 	lowerKind := strings.ToLower(kind)
-	if strings.HasSuffix(lowerKind, "overrides") {
+	if strings.HasSuffix(lowerKind, "s") {
 		return fmt.Sprintf("%ses", lowerKind)
 	}
 	return fmt.Sprintf("%ss", lowerKind)
