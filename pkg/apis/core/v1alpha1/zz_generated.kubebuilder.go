@@ -693,8 +693,13 @@ var (
 							Type: "object",
 						},
 						"spec": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"template": v1beta1.JSONSchemaProps{
+									Type:       "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{},
+								},
+							},
 						},
 						"status": v1beta1.JSONSchemaProps{
 							Type:       "object",
