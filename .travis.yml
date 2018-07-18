@@ -3,6 +3,9 @@ language: go
 go:
   - "1.10.1"
 
+# Enable building in Travis using forked repos.
+go_import_path: github.com/kubernetes-sigs/federation-v2
+
 sudo: required
 
 services:
