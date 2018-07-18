@@ -20,7 +20,6 @@ import (
 	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	schedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	rscheme "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/scheme"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/multiclusteringressdnsrecord"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -119,11 +118,6 @@ func init() {
 
 		// Add Kubernetes informers
 
-		if c, err := multiclusteringressdnsrecord.ProvideController(arguments); err != nil {
-			return err
-		} else {
-			arguments.ControllerManager.AddController(c)
-		}
 		return nil
 	})
 
