@@ -60,6 +60,10 @@ func (c *FakeCoreV1alpha1) FederatedIngresses(namespace string) v1alpha1.Federat
 	return &FakeFederatedIngresses{c, namespace}
 }
 
+func (c *FakeCoreV1alpha1) FederatedIngressPlacements(namespace string) v1alpha1.FederatedIngressPlacementInterface {
+	return &FakeFederatedIngressPlacements{c, namespace}
+}
+
 func (c *FakeCoreV1alpha1) FederatedJobs(namespace string) v1alpha1.FederatedJobInterface {
 	return &FakeFederatedJobs{c, namespace}
 }

@@ -82,6 +82,14 @@ type FederatedIngressListerExpansion interface{}
 // FederatedIngressNamespaceLister.
 type FederatedIngressNamespaceListerExpansion interface{}
 
+// FederatedIngressPlacementListerExpansion allows custom methods to be added to
+// FederatedIngressPlacementLister.
+type FederatedIngressPlacementListerExpansion interface{}
+
+// FederatedIngressPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedIngressPlacementNamespaceLister.
+type FederatedIngressPlacementNamespaceListerExpansion interface{}
+
 // FederatedJobListerExpansion allows custom methods to be added to
 // FederatedJobLister.
 type FederatedJobListerExpansion interface{}

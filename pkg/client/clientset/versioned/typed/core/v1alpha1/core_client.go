@@ -35,6 +35,7 @@ type CoreV1alpha1Interface interface {
 	FederatedDeploymentOverridesGetter
 	FederatedDeploymentPlacementsGetter
 	FederatedIngressesGetter
+	FederatedIngressPlacementsGetter
 	FederatedJobsGetter
 	FederatedJobOverridesGetter
 	FederatedJobPlacementsGetter
@@ -86,6 +87,10 @@ func (c *CoreV1alpha1Client) FederatedDeploymentPlacements(namespace string) Fed
 
 func (c *CoreV1alpha1Client) FederatedIngresses(namespace string) FederatedIngressInterface {
 	return newFederatedIngresses(c, namespace)
+}
+
+func (c *CoreV1alpha1Client) FederatedIngressPlacements(namespace string) FederatedIngressPlacementInterface {
+	return newFederatedIngressPlacements(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) FederatedJobs(namespace string) FederatedJobInterface {
