@@ -32,6 +32,8 @@ type FederatedDeploymentOverrideExpansion interface{}
 
 type FederatedDeploymentPlacementExpansion interface{}
 
+type FederatedIngressExpansion interface{}
+
 type FederatedJobExpansion interface{}
 
 type FederatedJobOverrideExpansion interface{}
