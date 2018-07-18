@@ -17,24 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	extv1b1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the FederatedIngress resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // FederatedIngressSpec defines the desired state of FederatedIngress
 type FederatedIngressSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	// Template to derive per-cluster ingress from
+	Template extv1b1.Ingress `json:"template,omitempty"`
 }
 
 // FederatedIngressStatus defines the observed state of FederatedIngress
 type FederatedIngressStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
 }
 
 // +genclient
