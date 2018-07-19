@@ -6,10 +6,17 @@ go:
 # Enable building in Travis using forked repos.
 go_import_path: github.com/kubernetes-sigs/federation-v2
 
+# Request latest Travis distro for systemd requirement.
+dist: xenial
 sudo: required
 
 services:
   - docker
+
+# Install dependencies for launching minikube cluster.
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y socat ebtables
 
 # Install must be set to prevent default `go get` to run.
 # The dependencies have already been vendored by `dep` so
