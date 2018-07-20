@@ -20,21 +20,37 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the DNSEndpoint resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Targets is a representation of a list of targets for an endpoint.
+type Targets []string
+
+// TTL is a structure defining the TTL of a DNS record
+type TTL int64
+
+// Labels store metadata related to the endpoint
+// it is then stored in a persistent storage via serialization
+type Labels map[string]string
+
+// Endpoint is a high-level way of a connection between a service and an IP
+type Endpoint struct {
+	// The hostname of the DNS record
+	DNSName string `json:"dnsName,omitempty"`
+	// The targets the DNS record points to
+	Targets Targets `json:"targets,omitempty"`
+	// RecordType type of record, e.g. CNAME, A, SRV, TXT etc
+	RecordType string `json:"recordType,omitempty"`
+	// TTL for the record
+	RecordTTL TTL `json:"recordTTL,omitempty"`
+	// Labels stores labels defined for the Endpoint
+	Labels Labels `json:"labels,omitempty"`
+}
 
 // DNSEndpointSpec defines the desired state of DNSEndpoint
 type DNSEndpointSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	Endpoints []*Endpoint `json:"endpoints,omitempty"`
 }
 
 // DNSEndpointStatus defines the observed state of DNSEndpoint
 type DNSEndpointStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
 }
 
 // +genclient
