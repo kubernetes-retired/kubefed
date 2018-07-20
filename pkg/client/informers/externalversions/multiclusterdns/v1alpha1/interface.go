@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// DNSEndpoints returns a DNSEndpointInformer.
+	DNSEndpoints() DNSEndpointInformer
 	// MultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecordInformer.
 	MultiClusterServiceDNSRecords() MultiClusterServiceDNSRecordInformer
 }
@@ -37,6 +39,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// DNSEndpoints returns a DNSEndpointInformer.
+func (v *version) DNSEndpoints() DNSEndpointInformer {
+	return &dNSEndpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // MultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecordInformer.

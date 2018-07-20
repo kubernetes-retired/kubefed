@@ -1,0 +1,6 @@
+apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: dnsendpoint-example
+spec:
+  foo: bar

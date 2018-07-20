@@ -20,6 +20,7 @@ import (
 	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	schedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	rscheme "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/scheme"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -97,6 +98,9 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.PropagatedVersion{}, arguments.Informers.Core().V1alpha1().PropagatedVersions()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.DNSEndpoint{}, arguments.Informers.Multiclusterdns().V1alpha1().DNSEndpoints()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.MultiClusterServiceDNSRecord{}, arguments.Informers.Multiclusterdns().V1alpha1().MultiClusterServiceDNSRecords()); err != nil {
 			return err
 		}
@@ -106,6 +110,11 @@ func init() {
 
 		// Add Kubernetes informers
 
+		if c, err := dnsendpoint.ProvideController(arguments); err != nil {
+			return err
+		} else {
+			arguments.ControllerManager.AddController(c)
+		}
 		return nil
 	})
 
@@ -131,6 +140,7 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServicePlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)
+	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.DNSEndpointCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.MultiClusterServiceDNSRecordCRD)
 	Injector.CRDs = append(Injector.CRDs, &schedulingv1alpha1.ReplicaSchedulingPreferenceCRD)
 	// Inject PolicyRules
