@@ -20,15 +20,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the JobSchedulingPreference resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // JobSchedulingPreferenceSpec defines the desired state of JobSchedulingPreference
 type JobSchedulingPreferenceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	// Specifies the maximum desired number of pods this FederatedJob should
+	// run at any given time.
+	// Parallelism specified in the spec for target job template will be
+	// discarded/overridden when job scheduling preferences are specified.
+	// // TODO(irfanurrehman): If needed fix up a strategy about creating jobs
+	// into federated clusters with parallelism as 0. Right now we do not
+	// create jobs in those clusters which have 0 weightage in ClusterWeights.
+	TotalParallelism int32 `json:"totalParallelism"`
+
+	// Specifies the desired number of successfully finished pods this
+	// FederatedJob should be run with.
+	// Completions specified in the spec for target job template will be
+	// discarded/overridden when job scheduling preferences are specified.
+	TotalCompletions int32 `json:"totalCompletions"`
+
+	// A weight ratio specification per cluster. The same weight value will be applicable to
+	// both parallelism and completions per job per cluster. The distribution of parallelism
+	// and completions will be done using weightN/sumWeights.
+	// If omitted for a particular cluster(s), cluster(s) without explicit weight will not
+	// have any jobs scheduled.
+	// +optional
+	ClusterWeights map[string]int32 `json:"clusterWeights,omitempty"`
 }
 
 // JobSchedulingPreferenceStatus defines the observed state of JobSchedulingPreference
