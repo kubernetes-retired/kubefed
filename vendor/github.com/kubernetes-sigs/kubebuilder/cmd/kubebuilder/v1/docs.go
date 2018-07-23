@@ -14,4 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package webhook
+package v1
+
+import (
+	"fmt"
+	"github.com/spf13/cobra"
+)
+
+func docsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "docs",
+		Short: "Generate API reference docs. Coming soon.",
+		Long:  `updates vendor dependencies. Coming soon.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Coming soon.")
+		},
+	}
+}

@@ -168,12 +168,6 @@
   version = "1.1.3"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/kubernetes-sig-testing/frameworks"
-  packages = ["integration"]
-  revision = "e71b0a734afabc881ad4a1b45837b6e4ea63deb5"
-
-[[projects]]
   name = "github.com/kubernetes-sigs/kubebuilder"
   packages = [
     "pkg/config",
@@ -190,8 +184,14 @@
     "pkg/signals",
     "pkg/test"
   ]
-  revision = "fea9e3a5c0b00a407e337857eda7d4f967a8347f"
-  version = "v0.1.11"
+  revision = "9c4c6c213a8d17f8c21cf4f1aa9cefb99fbbf5ca"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kubernetes/repo-infra"
+  packages = ["verify/boilerplate/test"]
+  revision = "c2f9667a4c29e70a39b0e89db2d4f0cab907dbee"
 
 [[projects]]
   name = "github.com/mailru/easyjson"
@@ -447,16 +447,12 @@
 [[projects]]
   name = "k8s.io/apimachinery"
   packages = [
-    "pkg/api/equality",
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
-    "pkg/api/validation",
-    "pkg/api/validation/path",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
-    "pkg/apis/meta/v1/validation",
     "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
@@ -500,9 +496,7 @@
   branch = "master"
   name = "k8s.io/apiserver"
   packages = [
-    "pkg/apis/audit",
-    "pkg/authentication/user",
-    "pkg/endpoints/request",
+    "pkg/util/feature",
     "pkg/util/flag",
     "pkg/util/logs"
   ]
@@ -683,6 +677,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f04a7742ef8b0c4fafa24717037870731b0fbdf66da8e08c475b853092460141"
+  inputs-digest = "e3be3de32ce567d695ef2849ba774995ff17309d09fdbbd426a4db79ef356a5b"
   solver-name = "gps-cdcl"
   solver-version = 1
