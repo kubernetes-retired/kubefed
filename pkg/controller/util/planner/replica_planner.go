@@ -23,19 +23,19 @@ import (
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 )
 
-// Planner decides how many out of the given replicas should be placed in each of the
+// ReplicaPlanner decides how many out of the given replicas should be placed in each of the
 // federated clusters.
-type Planner struct {
+type ReplicaPlanner struct {
 	preferences *fedschedulingv1a1.ReplicaSchedulingPreference
 }
 
-type namedClusterPreferences struct {
+type namedReplicaPreferences struct {
 	clusterName string
 	hash        uint32
 	fedschedulingv1a1.ClusterPreferences
 }
 
-type byWeight []*namedClusterPreferences
+type byWeight []*namedReplicaPreferences
 
 func (a byWeight) Len() int      { return len(a) }
 func (a byWeight) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
@@ -46,8 +46,8 @@ func (a byWeight) Less(i, j int) bool {
 	return (a[i].Weight > a[j].Weight) || (a[i].Weight == a[j].Weight && a[i].hash < a[j].hash)
 }
 
-func NewPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *Planner {
-	return &Planner{
+func NewReplicaPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *ReplicaPlanner {
+	return &ReplicaPlanner{
 		preferences: preferences,
 	}
 }
@@ -64,20 +64,20 @@ func NewPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *Pla
 // * a map that contains information how many replicas will be possible to run in a cluster.
 // * a map that contains information how many extra replicas would be nice to schedule in a cluster so,
 //   if by chance, they are scheduled we will be closer to the desired replicas layout.
-func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[string]int64,
+func (p *ReplicaPlanner) Plan(availableClusters []string, currentReplicaCount map[string]int64,
 	estimatedCapacity map[string]int64, replicaSetKey string) (map[string]int64, map[string]int64) {
 
-	preferences := make([]*namedClusterPreferences, 0, len(availableClusters))
+	preferences := make([]*namedReplicaPreferences, 0, len(availableClusters))
 	plan := make(map[string]int64, len(preferences))
 	overflow := make(map[string]int64, len(preferences))
 
-	named := func(name string, pref fedschedulingv1a1.ClusterPreferences) *namedClusterPreferences {
+	named := func(name string, pref fedschedulingv1a1.ClusterPreferences) *namedReplicaPreferences {
 		// Seems to work better than addler for our case.
 		hasher := fnv.New32()
 		hasher.Write([]byte(name))
 		hasher.Write([]byte(replicaSetKey))
 
-		return &namedClusterPreferences{
+		return &namedReplicaPreferences{
 			clusterName:        name,
 			hash:               hasher.Sum32(),
 			ClusterPreferences: pref,
@@ -159,7 +159,7 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 		for _, preference := range preferences {
 			weightSum += preference.Weight
 		}
-		newPreferences := make([]*namedClusterPreferences, 0, len(preferences))
+		newPreferences := make([]*namedReplicaPreferences, 0, len(preferences))
 
 		distributeInThisLoop := remainingReplicas
 

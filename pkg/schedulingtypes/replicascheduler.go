@@ -273,11 +273,11 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 	}
 
-	plnr := planner.NewPlanner(rsp)
+	plnr := planner.NewReplicaPlanner(rsp)
 	return schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity), nil
 }
 
-func schedule(planner *planner.Planner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) map[string]int64 {
+func schedule(planner *planner.ReplicaPlanner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) map[string]int64 {
 
 	scheduleResult, overflow := planner.Plan(clusterNames, currentReplicasPerCluster, estimatedCapacity, key)
 

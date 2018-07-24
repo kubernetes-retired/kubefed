@@ -24,7 +24,7 @@ import (
 )
 
 func doCheck(t *testing.T, pref map[string]fedschedulingv1a1.ClusterPreferences, replicas int64, clusters []string, expected map[string]int64) {
-	planer := NewPlanner(&fedschedulingv1a1.ReplicaSchedulingPreference{
+	planer := NewReplicaPlanner(&fedschedulingv1a1.ReplicaSchedulingPreference{
 		Spec: fedschedulingv1a1.ReplicaSchedulingPreferenceSpec{
 			Clusters:      pref,
 			TotalReplicas: int32(replicas),
@@ -37,7 +37,7 @@ func doCheck(t *testing.T, pref map[string]fedschedulingv1a1.ClusterPreferences,
 
 func doCheckWithExisting(t *testing.T, pref map[string]fedschedulingv1a1.ClusterPreferences, replicas int64, clusters []string,
 	existing map[string]int64, expected map[string]int64) {
-	planer := NewPlanner(&fedschedulingv1a1.ReplicaSchedulingPreference{
+	planer := NewReplicaPlanner(&fedschedulingv1a1.ReplicaSchedulingPreference{
 		Spec: fedschedulingv1a1.ReplicaSchedulingPreferenceSpec{
 			Clusters:      pref,
 			TotalReplicas: int32(replicas),
@@ -53,7 +53,7 @@ func doCheckWithExistingAndCapacity(t *testing.T, rebalance bool, pref map[strin
 	capacity map[string]int64,
 	expected map[string]int64,
 	expectedOverflow map[string]int64) {
-	planer := NewPlanner(&fedschedulingv1a1.ReplicaSchedulingPreference{
+	planer := NewReplicaPlanner(&fedschedulingv1a1.ReplicaSchedulingPreference{
 		Spec: fedschedulingv1a1.ReplicaSchedulingPreferenceSpec{
 			Rebalance:     rebalance,
 			Clusters:      pref,
