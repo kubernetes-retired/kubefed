@@ -38,6 +38,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
@@ -98,6 +99,11 @@ func main() {
 		err = servicedns.StartController(config, stopChan, false)
 		if err != nil {
 			log.Fatalf("Error starting dns controller: %v", err)
+		}
+
+		err = servicednsendpoint.StartController(config, stopChan, false)
+		if err != nil {
+			log.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
 	}
 
