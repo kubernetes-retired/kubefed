@@ -88,7 +88,7 @@ func (p *ReplicaPlanner) Plan(availableClusters []string, currentReplicaCount ma
 		if localRSP, found := p.preferences.Spec.Clusters[cluster]; found {
 			preferences = append(preferences, named(cluster, localRSP))
 		} else {
-			if localRSP, found := p.preferences.Spec.Clusters["*"]; found {
+			if localRSP, found := p.preferences.Spec.Clusters[AllClusters]; found {
 				preferences = append(preferences, named(cluster, localRSP))
 			} else {
 				plan[cluster] = int64(0)

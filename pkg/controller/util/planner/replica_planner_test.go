@@ -71,102 +71,102 @@ func pint(val int64) *int64 {
 
 func TestEqual(t *testing.T) {
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B", "C"},
 		// hash dependent
 		map[string]int64{"A": 16, "B": 17, "C": 17})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B"},
 		map[string]int64{"A": 25, "B": 25})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		1, []string{"A", "B"},
 		// hash dependent
 		map[string]int64{"A": 0, "B": 1})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		1, []string{"A", "B", "C", "D"},
 		// hash dependent
 		map[string]int64{"A": 0, "B": 0, "C": 0, "D": 1})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		1, []string{"A"},
 		map[string]int64{"A": 1})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		1, []string{},
 		map[string]int64{})
 }
 
 func TestEqualWithExisting(t *testing.T) {
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{"C": 30},
 		map[string]int64{"A": 10, "B": 10, "C": 30})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B"},
 		map[string]int64{"A": 30},
 		map[string]int64{"A": 30, "B": 20})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		15, []string{"A", "B"},
 		map[string]int64{"A": 0, "B": 8},
 		map[string]int64{"A": 7, "B": 8})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		15, []string{"A", "B"},
 		map[string]int64{"A": 1, "B": 8},
 		map[string]int64{"A": 7, "B": 8})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		15, []string{"A", "B"},
 		map[string]int64{"A": 4, "B": 8},
 		map[string]int64{"A": 7, "B": 8})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		15, []string{"A", "B"},
 		map[string]int64{"A": 5, "B": 8},
 		map[string]int64{"A": 7, "B": 8})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		15, []string{"A", "B"},
 		map[string]int64{"A": 6, "B": 8},
 		map[string]int64{"A": 7, "B": 8})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		15, []string{"A", "B"},
 		map[string]int64{"A": 7, "B": 8},
 		map[string]int64{"A": 7, "B": 8})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		500000, []string{"A", "B"},
 		map[string]int64{"A": 300000},
 		map[string]int64{"A": 300000, "B": 200000})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B"},
 		map[string]int64{"A": 10},
 		map[string]int64{"A": 25, "B": 25})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B"},
 		map[string]int64{"A": 10, "B": 70},
 		// hash dependent
@@ -174,13 +174,13 @@ func TestEqualWithExisting(t *testing.T) {
 		map[string]int64{"A": 0, "B": 50})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		1, []string{"A", "B"},
 		map[string]int64{"A": 30},
 		map[string]int64{"A": 1, "B": 0})
 
 	doCheckWithExisting(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B"},
 		map[string]int64{"A": 10, "B": 20},
 		map[string]int64{"A": 25, "B": 25})
@@ -189,7 +189,7 @@ func TestEqualWithExisting(t *testing.T) {
 func TestWithExistingAndCapacity(t *testing.T) {
 	// desired without capacity: map[string]int64{"A": 17, "B": 17, "C": 16})
 	doCheckWithExistingAndCapacity(t, true, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1}},
+		AllClusters: {Weight: 1}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{},
 		map[string]int64{"C": 10},
@@ -251,7 +251,7 @@ func TestWithExistingAndCapacity(t *testing.T) {
 		map[string]int64{})
 
 	doCheckWithExistingAndCapacity(t, false, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {MinReplicas: 20, Weight: 0}},
+		AllClusters: {MinReplicas: 20, Weight: 0}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{},
 		map[string]int64{"B": 10},
@@ -260,7 +260,7 @@ func TestWithExistingAndCapacity(t *testing.T) {
 
 	// Actually we would like to have extra 20 in B but 15 is also good.
 	doCheckWithExistingAndCapacity(t, true, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {MinReplicas: 20, Weight: 1}},
+		AllClusters: {MinReplicas: 20, Weight: 1}},
 		60, []string{"A", "B"},
 		map[string]int64{},
 		map[string]int64{"B": 10},
@@ -270,36 +270,36 @@ func TestWithExistingAndCapacity(t *testing.T) {
 
 func TestMin(t *testing.T) {
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {MinReplicas: 2, Weight: 0}},
+		AllClusters: {MinReplicas: 2, Weight: 0}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{"A": 2, "B": 2, "C": 2})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {MinReplicas: 20, Weight: 0}},
+		AllClusters: {MinReplicas: 20, Weight: 0}},
 		50, []string{"A", "B", "C"},
 		// hash dependant.
 		map[string]int64{"A": 10, "B": 20, "C": 20})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {MinReplicas: 20, Weight: 0},
-		"A": {MinReplicas: 100, Weight: 1}},
+		AllClusters: {MinReplicas: 20, Weight: 0},
+		"A":         {MinReplicas: 100, Weight: 1}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{"A": 50, "B": 0, "C": 0})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {MinReplicas: 10, Weight: 1, MaxReplicas: pint(12)}},
+		AllClusters: {MinReplicas: 10, Weight: 1, MaxReplicas: pint(12)}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{"A": 12, "B": 12, "C": 12})
 }
 
 func TestMax(t *testing.T) {
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 1, MaxReplicas: pint(2)}},
+		AllClusters: {Weight: 1, MaxReplicas: pint(2)}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{"A": 2, "B": 2, "C": 2})
 
 	doCheck(t, map[string]fedschedulingv1a1.ClusterPreferences{
-		"*": {Weight: 0, MaxReplicas: pint(2)}},
+		AllClusters: {Weight: 0, MaxReplicas: pint(2)}},
 		50, []string{"A", "B", "C"},
 		map[string]int64{"A": 0, "B": 0, "C": 0})
 }
