@@ -1147,7 +1147,7 @@ spec:
         - --install-crds=false
         command:
         - /root/controller-manager
-        image: quay.io/kubernetes-multicluster/federation-v2:canary
+        image: quay.io/kubernetes-multicluster/federation-v2:latest
         name: controller-manager
         resources:
           limits:
