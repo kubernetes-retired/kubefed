@@ -41,7 +41,7 @@ root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dest_dir="${root_dir}/bin"
 mkdir -p "${dest_dir}"
 
-kb_version="0.1.12"
+kb_version="1.0.0"
 kb_tgz="kubebuilder_${kb_version}_linux_amd64.tar.gz"
 kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_version}/${kb_tgz}"
 curl "${curl_args}O" "${kb_url}" \
