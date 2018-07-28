@@ -50,12 +50,6 @@ function launch-minikube-cluster() {
   sudo chgrp -R $USER $HOME/.minikube
 }
 
-# Wait for the kubernetes API server to be ready.
-function kube-apiserver-ready() {
-  local result="$(kubectl -n kube-system get pod kube-apiserver-minikube -o jsonpath='{.status.conditions[?(@.type == "Ready")].status}' 2> /dev/null)"
-  [[ "${result}" = "True" ]]
-}
-
 function run-e2e-tests() {
   go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v
   rc=$((rc || $?))
@@ -91,7 +85,7 @@ echo "Launching minikube cluster"
 launch-minikube-cluster
 
 echo "Waiting for minikube cluster to be ready"
-util::wait-for-condition "kube-apiserver readiness" 'kube-apiserver-ready' 180
+util::wait-for-condition 'ok' 'kubectl get --raw=/healthz' 120
 
 echo "Deploying federation-v2"
 DOCKER_PUSH=false ./scripts/deploy-federation.sh quay.io/kubernetes-multicluster/federation-v2:e2e

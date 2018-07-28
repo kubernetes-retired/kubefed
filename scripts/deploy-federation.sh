@@ -85,9 +85,10 @@ JOIN_CLUSTERS="${*}"
 
 # Use DOCKER_PUSH=false ./scripts/deploy-federation.sh <image> to skip docker
 # push on container image when not using latest image.
-DOCKER_PUSH=${DOCKER_PUSH:-docker push ${IMAGE_NAME}}
+DOCKER_PUSH=${DOCKER_PUSH:-true}
+DOCKER_PUSH_CMD="docker push ${IMAGE_NAME}"
 if [[ "${DOCKER_PUSH}" == false ]]; then
-    DOCKER_PUSH=
+    DOCKER_PUSH_CMD=
 fi
 
 if [[ ! "${USE_LATEST}" ]]; then
@@ -100,7 +101,7 @@ if [[ ! "${USE_LATEST}" ]]; then
     cp ${base_dir}/bin/controller-manager ${dockerfile_dir}/controller-manager
   fi
   docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
-  ${DOCKER_PUSH}
+  ${DOCKER_PUSH_CMD}
   rm -f ${dockerfile_dir}/controller-manager
 fi
 
