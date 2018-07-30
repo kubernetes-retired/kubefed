@@ -23,6 +23,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -52,6 +53,10 @@ func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 		stopChan: make(chan struct{}),
 	}
 	err := servicedns.StartController(config, f.stopChan, true)
+	if err != nil {
+		tl.Fatalf("Error starting service dns controller: %v", err)
+	}
+	err = servicednsendpoint.StartController(config, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
