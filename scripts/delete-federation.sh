@@ -25,36 +25,20 @@ source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 KCD="kubectl --ignore-not-found=true delete"
 NS=federation-system
-
 PUBLIC_NS=kube-multicluster-public
-
-# Remove public namespace
-${KCD} namespace ${PUBLIC_NS}
-
-# Remove cluster registry CRD
-${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
 
 # Unjoin clusters by removing objects added by kubefed2.
 HOST_CLUSTER="$(kubectl config current-context)"
 JOIN_CLUSTERS="${HOST_CLUSTER} ${@}"
 for c in ${JOIN_CLUSTERS}; do
-  SA_NAME="${c}-${HOST_CLUSTER}"
-  CONTROLLER_ROLE="federation-controller-manager:${SA_NAME}"
-
-  if [[ "${c}" != "${HOST_CLUSTER}" ]]; then
-    ${KCD} ns ${NS} --context=${c}
-  else
-    ${KCD} sa ${SA_NAME} --context=${c} -n ${NS}
-  fi
-
-  ${KCD} clusterrolebinding ${CONTROLLER_ROLE} --context=${c}
-  ${KCD} clusterrole ${CONTROLLER_ROLE} --context=${c}
-  ${KCD} clusters ${c} -n ${PUBLIC_NS}
-  ${KCD} federatedclusters ${c} -n ${NS}
-  CLUSTER_SECRET=$(kubectl -n ${NS} get secrets \
-    -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | grep "${c}-*")
-  ${KCD} secret ${CLUSTER_SECRET} -n ${NS}
+  ./bin/kubefed2 unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2
 done
+
+# Remove cluster registry CRD
+${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+
+# Remove public namespace
+${KCD} namespace ${PUBLIC_NS}
 
 # Disable available types
 for filename in ./config/federatedtypes/*.yaml; do
