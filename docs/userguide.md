@@ -93,6 +93,12 @@ automated, then invoke the deployment script by running:
 ./scripts/deploy-federation-latest.sh cluster2
 ```
 
+The above script joins the host cluster to the federation control plane it deploys, by default.
+The argument(s) used is/are the list of context names of the additional clusters that needs to be
+joined to this federation control plane. Clarifying, say the `host-cluster-context` used is `cluster1`,
+then on successful completion of the script used in example, both `cluster1` and `cluster2` will be
+joined to the deployed federation control plane.
+
 **NOTE:** You can list multiple joining cluster names in the above command.
 Also, please make sure the joining cluster name(s) provided matches the joining
 cluster context from your kubeconfig. This will already be the case if you used
@@ -305,3 +311,9 @@ federation deployments:
 ```bash
 ./scripts/delete-federation.sh cluster2
 ```
+
+The above script unjoins the host cluster from the federation control plane it deploys, by default.
+The argument(s) used is/are the list of context names of the additional clusters that needs to be
+unjoined from this federation control plane. Clarifying, say the `host-cluster-context` used is
+`cluster1`, then on successful completion of the script used in example, both `cluster1` and `cluster2`
+will be unjoined from the deployed federation control plane.
