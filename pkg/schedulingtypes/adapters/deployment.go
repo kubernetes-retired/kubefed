@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scheduler
+package adapters
 
 import (
 	"reflect"
@@ -33,7 +33,7 @@ type FederatedDeploymentAdapter struct {
 	fedClient fedclientset.Interface
 }
 
-func NewFederatedDeploymentAdapter(fedClient fedclientset.Interface) SchedulerAdapter {
+func NewFederatedDeploymentAdapter(fedClient fedclientset.Interface) Adapter {
 	return &FederatedDeploymentAdapter{
 		fedClient: fedClient,
 	}

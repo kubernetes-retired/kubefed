@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scheduler
+package adapters
 
 import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -30,7 +30,7 @@ type FederatedReplicaSetAdapter struct {
 	fedClient fedclientset.Interface
 }
 
-func NewFederatedReplicaSetAdapter(fedClient fedclientset.Interface) SchedulerAdapter {
+func NewFederatedReplicaSetAdapter(fedClient fedclientset.Interface) Adapter {
 	return &FederatedReplicaSetAdapter{
 		fedClient: fedClient,
 	}

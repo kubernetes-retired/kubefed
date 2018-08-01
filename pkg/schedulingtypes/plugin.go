@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scheduler
+package schedulingtypes
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes/adapters"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -48,10 +49,10 @@ type Plugin struct {
 	// Informer controller for placements of the federated type
 	placementController cache.Controller
 
-	adapter SchedulerAdapter
+	adapter adapters.Adapter
 }
 
-func NewPlugin(adapter SchedulerAdapter, apiResource *metav1.APIResource, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *util.ClusterLifecycleHandlerFuncs) *Plugin {
+func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *util.ClusterLifecycleHandlerFuncs) *Plugin {
 	p := &Plugin{
 		targetInformer: util.NewFederatedInformer(
 			fedClient,
