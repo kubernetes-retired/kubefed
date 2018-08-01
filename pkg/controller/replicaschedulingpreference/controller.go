@@ -24,8 +24,8 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference/scheduler"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -60,8 +60,8 @@ type ReplicaSchedulingPreferenceController struct {
 	clusterDeliverer *util.DelayingDeliverer
 
 	// scheduler holds all the information and functionality
-	// to handle the target objects of RSP
-	scheduler *scheduler.Scheduler
+	// to handle the target objects of given type
+	scheduler schedulingtypes.Scheduler
 
 	// Store for self (ReplicaSchedulingPreference)
 	store cache.Store
@@ -140,7 +140,7 @@ func newReplicaSchedulingPreferenceController(fedClient fedclientset.Interface, 
 			}),
 	)
 
-	s.scheduler = scheduler.NewReplicaScheduler(
+	s.scheduler = schedulingtypes.NewReplicaScheduler(
 		fedClient,
 		kubeClient,
 		crClient,
@@ -268,22 +268,16 @@ func (s *ReplicaSchedulingPreferenceController) reconcile(qualifiedName util.Qua
 	startTime := time.Now()
 	defer glog.V(4).Infof("Finished reconciling %s controller triggerred key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
 
-	rsp, err := s.objFromCache(s.store, kind, key)
+	obj, err := s.objFromCache(s.store, kind, key)
 	if err != nil {
 		return util.StatusAllOK
 	}
-	if rsp == nil {
+	if obj == nil {
 		// Nothing to do
 		return util.StatusAllOK
 	}
 
-	typedRsp, ok := rsp.(*fedschedulingv1a1.ReplicaSchedulingPreference)
-	if !ok {
-		runtime.HandleError(fmt.Errorf("Incorrect runtime object for RSP: %v", rsp))
-		return util.StatusError
-	}
-
-	return s.scheduler.Reconcile(typedRsp, qualifiedName)
+	return s.scheduler.Reconcile(obj, qualifiedName)
 }
 
 func (s *ReplicaSchedulingPreferenceController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {

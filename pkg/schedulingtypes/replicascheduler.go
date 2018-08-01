@@ -47,7 +47,7 @@ type ReplicaScheduler struct {
 	podInformer FederatedInformer
 }
 
-func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) *Scheduler {
+func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
 	scheduler := &ReplicaScheduler{}
 	scheduler.plugins = make(map[string]*Plugin)
 	scheduler.fedClient = fedClient
@@ -123,7 +123,13 @@ func (s *ReplicaScheduler) Stop() {
 	s.podInformer.Stop()
 }
 
-func (s *ReplicaScheduler) Reconcile(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName QualifiedName) ReconciliationStatus {
+func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus {
+	rsp, ok := obj.(*fedschedulingv1a1.ReplicaSchedulingPreference)
+	if !ok {
+		runtime.HandleError(fmt.Errorf("Incorrect runtime object for RSP: %v", rsp))
+		return StatusError
+	}
+
 	clusterNames, err := s.clusterNames()
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
