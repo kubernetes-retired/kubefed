@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
@@ -28,18 +27,26 @@ import (
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes/adapters"
 )
+
+const (
+	RSPKind = "ReplicaSchedulingPreference"
+)
+
+func init() {
+	RegisterSchedulingType(RSPKind, NewReplicaScheduler)
+}
 
 type ReplicaScheduler struct {
 	plugins     map[string]*Plugin
@@ -86,6 +93,22 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 	)
 
 	return scheduler
+}
+
+func (s *ReplicaScheduler) Kind() string {
+	return RSPKind
+}
+
+func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
+	return &fedschedulingv1a1.ReplicaSchedulingPreference{}
+}
+
+func (s *ReplicaScheduler) FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
+	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
+}
+
+func (s *ReplicaScheduler) FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
+	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
 }
 
 func (s *ReplicaScheduler) Start(stopChan <-chan struct{}) {

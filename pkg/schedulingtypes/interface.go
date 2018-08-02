@@ -17,13 +17,25 @@ limitations under the License.
 package schedulingtypes
 
 import (
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	kubeclientset "k8s.io/client-go/kubernetes"
+	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 type Scheduler interface {
+	Kind() string
+	ObjectType() pkgruntime.Object
+	FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
+	FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
+
 	Start(stopChan <-chan struct{})
 	HasSynced() bool
 	Stop()
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
 }
+
+type SchedulerFactory func(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler

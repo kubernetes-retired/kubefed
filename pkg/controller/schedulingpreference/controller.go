@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package replicaschedulingpreference
+package schedulingpreference
 
 import (
 	"fmt"
@@ -22,7 +22,6 @@ import (
 
 	"github.com/golang/glog"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
@@ -47,9 +46,9 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// ReplicaSchedulingPreferenceController syncronises the template, override
-// and placement for a target deployment template with its spec (user preference).
-type ReplicaSchedulingPreferenceController struct {
+// SchedulingPreferenceController syncronises the template, override
+// and placement for a target template with its spec (user preference).
+type SchedulingPreferenceController struct {
 	// Used to allow time delay in triggering reconciliation
 	// when any of RSP, target template, override or placement
 	// changes.
@@ -63,9 +62,9 @@ type ReplicaSchedulingPreferenceController struct {
 	// to handle the target objects of given type
 	scheduler schedulingtypes.Scheduler
 
-	// Store for self (ReplicaSchedulingPreference)
+	// Store for self
 	store cache.Store
-	// Informer for self (ReplicaSchedulingPreference)
+	// Informer for self
 	controller cache.Controller
 
 	// Work queue allowing parallel processing of resources
@@ -84,13 +83,13 @@ type ReplicaSchedulingPreferenceController struct {
 	updateTimeout           time.Duration
 }
 
-// ReplicaSchedulingPreferenceController starts a new controller for ReplicaSchedulingPreferences
-func StartReplicaSchedulingPreferenceController(config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
-	restclient.AddUserAgent(config, "replicaschedulingpreference-controller")
+// SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
+func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
-	controller, err := newReplicaSchedulingPreferenceController(fedClient, kubeClient, crClient)
+	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
@@ -102,13 +101,13 @@ func StartReplicaSchedulingPreferenceController(config *restclient.Config, stopC
 	return nil
 }
 
-// newReplicaSchedulingPreferenceController returns a new ReplicaSchedulingPreference Controller for the given client
-func newReplicaSchedulingPreferenceController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*ReplicaSchedulingPreferenceController, error) {
+// newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
+func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
 
-	s := &ReplicaSchedulingPreferenceController{
+	s := &SchedulingPreferenceController{
 		reviewDelay:             time.Second * 10,
 		clusterAvailableDelay:   time.Second * 20,
 		clusterUnavailableDelay: time.Second * 60,
@@ -119,29 +118,7 @@ func newReplicaSchedulingPreferenceController(fedClient fedclientset.Interface, 
 		eventRecorder:           recorder,
 	}
 
-	// Build delivereres for triggering reconciliations.
-	s.deliverer = util.NewDelayingDeliverer()
-	s.clusterDeliverer = util.NewDelayingDeliverer()
-
-	s.store, s.controller = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
-			},
-		},
-		&fedschedulingv1a1.ReplicaSchedulingPreference{},
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(
-			func(obj pkgruntime.Object) {
-				s.deliverObj(obj, 0, false)
-			}),
-	)
-
-	s.scheduler = schedulingtypes.NewReplicaScheduler(
-		fedClient,
+	s.scheduler = schedulerFactory(fedClient,
 		kubeClient,
 		crClient,
 		func(obj pkgruntime.Object) {
@@ -161,11 +138,32 @@ func newReplicaSchedulingPreferenceController(fedClient fedclientset.Interface, 
 			},
 		})
 
+	// Build delivereres for triggering reconciliations.
+	s.deliverer = util.NewDelayingDeliverer()
+	s.clusterDeliverer = util.NewDelayingDeliverer()
+
+	s.store, s.controller = cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+				return s.scheduler.FedList(metav1.NamespaceAll, options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return s.scheduler.FedWatch(metav1.NamespaceAll, options)
+			},
+		},
+		s.scheduler.ObjectType(),
+		util.NoResyncPeriod,
+		util.NewTriggerOnAllChanges(
+			func(obj pkgruntime.Object) {
+				s.deliverObj(obj, 0, false)
+			}),
+	)
+
 	return s, nil
 }
 
 // minimizeLatency reduces delays and timeouts to make the controller more responsive (useful for testing).
-func (s *ReplicaSchedulingPreferenceController) minimizeLatency() {
+func (s *SchedulingPreferenceController) minimizeLatency() {
 	s.clusterAvailableDelay = time.Second
 	s.clusterUnavailableDelay = time.Second
 	s.reviewDelay = 50 * time.Millisecond
@@ -173,7 +171,7 @@ func (s *ReplicaSchedulingPreferenceController) minimizeLatency() {
 	s.updateTimeout = 5 * time.Second
 }
 
-func (s *ReplicaSchedulingPreferenceController) Run(stopChan <-chan struct{}) {
+func (s *SchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	go s.controller.Run(stopChan)
 	s.scheduler.Start(stopChan)
 
@@ -198,7 +196,7 @@ func (s *ReplicaSchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	}()
 }
 
-func (s *ReplicaSchedulingPreferenceController) worker() {
+func (s *SchedulingPreferenceController) worker() {
 	for {
 		item, quit := s.workQueue.Get()
 		if quit {
@@ -222,13 +220,13 @@ func (s *ReplicaSchedulingPreferenceController) worker() {
 	}
 }
 
-func (s *ReplicaSchedulingPreferenceController) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
+func (s *SchedulingPreferenceController) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
 	qualifiedName := util.NewQualifiedName(obj)
 	s.deliver(qualifiedName, delay, failed)
 }
 
 // Adds backoff to delay if this delivery is related to some failure. Resets backoff if there was no failure.
-func (s *ReplicaSchedulingPreferenceController) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
+func (s *SchedulingPreferenceController) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
 	key := qualifiedName.String()
 	if failed {
 		s.backoff.Next(key, time.Now())
@@ -241,12 +239,12 @@ func (s *ReplicaSchedulingPreferenceController) deliver(qualifiedName util.Quali
 
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
-func (s *ReplicaSchedulingPreferenceController) isSynced() bool {
+func (s *SchedulingPreferenceController) isSynced() bool {
 	return s.controller.HasSynced() && s.scheduler.HasSynced()
 }
 
 // The function triggers reconciliation of all known RSP resources.
-func (s *ReplicaSchedulingPreferenceController) reconcileOnClusterChange() {
+func (s *SchedulingPreferenceController) reconcileOnClusterChange() {
 	if !s.isSynced() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
@@ -256,12 +254,12 @@ func (s *ReplicaSchedulingPreferenceController) reconcileOnClusterChange() {
 	}
 }
 
-func (s *ReplicaSchedulingPreferenceController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}
 
-	kind := "ReplicaSchedulingPreference"
+	kind := s.scheduler.Kind()
 	key := qualifiedName.String()
 
 	glog.V(4).Infof("Starting to reconcile %s controller triggerred key named %v", kind, key)
@@ -280,7 +278,7 @@ func (s *ReplicaSchedulingPreferenceController) reconcile(qualifiedName util.Qua
 	return s.scheduler.Reconcile(obj, qualifiedName)
 }
 
-func (s *ReplicaSchedulingPreferenceController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
+func (s *SchedulingPreferenceController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
 		wrappedErr := fmt.Errorf("Failed to query store while reconciling RSP controller, triggerred by %s named %q: %v", kind, key, err)
