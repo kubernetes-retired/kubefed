@@ -106,6 +106,10 @@ kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin -
 if [[ ! "${USE_LATEST}" ]]; then
   kubebuilder create config --controller-image "${IMAGE_NAME}" --name federation
 
+  # Increase memory request and limit to avoid OOM issues.
+  sed -i 's/memory: 20Mi/memory: 64Mi/' hack/install.yaml
+  sed -i 's/memory: 30Mi/memory: 128Mi/' hack/install.yaml
+
   # Delete the 'type' field from the openapi schema to avoid
   # triggering validation errors in kube < 1.12 when a type specifies
   # a subresource (e.g. status).  The 'type' field only triggers
