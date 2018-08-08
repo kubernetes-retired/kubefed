@@ -1,0 +1,6 @@
+apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+kind: MultiClusterIngressDNSRecord
+metadata:
+  name: multiclusteringressdnsrecord-example
+spec:
+  foo: bar
