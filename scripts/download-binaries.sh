@@ -35,10 +35,6 @@ logEnd() {
 }
 trap 'logEnd $?' EXIT
 
-# Use BASE_URL=https://my/binaries/url ./scripts/download-binaries to download
-# from a different bucket
-: "${BASE_URL:="https://storage.googleapis.com/k8s-c10s-test-binaries"}"
-
 echo "About to download some binaries. This might take a while..."
 
 root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
