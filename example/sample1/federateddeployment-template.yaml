@@ -10,16 +10,16 @@ items:
     template:
       metadata:
         labels:
-          foo: bar
+          app: nginx
       spec:
         replicas: 3
         selector:
           matchLabels:
-            foo: bar
+            app: nginx
         template:
           metadata:
             labels:
-              foo: bar
+              app: nginx
           spec:
             containers:
             - image: nginx
