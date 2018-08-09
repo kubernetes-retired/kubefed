@@ -13,7 +13,7 @@ is a detailed list of binaries required.
 The federation deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
 `kube-apiserver` >= v1.11 being installed in the path. The `kubebuilder`
 release packages all of these dependencies together, but the latest version of
-`kubebuilder` (v0.1.12 as of this writing) only includes binaries for
+`kubebuilder` (v1.0.0 as of this writing) only includes binaries for
 kubernetes 1.10. Once `kubebuilder` bundles binaries >= 1.11, it will
 only require downloading the `kubebuilder` release.
 
@@ -31,8 +31,8 @@ Or you can install them manually yourself using the guidelines provided below.
 
 This repo depends on
 [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder)
-to generate code and build binaries. Download the [v0.1.12
-release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v0.1.12)
+to generate code and build binaries. Download the [v1.0.0
+release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.0)
 and install it in your `PATH`.
 
 #### kubectl
