@@ -21,9 +21,10 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	rsp "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
 )
@@ -72,7 +73,8 @@ func NewRSPControllerFixture(tl common.TestLogger, config *restclient.Config) *C
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := rsp.StartReplicaSchedulingPreferenceController(config, f.stopChan, true)
+	kind := schedulingtypes.RSPKind
+	err := schedulingpreference.StartSchedulingPreferenceController(kind, schedulingtypes.GetSchedulerFactory(kind), config, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
 	}

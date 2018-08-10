@@ -36,9 +36,10 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
-	rspcontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/replicaschedulingpreference"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
+	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
@@ -85,9 +86,11 @@ func main() {
 	federatedcluster.StartClusterController(config, stopChan, clusterMonitorPeriod)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		err = rspcontroller.StartReplicaSchedulingPreferenceController(config, stopChan, true)
-		if err != nil {
-			log.Fatalf("Error starting replicaschedulingpreference controller: %v", err)
+		for kind, schedulingType := range schedulingtypes.SchedulingTypes() {
+			err = schedulingpreference.StartSchedulingPreferenceController(kind, schedulingType.SchedulerFactory, config, stopChan, true)
+			if err != nil {
+				log.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
+			}
 		}
 	}
 
