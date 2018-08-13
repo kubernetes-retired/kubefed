@@ -228,12 +228,24 @@ kubectl apply -R -f example/sample1
 Check the status of all the resources in each cluster by running:
 
 ```bash
-for r in configmaps secrets deploy; do
+for r in configmaps secrets service deploy; do
     for c in cluster1 cluster2; do
         echo; echo ------------ ${c} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
+done
+```
+
+Now make sure `nginx` is running properly in each cluster:
+
+```bash
+for c in cluster1 cluster2; do
+    NODE_PORT=$(kubectl --context=${c} -n test-namespace get service \
+        test-service -o jsonpath='{.spec.ports[0].nodePort}')
+    echo; echo ------------ ${c} ------------; echo
+    curl $(echo -n $(minikube ip -p ${c})):${NODE_PORT}
+    echo; echo
 done
 ```
 
@@ -251,7 +263,7 @@ kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 Then wait to verify all resources are removed from `cluster2`:
 
 ```bash
-for r in configmaps secrets deploy; do
+for r in configmaps secrets service deploy; do
     for c in cluster1 cluster2; do
         echo; echo ------------ ${c} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
@@ -274,12 +286,24 @@ kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 Then wait and verify all resources are added back to `cluster2`:
 
 ```bash
-for r in configmaps secrets deploy; do
+for r in configmaps secrets service deploy; do
     for c in cluster1 cluster2; do
         echo; echo ------------ ${c} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
+done
+```
+
+Lastly, make sure `nginx` is running properly in each cluster:
+
+```bash
+for c in cluster1 cluster2; do
+    NODE_PORT=$(kubectl --context=${c} -n test-namespace get service \
+        test-service -o jsonpath='{.spec.ports[0].nodePort}')
+    echo; echo ------------ ${c} ------------; echo
+    curl $(echo -n $(minikube ip -p ${c})):${NODE_PORT}
+    echo; echo
 done
 ```
 
