@@ -99,6 +99,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().PropagatedVersions().Informer()}, nil
 
 		// Group=multiclusterdns.federation.k8s.io, Version=v1alpha1
+	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("dnsendpoints"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().DNSEndpoints().Informer()}, nil
 	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("multiclusterservicednsrecords"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().MultiClusterServiceDNSRecords().Informer()}, nil
 

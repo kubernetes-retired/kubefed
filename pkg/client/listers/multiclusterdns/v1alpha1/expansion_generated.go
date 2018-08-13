@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// DNSEndpointListerExpansion allows custom methods to be added to
+// DNSEndpointLister.
+type DNSEndpointListerExpansion interface{}
+
+// DNSEndpointNamespaceListerExpansion allows custom methods to be added to
+// DNSEndpointNamespaceLister.
+type DNSEndpointNamespaceListerExpansion interface{}
+
 // MultiClusterServiceDNSRecordListerExpansion allows custom methods to be added to
 // MultiClusterServiceDNSRecordLister.
 type MultiClusterServiceDNSRecordListerExpansion interface{}

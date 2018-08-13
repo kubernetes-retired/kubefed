@@ -28,6 +28,10 @@ type FakeMulticlusterdnsV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeMulticlusterdnsV1alpha1) DNSEndpoints(namespace string) v1alpha1.DNSEndpointInterface {
+	return &FakeDNSEndpoints{c, namespace}
+}
+
 func (c *FakeMulticlusterdnsV1alpha1) MultiClusterServiceDNSRecords(namespace string) v1alpha1.MultiClusterServiceDNSRecordInterface {
 	return &FakeMultiClusterServiceDNSRecords{c, namespace}
 }
