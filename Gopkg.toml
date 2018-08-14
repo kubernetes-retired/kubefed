@@ -1,6 +1,8 @@
 
 # Users add deps lines here
 
+required = ["github.com/kubernetes/repo-infra/verify/boilerplate/test"]
+
 [prune]
   go-tests = true
   #unused-packages = true
