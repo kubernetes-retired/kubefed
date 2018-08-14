@@ -51,7 +51,7 @@ var _ = Describe("FederatedCluster", func() {
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace)
+				client = cs.CoreV1alpha1().FederatedClusters("foo")
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)

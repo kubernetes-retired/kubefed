@@ -54,22 +54,26 @@ type ClusterController struct {
 	clusterKubeClientMap map[string]ClusterClient
 
 	clusterController cache.Controller
+
+	// fedNamespace is the name of the namespace containing
+	// FederatedCluster resources and their associated secrets
+	fedNamespace string
 }
 
 // StartClusterController starts a new cluster controller
-func StartClusterController(config *restclient.Config, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
+func StartClusterController(config *restclient.Config, fedNamespace string, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
 	restclient.AddUserAgent(config, "cluster-controller")
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
 
-	controller := newClusterController(fedClient, kubeClient, crClient, clusterMonitorPeriod)
+	controller := newClusterController(fedClient, kubeClient, crClient, fedNamespace, clusterMonitorPeriod)
 	glog.Infof("Starting cluster controller")
 	controller.Run(stopChan)
 }
 
 // newClusterController returns a new cluster controller
-func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, clusterMonitorPeriod time.Duration) *ClusterController {
+func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, clusterMonitorPeriod time.Duration) *ClusterController {
 	cc := &ClusterController{
 		knownClusterSet:         make(sets.String),
 		fedClient:               fedClient,
@@ -78,14 +82,15 @@ func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclien
 		clusterMonitorPeriod:    clusterMonitorPeriod,
 		clusterClusterStatusMap: make(map[string]fedv1a1.FederatedClusterStatus),
 		clusterKubeClientMap:    make(map[string]ClusterClient),
+		fedNamespace:            fedNamespace,
 	}
 	_, cc.clusterController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return cc.fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(options)
+				return cc.fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return cc.fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Watch(options)
+				return cc.fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},
@@ -134,7 +139,7 @@ func (cc *ClusterController) addToClusterSetWithoutLock(cluster *fedv1a1.Federat
 	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	cc.knownClusterSet.Insert(cluster.Name)
 	// create the restclient of cluster
-	restClient, err := NewClusterClientSet(cluster, cc.kubeClient, cc.crClient)
+	restClient, err := NewClusterClientSet(cluster, cc.kubeClient, cc.crClient, cc.fedNamespace)
 	if err != nil || restClient == nil {
 		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
@@ -156,7 +161,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 
 // updateClusterStatus checks cluster status and get the metrics from cluster's restapi
 func (cc *ClusterController) updateClusterStatus() error {
-	clusters, err := cc.fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(metav1.ListOptions{})
+	clusters, err := cc.fedClient.CoreV1alpha1().FederatedClusters(cc.fedNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -218,7 +223,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cc.clusterClusterStatusMap[cluster.Name] = *clusterStatusNew
 		cc.mu.Unlock()
 		cluster.Status = *clusterStatusNew
-		_, err = cc.fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(&cluster)
+		_, err = cc.fedClient.CoreV1alpha1().FederatedClusters(cc.fedNamespace).UpdateStatus(&cluster)
 		if err != nil {
 			glog.Warningf("Failed to update the status of cluster: %v, error is : %v", cluster.Name, err)
 			// Don't return err here, as we want to continue processing remaining clusters.

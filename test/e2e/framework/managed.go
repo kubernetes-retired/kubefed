@@ -108,6 +108,10 @@ func (f *ManagedFramework) ClusterKubeClients(userAgent string) map[string]kubec
 	return fedFixture.ClusterKubeClients(f.logger, userAgent)
 }
 
+func (f *ManagedFramework) FederationSystemNamespace() string {
+	return fedFixture.SystemNamespace
+}
+
 // TODO(marun) remove
 func (f *ManagedFramework) TestNamespaceName() string {
 	return ""
@@ -116,12 +120,12 @@ func (f *ManagedFramework) TestNamespaceName() string {
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, kubeConfig)
+	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, kubeConfig, fedFixture.SystemNamespace)
 	f.fixtures = append(f.fixtures, fixture)
 }
 
 func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
 	config := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewServiceDNSControllerFixture(f.logger, config)
+	fixture := framework.NewServiceDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace)
 	f.fixtures = append(f.fixtures, fixture)
 }

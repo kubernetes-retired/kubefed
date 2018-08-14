@@ -64,7 +64,7 @@ var TestCrud = func(t *testing.T) {
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig typeconfig.Interface, templateKind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester) {
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	fixture := framework.NewSyncControllerFixture(tl, typeConfig, kubeConfig)
+	fixture := framework.NewSyncControllerFixture(tl, typeConfig, kubeConfig, fedFixture.SystemNamespace)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 	rest.AddUserAgent(kubeConfig, userAgent)

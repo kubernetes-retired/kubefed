@@ -58,7 +58,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatal("Unable to find namespace type config")
 	}
 	kubeConfig := FedFixture.KubeApi.NewConfig(tl)
-	namespaceSyncFixture := framework.NewSyncControllerFixture(tl, namespaceTypeConfig, kubeConfig)
+	namespaceSyncFixture := framework.NewSyncControllerFixture(tl, namespaceTypeConfig, kubeConfig, FedFixture.SystemNamespace)
 	defer namespaceSyncFixture.TearDown(tl)
 
 	t.Run("Parallel-Integration-Test-Group", func(t *testing.T) {

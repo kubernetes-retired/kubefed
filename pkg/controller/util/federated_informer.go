@@ -139,6 +139,7 @@ func NewFederatedInformer(
 	fedClient fedclientset.Interface,
 	kubeClient kubeclientset.Interface,
 	crClient crclientset.Interface,
+	fedNamespace string,
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) FederatedInformer {
@@ -150,7 +151,7 @@ func NewFederatedInformer(
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, kubeClient, crClient)
+			config, err := BuildClusterConfig(cluster, kubeClient, crClient, fedNamespace)
 			if err != nil {
 				return nil, err
 			}
@@ -162,6 +163,7 @@ func NewFederatedInformer(
 			return NewResourceClientFromConfig(config, apiResource)
 		},
 		targetInformers: make(map[string]informer),
+		fedNamespace:    fedNamespace,
 	}
 
 	getClusterData := func(name string) []interface{} {
@@ -176,10 +178,10 @@ func NewFederatedInformer(
 	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters(FederationSystemNamespace).List(options)
+				return fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters(FederationSystemNamespace).Watch(options)
+				return fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},
@@ -276,6 +278,9 @@ type federatedInformerImpl struct {
 
 	// A function to build clients.
 	clientFactory func(*fedv1a1.FederatedCluster) (ResourceClient, error)
+
+	// Namespace from which to source FederatedCluster resources
+	fedNamespace string
 }
 
 // *federatedInformerImpl implements FederatedInformer interface.
@@ -383,7 +388,7 @@ func (f *federatedInformerImpl) GetReadyCluster(name string) (*fedv1a1.Federated
 }
 
 func (f *federatedInformerImpl) getReadyClusterUnlocked(name string) (*fedv1a1.FederatedCluster, bool, error) {
-	key := fmt.Sprintf("%s/%s", FederationSystemNamespace, name)
+	key := fmt.Sprintf("%s/%s", f.fedNamespace, name)
 	if obj, exist, err := f.clusterInformer.store.GetByKey(key); exist && err == nil {
 		if cluster, ok := obj.(*fedv1a1.FederatedCluster); ok {
 			if isClusterReady(cluster) {
