@@ -218,9 +218,9 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cc.clusterClusterStatusMap[cluster.Name] = *clusterStatusNew
 		cc.mu.Unlock()
 		cluster.Status = *clusterStatusNew
-		cluster, err := cc.fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(&cluster)
+		_, err = cc.fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(&cluster)
 		if err != nil {
-			glog.Warningf("Failed to update the status of cluster: %v ,error is : %v", cluster.Name, err)
+			glog.Warningf("Failed to update the status of cluster: %v, error is : %v", cluster.Name, err)
 			// Don't return err here, as we want to continue processing remaining clusters.
 			continue
 		}

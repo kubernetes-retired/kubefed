@@ -313,7 +313,17 @@ kubebuilder create config \
 ```
 
 Once the installation YAML config `hack/install.yaml` is created, we need to
-delete the `type` field from the OpenAPI schema to avoid triggering validation
+update it to modify a few fields.
+
+First, increase the memory request and limit to avoid OOM issues by running the
+following commands:
+
+```bash
+sed -i 's/memory: 20Mi/memory: 64Mi/' hack/install.yaml
+sed -i 's/memory: 30Mi/memory: 128Mi/' hack/install.yaml
+```
+
+Then, delete the `type` field from the OpenAPI schema to avoid triggering validation
 errors in kubernetes version < 1.12 when a type specifies a subresource (e.g.
 status). The `type` field only triggers validation errors for resource types
 that define subresources, but it is simpler to fix for all types. See
