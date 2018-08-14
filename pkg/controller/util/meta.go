@@ -21,7 +21,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -102,7 +101,7 @@ func ObjectMetaObjEquivalent(a, b metav1.Object) bool {
 
 // Checks if cluster-independent, user provided data in ObjectMeta and Spec in two given top
 // level api objects are equivalent.
-func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
+func ObjectMetaAndSpecEquivalent(a, b pkgruntime.Object) bool {
 	objectMetaA := reflect.ValueOf(a).Elem().FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	objectMetaB := reflect.ValueOf(b).Elem().FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	specA := reflect.ValueOf(a).Elem().FieldByName("Spec").Interface()
