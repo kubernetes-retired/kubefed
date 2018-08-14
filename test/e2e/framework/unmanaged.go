@@ -42,10 +42,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// Only check that the api is available once
 var (
 	clusterControllerFixture *framework.ControllerFixture
-	checkedApi               bool
+	// Only check that the api is available once
+	checkedApi bool
 )
 
 func SetUpUnmanagedFederation() {
