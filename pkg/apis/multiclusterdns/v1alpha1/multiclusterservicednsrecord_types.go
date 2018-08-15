@@ -27,6 +27,8 @@ type MultiClusterServiceDNSRecordSpec struct {
 	FederationName string `json:"federationName,omitempty"`
 	// DNSSuffix is the suffix (domain) to append to DNS names
 	DNSSuffix string `json:"dnsSuffix,omitempty"`
+	// RecordTTL is the TTL in seconds for DNS records created for this Service, if omitted a default would be used
+	RecordTTL TTL `json:"recordTTL,omitempty"`
 }
 
 // MultiClusterServiceDNSRecordStatus defines the observed state of MultiClusterServiceDNSRecord
