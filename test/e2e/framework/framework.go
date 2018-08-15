@@ -48,6 +48,8 @@ type FederationFramework interface {
 	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
 	ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface
 
+	FederationSystemNamespace() string
+
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
 
@@ -118,6 +120,10 @@ func (f *frameworkWrapper) ClusterDynamicClients(apiResource *metav1.APIResource
 
 func (f *frameworkWrapper) ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface {
 	return f.framework().ClusterKubeClients(userAgent)
+}
+
+func (f *frameworkWrapper) FederationSystemNamespace() string {
+	return f.framework().FederationSystemNamespace()
 }
 
 func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {

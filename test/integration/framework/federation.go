@@ -62,6 +62,7 @@ type FederationFixture struct {
 	KubeApi           *KubernetesApiFixture
 	Clusters          map[string]*KubernetesApiFixture
 	ClusterController *ControllerFixture
+	SystemNamespace   string
 }
 
 func SetUpFederationFixture(tl common.TestLogger, clusterCount int) *FederationFixture {
@@ -88,7 +89,7 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	tl.Logf("Starting cluster controller")
-	f.ClusterController = NewClusterControllerFixture(config)
+	f.ClusterController = NewClusterControllerFixture(config, f.SystemNamespace)
 	tl.Log("Federation started.")
 }
 
@@ -182,10 +183,10 @@ func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *K
 	// Build the secret object with the flattened kubeconfig content.
 	// TODO(marun) enforce some kind of relationship between federated cluster and secret?
 	kubeClient := f.KubeApi.NewClient(tl, userAgent)
-	secret, err := kubeClient.CoreV1().Secrets(util.FederationSystemNamespace).Create(&apiv1.Secret{
+	secret, err := kubeClient.CoreV1().Secrets(f.SystemNamespace).Create(&apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-credentials", clusterName),
-			Namespace:    util.FederationSystemNamespace,
+			Namespace:    f.SystemNamespace,
 		},
 		Data: map[string][]byte{
 			util.KubeconfigSecretDataKey: configBytes,
@@ -201,7 +202,7 @@ func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *K
 // associates the cluster and secret.
 func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, clusterName, secretName string) {
 	fedClient := f.NewFedClient(tl, userAgent)
-	_, err := fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Create(&fedv1a1.FederatedCluster{
+	_, err := fedClient.CoreV1alpha1().FederatedClusters(f.SystemNamespace).Create(&fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterName,
 		},
@@ -295,23 +296,25 @@ func (f *FederationFixture) installCrds(tl common.TestLogger) {
 
 func (f *FederationFixture) ensureNamespaces(tl common.TestLogger) {
 	client := f.KubeApi.NewClient(tl, "federation-fixture")
-	systemNamespaces := []string{
-		util.FederationSystemNamespace,
-		util.MulticlusterPublicNamespace,
+
+	_, err := client.Core().Namespaces().Create(&apiv1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: util.MulticlusterPublicNamespace,
+		},
+	})
+	if err != nil && !errors.IsAlreadyExists(err) {
+		tl.Fatalf("Error creating multicluster public namespace: %v", err)
 	}
-	for _, namespaceName := range systemNamespaces {
-		namespaceObj := &apiv1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespaceName,
-			},
-		}
-		_, err := client.Core().Namespaces().Create(namespaceObj)
-		// Idempotent creation
-		if err == nil || errors.IsAlreadyExists(err) {
-			continue
-		}
-		tl.Fatalf("Error creating %s: %v", namespaceObj.Name, err)
+
+	systemNamespace, err := client.Core().Namespaces().Create(&apiv1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: util.DefaultFederationSystemNamespace + "-",
+		},
+	})
+	if err != nil {
+		tl.Fatalf("Error creating federation system namespace: %v", err)
 	}
+	f.SystemNamespace = systemNamespace.Name
 }
 
 func waitForCrd(tl common.TestLogger, config *rest.Config, crd *apiextv1b1.CustomResourceDefinition) {

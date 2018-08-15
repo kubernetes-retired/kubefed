@@ -42,10 +42,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// Only check that the api is available once
 var (
 	clusterControllerFixture *framework.ControllerFixture
-	checkedApi               bool
+	// Only check that the api is available once
+	checkedApi bool
 )
 
 func SetUpUnmanagedFederation() {
@@ -56,7 +56,7 @@ func SetUpUnmanagedFederation() {
 	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 	Expect(err).NotTo(HaveOccurred())
 
-	clusterControllerFixture = framework.NewClusterControllerFixture(config)
+	clusterControllerFixture = framework.NewClusterControllerFixture(config, TestContext.FederationSystemNamespace)
 }
 
 func TearDownUnmanagedFederation() {
@@ -223,7 +223,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 
 	By("Obtaining a list of federated clusters")
 	fedClient := f.FedClient(userAgent)
-	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(metav1.ListOptions{})
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).List(metav1.ListOptions{})
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
 	if len(clusterList.Items) == 0 {
@@ -235,13 +235,17 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 	clusterConfigs := make(map[string]*restclient.Config)
 	for _, cluster := range clusterList.Items {
 		ClusterIsReadyOrFail(fedClient, &cluster)
-		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient)
+		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient, TestContext.FederationSystemNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = config
 	}
 
 	return clusterConfigs
+}
+
+func (f *UnmanagedFramework) FederationSystemNamespace() string {
+	return TestContext.FederationSystemNamespace
 }
 
 // TODO(marun) remove
@@ -254,14 +258,14 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config)
+		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config)
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
@@ -323,7 +327,7 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 // without error.
 func waitForApiserver(client fedclientset.Interface) error {
 	return wait.PollImmediate(time.Second, 1*time.Minute, func() (bool, error) {
-		_, err := client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(metav1.ListOptions{})
+		_, err := client.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -379,7 +383,7 @@ func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.Federa
 			}
 		}
 		var err error
-		cluster, err = client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
+		cluster, err = client.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

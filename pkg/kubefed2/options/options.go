@@ -53,7 +53,7 @@ func (o *SubcommandOptions) SetName(args []string) error {
 	// absence of canonical configuration, allowing override of the
 	// system namespace for a kubefed2 command is a likely source of
 	// problems since only the hard-coded namespace is valid.
-	o.FederationNamespace = util.FederationSystemNamespace
+	o.FederationNamespace = util.DefaultFederationSystemNamespace
 	o.ClusterName = args[0]
 	return nil
 }

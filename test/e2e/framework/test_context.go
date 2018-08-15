@@ -18,16 +18,20 @@ package framework
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/golang/glog"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 type TestContextType struct {
-	TestManagedFederation bool
-	InMemoryControllers   bool
-	KubeConfig            string
-	KubeContext           string
+	TestManagedFederation     bool
+	InMemoryControllers       bool
+	KubeConfig                string
+	KubeContext               string
+	FederationSystemNamespace string
 }
 
 var TestContext TestContextType
@@ -41,6 +45,8 @@ func registerFlags(t *TestContextType) {
 		"Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-federation is true.")
 	flag.StringVar(&t.KubeContext, "context", "",
 		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
+	flag.StringVar(&t.FederationSystemNamespace, "fed-namespace", util.DefaultFederationSystemNamespace,
+		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
 }
 
 func validateFlags(t *TestContextType) {

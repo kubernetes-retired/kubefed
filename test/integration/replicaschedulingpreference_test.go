@@ -23,7 +23,6 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	appsv1 "k8s.io/api/apps/v1"
@@ -47,7 +46,7 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 	controllerFixture, fedClient := initRSPTest(tl, FedFixture)
 	defer controllerFixture.TearDown(tl)
 
-	clusters := getClusterNames(fedClient)
+	clusters := getClusterNames(fedClient, FedFixture.SystemNamespace)
 	if len(clusters) != 2 {
 		tl.Fatalf("Expected two clusters to be part of Federation Fixture setup")
 	}
@@ -111,7 +110,7 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 
 func initRSPTest(tl common.TestLogger, fedFixture *framework.FederationFixture) (*framework.ControllerFixture, clientset.Interface) {
 	config := fedFixture.KubeApi.NewConfig(tl)
-	fixture := framework.NewRSPControllerFixture(tl, config)
+	fixture := framework.NewRSPControllerFixture(tl, config, fedFixture.SystemNamespace)
 	restclient.AddUserAgent(config, "rsp-test")
 	client := clientset.NewForConfigOrDie(config)
 
@@ -263,10 +262,10 @@ func waitForMatchingOverride(fedClient clientset.Interface, name, namespace, tar
 	return err
 }
 
-func getClusterNames(fedClient clientset.Interface) []string {
+func getClusterNames(fedClient clientset.Interface, fedNamespace string) []string {
 	clusters := []string{}
 
-	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).List(metav1.ListOptions{})
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).List(metav1.ListOptions{})
 	if err != nil || clusterList == nil {
 		return clusters
 	}

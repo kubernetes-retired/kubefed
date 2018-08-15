@@ -114,11 +114,13 @@ type FederationSyncController struct {
 
 	fedClient      fedclientset.Interface
 	templateClient util.ResourceClient
+
+	fedNamespace string
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, kubeConfig)
+func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace)
 	if err != nil {
 		return err
 	}
@@ -131,7 +133,7 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config) (*FederationSyncController, error) {
+func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace string) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
@@ -164,6 +166,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		fedClient:               fedClient,
 		templateClient:          templateClient,
 		pendingVersionUpdates:   sets.String{},
+		fedNamespace:            fedNamespace,
 	}
 
 	// Build delivereres for triggering reconciliations.
@@ -232,6 +235,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		fedClient,
 		kubeClient,
 		crClient,
+		fedNamespace,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, s.reviewDelay, false)
@@ -422,7 +426,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// TODO(font): Need a configurable or discoverable list of namespaces
 		// to not propagate beyond just the default system namespaces e.g.
 		// clusterregistry.
-		if isSystemNamespace(namespace) {
+		if isSystemNamespace(s.fedNamespace, namespace) {
 			return util.StatusAllOK
 		}
 	}
@@ -1030,9 +1034,9 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 
 // TODO (font): Externalize this list to a package var to allow it to be
 // configurable.
-func isSystemNamespace(namespace string) bool {
+func isSystemNamespace(fedNamespace, namespace string) bool {
 	switch namespace {
-	case "kube-system", util.FederationSystemNamespace:
+	case "kube-system", fedNamespace:
 		return true
 	default:
 		return false

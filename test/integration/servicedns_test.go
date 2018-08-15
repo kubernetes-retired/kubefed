@@ -32,7 +32,6 @@ import (
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 )
@@ -153,7 +152,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	f := &serviceDNSControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(config, f.stopChan, true)
+	err := servicedns.StartController(config, FedFixture.SystemNamespace, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting service-dns controller: %v", err)
 	}
@@ -173,7 +172,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 		}
 		f.clusterRegionZones[clusterName] = regionZones
 
-		updateFederatedClusterStatus(tl, f.client, clusterName, f.clusterRegionZones[clusterName])
+		updateFederatedClusterStatus(tl, f.client, fedFixture.SystemNamespace, clusterName, f.clusterRegionZones[clusterName])
 
 		clusterDNS := dnsv1a1.ClusterDNS{
 			Cluster: clusterName,
@@ -197,9 +196,9 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	return f
 }
 
-func updateFederatedClusterStatus(tl common.TestLogger, client fedclientset.Interface, clusterName string, clusterStatus fedv1a1.FederatedClusterStatus) {
+func updateFederatedClusterStatus(tl common.TestLogger, client fedclientset.Interface, fedNamespace, clusterName string, clusterStatus fedv1a1.FederatedClusterStatus) {
 	err := wait.PollImmediate(framework.DefaultWaitInterval, wait.ForeverTestTimeout, func() (exist bool, err error) {
-		federatedCluster, err := client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
+		federatedCluster, err := client.CoreV1alpha1().FederatedClusters(fedNamespace).Get(clusterName, metav1.GetOptions{})
 		if err != nil {
 			tl.Logf("Error retrieving federated cluster %q: %v", clusterName, err)
 			return false, err
@@ -209,7 +208,7 @@ func updateFederatedClusterStatus(tl common.TestLogger, client fedclientset.Inte
 		// so as not to overwrite other fields in Status of existing object.
 		federatedCluster.Status.Region = clusterStatus.Region
 		federatedCluster.Status.Zone = clusterStatus.Zone
-		_, err = client.CoreV1alpha1().FederatedClusters(util.FederationSystemNamespace).UpdateStatus(federatedCluster)
+		_, err = client.CoreV1alpha1().FederatedClusters(fedNamespace).UpdateStatus(federatedCluster)
 		if err != nil {
 			tl.Logf("Retry updating federated cluster status %q: %v", clusterName, err)
 			return false, nil
