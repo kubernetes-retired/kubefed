@@ -374,8 +374,12 @@ func getNamesForDNSObject(dnsObject *feddnsv1a1.MultiClusterServiceDNSRecord) ([
 		zoneTargets, regionTargets, globalTargets := getHealthyTargets(zone, region, dnsObject)
 		targets := [][]string{zoneTargets, regionTargets, globalTargets}
 
+		ttl := dnsObject.Spec.RecordTTL
+		if ttl == 0 {
+			ttl = minDNSTTL
+		}
 		for i, target := range targets {
-			endpoint, err := generateEndpoint(dnsNames[i], target, dnsNames[i+1])
+			endpoint, err := generateEndpoint(dnsNames[i], target, dnsNames[i+1], ttl)
 			if err != nil {
 				return nil, err
 			}
@@ -412,10 +416,10 @@ func getHealthyTargets(zone, region string, dnsObject *feddnsv1a1.MultiClusterSe
 	return zoneTargets, regionTargets, globalTargets
 }
 
-func generateEndpoint(name string, targets feddnsv1a1.Targets, uplevelCname string) (ep *feddnsv1a1.Endpoint, err error) {
+func generateEndpoint(name string, targets feddnsv1a1.Targets, uplevelCname string, ttl feddnsv1a1.TTL) (ep *feddnsv1a1.Endpoint, err error) {
 	ep = &feddnsv1a1.Endpoint{
 		DNSName:   name,
-		RecordTTL: minDNSTTL,
+		RecordTTL: ttl,
 	}
 
 	if len(targets) > 0 {
