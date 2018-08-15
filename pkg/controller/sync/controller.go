@@ -590,7 +590,8 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	templateKind := s.typeConfig.GetTemplate().Kind
 	key := util.NewQualifiedName(template).String()
 
-	glog.V(3).Infof("Syncing %s %q in underlying clusters", templateKind, key)
+	glog.V(3).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s, unselected clusters are: %s",
+		templateKind, key, selectedClusters, unselectedClusters)
 
 	propagatedClusterVersions := getClusterVersions(template, override, propagatedVersion)
 
