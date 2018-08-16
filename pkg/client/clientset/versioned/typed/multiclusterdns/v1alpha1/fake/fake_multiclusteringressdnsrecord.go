@@ -62,7 +62,7 @@ func (c *FakeMultiClusterIngressDNSRecords) List(opts v1.ListOptions) (result *v
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.MultiClusterIngressDNSRecordList{}
+	list := &v1alpha1.MultiClusterIngressDNSRecordList{ListMeta: obj.(*v1alpha1.MultiClusterIngressDNSRecordList).ListMeta}
 	for _, item := range obj.(*v1alpha1.MultiClusterIngressDNSRecordList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

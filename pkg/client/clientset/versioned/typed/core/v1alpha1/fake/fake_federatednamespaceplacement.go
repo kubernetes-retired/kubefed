@@ -62,7 +62,7 @@ func (c *FakeFederatedNamespacePlacements) List(opts v1.ListOptions) (result *v1
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedNamespacePlacementList{}
+	list := &v1alpha1.FederatedNamespacePlacementList{ListMeta: obj.(*v1alpha1.FederatedNamespacePlacementList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedNamespacePlacementList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
