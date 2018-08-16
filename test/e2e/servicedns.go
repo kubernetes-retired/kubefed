@@ -96,7 +96,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 		const (
 			RecordTypeA     = "A"
 			RecordTypeCNAME = "CNAME"
-			minDNSTTL       = 180
+			RecordTTL       = 300
 		)
 		federation := "galactic"
 		dnsZone := "dzone.io"
@@ -108,6 +108,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 			serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
 			serviceDNSObj.Spec.FederationName = federation
 			serviceDNSObj.Spec.DNSSuffix = dnsZone
+			serviceDNSObj.Spec.RecordTTL = RecordTTL
 			serviceDNS, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNSObj)
 			framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object %v", serviceDNS)
 			name := serviceDNS.Name
@@ -135,15 +136,15 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 				endpoint := newEndpoint(
 					strings.Join([]string{name, namespace, federation, "svc", zone, region, dnsZone}, "."),
-					lbs, RecordTypeA, minDNSTTL)
+					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 				endpoint = newEndpoint(
 					strings.Join([]string{name, namespace, federation, "svc", region, dnsZone}, "."),
-					lbs, RecordTypeA, minDNSTTL)
+					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 				endpoint = newEndpoint(
 					strings.Join([]string{name, namespace, federation, "svc", dnsZone}, "."),
-					lbs, RecordTypeA, minDNSTTL)
+					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 			}
 			desiredDNSEndpoint := &dnsv1a1.DNSEndpoint{

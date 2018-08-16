@@ -183,6 +183,10 @@ var (
 								"federationName": v1beta1.JSONSchemaProps{
 									Type: "string",
 								},
+								"recordTTL": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int64",
+								},
 							},
 						},
 						"status": v1beta1.JSONSchemaProps{

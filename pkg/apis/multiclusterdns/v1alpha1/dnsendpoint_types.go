@@ -38,7 +38,7 @@ type Endpoint struct {
 	Targets Targets `json:"targets,omitempty"`
 	// RecordType type of record, e.g. CNAME, A, SRV, TXT etc
 	RecordType string `json:"recordType,omitempty"`
-	// TTL for the record
+	// TTL for the record in seconds
 	RecordTTL TTL `json:"recordTTL,omitempty"`
 	// Labels stores labels defined for the Endpoint
 	Labels Labels `json:"labels,omitempty"`

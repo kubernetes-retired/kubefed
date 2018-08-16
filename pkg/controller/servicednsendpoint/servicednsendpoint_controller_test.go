@@ -46,6 +46,8 @@ const (
 	lb1 = "10.20.30.1"
 	lb2 = "10.20.30.2"
 	lb3 = "10.20.30.3"
+
+	userConfiguredTTL = 300
 )
 
 type NetWrapperMock struct {
@@ -247,6 +249,33 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				{DNSName: c1ZoneDNSName, Targets: []string{lb3}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
 				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
 				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
+			},
+			expectError: false,
+		},
+		"UserConfiguredDNSRecordTTL": {
+			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+					FederationName: federation,
+					DNSSuffix:      dnsZone,
+					RecordTTL:      userConfiguredTTL,
+				},
+				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+					DNS: []feddnsv1a1.ClusterDNS{
+						{
+							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
+						},
+					},
+				},
+			},
+			expectEndpoints: []*feddnsv1a1.Endpoint{
+				{DNSName: globalDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: userConfiguredTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: userConfiguredTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: userConfiguredTTL},
 			},
 			expectError: false,
 		},
