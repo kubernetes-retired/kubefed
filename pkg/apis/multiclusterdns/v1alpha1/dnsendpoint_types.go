@@ -41,6 +41,7 @@ type Endpoint struct {
 	// TTL for the record in seconds
 	RecordTTL TTL `json:"recordTTL,omitempty"`
 	// Labels stores labels defined for the Endpoint
+	// +optional
 	Labels Labels `json:"labels,omitempty"`
 }
 
@@ -51,14 +52,18 @@ type DNSEndpointSpec struct {
 
 // DNSEndpointStatus defines the observed state of DNSEndpoint
 type DNSEndpointStatus struct {
+	// ObservedGeneration is the generation as observed by the controller consuming the DNSEndpoint.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DNSEndpoint
+// DNSEndpoint is the CRD wrapper for Endpoint
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=dnsendpoints
+// +kubebuilder:subresource:status
 type DNSEndpoint struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
