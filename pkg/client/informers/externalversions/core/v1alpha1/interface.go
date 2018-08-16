@@ -38,6 +38,10 @@ type Interface interface {
 	FederatedDeploymentOverrides() FederatedDeploymentOverrideInformer
 	// FederatedDeploymentPlacements returns a FederatedDeploymentPlacementInformer.
 	FederatedDeploymentPlacements() FederatedDeploymentPlacementInformer
+	// FederatedIngresses returns a FederatedIngressInformer.
+	FederatedIngresses() FederatedIngressInformer
+	// FederatedIngressPlacements returns a FederatedIngressPlacementInformer.
+	FederatedIngressPlacements() FederatedIngressPlacementInformer
 	// FederatedJobs returns a FederatedJobInformer.
 	FederatedJobs() FederatedJobInformer
 	// FederatedJobOverrides returns a FederatedJobOverrideInformer.
@@ -112,6 +116,16 @@ func (v *version) FederatedDeploymentOverrides() FederatedDeploymentOverrideInfo
 // FederatedDeploymentPlacements returns a FederatedDeploymentPlacementInformer.
 func (v *version) FederatedDeploymentPlacements() FederatedDeploymentPlacementInformer {
 	return &federatedDeploymentPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedIngresses returns a FederatedIngressInformer.
+func (v *version) FederatedIngresses() FederatedIngressInformer {
+	return &federatedIngressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedIngressPlacements returns a FederatedIngressPlacementInformer.
+func (v *version) FederatedIngressPlacements() FederatedIngressPlacementInformer {
+	return &federatedIngressPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedJobs returns a FederatedJobInformer.

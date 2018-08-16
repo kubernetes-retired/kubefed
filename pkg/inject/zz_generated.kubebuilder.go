@@ -55,6 +55,12 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedDeploymentPlacement{}, arguments.Informers.Core().V1alpha1().FederatedDeploymentPlacements()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedIngress{}, arguments.Informers.Core().V1alpha1().FederatedIngresses()); err != nil {
+			return err
+		}
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedIngressPlacement{}, arguments.Informers.Core().V1alpha1().FederatedIngressPlacements()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedJob{}, arguments.Informers.Core().V1alpha1().FederatedJobs()); err != nil {
 			return err
 		}
@@ -120,6 +126,8 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedDeploymentCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedDeploymentOverrideCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedDeploymentPlacementCRD)
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedIngressCRD)
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedIngressPlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedJobCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedJobOverrideCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedJobPlacementCRD)

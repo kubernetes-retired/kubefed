@@ -56,6 +56,14 @@ func (c *FakeCoreV1alpha1) FederatedDeploymentPlacements(namespace string) v1alp
 	return &FakeFederatedDeploymentPlacements{c, namespace}
 }
 
+func (c *FakeCoreV1alpha1) FederatedIngresses(namespace string) v1alpha1.FederatedIngressInterface {
+	return &FakeFederatedIngresses{c, namespace}
+}
+
+func (c *FakeCoreV1alpha1) FederatedIngressPlacements(namespace string) v1alpha1.FederatedIngressPlacementInterface {
+	return &FakeFederatedIngressPlacements{c, namespace}
+}
+
 func (c *FakeCoreV1alpha1) FederatedJobs(namespace string) v1alpha1.FederatedJobInterface {
 	return &FakeFederatedJobs{c, namespace}
 }
