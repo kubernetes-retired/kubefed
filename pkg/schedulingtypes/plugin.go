@@ -52,13 +52,14 @@ type Plugin struct {
 	adapter adapters.Adapter
 }
 
-func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *util.ClusterLifecycleHandlerFuncs) *Plugin {
+func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *util.ClusterLifecycleHandlerFuncs) *Plugin {
 	p := &Plugin{
 		targetInformer: util.NewFederatedInformer(
 			fedClient,
 			kubeClient,
 			crClient,
 			fedNamespace,
+			clusterNamespace,
 			apiResource,
 			clusterEventHandler,
 			handlers,

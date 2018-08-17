@@ -139,7 +139,8 @@ func NewFederatedInformer(
 	fedClient fedclientset.Interface,
 	kubeClient kubeclientset.Interface,
 	crClient crclientset.Interface,
-	fedNamespace string,
+	fedNamespace,
+	clusterNamespace string,
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) FederatedInformer {
@@ -151,7 +152,7 @@ func NewFederatedInformer(
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, kubeClient, crClient, fedNamespace)
+			config, err := BuildClusterConfig(cluster, kubeClient, crClient, fedNamespace, clusterNamespace)
 			if err != nil {
 				return nil, err
 			}

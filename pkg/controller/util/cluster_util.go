@@ -36,8 +36,7 @@ import (
 
 const (
 	DefaultFederationSystemNamespace = "federation-system"
-	// TODO(marun) this should be configured rather than hard-coded
-	MulticlusterPublicNamespace = "kube-multicluster-public"
+	MulticlusterPublicNamespace      = "kube-multicluster-public"
 
 	KubeAPIQPS              = 20.0
 	KubeAPIBurst            = 30
@@ -45,11 +44,11 @@ const (
 	getSecretTimeout        = 1 * time.Minute
 )
 
-func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string) (*restclient.Config, error) {
+func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, clusterNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	// Retrieve the associated cluster
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(MulticlusterPublicNamespace).Get(clusterName, metav1.GetOptions{})
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(clusterNamespace).Get(clusterName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -44,8 +44,8 @@ type ClusterClient struct {
 	kubeClient *kubeclientset.Clientset
 }
 
-func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string) (*ClusterClient, error) {
-	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, crClient, fedNamespace)
+func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
+	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, crClient, fedNamespace, clusterNamespace)
 	if err != nil {
 		return nil, err
 	}

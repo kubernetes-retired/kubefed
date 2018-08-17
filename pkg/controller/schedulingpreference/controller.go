@@ -84,12 +84,12 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
 	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
-	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace)
+	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func StartSchedulingPreferenceController(kind string, schedulerFactory schedulin
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
@@ -122,6 +122,7 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 		kubeClient,
 		crClient,
 		fedNamespace,
+		clusterNamespace,
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, 0, false)
 		},

@@ -56,20 +56,24 @@ type FederatedTypeConfigController struct {
 	// The name of the federation system namespace
 	fedNamespace string
 
+	// The cluster registry namespace
+	clusterNamespace string
+
 	// Map of running sync controllers keyed by qualified target type
 	stopChannels map[string]chan struct{}
 	lock         sync.RWMutex
 }
 
-func ProvideController(arguments args.InjectArgs, fedNamespace string, stopChan <-chan struct{}) (*controller.GenericController, error) {
+func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace string, stopChan <-chan struct{}) (*controller.GenericController, error) {
 	name := "FederatedTypeConfigController"
 	c := &FederatedTypeConfigController{
-		lister:       arguments.ControllerManager.GetInformerProvider(&corev1a1.FederatedTypeConfig{}).(corev1alpha1informer.FederatedTypeConfigInformer).Lister(),
-		client:       arguments.Clientset.CoreV1alpha1(),
-		recorder:     arguments.CreateRecorder(name),
-		config:       arguments.Config,
-		fedNamespace: fedNamespace,
-		stopChannels: make(map[string]chan struct{}),
+		lister:           arguments.ControllerManager.GetInformerProvider(&corev1a1.FederatedTypeConfig{}).(corev1alpha1informer.FederatedTypeConfigInformer).Lister(),
+		client:           arguments.Clientset.CoreV1alpha1(),
+		recorder:         arguments.CreateRecorder(name),
+		config:           arguments.Config,
+		fedNamespace:     fedNamespace,
+		clusterNamespace: clusterNamespace,
+		stopChannels:     make(map[string]chan struct{}),
 	}
 	// Ensure launched controllers are shutdown cleanly
 	go func() {
@@ -154,7 +158,7 @@ func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTy
 	corev1a1.SetFederatedTypeConfigDefaults(tc)
 
 	stopChan := make(chan struct{})
-	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, stopChan, false)
+	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, stopChan, false)
 	if err != nil {
 		close(stopChan)
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)

@@ -54,7 +54,7 @@ type ReplicaScheduler struct {
 	podInformer FederatedInformer
 }
 
-func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
+func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
 	scheduler := &ReplicaScheduler{}
 	scheduler.plugins = make(map[string]*Plugin)
 	scheduler.fedClient = fedClient
@@ -74,6 +74,7 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 			kubeClient,
 			crClient,
 			fedNamespace,
+			clusterNamespace,
 			federationEventHandler,
 			clusterEventHandler,
 			handlers,
@@ -89,6 +90,7 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 		kubeClient,
 		crClient,
 		fedNamespace,
+		clusterNamespace,
 		PodResource,
 		func(pkgruntime.Object) {},
 		handlers,

@@ -119,8 +119,8 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace)
+func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace string) (*FederationSyncController, error) {
+func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace string) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
@@ -236,6 +236,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		kubeClient,
 		crClient,
 		fedNamespace,
+		clusterNamespace,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, s.reviewDelay, false)

@@ -89,7 +89,7 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	tl.Logf("Starting cluster controller")
-	f.ClusterController = NewClusterControllerFixture(config, f.SystemNamespace)
+	f.ClusterController = NewClusterControllerFixture(config, f.SystemNamespace, f.SystemNamespace)
 	tl.Log("Federation started.")
 }
 
@@ -121,7 +121,7 @@ func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 	if f.KubeApi == nil {
 		f.KubeApi = kubeApi
 		f.KubeApi.IsPrimary = true
-		f.ensureNamespaces(tl)
+		f.ensureNamespace(tl)
 		f.installCrds(tl)
 	}
 
@@ -140,7 +140,7 @@ func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) string {
 	// Registry the kube api with the cluster registry
 	crClient := f.NewCrClient(tl, userAgent)
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(util.MulticlusterPublicNamespace).Create(&crv1a1.Cluster{
+	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(f.SystemNamespace).Create(&crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-cluster-",
 		},
@@ -294,18 +294,8 @@ func (f *FederationFixture) installCrds(tl common.TestLogger) {
 	}
 }
 
-func (f *FederationFixture) ensureNamespaces(tl common.TestLogger) {
+func (f *FederationFixture) ensureNamespace(tl common.TestLogger) {
 	client := f.KubeApi.NewClient(tl, "federation-fixture")
-
-	_, err := client.Core().Namespaces().Create(&apiv1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: util.MulticlusterPublicNamespace,
-		},
-	})
-	if err != nil && !errors.IsAlreadyExists(err) {
-		tl.Fatalf("Error creating multicluster public namespace: %v", err)
-	}
-
 	systemNamespace, err := client.Core().Namespaces().Create(&apiv1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: util.DefaultFederationSystemNamespace + "-",

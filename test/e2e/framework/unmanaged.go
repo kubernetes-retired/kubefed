@@ -56,7 +56,7 @@ func SetUpUnmanagedFederation() {
 	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 	Expect(err).NotTo(HaveOccurred())
 
-	clusterControllerFixture = framework.NewClusterControllerFixture(config, TestContext.FederationSystemNamespace)
+	clusterControllerFixture = framework.NewClusterControllerFixture(config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 }
 
 func TearDownUnmanagedFederation() {
@@ -235,7 +235,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 	clusterConfigs := make(map[string]*restclient.Config)
 	for _, cluster := range clusterList.Items {
 		ClusterIsReadyOrFail(fedClient, &cluster)
-		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient, TestContext.FederationSystemNamespace)
+		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = config
@@ -258,14 +258,14 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace)
+		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace)
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
