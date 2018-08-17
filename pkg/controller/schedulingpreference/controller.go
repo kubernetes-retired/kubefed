@@ -84,12 +84,12 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
 	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
-	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace)
+	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func StartSchedulingPreferenceController(kind string, schedulerFactory schedulin
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
@@ -123,6 +123,7 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 		crClient,
 		fedNamespace,
 		clusterNamespace,
+		targetNamespace,
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, 0, false)
 		},
@@ -147,10 +148,10 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return s.scheduler.FedList(metav1.NamespaceAll, options)
+				return s.scheduler.FedList(targetNamespace, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return s.scheduler.FedWatch(metav1.NamespaceAll, options)
+				return s.scheduler.FedWatch(targetNamespace, options)
 			},
 		},
 		s.scheduler.ObjectType(),
