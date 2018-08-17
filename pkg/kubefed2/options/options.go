@@ -29,6 +29,7 @@ type SubcommandOptions struct {
 	ClusterName         string
 	HostClusterContext  string
 	FederationNamespace string
+	ClusterNamespace    string
 	Kubeconfig          string
 	DryRun              bool
 }
@@ -37,6 +38,10 @@ type SubcommandOptions struct {
 func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
+	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
+		"Namespace in the host cluster where the federation system components are installed")
+	flags.StringVar(&o.ClusterNamespace, "cluster-namespace", util.MulticlusterPublicNamespace,
+		"Namespace in the host cluster where clusters are registered")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
@@ -48,12 +53,6 @@ func (o *SubcommandOptions) SetName(args []string) error {
 		return fmt.Errorf("NAME is required")
 	}
 
-	// Hard-code the federation namespace until a canonical way of
-	// configuring federation (e.g. via configmap) exists.  In the
-	// absence of canonical configuration, allowing override of the
-	// system namespace for a kubefed2 command is a likely source of
-	// problems since only the hard-coded namespace is valid.
-	o.FederationNamespace = util.DefaultFederationSystemNamespace
 	o.ClusterName = args[0]
 	return nil
 }
