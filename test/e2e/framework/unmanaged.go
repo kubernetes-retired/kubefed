@@ -195,6 +195,7 @@ func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResour
 		// Check if this cluster is the same name as the host cluster name to
 		// make it the primary cluster.
 		testClusters[clusterName] = common.TestCluster{
+			config,
 			client,
 			(clusterName == hostClusterName),
 		}

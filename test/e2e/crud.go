@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -92,68 +91,76 @@ var _ = Describe("Federated types", func() {
 
 			// TODO(marun) Is there a better way to create crd's from code?
 
-			crdKind := "FedTestCrd"
+			targetCrdKind := "FedTestCrd"
+			targetCrd := newTestCrd(tl, targetCrdKind)
+			targetCrdName := targetCrd.GetName()
 
-			userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(crdKind))
+			userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 
-			kubeConfig := f.KubeConfig()
-			rest.AddUserAgent(kubeConfig, userAgent)
-
-			pool := dynamic.NewDynamicClientPool(kubeConfig)
+			// Create the target crd in all clusters
+			var pools []dynamic.ClientPool
+			var hostPool dynamic.ClientPool
+			var hostCrdClient util.ResourceClient
 			crdApiResource := &metav1.APIResource{
 				Group:      "apiextensions.k8s.io",
 				Version:    "v1beta1",
 				Name:       "customresourcedefinitions",
 				Namespaced: false,
 			}
-			crdClient, err := util.NewResourceClient(pool, crdApiResource)
-
-			// TODO(marun) Need to create the target crd in all member
-			// clusters to support more than a host cluster
-			// federation.
 			testClusters := f.ClusterDynamicClients(crdApiResource, userAgent)
-			if len(testClusters) > 1 {
-				framework.Skipf("Testing of CRD not yet supported for multiple clusters")
-			}
+			for clusterName, cluster := range testClusters {
+				pool := dynamic.NewDynamicClientPool(cluster.Config)
+				crdClient, err := util.NewResourceClient(pool, crdApiResource)
+				if err != nil {
+					tl.Fatalf("Error creating crd resource client for cluster %s: %v", clusterName, err)
+				}
 
-			crd := newTestCrd(tl, crdKind)
-			crd, err = crdClient.Resources("").Create(crd)
-			if err != nil {
-				tl.Fatalf("Error creating crd %s: %v", crdKind, err)
+				pools = append(pools, pool)
+				if cluster.IsPrimary {
+					hostPool = pool
+					hostCrdClient = crdClient
+				}
+
+				_, err = crdClient.Resources("").Create(targetCrd)
+				if err != nil {
+					tl.Fatalf("Error creating crd %s in cluster %s: %v", targetCrdKind, clusterName, err)
+				}
+				// TODO(marun) CRD cleanup needs use AfterEach to maximize
+				// the chances of removal.  The cluster-scoped nature of
+				// CRDs mean cleanup is even more important.
+				defer crdClient.Resources("").Delete(targetCrdName, nil)
 			}
-			// TODO(marun) CRD cleanup needs use AfterEach to maximize
-			// the chances of removal.  The cluster-scoped nature of
-			// CRDs mean cleanup is even more important.
-			defer crdClient.Resources("").Delete(crd.GetName(), nil)
 
 			// Create a template crd
-			templateKind := fmt.Sprintf("Federated%s", crdKind)
+			templateKind := fmt.Sprintf("Federated%s", targetCrdKind)
 			templateCrd := newTestCrd(tl, templateKind)
-			templateCrd, err = crdClient.Resources("").Create(templateCrd)
+			templateCrd, err = hostCrdClient.Resources("").Create(templateCrd)
 			if err != nil {
 				tl.Fatalf("Error creating template crd: %v", err)
 			}
-			defer crdClient.Resources("").Delete(templateCrd.GetName(), nil)
+			defer hostCrdClient.Resources("").Delete(templateCrd.GetName(), nil)
 
 			// Create a placement crd
-			placementKind := fmt.Sprintf("Federated%sPlacement", crdKind)
+			placementKind := fmt.Sprintf("Federated%sPlacement", targetCrdKind)
 			placementCrd := newTestCrd(tl, placementKind)
-			placementCrd, err = crdClient.Resources("").Create(placementCrd)
+			placementCrd, err = hostCrdClient.Resources("").Create(placementCrd)
 			if err != nil {
 				tl.Fatalf("Error creating placement crd: %v", err)
 			}
-			defer crdClient.Resources("").Delete(placementCrd.GetName(), nil)
+			defer hostCrdClient.Resources("").Delete(placementCrd.GetName(), nil)
 
 			// Create a type config for these types
 			version := "v1alpha1"
+			fedNamespace := f.FederationSystemNamespace()
 			typeConfig := &fedv1a1.FederatedTypeConfig{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: crd.GetName(),
+					Name:      targetCrdName,
+					Namespace: fedNamespace,
 				},
 				Spec: fedv1a1.FederatedTypeConfigSpec{
 					Target: fedv1a1.APIResource{
 						Version: version,
-						Kind:    crdKind,
+						Kind:    targetCrdKind,
 					},
 					Namespaced:         true,
 					ComparisonField:    apicommon.ResourceVersionField,
@@ -173,20 +180,22 @@ var _ = Describe("Federated types", func() {
 			fedv1a1.SetFederatedTypeConfigDefaults(typeConfig)
 
 			// Wait for the CRDs to become available in the API
-			waitForCrd(pool, tl, typeConfig.GetTarget())
-			waitForCrd(pool, tl, typeConfig.GetTemplate())
-			waitForCrd(pool, tl, typeConfig.GetPlacement())
+			for _, pool := range pools {
+				waitForCrd(pool, tl, typeConfig.GetTarget())
+			}
+			waitForCrd(hostPool, tl, typeConfig.GetTemplate())
+			waitForCrd(hostPool, tl, typeConfig.GetPlacement())
 
 			// If not using in-memory controllers, create the type
 			// config in the api to ensure a propagation controller
 			// will be started for the crd.
 			if !framework.TestContext.InMemoryControllers {
 				fedClient := f.FedClient(userAgent)
-				_, err := fedClient.CoreV1alpha1().FederatedTypeConfigs().Create(typeConfig)
+				_, err := fedClient.CoreV1alpha1().FederatedTypeConfigs(fedNamespace).Create(typeConfig)
 				if err != nil {
-					tl.Fatalf("Error creating FederatedTypeConfig %q: %v", crd.GetName(), err)
+					tl.Fatalf("Error creating FederatedTypeConfig for type %q: %v", targetCrdName, err)
 				}
-				defer fedClient.CoreV1alpha1().FederatedTypeConfigs().Delete(typeConfig.Name, nil)
+				defer fedClient.CoreV1alpha1().FederatedTypeConfigs(fedNamespace).Delete(typeConfig.Name, nil)
 				// TODO(marun) Wait until the controller has started
 			}
 
