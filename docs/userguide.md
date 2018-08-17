@@ -166,7 +166,7 @@ supported types, run the following command:
 
 ```bash
 for f in ./config/federatedtypes/*.yaml; do
-    kubectl apply -f "${f}"
+    kubectl -n federation-system apply -f "${f}"
 done
 ```
 
