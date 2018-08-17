@@ -41,32 +41,33 @@ type FederatedNamespacePlacementInformer interface {
 type federatedNamespacePlacementInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewFederatedNamespacePlacementInformer constructs a new informer for FederatedNamespacePlacement type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFederatedNamespacePlacementInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredFederatedNamespacePlacementInformer(client, resyncPeriod, indexers, nil)
+func NewFederatedNamespacePlacementInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredFederatedNamespacePlacementInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredFederatedNamespacePlacementInformer constructs a new informer for FederatedNamespacePlacement type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredFederatedNamespacePlacementInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredFederatedNamespacePlacementInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CoreV1alpha1().FederatedNamespacePlacements().List(options)
+				return client.CoreV1alpha1().FederatedNamespacePlacements(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CoreV1alpha1().FederatedNamespacePlacements().Watch(options)
+				return client.CoreV1alpha1().FederatedNamespacePlacements(namespace).Watch(options)
 			},
 		},
 		&core_v1alpha1.FederatedNamespacePlacement{},
@@ -76,7 +77,7 @@ func NewFilteredFederatedNamespacePlacementInformer(client versioned.Interface, 
 }
 
 func (f *federatedNamespacePlacementInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredFederatedNamespacePlacementInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredFederatedNamespacePlacementInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *federatedNamespacePlacementInformer) Informer() cache.SharedIndexInformer {

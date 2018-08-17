@@ -928,7 +928,7 @@ var (
 				Kind:   "FederatedNamespacePlacement",
 				Plural: "federatednamespaceplacements",
 			},
-			Scope: "Cluster",
+			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
 					Type: "object",

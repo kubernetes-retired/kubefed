@@ -30,7 +30,7 @@ import (
 // FederatedNamespacePlacementsGetter has a method to return a FederatedNamespacePlacementInterface.
 // A group's client should implement this interface.
 type FederatedNamespacePlacementsGetter interface {
-	FederatedNamespacePlacements() FederatedNamespacePlacementInterface
+	FederatedNamespacePlacements(namespace string) FederatedNamespacePlacementInterface
 }
 
 // FederatedNamespacePlacementInterface has methods to work with FederatedNamespacePlacement resources.
@@ -50,12 +50,14 @@ type FederatedNamespacePlacementInterface interface {
 // federatedNamespacePlacements implements FederatedNamespacePlacementInterface
 type federatedNamespacePlacements struct {
 	client rest.Interface
+	ns     string
 }
 
 // newFederatedNamespacePlacements returns a FederatedNamespacePlacements
-func newFederatedNamespacePlacements(c *CoreV1alpha1Client) *federatedNamespacePlacements {
+func newFederatedNamespacePlacements(c *CoreV1alpha1Client, namespace string) *federatedNamespacePlacements {
 	return &federatedNamespacePlacements{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -63,6 +65,7 @@ func newFederatedNamespacePlacements(c *CoreV1alpha1Client) *federatedNamespaceP
 func (c *federatedNamespacePlacements) Get(name string, options v1.GetOptions) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	result = &v1alpha1.FederatedNamespacePlacement{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -75,6 +78,7 @@ func (c *federatedNamespacePlacements) Get(name string, options v1.GetOptions) (
 func (c *federatedNamespacePlacements) List(opts v1.ListOptions) (result *v1alpha1.FederatedNamespacePlacementList, err error) {
 	result = &v1alpha1.FederatedNamespacePlacementList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -86,6 +90,7 @@ func (c *federatedNamespacePlacements) List(opts v1.ListOptions) (result *v1alph
 func (c *federatedNamespacePlacements) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -95,6 +100,7 @@ func (c *federatedNamespacePlacements) Watch(opts v1.ListOptions) (watch.Interfa
 func (c *federatedNamespacePlacements) Create(federatedNamespacePlacement *v1alpha1.FederatedNamespacePlacement) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	result = &v1alpha1.FederatedNamespacePlacement{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		Body(federatedNamespacePlacement).
 		Do().
@@ -106,6 +112,7 @@ func (c *federatedNamespacePlacements) Create(federatedNamespacePlacement *v1alp
 func (c *federatedNamespacePlacements) Update(federatedNamespacePlacement *v1alpha1.FederatedNamespacePlacement) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	result = &v1alpha1.FederatedNamespacePlacement{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		Name(federatedNamespacePlacement.Name).
 		Body(federatedNamespacePlacement).
@@ -120,6 +127,7 @@ func (c *federatedNamespacePlacements) Update(federatedNamespacePlacement *v1alp
 func (c *federatedNamespacePlacements) UpdateStatus(federatedNamespacePlacement *v1alpha1.FederatedNamespacePlacement) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	result = &v1alpha1.FederatedNamespacePlacement{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		Name(federatedNamespacePlacement.Name).
 		SubResource("status").
@@ -132,6 +140,7 @@ func (c *federatedNamespacePlacements) UpdateStatus(federatedNamespacePlacement 
 // Delete takes name of the federatedNamespacePlacement and deletes it. Returns an error if one occurs.
 func (c *federatedNamespacePlacements) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		Name(name).
 		Body(options).
@@ -142,6 +151,7 @@ func (c *federatedNamespacePlacements) Delete(name string, options *v1.DeleteOpt
 // DeleteCollection deletes a collection of objects.
 func (c *federatedNamespacePlacements) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -153,6 +163,7 @@ func (c *federatedNamespacePlacements) DeleteCollection(options *v1.DeleteOption
 func (c *federatedNamespacePlacements) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	result = &v1alpha1.FederatedNamespacePlacement{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("federatednamespaceplacements").
 		SubResource(subresources...).
 		Name(name).

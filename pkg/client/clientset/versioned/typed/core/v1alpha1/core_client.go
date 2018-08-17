@@ -105,8 +105,8 @@ func (c *CoreV1alpha1Client) FederatedJobPlacements(namespace string) FederatedJ
 	return newFederatedJobPlacements(c, namespace)
 }
 
-func (c *CoreV1alpha1Client) FederatedNamespacePlacements() FederatedNamespacePlacementInterface {
-	return newFederatedNamespacePlacements(c)
+func (c *CoreV1alpha1Client) FederatedNamespacePlacements(namespace string) FederatedNamespacePlacementInterface {
+	return newFederatedNamespacePlacements(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) FederatedReplicaSets(namespace string) FederatedReplicaSetInterface {

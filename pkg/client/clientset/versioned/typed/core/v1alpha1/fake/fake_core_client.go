@@ -76,8 +76,8 @@ func (c *FakeCoreV1alpha1) FederatedJobPlacements(namespace string) v1alpha1.Fed
 	return &FakeFederatedJobPlacements{c, namespace}
 }
 
-func (c *FakeCoreV1alpha1) FederatedNamespacePlacements() v1alpha1.FederatedNamespacePlacementInterface {
-	return &FakeFederatedNamespacePlacements{c}
+func (c *FakeCoreV1alpha1) FederatedNamespacePlacements(namespace string) v1alpha1.FederatedNamespacePlacementInterface {
+	return &FakeFederatedNamespacePlacements{c, namespace}
 }
 
 func (c *FakeCoreV1alpha1) FederatedReplicaSets(namespace string) v1alpha1.FederatedReplicaSetInterface {

@@ -145,7 +145,7 @@ func (v *version) FederatedJobPlacements() FederatedJobPlacementInformer {
 
 // FederatedNamespacePlacements returns a FederatedNamespacePlacementInformer.
 func (v *version) FederatedNamespacePlacements() FederatedNamespacePlacementInformer {
-	return &federatedNamespacePlacementInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &federatedNamespacePlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedReplicaSets returns a FederatedReplicaSetInformer.
