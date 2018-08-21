@@ -24,6 +24,7 @@ import (
 
 	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	"testing"
 )
 
 // EDIT THIS FILE!
@@ -81,3 +82,100 @@ var _ = Describe("FederatedTypeConfig", func() {
 		})
 	})
 })
+
+func TestPluralName(t *testing.T) {
+	var tests = []struct {
+		name   string
+		plural string
+		expect bool
+	}{
+		{
+			name:   "ingress",
+			plural: "ingresses",
+			expect: true,
+		},
+		{
+			name:   "ingress",
+			plural: "ingresss",
+			expect: false,
+		},
+		{
+			name:   "match",
+			plural: "matches",
+			expect: true,
+		},
+		{
+			name:   "match",
+			plural: "matchs",
+			expect: false,
+		},
+		{
+			name:   "mesh",
+			plural: "meshes",
+			expect: true,
+		},
+		{
+			name:   "mesh",
+			plural: "meshs",
+			expect: false,
+		},
+		{
+			name:   "box",
+			plural: "boxes",
+			expect: true,
+		},
+		{
+			name:   "box",
+			plural: "boxs",
+			expect: false,
+		},
+		{
+			name:   "match",
+			plural: "matches",
+			expect: true,
+		},
+		{
+			name:   "match",
+			plural: "matchs",
+			expect: false,
+		},
+		{
+			name:   "go",
+			plural: "goes",
+			expect: true,
+		},
+		{
+			name:   "go",
+			plural: "gos",
+			expect: false,
+		},
+		{
+			name:   "waltz",
+			plural: "waltzes",
+			expect: true,
+		},
+		{
+			name:   "waltz",
+			plural: "waltzs",
+			expect: false,
+		},
+	}
+
+	for _, rt := range tests {
+		actual := PluralName(rt.name)
+		if rt.expect && actual != rt.plural {
+			t.Errorf(
+				"failed pluralizing:\n\texpected: %v\n\t  actual: %v",
+				rt.name,
+				actual,
+			)
+		}
+		if !rt.expect && actual == rt.plural {
+			t.Errorf(
+				"pluralizing should have failed:\n\texpected: %v\n\t  actual: %v",
+				rt.name,
+				actual,
+			)
+		}
+	}
+}
