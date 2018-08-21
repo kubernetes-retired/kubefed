@@ -98,12 +98,12 @@ func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 		group := nameParts[1]
 		setStringDefault(&obj.Spec.Target.Group, group)
 	}
-	setStringDefault(&obj.Spec.Template.PluralName, pluralName(obj.Spec.Template.Kind))
-	setStringDefault(&obj.Spec.Placement.PluralName, pluralName(obj.Spec.Placement.Kind))
+	setStringDefault(&obj.Spec.Template.PluralName, PluralName(obj.Spec.Template.Kind))
+	setStringDefault(&obj.Spec.Placement.PluralName, PluralName(obj.Spec.Placement.Kind))
 	setStringDefault(&obj.Spec.Placement.Group, obj.Spec.Template.Group)
 	setStringDefault(&obj.Spec.Placement.Version, obj.Spec.Template.Version)
 	if obj.Spec.Override != nil {
-		setStringDefault(&obj.Spec.Override.PluralName, pluralName(obj.Spec.Override.Kind))
+		setStringDefault(&obj.Spec.Override.PluralName, PluralName(obj.Spec.Override.Kind))
 		setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
 		setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
 	}
@@ -118,11 +118,13 @@ func setStringDefault(value *string, defaultValue string) {
 	*value = defaultValue
 }
 
-// PluralNameForKind naively computes the plural name from the kind by
-// lowercasing and suffixing with 's'.
-func pluralName(kind string) string {
+// PluralName computes the plural name from the kind by
+// lowercasing and suffixing with 's' or `es`.
+func PluralName(kind string) string {
 	lowerKind := strings.ToLower(kind)
-	if strings.HasSuffix(lowerKind, "s") {
+	if strings.HasSuffix(lowerKind, "s") || strings.HasSuffix(lowerKind, "x") ||
+		strings.HasSuffix(lowerKind, "ch") || strings.HasSuffix(lowerKind, "sh") ||
+		strings.HasSuffix(lowerKind, "z") || strings.HasSuffix(lowerKind, "o") {
 		return fmt.Sprintf("%ses", lowerKind)
 	}
 	return fmt.Sprintf("%ss", lowerKind)
