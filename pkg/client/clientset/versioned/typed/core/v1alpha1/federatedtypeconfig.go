@@ -30,7 +30,7 @@ import (
 // FederatedTypeConfigsGetter has a method to return a FederatedTypeConfigInterface.
 // A group's client should implement this interface.
 type FederatedTypeConfigsGetter interface {
-	FederatedTypeConfigs() FederatedTypeConfigInterface
+	FederatedTypeConfigs(namespace string) FederatedTypeConfigInterface
 }
 
 // FederatedTypeConfigInterface has methods to work with FederatedTypeConfig resources.
@@ -50,12 +50,14 @@ type FederatedTypeConfigInterface interface {
 // federatedTypeConfigs implements FederatedTypeConfigInterface
 type federatedTypeConfigs struct {
 	client rest.Interface
+	ns     string
 }
 
 // newFederatedTypeConfigs returns a FederatedTypeConfigs
-func newFederatedTypeConfigs(c *CoreV1alpha1Client) *federatedTypeConfigs {
+func newFederatedTypeConfigs(c *CoreV1alpha1Client, namespace string) *federatedTypeConfigs {
 	return &federatedTypeConfigs{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -63,6 +65,7 @@ func newFederatedTypeConfigs(c *CoreV1alpha1Client) *federatedTypeConfigs {
 func (c *federatedTypeConfigs) Get(name string, options v1.GetOptions) (result *v1alpha1.FederatedTypeConfig, err error) {
 	result = &v1alpha1.FederatedTypeConfig{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -75,6 +78,7 @@ func (c *federatedTypeConfigs) Get(name string, options v1.GetOptions) (result *
 func (c *federatedTypeConfigs) List(opts v1.ListOptions) (result *v1alpha1.FederatedTypeConfigList, err error) {
 	result = &v1alpha1.FederatedTypeConfigList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -86,6 +90,7 @@ func (c *federatedTypeConfigs) List(opts v1.ListOptions) (result *v1alpha1.Feder
 func (c *federatedTypeConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -95,6 +100,7 @@ func (c *federatedTypeConfigs) Watch(opts v1.ListOptions) (watch.Interface, erro
 func (c *federatedTypeConfigs) Create(federatedTypeConfig *v1alpha1.FederatedTypeConfig) (result *v1alpha1.FederatedTypeConfig, err error) {
 	result = &v1alpha1.FederatedTypeConfig{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		Body(federatedTypeConfig).
 		Do().
@@ -106,6 +112,7 @@ func (c *federatedTypeConfigs) Create(federatedTypeConfig *v1alpha1.FederatedTyp
 func (c *federatedTypeConfigs) Update(federatedTypeConfig *v1alpha1.FederatedTypeConfig) (result *v1alpha1.FederatedTypeConfig, err error) {
 	result = &v1alpha1.FederatedTypeConfig{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		Name(federatedTypeConfig.Name).
 		Body(federatedTypeConfig).
@@ -120,6 +127,7 @@ func (c *federatedTypeConfigs) Update(federatedTypeConfig *v1alpha1.FederatedTyp
 func (c *federatedTypeConfigs) UpdateStatus(federatedTypeConfig *v1alpha1.FederatedTypeConfig) (result *v1alpha1.FederatedTypeConfig, err error) {
 	result = &v1alpha1.FederatedTypeConfig{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		Name(federatedTypeConfig.Name).
 		SubResource("status").
@@ -132,6 +140,7 @@ func (c *federatedTypeConfigs) UpdateStatus(federatedTypeConfig *v1alpha1.Federa
 // Delete takes name of the federatedTypeConfig and deletes it. Returns an error if one occurs.
 func (c *federatedTypeConfigs) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		Name(name).
 		Body(options).
@@ -142,6 +151,7 @@ func (c *federatedTypeConfigs) Delete(name string, options *v1.DeleteOptions) er
 // DeleteCollection deletes a collection of objects.
 func (c *federatedTypeConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -153,6 +163,7 @@ func (c *federatedTypeConfigs) DeleteCollection(options *v1.DeleteOptions, listO
 func (c *federatedTypeConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FederatedTypeConfig, err error) {
 	result = &v1alpha1.FederatedTypeConfig{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("federatedtypeconfigs").
 		SubResource(subresources...).
 		Name(name).

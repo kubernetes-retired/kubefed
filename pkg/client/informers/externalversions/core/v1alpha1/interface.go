@@ -190,7 +190,7 @@ func (v *version) FederatedServicePlacements() FederatedServicePlacementInformer
 
 // FederatedTypeConfigs returns a FederatedTypeConfigInformer.
 func (v *version) FederatedTypeConfigs() FederatedTypeConfigInformer {
-	return &federatedTypeConfigInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &federatedTypeConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // PropagatedVersions returns a PropagatedVersionInformer.

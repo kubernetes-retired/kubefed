@@ -141,8 +141,8 @@ func (c *CoreV1alpha1Client) FederatedServicePlacements(namespace string) Federa
 	return newFederatedServicePlacements(c, namespace)
 }
 
-func (c *CoreV1alpha1Client) FederatedTypeConfigs() FederatedTypeConfigInterface {
-	return newFederatedTypeConfigs(c)
+func (c *CoreV1alpha1Client) FederatedTypeConfigs(namespace string) FederatedTypeConfigInterface {
+	return newFederatedTypeConfigs(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) PropagatedVersions(namespace string) PropagatedVersionInterface {

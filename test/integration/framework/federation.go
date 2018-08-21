@@ -242,6 +242,7 @@ func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResou
 			tl.Fatalf("Error creating a resource client in cluster %q for kind %q: %v", name, apiResource.Kind, err)
 		}
 		clientMap[name] = common.TestCluster{
+			config,
 			client,
 			cluster.IsPrimary,
 		}

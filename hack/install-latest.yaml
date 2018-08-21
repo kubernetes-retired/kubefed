@@ -854,7 +854,7 @@ spec:
   names:
     kind: FederatedTypeConfig
     plural: federatedtypeconfigs
-  scope: Cluster
+  scope: Namespaced
   validation:
     openAPIV3Schema:
       properties:

@@ -25,6 +25,7 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder/pkg/controller/types"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
@@ -87,7 +88,12 @@ func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace
 		InformerRegistry: arguments.ControllerManager,
 	}
 
-	if err := gc.Watch(&corev1a1.FederatedTypeConfig{}); err != nil {
+	// Watch only the federation namespace.
+	//
+	// TODO(marun) Avoid requiring cluster read permission on
+	// FederatedTypeConfig by using a namespace-scoped informer
+	// instead of the manager-supplied SharedInformer.
+	if err := gc.Watch(&corev1a1.FederatedTypeConfig{}, &NamespacePredicate{fedNamespace}); err != nil {
 		return gc, err
 	}
 	return gc, nil
@@ -96,7 +102,7 @@ func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace
 func (c *FederatedTypeConfigController) Reconcile(k types.ReconcileKey) error {
 	log.Printf("Running reconcile FederatedTypeConfig for %s\n", k.Name)
 
-	typeConfig, err := c.lister.Get(k.Name)
+	typeConfig, err := c.lister.FederatedTypeConfigs(k.Namespace).Get(k.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("federatedtypeconfig '%s' in work queue no longer exists", k))
@@ -189,7 +195,7 @@ func (c *FederatedTypeConfigController) ensureFinalizer(tc *corev1a1.FederatedTy
 	}
 	finalizers.Insert(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	_, err = c.client.FederatedTypeConfigs().Update(tc)
+	_, err = c.client.FederatedTypeConfigs(tc.Namespace).Update(tc)
 	return err
 }
 
@@ -204,6 +210,32 @@ func (c *FederatedTypeConfigController) removeFinalizer(tc *corev1a1.FederatedTy
 	}
 	finalizers.Delete(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	_, err = c.client.FederatedTypeConfigs().Update(tc)
+	_, err = c.client.FederatedTypeConfigs(tc.Namespace).Update(tc)
 	return err
+}
+
+// Predicate to restrict event handling to a single namespace.
+type NamespacePredicate struct {
+	namespace string
+}
+
+func (np *NamespacePredicate) HandleUpdate(old, new interface{}) bool {
+	return np.objInNamespace(old)
+}
+
+func (np *NamespacePredicate) HandleDelete(obj interface{}) bool {
+	return np.objInNamespace(obj)
+}
+
+func (np *NamespacePredicate) HandleCreate(obj interface{}) bool {
+	return np.objInNamespace(obj)
+}
+
+func (np *NamespacePredicate) objInNamespace(obj interface{}) bool {
+	metaObj, ok := obj.(metav1.Object)
+	if !ok {
+		log.Printf("Cannot handle %T because obj is not an Object: %v\n", obj, obj)
+		return false
+	}
+	return metaObj.GetNamespace() == np.namespace
 }

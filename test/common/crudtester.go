@@ -57,6 +57,7 @@ type FederatedTypeCrudTester struct {
 }
 
 type TestCluster struct {
+	Config    *rest.Config
 	Client    util.ResourceClient
 	IsPrimary bool
 }

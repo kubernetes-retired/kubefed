@@ -51,7 +51,7 @@ var _ = Describe("FederatedTypeConfig", func() {
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.CoreV1alpha1().FederatedTypeConfigs()
+				client = cs.CoreV1alpha1().FederatedTypeConfigs("foo")
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)
