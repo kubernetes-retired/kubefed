@@ -25,11 +25,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	dnsv1a1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -46,11 +46,19 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 	var fedClient fedclientset.Interface
 	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
-	var objectGetter func(namespace, name string) (pkgruntime.Object, error)
+	var namespace string
+	var dnsClient dnsv1a1client.MultiClusterServiceDNSRecordInterface
+
+	objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
+		dnsClient := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace)
+		return dnsClient.Get(name, metav1.GetOptions{})
+	}
 
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
-		// TODO(marun) How to discover the namespace in an unmanaged scenario?
+		namespace = f.TestNamespaceName()
+		dnsClient = fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace)
+
 		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters(f.FederationSystemNamespace()).List(metav1.ListOptions{})
 		framework.ExpectNoError(err, "Error listing federated clusters")
 		clusterRegionZones = make(map[string]fedv1a1.FederatedClusterStatus)
@@ -60,23 +68,17 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 				Zone:   cluster.Status.Zone,
 			}
 		}
-		f.SetUpServiceDNSControllerFixture()
-
-		objectGetter = func(namespace, name string) (pkgruntime.Object, error) {
-			return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Get(name, metav1.GetOptions{})
-		}
+		f.SetUpDNSControllerFixture()
 	})
 
 	It("ServiceDNS object status should be updated correctly when there are no service and/or endpoint in member clusters", func() {
-		namespace := f.TestNamespaceName()
-
 		By("Creating the ServiceDNS object")
 		serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
-		serviceDNS, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNSObj)
+		serviceDNS, err := dnsClient.Create(serviceDNSObj)
 		framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object: %v", serviceDNS)
 
 		serviceDNSStatus := dnsv1a1.MultiClusterServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
-		for clusterName := range f.ClusterKubeClients(userAgent) {
+		for _, clusterName := range f.ClusterNames(userAgent) {
 			serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
 				Cluster: clusterName,
 				Region:  clusterRegionZones[clusterName].Region,
@@ -89,7 +91,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 		serviceDNS.Status = serviceDNSStatus
 		By("Waiting for the ServiceDNS object to have correct status")
-		common.WaitForObject(tl, namespace, serviceDNS.Name, objectGetter, serviceDNS, framework.PollInterval, wait.ForeverTestTimeout)
+		common.WaitForObject(tl, namespace, serviceDNS.Name, objectGetter, serviceDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 	})
 
 	Context("When ServiceDNS object is created", func() {
@@ -102,14 +104,12 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 		dnsZone := "dzone.io"
 
 		It("DNSEndpoint object should be created with correct status when ServiceDNS object is created", func() {
-			namespace := f.TestNamespaceName()
-
 			By("Creating the ServiceDNS object")
 			serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
 			serviceDNSObj.Spec.FederationName = federation
 			serviceDNSObj.Spec.DNSSuffix = dnsZone
 			serviceDNSObj.Spec.RecordTTL = RecordTTL
-			serviceDNS, err := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNSObj)
+			serviceDNS, err := dnsClient.Create(serviceDNSObj)
 			framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object %v", serviceDNS)
 			name := serviceDNS.Name
 
@@ -121,7 +121,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 			serviceDNS.Status = *serviceDNSStatus
 
 			By("Waiting for the ServiceDNS object to have correct status")
-			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNS, framework.PollInterval, wait.ForeverTestTimeout)
+			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 			By("Waiting for the DNSEndpoint object to be created")
 			objectGetter = func(namespace, name string) (pkgruntime.Object, error) {
@@ -157,7 +157,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 				},
 			}
 
-			common.WaitForObject(tl, namespace, name, objectGetter, desiredDNSEndpoint, framework.PollInterval, wait.ForeverTestTimeout)
+			common.WaitForObject(tl, namespace, name, objectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 		})
 	})
 })

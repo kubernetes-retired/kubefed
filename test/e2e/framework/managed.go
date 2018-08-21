@@ -128,8 +128,12 @@ func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interfac
 	f.fixtures = append(f.fixtures, fixture)
 }
 
-func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
+func (f *ManagedFramework) SetUpDNSControllerFixture() {
 	config := fedFixture.KubeApi.NewConfig(f.logger)
+
 	fixture := framework.NewServiceDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
+	f.fixtures = append(f.fixtures, fixture)
+
+	fixture = framework.NewIngressDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
 	f.fixtures = append(f.fixtures, fixture)
 }

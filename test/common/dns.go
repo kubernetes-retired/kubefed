@@ -21,6 +21,7 @@ import (
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
+	extv1b1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +33,15 @@ import (
 
 func NewServiceDNSObject(baseName, namespace string) *dnsv1a1.MultiClusterServiceDNSRecord {
 	return &dnsv1a1.MultiClusterServiceDNSRecord{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: baseName,
+			Namespace:    namespace,
+		},
+	}
+}
+
+func NewIngressDNSObject(baseName, namespace string) *dnsv1a1.MultiClusterIngressDNSRecord {
+	return &dnsv1a1.MultiClusterIngressDNSRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: baseName,
 			Namespace:    namespace,
@@ -65,6 +75,20 @@ func NewEndpointObject(name, namespace string) *apiv1.Endpoints {
 			Addresses: []apiv1.EndpointAddress{{IP: "1.2.3.4"}},
 			Ports:     []apiv1.EndpointPort{{Port: 80}},
 		}},
+	}
+}
+
+func NewIngressObject(name, namespace string) *extv1b1.Ingress {
+	return &extv1b1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: extv1b1.IngressSpec{
+			Rules: []extv1b1.IngressRule{{
+				Host: "foo.bar.test",
+			}},
+		},
 	}
 }
 

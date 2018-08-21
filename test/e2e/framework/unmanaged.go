@@ -276,9 +276,12 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	}
 }
 
-func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
+func (f *UnmanagedFramework) SetUpDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
 		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
+		f.fixtures = append(f.fixtures, fixture)
+
+		fixture = framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
