@@ -21,7 +21,6 @@ import (
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	controllerutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 	"github.com/spf13/cobra"
@@ -132,7 +131,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	err = UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace,
+	err = UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
 		j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.DryRun)
 	if err != nil {
 		return err
@@ -143,7 +142,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 // UnjoinCluster performs all the necessary steps to unjoin a cluster from the
 // federation provided the required set of parameters are passed in.
-func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, hostClusterContext,
+func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace, hostClusterContext,
 	unjoiningClusterContext, unjoiningClusterName string, removeFromRegistry, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
@@ -171,7 +170,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 	}
 
 	if removeFromRegistry {
-		err = removeFromClusterRegistry(hostConfig, clusterConfig.Host, unjoiningClusterName, dryRun)
+		err = removeFromClusterRegistry(hostConfig, clusterNamespace, clusterConfig.Host, unjoiningClusterName, dryRun)
 		if err != nil {
 			return err
 		}
@@ -241,7 +240,7 @@ func performPreflightChecksForUnjoin(clusterClientset client.Interface, name, ho
 
 // removeFromClusterRegistry handles removing the cluster from the cluster registry and
 // reports progress.
-func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterName string,
+func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, unjoiningClusterName string,
 	dryRun bool) error {
 
 	// Get the cluster registry clientset using the host cluster config.
@@ -253,7 +252,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 
 	glog.V(2).Infof("Removing cluster: %s from the cluster registry.", unjoiningClusterName)
 
-	err = unregisterCluster(crClientset, host, unjoiningClusterName, dryRun)
+	err = unregisterCluster(crClientset, clusterNamespace, host, unjoiningClusterName, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not remove cluster from the cluster registry: %v", err)
 		return err
@@ -264,13 +263,13 @@ func removeFromClusterRegistry(hostConfig *rest.Config, host, unjoiningClusterNa
 }
 
 // unregisterCluster removes a cluster from the cluster registry.
-func unregisterCluster(crClientset *crclient.Clientset, host, unjoiningClusterName string,
+func unregisterCluster(crClientset *crclient.Clientset, clusterNamespace, host, unjoiningClusterName string,
 	dryRun bool) error {
 	if dryRun {
 		return nil
 	}
 
-	err := crClientset.ClusterregistryV1alpha1().Clusters(controllerutil.MulticlusterPublicNamespace).Delete(unjoiningClusterName,
+	err := crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Delete(unjoiningClusterName,
 		&metav1.DeleteOptions{})
 	if err != nil {
 		return err
