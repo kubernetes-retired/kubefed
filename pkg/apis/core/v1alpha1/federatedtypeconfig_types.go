@@ -151,7 +151,17 @@ func (f *FederatedTypeConfig) GetTemplate() metav1.APIResource {
 }
 
 func (f *FederatedTypeConfig) GetPlacement() metav1.APIResource {
-	return apiResourceToMeta(f.Spec.Placement, f.Spec.Namespaced)
+	// Special-case namespace placement scope since it will hopefully
+	// be the only instance of the scope of a federation primitive
+	// differing from the scope of its target.
+	namespaced := f.Spec.Namespaced
+	if f.Name == "namespaces" {
+		// Namespace placement is namespaced to allow the control
+		// plane to run with only namespace-scoped permissions.
+		namespaced = true
+	}
+
+	return apiResourceToMeta(f.Spec.Placement, namespaced)
 }
 
 func (f *FederatedTypeConfig) GetOverride() *metav1.APIResource {

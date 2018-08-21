@@ -31,6 +31,7 @@ import (
 // FakeFederatedNamespacePlacements implements FederatedNamespacePlacementInterface
 type FakeFederatedNamespacePlacements struct {
 	Fake *FakeCoreV1alpha1
+	ns   string
 }
 
 var federatednamespaceplacementsResource = schema.GroupVersionResource{Group: "core.federation.k8s.io", Version: "v1alpha1", Resource: "federatednamespaceplacements"}
@@ -40,7 +41,8 @@ var federatednamespaceplacementsKind = schema.GroupVersionKind{Group: "core.fede
 // Get takes name of the federatedNamespacePlacement, and returns the corresponding federatedNamespacePlacement object, and an error if there is any.
 func (c *FakeFederatedNamespacePlacements) Get(name string, options v1.GetOptions) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(federatednamespaceplacementsResource, name), &v1alpha1.FederatedNamespacePlacement{})
+		Invokes(testing.NewGetAction(federatednamespaceplacementsResource, c.ns, name), &v1alpha1.FederatedNamespacePlacement{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -50,7 +52,8 @@ func (c *FakeFederatedNamespacePlacements) Get(name string, options v1.GetOption
 // List takes label and field selectors, and returns the list of FederatedNamespacePlacements that match those selectors.
 func (c *FakeFederatedNamespacePlacements) List(opts v1.ListOptions) (result *v1alpha1.FederatedNamespacePlacementList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(federatednamespaceplacementsResource, federatednamespaceplacementsKind, opts), &v1alpha1.FederatedNamespacePlacementList{})
+		Invokes(testing.NewListAction(federatednamespaceplacementsResource, federatednamespaceplacementsKind, c.ns, opts), &v1alpha1.FederatedNamespacePlacementList{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -71,13 +74,15 @@ func (c *FakeFederatedNamespacePlacements) List(opts v1.ListOptions) (result *v1
 // Watch returns a watch.Interface that watches the requested federatedNamespacePlacements.
 func (c *FakeFederatedNamespacePlacements) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(federatednamespaceplacementsResource, opts))
+		InvokesWatch(testing.NewWatchAction(federatednamespaceplacementsResource, c.ns, opts))
+
 }
 
 // Create takes the representation of a federatedNamespacePlacement and creates it.  Returns the server's representation of the federatedNamespacePlacement, and an error, if there is any.
 func (c *FakeFederatedNamespacePlacements) Create(federatedNamespacePlacement *v1alpha1.FederatedNamespacePlacement) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(federatednamespaceplacementsResource, federatedNamespacePlacement), &v1alpha1.FederatedNamespacePlacement{})
+		Invokes(testing.NewCreateAction(federatednamespaceplacementsResource, c.ns, federatedNamespacePlacement), &v1alpha1.FederatedNamespacePlacement{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -87,7 +92,8 @@ func (c *FakeFederatedNamespacePlacements) Create(federatedNamespacePlacement *v
 // Update takes the representation of a federatedNamespacePlacement and updates it. Returns the server's representation of the federatedNamespacePlacement, and an error, if there is any.
 func (c *FakeFederatedNamespacePlacements) Update(federatedNamespacePlacement *v1alpha1.FederatedNamespacePlacement) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(federatednamespaceplacementsResource, federatedNamespacePlacement), &v1alpha1.FederatedNamespacePlacement{})
+		Invokes(testing.NewUpdateAction(federatednamespaceplacementsResource, c.ns, federatedNamespacePlacement), &v1alpha1.FederatedNamespacePlacement{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -98,7 +104,8 @@ func (c *FakeFederatedNamespacePlacements) Update(federatedNamespacePlacement *v
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeFederatedNamespacePlacements) UpdateStatus(federatedNamespacePlacement *v1alpha1.FederatedNamespacePlacement) (*v1alpha1.FederatedNamespacePlacement, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(federatednamespaceplacementsResource, "status", federatedNamespacePlacement), &v1alpha1.FederatedNamespacePlacement{})
+		Invokes(testing.NewUpdateSubresourceAction(federatednamespaceplacementsResource, "status", c.ns, federatedNamespacePlacement), &v1alpha1.FederatedNamespacePlacement{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -108,13 +115,14 @@ func (c *FakeFederatedNamespacePlacements) UpdateStatus(federatedNamespacePlacem
 // Delete takes name of the federatedNamespacePlacement and deletes it. Returns an error if one occurs.
 func (c *FakeFederatedNamespacePlacements) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(federatednamespaceplacementsResource, name), &v1alpha1.FederatedNamespacePlacement{})
+		Invokes(testing.NewDeleteAction(federatednamespaceplacementsResource, c.ns, name), &v1alpha1.FederatedNamespacePlacement{})
+
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeFederatedNamespacePlacements) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(federatednamespaceplacementsResource, listOptions)
+	action := testing.NewDeleteCollectionAction(federatednamespaceplacementsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.FederatedNamespacePlacementList{})
 	return err
@@ -123,7 +131,8 @@ func (c *FakeFederatedNamespacePlacements) DeleteCollection(options *v1.DeleteOp
 // Patch applies the patch and returns the patched federatedNamespacePlacement.
 func (c *FakeFederatedNamespacePlacements) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FederatedNamespacePlacement, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(federatednamespaceplacementsResource, name, data, subresources...), &v1alpha1.FederatedNamespacePlacement{})
+		Invokes(testing.NewPatchSubresourceAction(federatednamespaceplacementsResource, c.ns, name, data, subresources...), &v1alpha1.FederatedNamespacePlacement{})
+
 	if obj == nil {
 		return nil, err
 	}

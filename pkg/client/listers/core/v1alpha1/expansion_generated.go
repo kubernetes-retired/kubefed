@@ -118,6 +118,10 @@ type FederatedJobPlacementNamespaceListerExpansion interface{}
 // FederatedNamespacePlacementLister.
 type FederatedNamespacePlacementListerExpansion interface{}
 
+// FederatedNamespacePlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedNamespacePlacementNamespaceLister.
+type FederatedNamespacePlacementNamespaceListerExpansion interface{}
+
 // FederatedReplicaSetListerExpansion allows custom methods to be added to
 // FederatedReplicaSetLister.
 type FederatedReplicaSetListerExpansion interface{}
