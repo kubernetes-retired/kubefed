@@ -152,7 +152,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	f := &serviceDNSControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(config, FedFixture.SystemNamespace, f.stopChan, true)
+	err := servicedns.StartController(config, FedFixture.SystemNamespace, fedFixture.SystemNamespace, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting service-dns controller: %v", err)
 	}

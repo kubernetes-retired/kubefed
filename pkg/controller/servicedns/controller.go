@@ -86,14 +86,14 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing MultiClusterServiceDNSRecord objects.
-func StartController(config *restclient.Config, fedNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartController(config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
 	userAgent := "MultiClusterServiceDNS"
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
 
-	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace)
+	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func StartController(config *restclient.Config, fedNamespace string, stopChan <-
 }
 
 // newController returns a new controller to manage MultiClusterServiceDNSRecord objects.
-func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string) (*Controller, error) {
+func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
 		reviewDelay:             time.Second * 10,
@@ -144,6 +144,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		kubeClient,
 		crClient,
 		fedNamespace,
+		clusterNamespace,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",
@@ -174,6 +175,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		kubeClient,
 		crClient,
 		fedNamespace,
+		clusterNamespace,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",

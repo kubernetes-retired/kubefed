@@ -120,12 +120,12 @@ func (f *ManagedFramework) TestNamespaceName() string {
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
 	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, kubeConfig, fedFixture.SystemNamespace)
+	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, kubeConfig, fedFixture.SystemNamespace, fedFixture.SystemNamespace)
 	f.fixtures = append(f.fixtures, fixture)
 }
 
 func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
 	config := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewServiceDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace)
+	fixture := framework.NewServiceDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace)
 	f.fixtures = append(f.fixtures, fixture)
 }

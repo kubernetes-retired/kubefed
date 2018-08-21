@@ -58,22 +58,25 @@ type ClusterController struct {
 	// fedNamespace is the name of the namespace containing
 	// FederatedCluster resources and their associated secrets
 	fedNamespace string
+
+	// clusterNamespace is the namespace containing Cluster resources
+	clusterNamespace string
 }
 
 // StartClusterController starts a new cluster controller
-func StartClusterController(config *restclient.Config, fedNamespace string, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
+func StartClusterController(config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
 	restclient.AddUserAgent(config, "cluster-controller")
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
 
-	controller := newClusterController(fedClient, kubeClient, crClient, fedNamespace, clusterMonitorPeriod)
+	controller := newClusterController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, clusterMonitorPeriod)
 	glog.Infof("Starting cluster controller")
 	controller.Run(stopChan)
 }
 
 // newClusterController returns a new cluster controller
-func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, clusterMonitorPeriod time.Duration) *ClusterController {
+func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string, clusterMonitorPeriod time.Duration) *ClusterController {
 	cc := &ClusterController{
 		knownClusterSet:         make(sets.String),
 		fedClient:               fedClient,
@@ -83,6 +86,7 @@ func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclien
 		clusterClusterStatusMap: make(map[string]fedv1a1.FederatedClusterStatus),
 		clusterKubeClientMap:    make(map[string]ClusterClient),
 		fedNamespace:            fedNamespace,
+		clusterNamespace:        clusterNamespace,
 	}
 	_, cc.clusterController = cache.NewInformer(
 		&cache.ListWatch{
@@ -139,7 +143,7 @@ func (cc *ClusterController) addToClusterSetWithoutLock(cluster *fedv1a1.Federat
 	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	cc.knownClusterSet.Insert(cluster.Name)
 	// create the restclient of cluster
-	restClient, err := NewClusterClientSet(cluster, cc.kubeClient, cc.crClient, cc.fedNamespace)
+	restClient, err := NewClusterClientSet(cluster, cc.kubeClient, cc.crClient, cc.fedNamespace, cc.clusterNamespace)
 	if err != nil || restClient == nil {
 		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
