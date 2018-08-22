@@ -128,7 +128,7 @@ func (j *joinFederation) Complete(args []string) error {
 		j.clusterContext = j.ClusterName
 	}
 
-	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, cluster-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, limited-scope: %s, dry-run: %v",
+	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, registry-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, limited-scope: %s, dry-run: %v",
 		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.ClusterNamespace, j.Kubeconfig, j.clusterContext,
 		j.secretName, j.limitedScope, j.DryRun)
 

@@ -53,7 +53,7 @@ func registerFlags(t *TestContextType) {
 		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
 	flag.StringVar(&t.FederationSystemNamespace, "fed-namespace", util.DefaultFederationSystemNamespace,
 		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
-	flag.StringVar(&t.ClusterNamespace, "cluster-namespace", util.MulticlusterPublicNamespace,
+	flag.StringVar(&t.ClusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
 		fmt.Sprintf("The cluster registry namespace.  If unset, will default to %q.", util.MulticlusterPublicNamespace))
 	flag.StringVar(&t.TargetNamespace, "target-namespace", metav1.NamespaceAll,
 		"The namespace to target for federation.  If unset, will default to all namespaces")
