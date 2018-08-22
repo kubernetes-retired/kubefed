@@ -42,7 +42,7 @@ ${KCD} namespace ${PUBLIC_NS}
 
 # Disable available types
 for filename in ./config/federatedtypes/*.yaml; do
-  ${KCD} -f "${filename}"
+  ${KCD} -f "${filename}" -n ${NS}
 done
 
 # Remove federation CRDs, namespace, RBAC and deployment resources.
