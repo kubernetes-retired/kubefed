@@ -388,18 +388,35 @@ func deleteClusterRoleAndBinding(clusterClientset client.Interface, saName, name
 		return nil
 	}
 
-	roleName := util.ClusterRoleName(saName)
+	roleName := util.RoleName(saName)
+
+	// Attempt to delete both federation and cluster role and role
+	// bindings and ignore if they are missing.
 
 	err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(roleName, &metav1.DeleteOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		glog.V(2).Infof("Could not delete cluster role binding for service account: %s in unjoining cluster: %v",
 			saName, err)
 		return err
 	}
 
 	err = clusterClientset.RbacV1().ClusterRoles().Delete(roleName, &metav1.DeleteOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		glog.V(2).Infof("Could not delete cluster role for service account: %s in unjoining cluster: %v",
+			saName, err)
+		return err
+	}
+
+	err = clusterClientset.RbacV1().RoleBindings(namespace).Delete(roleName, &metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		glog.V(2).Infof("Could not delete role binding for service account: %s in unjoining cluster: %v",
+			saName, err)
+		return err
+	}
+
+	err = clusterClientset.RbacV1().Roles(namespace).Delete(roleName, &metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		glog.V(2).Infof("Could not delete role for service account: %s in unjoining cluster: %v",
 			saName, err)
 		return err
 	}

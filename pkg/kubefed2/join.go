@@ -70,6 +70,7 @@ type joinFederationOptions struct {
 	clusterContext string
 	secretName     string
 	addToRegistry  bool
+	limitedScope   bool
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
@@ -81,6 +82,8 @@ func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. If unspecified, defaults to a generated name containing the cluster name.")
 	flags.BoolVar(&o.addToRegistry, "add-to-registry", false,
 		"Add the cluster to the cluster registry that is aggregated with the kubernetes API server running in the host cluster context.")
+	flags.BoolVar(&o.limitedScope, "limited-scope", false,
+		"Whether the federation namespace (configurable via --federation-namespace) will be the only target for federation.  If true, join will add a service account with access only to the federation namespace in the target cluster.")
 }
 
 // NewCmdJoin defines the `join` command that joins a cluster to a
@@ -125,9 +128,9 @@ func (j *joinFederation) Complete(args []string) error {
 		j.clusterContext = j.ClusterName
 	}
 
-	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, cluster-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
+	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, cluster-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, limited-scope: %s, dry-run: %v",
 		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.ClusterNamespace, j.Kubeconfig, j.clusterContext,
-		j.secretName, j.DryRun)
+		j.secretName, j.limitedScope, j.DryRun)
 
 	return nil
 }
@@ -149,7 +152,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	err = JoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		j.HostClusterContext, j.ClusterName, j.secretName, j.addToRegistry, j.DryRun)
+		j.HostClusterContext, j.ClusterName, j.secretName, j.addToRegistry, j.limitedScope, j.DryRun)
 	if err != nil {
 		return err
 	}
@@ -160,7 +163,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // JoinCluster performs all the necessary steps to join a cluster to the
 // federation provided the required set of parameters are passed in.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace,
-	hostClusterContext, joiningClusterName, secretName string, addToRegistry, dryRun bool) error {
+	hostClusterContext, joiningClusterName, secretName string, addToRegistry, limitedScope, dryRun bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
@@ -215,7 +218,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 
 	secret, err := createRBACSecret(hostClientset, clusterClientset,
 		federationNamespace, joiningClusterName, hostClusterContext,
-		secretName, dryRun)
+		secretName, limitedScope, dryRun)
 	if err != nil {
 		glog.V(2).Infof("Could not create cluster credentials secret: %v", err)
 		return err
@@ -400,7 +403,7 @@ func createFederationNamespace(clusterClientset client.Interface, federationName
 // access the joining cluster.
 func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Interface,
 	namespace, joiningClusterName, hostClusterName,
-	secretName string, dryRun bool) (*corev1.Secret, error) {
+	secretName string, limitedScope, dryRun bool) (*corev1.Secret, error) {
 
 	glog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
@@ -414,18 +417,33 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 
 	glog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	glog.V(2).Infof("Creating cluster role binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+	if limitedScope {
+		glog.V(2).Infof("Creating role binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
-		joiningClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Error creating cluster role binding for service account: %s in joining cluster: %s due to: %v",
-			saName, joiningClusterName, err)
-		return nil, err
+		_, err = createRoleBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun)
+		if err != nil {
+			glog.V(2).Infof("Error creating role binding for service account: %s in joining cluster: %s due to: %v",
+				saName, joiningClusterName, err)
+			return nil, err
+		}
+
+		glog.V(2).Infof("Created role binding for service account: %s in joining cluster: %s",
+			saName, joiningClusterName)
+
+	} else {
+		glog.V(2).Infof("Creating cluster role binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+
+		_, err = createClusterRoleBinding(joiningClusterClientset, saName, namespace,
+			joiningClusterName, dryRun)
+		if err != nil {
+			glog.V(2).Infof("Error creating cluster role binding for service account: %s in joining cluster: %s due to: %v",
+				saName, joiningClusterName, err)
+			return nil, err
+		}
+
+		glog.V(2).Infof("Created cluster role binding for service account: %s in joining cluster: %s",
+			saName, joiningClusterName)
 	}
-
-	glog.V(2).Infof("Created cluster role binding for service account: %s in joining cluster: %s",
-		saName, joiningClusterName)
 
 	glog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
 
@@ -473,7 +491,7 @@ func createServiceAccount(clusterClientset client.Interface, namespace,
 func createClusterRoleBinding(clusterClientset client.Interface, saName, namespace,
 	joiningClusterName string, dryRun bool) (*rbacv1.ClusterRoleBinding, error) {
 
-	roleName := util.ClusterRoleName(saName)
+	roleName := util.RoleName(saName)
 
 	rules := []rbacv1.PolicyRule{
 		{
@@ -532,6 +550,110 @@ func createClusterRoleBinding(clusterClientset client.Interface, saName, namespa
 	}
 
 	return &clusterRoleBinding, nil
+}
+
+// createRoleBinding creates an RBAC role and binding that allows the
+// service account identified by saName to access all resources in the
+// specified namespace.
+func createRoleBinding(clusterClientset client.Interface, saName, namespace,
+	joiningClusterName string, dryRun bool) (*rbacv1.RoleBinding, error) {
+	roleName := util.RoleName(saName)
+
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: roleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:     []string{rbacv1.VerbAll},
+				APIGroups: []string{rbacv1.APIGroupAll},
+				Resources: []string{rbacv1.ResourceAll},
+			},
+		},
+	}
+
+	roleBinding := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: roleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      saName,
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "Role",
+			Name:     roleName,
+		},
+	}
+
+	// Allowing access to the healthz url requires a cluster role
+	clusterRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: roleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:           []string{"Get"},
+				NonResourceURLs: []string{"/healthz"},
+			},
+		},
+	}
+
+	clusterRoleBinding := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: roleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      saName,
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+	}
+
+	if dryRun {
+		return &roleBinding, nil
+	}
+
+	_, err := clusterClientset.RbacV1().Roles(namespace).Create(role)
+	if err != nil {
+		glog.V(2).Infof("Could not create role for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
+		return nil, err
+	}
+
+	_, err = clusterClientset.RbacV1().RoleBindings(namespace).Create(&roleBinding)
+	if err != nil {
+		glog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
+		return nil, err
+	}
+
+	_, err = clusterClientset.RbacV1().ClusterRoles().Create(clusterRole)
+	if err != nil {
+		glog.V(2).Infof("Could not create cluster role for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
+		return nil, err
+	}
+
+	_, err = clusterClientset.RbacV1().ClusterRoleBindings().Create(&clusterRoleBinding)
+	if err != nil {
+		glog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
+		return nil, err
+	}
+
+	return &roleBinding, nil
 }
 
 // populateSecretInHostCluster copies the service account secret for saName
