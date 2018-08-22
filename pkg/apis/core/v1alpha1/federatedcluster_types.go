@@ -25,7 +25,8 @@ import (
 
 // FederatedClusterSpec defines the desired state of FederatedCluster
 type FederatedClusterSpec struct {
-	// Name of the cluster resource from which to source api endpoints
+	// Name of the cluster registry Cluster resource from which to source api
+	// endpoints.
 	// TODO(marun) should this go away in favor of a 1:1 mapping?
 	ClusterRef apiv1.LocalObjectReference `json:"clusterRef,omitempty"`
 
@@ -45,7 +46,8 @@ type FederatedClusterSpec struct {
 	SecretRef *apiv1.LocalObjectReference `json:"secretRef,omitempty"`
 }
 
-// FederatedClusterStatus is information about the current status of a cluster updated by cluster controller periodically.
+// FederatedClusterStatus contains information about the current status of a
+// cluster updated periodically by cluster controller.
 type FederatedClusterStatus struct {
 	// Conditions is an array of current cluster conditions.
 	// +optional
@@ -61,7 +63,10 @@ type FederatedClusterStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedCluster
+// FederatedCluster configures federation to be aware of a Kubernetes cluster
+// from the cluster-registry and provides a Kubeconfig for federation to use to
+// communicate with the cluster.
+//
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=federatedclusters
 // +kubebuilder:subresource:status
