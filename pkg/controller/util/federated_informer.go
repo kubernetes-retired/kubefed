@@ -141,12 +141,13 @@ func NewFederatedInformer(
 	crClient crclientset.Interface,
 	fedNamespace,
 	clusterNamespace string,
+	targetNamespace string,
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) FederatedInformer {
 
 	targetInformerFactory := func(cluster *fedv1a1.FederatedCluster, client ResourceClient) (cache.Store, cache.Controller) {
-		return NewResourceInformer(client, metav1.NamespaceAll, triggerFunc)
+		return NewResourceInformer(client, targetNamespace, triggerFunc)
 	}
 
 	federatedInformer := &federatedInformerImpl{

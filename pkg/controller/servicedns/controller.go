@@ -86,14 +86,14 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing MultiClusterServiceDNSRecord objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
 	userAgent := "MultiClusterServiceDNS"
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
 
-	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace)
+	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace s
 }
 
 // newController returns a new controller to manage MultiClusterServiceDNSRecord objects.
-func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*Controller, error) {
+func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
 		reviewDelay:             time.Second * 10,
@@ -125,10 +125,10 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 	s.serviceDNSStore, s.serviceDNSController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(metav1.NamespaceAll).List(options)
+				return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(metav1.NamespaceAll).Watch(options)
+				return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).Watch(options)
 			},
 		},
 		&dnsv1a1.MultiClusterServiceDNSRecord{},
@@ -145,6 +145,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		crClient,
 		fedNamespace,
 		clusterNamespace,
+		targetNamespace,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",
@@ -176,6 +177,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		crClient,
 		fedNamespace,
 		clusterNamespace,
+		targetNamespace,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",

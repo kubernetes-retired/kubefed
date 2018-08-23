@@ -33,6 +33,7 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
@@ -86,6 +87,7 @@ func main() {
 	// TODO(marun) Make configurable and default to a namespace provided via the downward api
 	fedNamespace := util.DefaultFederationSystemNamespace
 	clusterNamespace := util.MulticlusterPublicNamespace
+	targetNamespace := metav1.NamespaceAll
 
 	// TODO(marun) Make the monitor period configurable
 	clusterMonitorPeriod := time.Second * 40
@@ -93,7 +95,7 @@ func main() {
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		for kind, schedulingType := range schedulingtypes.SchedulingTypes() {
-			err = schedulingpreference.StartSchedulingPreferenceController(kind, schedulingType.SchedulerFactory, config, fedNamespace, clusterNamespace, stopChan, true)
+			err = schedulingpreference.StartSchedulingPreferenceController(kind, schedulingType.SchedulerFactory, config, fedNamespace, clusterNamespace, targetNamespace, stopChan, true)
 			if err != nil {
 				log.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
 			}
@@ -101,7 +103,7 @@ func main() {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		err = servicedns.StartController(config, fedNamespace, clusterNamespace, stopChan, false)
+		err = servicedns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, false)
 		if err != nil {
 			log.Fatalf("Error starting dns controller: %v", err)
 		}
@@ -116,7 +118,7 @@ func main() {
 		// TODO(marun) Reconsider using kubebuilder framework to start
 		// the controller.  It's not a good fit.
 		inject.Inject = append(inject.Inject, func(arguments args.InjectArgs) error {
-			if c, err := federatedtypeconfig.ProvideController(arguments, fedNamespace, clusterNamespace, stopChan); err != nil {
+			if c, err := federatedtypeconfig.ProvideController(arguments, fedNamespace, clusterNamespace, targetNamespace, stopChan); err != nil {
 				return err
 			} else {
 				arguments.ControllerManager.AddController(c)

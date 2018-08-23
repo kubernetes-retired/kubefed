@@ -119,8 +119,8 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace)
+func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace, targetNamespace)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace string) (*FederationSyncController, error) {
+func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
@@ -177,14 +177,14 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	deliverObj := func(obj pkgruntime.Object) {
 		s.deliverObj(obj, 0, false)
 	}
-	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, metav1.NamespaceAll, deliverObj)
+	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, targetNamespace, deliverObj)
 
 	if overrideAPIResource := typeConfig.GetOverride(); overrideAPIResource != nil {
 		client, err := util.NewResourceClient(pool, overrideAPIResource)
 		if err != nil {
 			return nil, err
 		}
-		s.overrideStore, s.overrideController = util.NewResourceInformer(client, metav1.NamespaceAll, deliverObj)
+		s.overrideStore, s.overrideController = util.NewResourceInformer(client, targetNamespace, deliverObj)
 	}
 
 	placementAPIResource := typeConfig.GetPlacement()
@@ -202,10 +202,10 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.CoreV1alpha1().PropagatedVersions(metav1.NamespaceAll).List(options)
+				return fedClient.CoreV1alpha1().PropagatedVersions(targetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.CoreV1alpha1().PropagatedVersions(metav1.NamespaceAll).Watch(options)
+				return fedClient.CoreV1alpha1().PropagatedVersions(targetNamespace).Watch(options)
 			},
 		},
 		&fedv1a1.PropagatedVersion{},
@@ -237,6 +237,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		crClient,
 		fedNamespace,
 		clusterNamespace,
+		targetNamespace,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			s.deliverObj(obj, s.reviewDelay, false)

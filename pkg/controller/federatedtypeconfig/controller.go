@@ -60,12 +60,15 @@ type FederatedTypeConfigController struct {
 	// The cluster registry namespace
 	clusterNamespace string
 
+	// The namespace to target
+	targetNamespace string
+
 	// Map of running sync controllers keyed by qualified target type
 	stopChannels map[string]chan struct{}
 	lock         sync.RWMutex
 }
 
-func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace string, stopChan <-chan struct{}) (*controller.GenericController, error) {
+func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}) (*controller.GenericController, error) {
 	name := "FederatedTypeConfigController"
 	c := &FederatedTypeConfigController{
 		lister:           arguments.ControllerManager.GetInformerProvider(&corev1a1.FederatedTypeConfig{}).(corev1alpha1informer.FederatedTypeConfigInformer).Lister(),
@@ -74,6 +77,7 @@ func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace
 		config:           arguments.Config,
 		fedNamespace:     fedNamespace,
 		clusterNamespace: clusterNamespace,
+		targetNamespace:  targetNamespace,
 		stopChannels:     make(map[string]chan struct{}),
 	}
 	// Ensure launched controllers are shutdown cleanly
@@ -164,7 +168,7 @@ func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTy
 	corev1a1.SetFederatedTypeConfigDefaults(tc)
 
 	stopChan := make(chan struct{})
-	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, stopChan, false)
+	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, c.targetNamespace, stopChan, false)
 	if err != nil {
 		close(stopChan)
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)

@@ -23,6 +23,8 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -33,6 +35,7 @@ type TestContextType struct {
 	KubeContext               string
 	FederationSystemNamespace string
 	ClusterNamespace          string
+	TargetNamespace           string
 }
 
 var TestContext TestContextType
@@ -50,6 +53,8 @@ func registerFlags(t *TestContextType) {
 		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
 	flag.StringVar(&t.ClusterNamespace, "cluster-namespace", util.MulticlusterPublicNamespace,
 		fmt.Sprintf("The cluster registry namespace.  If unset, will default to %q.", util.MulticlusterPublicNamespace))
+	flag.StringVar(&t.TargetNamespace, "target-namespace", metav1.NamespaceAll,
+		"The namespace to target for federation.  If unset, will default to all namespaces")
 }
 
 func validateFlags(t *TestContextType) {

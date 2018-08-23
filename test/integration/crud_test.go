@@ -25,6 +25,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 )
@@ -64,7 +65,7 @@ var TestCrud = func(t *testing.T) {
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig typeconfig.Interface, templateKind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester) {
 	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	fixture := framework.NewSyncControllerFixture(tl, typeConfig, kubeConfig, fedFixture.SystemNamespace, fedFixture.SystemNamespace)
+	fixture := framework.NewSyncControllerFixture(tl, typeConfig, kubeConfig, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
 	rest.AddUserAgent(kubeConfig, userAgent)
