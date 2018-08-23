@@ -31,7 +31,7 @@ const (
 	// How long to try single API calls (like 'get' or 'list'). Used to prevent
 	// transient failures from failing tests.
 	PollInterval      = 2 * time.Second
-	SingleCallTimeout = 60 * time.Second
+	SingleCallTimeout = 90 * time.Second
 )
 
 // unique identifier of the e2e run
