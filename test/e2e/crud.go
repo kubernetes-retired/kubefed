@@ -70,12 +70,17 @@ var _ = Describe("Federated types", func() {
 
 		Describe(fmt.Sprintf("%q resources", templateKind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				// TODO (font): e2e tests for federated Namespace using a
-				// test managed federation does not work until k8s
-				// namespace controller is added.
-				if framework.TestContext.TestManagedFederation &&
-					templateKind == util.NamespaceKind {
-					framework.Skipf("%s not supported for test managed federation.", templateKind)
+				if templateKind == util.NamespaceKind {
+					// TODO (font): e2e tests for federated Namespace using a
+					// test managed federation does not work until k8s
+					// namespace controller is added.
+					if framework.TestContext.TestManagedFederation {
+						framework.Skipf("%s not supported for test managed federation.", templateKind)
+					}
+					if framework.TestContext.LimitedScope {
+						// It is not possible to propagate namespaces when namespaced.
+						framework.Skipf("%s federation not supported for namespaced control plane.", templateKind)
+					}
 				}
 
 				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {

@@ -139,8 +139,12 @@ func (f *UnmanagedFramework) AfterEach() {
 		namespaceName := f.testNamespaceName
 		f.testNamespaceName = ""
 
-		client := f.KubeClient(userAgent)
-		deleteNamespace(client, namespaceName)
+		// Running namespaced implies the test namespace is the
+		// federation system namespace, which should not be removed.
+		if !TestContext.LimitedScope {
+			client := f.KubeClient(userAgent)
+			deleteNamespace(client, namespaceName)
+		}
 
 		// TODO(font): Delete the namespace finalizer manually rather than
 		// relying on the federated namespace sync controller. This would
@@ -261,9 +265,12 @@ func (f *UnmanagedFramework) FederationSystemNamespace() string {
 	return TestContext.FederationSystemNamespace
 }
 
-// TODO(marun) remove
 func (f *UnmanagedFramework) TestNamespaceName() string {
-	return ""
+	if TestContext.LimitedScope {
+		return TestContext.FederationSystemNamespace
+	}
+	client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
+	return createTestNamespace(client, f.BaseName)
 }
 
 func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
@@ -271,17 +278,17 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
+		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace())
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace())
 		f.fixtures = append(f.fixtures, fixture)
 
-		fixture = framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
+		fixture = framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace())
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }

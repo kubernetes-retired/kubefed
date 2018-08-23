@@ -36,8 +36,15 @@ type TestContextType struct {
 	KubeContext               string
 	FederationSystemNamespace string
 	ClusterNamespace          string
-	TargetNamespace           string
 	SingleCallTimeout         time.Duration
+	LimitedScope              bool
+}
+
+func (tc *TestContextType) TargetNamespace() string {
+	if tc.LimitedScope {
+		return tc.FederationSystemNamespace
+	}
+	return metav1.NamespaceAll
 }
 
 var TestContext TestContextType
@@ -51,14 +58,13 @@ func registerFlags(t *TestContextType) {
 		"Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-federation is true.")
 	flag.StringVar(&t.KubeContext, "context", "",
 		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
-	flag.StringVar(&t.FederationSystemNamespace, "fed-namespace", util.DefaultFederationSystemNamespace,
+	flag.StringVar(&t.FederationSystemNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
 		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
 	flag.StringVar(&t.ClusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
 		fmt.Sprintf("The cluster registry namespace.  If unset, will default to %q.", util.MulticlusterPublicNamespace))
-	flag.StringVar(&t.TargetNamespace, "target-namespace", metav1.NamespaceAll,
-		"The namespace to target for federation.  If unset, will default to all namespaces")
 	flag.DurationVar(&t.SingleCallTimeout, "single-call-timeout", DefaultSingleCallTimeout,
 		fmt.Sprintf("The maximum duration of a single call.  If unset, will default to %v", DefaultSingleCallTimeout))
+	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the federation namespace (configurable via --federation-namespace) will be the only target for federation.")
 }
 
 func validateFlags(t *TestContextType) {

@@ -137,14 +137,17 @@ func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interfac
 
 func (f *frameworkWrapper) TestNamespaceName() string {
 	if f.testNamespaceName == "" {
-		By("Creating a namespace to execute the test in")
-		client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
-		namespaceName, err := createNamespace(client, f.baseName)
-		Expect(err).NotTo(HaveOccurred())
-		f.testNamespaceName = namespaceName
-		By(fmt.Sprintf("Created test namespace %s", namespaceName))
+		f.testNamespaceName = f.framework().TestNamespaceName()
 	}
 	return f.testNamespaceName
+}
+
+func createTestNamespace(client kubeclientset.Interface, baseName string) string {
+	By("Creating a namespace to execute the test in")
+	namespaceName, err := createNamespace(client, baseName)
+	Expect(err).NotTo(HaveOccurred())
+	By(fmt.Sprintf("Created test namespace %s", namespaceName))
+	return namespaceName
 }
 
 func createNamespace(client kubeclientset.Interface, baseName string) (string, error) {
