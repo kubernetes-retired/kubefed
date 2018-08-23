@@ -21,6 +21,7 @@ set -o nounset
 set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
+E2E_TEST_CMD="go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m"
 
 function build-binaries() {
   go build -o bin/controller-manager ./cmd/controller-manager
@@ -51,11 +52,16 @@ function launch-minikube-cluster() {
 }
 
 function run-e2e-tests() {
-  go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m
+  ${E2E_TEST_CMD}
   rc=$((rc || $?))
   return ${rc}
 }
 
+function run-namespaced-e2e-tests() {
+  ${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true
+  rc=$((rc || $?))
+  return ${rc}
+}
 
 # Make sure, we run in the root of the repo and
 # therefore run the tests on all packages
@@ -92,5 +98,14 @@ DOCKER_PUSH=false ./scripts/deploy-federation.sh quay.io/kubernetes-multicluster
 
 echo "Running go e2e tests"
 run-e2e-tests
+
+echo "Deleting federation-v2"
+./scripts/delete-federation.sh
+
+echo "Deploying namespaced federation-v2"
+FEDERATION_NAMESPACE=foo NAMESPACED=y DOCKER_PUSH=false ./scripts/deploy-federation.sh quay.io/kubernetes-multicluster/federation-v2:e2e
+
+echo "Running go e2e tests"
+run-namespaced-e2e-tests
 
 exit $rc
