@@ -24,21 +24,29 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 KCD="kubectl --ignore-not-found=true delete"
-NS=federation-system
+NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
+NAMESPACED="${NAMESPACED:-}"
+
+KF_NS_ARG=
+if [[ "${NAMESPACED}" ]]; then
+  KF_NS_ARG="--federation-namespace=${NS} --registry-namespace=${NS}"
+fi
 
 # Unjoin clusters by removing objects added by kubefed2.
 HOST_CLUSTER="$(kubectl config current-context)"
-JOIN_CLUSTERS="${HOST_CLUSTER} ${@}"
-for c in ${JOIN_CLUSTERS}; do
-  ./bin/kubefed2 unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2
+JOINED_CLUSTERS="$(kubectl -n "${NS}" get federatedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
+for c in ${JOINED_CLUSTERS}; do
+  ./bin/kubefed2 unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2 ${KF_NS_ARG}
 done
 
 # Remove cluster registry CRD
 ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
 
 # Remove public namespace
-${KCD} namespace ${PUBLIC_NS}
+if [[ ! "${NAMESPACED}" ]]; then
+  ${KCD} namespace ${PUBLIC_NS}
+fi
 
 # Disable available types
 for filename in ./config/federatedtypes/*.yaml; do
@@ -46,7 +54,12 @@ for filename in ./config/federatedtypes/*.yaml; do
 done
 
 # Remove federation CRDs, namespace, RBAC and deployment resources.
-${KCD} -f hack/install-latest.yaml
+if [[ "${NAMESPACED}" ]]; then
+  ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+  ${KCD} ns "${NS}"
+else
+  ${KCD} -f hack/install-latest.yaml
+fi
 
 # Remove permissive rolebinding that allows federation controllers to run.
 ${KCD} clusterrolebinding federation-admin
@@ -57,4 +70,6 @@ function ns-deleted() {
   [[ "$?" = "1" ]]
 }
 util::wait-for-condition "removal of namespace '${NS}'" "ns-deleted ${NS}" 120
-util::wait-for-condition "removal of namespace '${PUBLIC_NS}'" "ns-deleted ${PUBLIC_NS}" 120
+if [[ ! "${NAMESPACED}" ]]; then
+  util::wait-for-condition "removal of namespace '${PUBLIC_NS}'" "ns-deleted ${PUBLIC_NS}" 120
+fi
