@@ -127,7 +127,7 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting sync controller for %s resources", typeConfig.GetTemplate().Kind))
+	glog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetTemplate().Kind))
 	controller.Run(stopChan)
 	return nil
 }
