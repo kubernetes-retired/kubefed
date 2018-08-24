@@ -138,7 +138,7 @@ func main() {
 			glog.Fatalf("Error starting dns controller: %v", err)
 		}
 
-		err = servicednsendpoint.StartController(config, stopChan, false)
+		err = servicednsendpoint.StartController(config, targetNamespace, stopChan, false)
 		if err != nil {
 			glog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}

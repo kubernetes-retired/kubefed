@@ -49,15 +49,18 @@ func init() {
 }
 
 type ReplicaScheduler struct {
-	plugins     map[string]*Plugin
-	fedClient   fedclientset.Interface
-	podInformer FederatedInformer
+	plugins         map[string]*Plugin
+	fedClient       fedclientset.Interface
+	podInformer     FederatedInformer
+	targetNamespace string
 }
 
 func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
-	scheduler := &ReplicaScheduler{}
-	scheduler.plugins = make(map[string]*Plugin)
-	scheduler.fedClient = fedClient
+	scheduler := &ReplicaScheduler{
+		plugins:         make(map[string]*Plugin),
+		fedClient:       fedClient,
+		targetNamespace: targetNamespace,
+	}
 
 	for name, apiResource := range ReplicaSechedulingResources {
 		var adapter adapters.Adapter
@@ -110,11 +113,11 @@ func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
 }
 
 func (s *ReplicaScheduler) FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).List(options)
+	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(s.targetNamespace).List(options)
 }
 
 func (s *ReplicaScheduler) FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(metav1.NamespaceAll).Watch(options)
+	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(s.targetNamespace).Watch(options)
 }
 
 func (s *ReplicaScheduler) Start(stopChan <-chan struct{}) {

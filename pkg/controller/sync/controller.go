@@ -194,9 +194,9 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	}
 	targetAPIResource := typeConfig.GetTarget()
 	if targetAPIResource.Kind == util.NamespaceKind {
-		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, deliverObj)
+		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, targetNamespace, deliverObj)
 	} else {
-		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, deliverObj)
+		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, deliverObj)
 	}
 
 	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(

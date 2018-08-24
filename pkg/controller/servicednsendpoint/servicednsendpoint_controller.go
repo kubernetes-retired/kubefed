@@ -90,11 +90,11 @@ type ServiceDNSEndpointController struct {
 	maxRetryDelay time.Duration
 }
 
-func StartController(config *restclient.Config, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartController(config *restclient.Config, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
 
-	controller, err := newServiceDNSEndpointController(fedClient, minimizeLatency)
+	controller, err := newServiceDNSEndpointController(fedClient, targetNamespace, minimizeLatency)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func StartController(config *restclient.Config, stopChan <-chan struct{}, minimi
 	return nil
 }
 
-func newServiceDNSEndpointController(client fedclientset.Interface, minimizeLatency bool) (*ServiceDNSEndpointController, error) {
+func newServiceDNSEndpointController(client fedclientset.Interface, targetNamespace string, minimizeLatency bool) (*ServiceDNSEndpointController, error) {
 	d := &ServiceDNSEndpointController{
 		client: client,
 	}
@@ -113,10 +113,10 @@ func newServiceDNSEndpointController(client fedclientset.Interface, minimizeLate
 	d.serviceDNSObjectStore, d.serviceDNSObjectController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(metav1.NamespaceAll).List(options)
+				return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(metav1.NamespaceAll).Watch(options)
+				return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).Watch(options)
 			},
 		},
 		&feddnsv1a1.MultiClusterServiceDNSRecord{},
