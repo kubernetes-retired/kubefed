@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -36,6 +37,7 @@ type TestContextType struct {
 	FederationSystemNamespace string
 	ClusterNamespace          string
 	TargetNamespace           string
+	SingleCallTimeout         time.Duration
 }
 
 var TestContext TestContextType
@@ -55,6 +57,8 @@ func registerFlags(t *TestContextType) {
 		fmt.Sprintf("The cluster registry namespace.  If unset, will default to %q.", util.MulticlusterPublicNamespace))
 	flag.StringVar(&t.TargetNamespace, "target-namespace", metav1.NamespaceAll,
 		"The namespace to target for federation.  If unset, will default to all namespaces")
+	flag.DurationVar(&t.SingleCallTimeout, "single-call-timeout", DefaultSingleCallTimeout,
+		fmt.Sprintf("The maximum duration of a single call.  If unset, will default to %v", DefaultSingleCallTimeout))
 }
 
 func validateFlags(t *TestContextType) {
