@@ -287,7 +287,7 @@ func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	// nested clusters having been removed.  It will be necessary to
 	// identify that a given namespace is in the hosting cluster and
 	// therefore does not have to be deleted before finalizer removal.
-	err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
+	err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
 		if _, err := client.Core().Namespaces().Get(namespaceName, metav1.GetOptions{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true, nil
@@ -377,7 +377,7 @@ func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
 func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.FederatedCluster) {
 	clusterName := cluster.Name
 	By(fmt.Sprintf("Checking readiness of cluster %q", clusterName))
-	err := wait.PollImmediate(PollInterval, SingleCallTimeout, func() (bool, error) {
+	err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
 		for _, condition := range cluster.Status.Conditions {
 			if condition.Type == fedcommon.ClusterReady && condition.Status == corev1.ConditionTrue {
 				return true, nil

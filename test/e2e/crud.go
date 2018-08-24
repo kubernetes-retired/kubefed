@@ -235,7 +235,7 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 	if err != nil {
 		tl.Fatalf("Error creating client for crd %q: %v", apiResource.Kind, err)
 	}
-	err = wait.PollImmediate(framework.PollInterval, framework.SingleCallTimeout, func() (bool, error) {
+	err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		_, err := client.Resources("invalid").Get("invalid", metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return true, nil
@@ -264,7 +264,7 @@ func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeCon
 	kubeConfig := f.KubeConfig()
 	targetAPIResource := typeConfig.GetTarget()
 	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
-	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.SingleCallTimeout)
+	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 	}
