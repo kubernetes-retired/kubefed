@@ -62,7 +62,11 @@ else
 fi
 
 # Remove permissive rolebinding that allows federation controllers to run.
-${KCD} clusterrolebinding federation-admin
+if [[ "${NAMESPACED}" ]]; then
+  ${KCD} -n "${NS}" rolebinding federation-admin
+else
+  ${KCD} clusterrolebinding federation-admin
+fi
 
 # Wait for the namespaces to be removed
 function ns-deleted() {
