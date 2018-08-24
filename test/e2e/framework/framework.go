@@ -47,6 +47,7 @@ type FederationFramework interface {
 
 	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
 	ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface
+	ClusterNames(userAgent string) []string
 
 	FederationSystemNamespace() string
 
@@ -112,6 +113,10 @@ func (f *frameworkWrapper) FedClient(userAgent string) fedclientset.Interface {
 
 func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
 	return f.framework().CrClient(userAgent)
+}
+
+func (f *frameworkWrapper) ClusterNames(userAgent string) []string {
+	return f.framework().ClusterNames(userAgent)
 }
 
 func (f *frameworkWrapper) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {

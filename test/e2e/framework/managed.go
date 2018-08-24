@@ -100,6 +100,10 @@ func (f *ManagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return crclientset.NewForConfigOrDie(config)
 }
 
+func (f *ManagedFramework) ClusterNames(userAgent string) []string {
+	return fedFixture.ClusterNames()
+}
+
 func (f *ManagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	return fedFixture.ClusterDynamicClients(f.logger, apiResource, userAgent)
 }
