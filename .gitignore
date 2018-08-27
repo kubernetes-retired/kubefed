@@ -2,6 +2,5 @@
 /bin
 /default.etcd
 /kubeconfig
-/config
 /hack/install.yaml
 /images/federation-v2/controller-manager
