@@ -20,4 +20,6 @@ package v1alpha1
 
 type DNSEndpointExpansion interface{}
 
+type MultiClusterIngressDNSRecordExpansion interface{}
+
 type MultiClusterServiceDNSRecordExpansion interface{}

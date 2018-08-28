@@ -183,6 +183,18 @@ func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
 	return crclientset.NewForConfigOrDie(f.Config)
 }
 
+func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
+	var clusters []string
+	fedClient := f.FedClient(userAgent)
+	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).List(metav1.ListOptions{})
+	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
+
+	for _, cluster := range clusterList.Items {
+		clusters = append(clusters, cluster.Name)
+	}
+	return clusters
+}
+
 func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	testClusters := make(map[string]common.TestCluster)
 	// Assume host cluster name is the same as the current context name.
@@ -264,9 +276,12 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	}
 }
 
-func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
+func (f *UnmanagedFramework) SetUpDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
 		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
+		f.fixtures = append(f.fixtures, fixture)
+
+		fixture = framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }

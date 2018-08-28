@@ -106,6 +106,9 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.DNSEndpoint{}, arguments.Informers.Multiclusterdns().V1alpha1().DNSEndpoints()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.MultiClusterIngressDNSRecord{}, arguments.Informers.Multiclusterdns().V1alpha1().MultiClusterIngressDNSRecords()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.MultiClusterServiceDNSRecord{}, arguments.Informers.Multiclusterdns().V1alpha1().MultiClusterServiceDNSRecords()); err != nil {
 			return err
 		}
@@ -143,6 +146,7 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.DNSEndpointCRD)
+	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.MultiClusterIngressDNSRecordCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.MultiClusterServiceDNSRecordCRD)
 	Injector.CRDs = append(Injector.CRDs, &schedulingv1alpha1.ReplicaSchedulingPreferenceCRD)
 	// Inject PolicyRules

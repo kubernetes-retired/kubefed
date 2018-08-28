@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// DNSEndpoints returns a DNSEndpointInformer.
 	DNSEndpoints() DNSEndpointInformer
+	// MultiClusterIngressDNSRecords returns a MultiClusterIngressDNSRecordInformer.
+	MultiClusterIngressDNSRecords() MultiClusterIngressDNSRecordInformer
 	// MultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecordInformer.
 	MultiClusterServiceDNSRecords() MultiClusterServiceDNSRecordInformer
 }
@@ -44,6 +46,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // DNSEndpoints returns a DNSEndpointInformer.
 func (v *version) DNSEndpoints() DNSEndpointInformer {
 	return &dNSEndpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// MultiClusterIngressDNSRecords returns a MultiClusterIngressDNSRecordInformer.
+func (v *version) MultiClusterIngressDNSRecords() MultiClusterIngressDNSRecordInformer {
+	return &multiClusterIngressDNSRecordInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // MultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecordInformer.

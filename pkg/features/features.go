@@ -45,6 +45,12 @@ const (
 	// DNS based cross cluster service discovery.
 	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/multicluster/federated-services.md
 	CrossClusterServiceDiscovery utilfeature.Feature = "CrossClusterServiceDiscovery"
+
+	// owner: @shashidharatd
+	// alpha: v0.1
+	//
+	// DNS based federated ingress feature.
+	FederatedIngress utilfeature.Feature = "FederatedIngress"
 )
 
 func init() {
@@ -58,4 +64,5 @@ var defaultFederationFeatureGates = map[utilfeature.Feature]utilfeature.FeatureS
 	SchedulerPreferences:         {Default: true, PreRelease: utilfeature.Alpha},
 	PushReconciler:               {Default: true, PreRelease: utilfeature.Alpha},
 	CrossClusterServiceDiscovery: {Default: true, PreRelease: utilfeature.Alpha},
+	FederatedIngress:             {Default: true, PreRelease: utilfeature.Alpha},
 }

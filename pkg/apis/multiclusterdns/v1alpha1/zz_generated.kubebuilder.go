@@ -45,6 +45,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&DNSEndpoint{},
 		&DNSEndpointList{},
+		&MultiClusterIngressDNSRecord{},
+		&MultiClusterIngressDNSRecordList{},
 		&MultiClusterServiceDNSRecord{},
 		&MultiClusterServiceDNSRecordList{},
 	)
@@ -58,6 +60,14 @@ type DNSEndpointList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []DNSEndpoint `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type MultiClusterIngressDNSRecordList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []MultiClusterIngressDNSRecord `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -146,6 +156,78 @@ var (
 						},
 					},
 				},
+			},
+		},
+	}
+	// Define CRDs for resources
+	MultiClusterIngressDNSRecordCRD = v1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "multiclusteringressdnsrecords.multiclusterdns.federation.k8s.io",
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "multiclusterdns.federation.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Kind:   "MultiClusterIngressDNSRecord",
+				Plural: "multiclusteringressdnsrecords",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"hosts": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+									},
+								},
+								"recordTTL": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int64",
+								},
+							},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"dns": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"cluster": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"loadBalancer": v1beta1.JSONSchemaProps{
+													Type:       "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Subresources: &v1beta1.CustomResourceSubresources{
+				Status: &v1beta1.CustomResourceSubresourceStatus{},
 			},
 		},
 	}

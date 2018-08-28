@@ -37,6 +37,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
@@ -111,6 +112,13 @@ func main() {
 		err = servicednsendpoint.StartController(config, stopChan, false)
 		if err != nil {
 			log.Fatalf("Error starting dns endpoint controller: %v", err)
+		}
+	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
+		err = ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, false)
+		if err != nil {
+			log.Fatalf("Error starting ingress dns controller: %v", err)
 		}
 	}
 
