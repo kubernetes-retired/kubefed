@@ -204,13 +204,16 @@ func NewFederatedInformer(
 			},
 			AddFunc: func(cur interface{}) {
 				curCluster, ok := cur.(*fedv1a1.FederatedCluster)
-				if ok && isClusterReady(curCluster) {
+				if !ok {
+					glog.Errorf("Cluster %v/%v not added; incorrect type", curCluster.Namespace, curCluster.Name)
+				} else if isClusterReady(curCluster) {
 					federatedInformer.addCluster(curCluster)
+					glog.Infof("Cluster %v/%v is ready", curCluster.Namespace, curCluster.Name)
 					if clusterLifecycle.ClusterAvailable != nil {
 						clusterLifecycle.ClusterAvailable(curCluster)
 					}
 				} else {
-					glog.Errorf("Cluster %v not added.  Not of correct type, or cluster not ready.", cur)
+					glog.Infof("Cluster %v/%v not added; it is not ready.", curCluster.Namespace, curCluster.Name)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
