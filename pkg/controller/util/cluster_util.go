@@ -44,6 +44,11 @@ const (
 	getSecretTimeout        = 1 * time.Minute
 )
 
+// BuildClusterConfig returns a restclient.Config that can be used to configure
+// a client for the given FederatedCluster or an error. The kubernetes and
+// cluster-registry clients are used to access kubernetes secrets in the
+// federation namespace and cluster-registry records in the clusterNamespace,
+// respectively.
 func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, clusterNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 

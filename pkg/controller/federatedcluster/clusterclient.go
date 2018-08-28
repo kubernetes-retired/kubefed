@@ -40,10 +40,16 @@ const (
 	LabelZoneRegion        = "failure-domain.beta.kubernetes.io/region"
 )
 
+// ClusterClient provides methods for determining the status and zones of a
+// particular FederatedCluster.
 type ClusterClient struct {
 	kubeClient *kubeclientset.Clientset
 }
 
+// NewClusterClientSet returns a ClusterClient for the given FederatedCluster.
+// The kubeClient and crClient are used to configure the ClusterClient's
+// internal client with information from a kubeconfig stored in a kubernetes
+// secret and an API endpoint from the cluster-registry.
 func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
 	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, crClient, fedNamespace, clusterNamespace)
 	if err != nil {

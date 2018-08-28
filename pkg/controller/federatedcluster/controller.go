@@ -38,32 +38,47 @@ import (
 	"github.com/golang/glog"
 )
 
+// ClusterController is responsible for maintaining the health status of each
+// FederatedCluster in a particular namespace.
 type ClusterController struct {
-	fedClient  fedclientset.Interface
+	// fedClient is used to access Federation resources in the host cluster.
+	fedClient fedclientset.Interface
+
+	// kubeClient is used to access Secrets in the host cluster.
 	kubeClient kubeclientset.Interface
-	crClient   crclientset.Interface
+
+	// crClient is used to access the cluster registry in the host cluster.
+	crClient crclientset.Interface
 
 	// clusterMonitorPeriod is the period for updating status of cluster
 	clusterMonitorPeriod time.Duration
 
-	mu              sync.RWMutex
+	mu sync.RWMutex
+
+	// knownClusterSet is the set of clusters known to this controller.
 	knownClusterSet sets.String
-	// clusterClusterStatusMap is a mapping of clusterName and cluster status of last sampling
-	clusterClusterStatusMap map[string]fedv1a1.FederatedClusterStatus
-	// clusterKubeClientMap is a mapping of clusterName and restclient
+
+	// clusterStatusMap is a mapping of clusterName and cluster status as
+	// of last sampling.
+	clusterStatusMap map[string]fedv1a1.FederatedClusterStatus
+
+	// clusterKubeClientMap is a mapping of clusterName and the ClusterClient
+	// for that cluster.
 	clusterKubeClientMap map[string]ClusterClient
 
+	// clusterController is the cache.Controller where callbacks are registered
+	// for events on FederatedClusters.
 	clusterController cache.Controller
 
 	// fedNamespace is the name of the namespace containing
-	// FederatedCluster resources and their associated secrets
+	// FederatedCluster resources and their associated secrets.
 	fedNamespace string
 
-	// clusterNamespace is the namespace containing Cluster resources
+	// clusterNamespace is the namespace containing Cluster resources.
 	clusterNamespace string
 }
 
-// StartClusterController starts a new cluster controller
+// StartClusterController starts a new cluster controller.
 func StartClusterController(config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
 	restclient.AddUserAgent(config, "cluster-controller")
 	fedClient := fedclientset.NewForConfigOrDie(config)
@@ -78,15 +93,15 @@ func StartClusterController(config *restclient.Config, fedNamespace, clusterName
 // newClusterController returns a new cluster controller
 func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string, clusterMonitorPeriod time.Duration) *ClusterController {
 	cc := &ClusterController{
-		knownClusterSet:         make(sets.String),
-		fedClient:               fedClient,
-		kubeClient:              kubeClient,
-		crClient:                crClient,
-		clusterMonitorPeriod:    clusterMonitorPeriod,
-		clusterClusterStatusMap: make(map[string]fedv1a1.FederatedClusterStatus),
-		clusterKubeClientMap:    make(map[string]ClusterClient),
-		fedNamespace:            fedNamespace,
-		clusterNamespace:        clusterNamespace,
+		knownClusterSet:      make(sets.String),
+		fedClient:            fedClient,
+		kubeClient:           kubeClient,
+		crClient:             crClient,
+		clusterMonitorPeriod: clusterMonitorPeriod,
+		clusterStatusMap:     make(map[string]fedv1a1.FederatedClusterStatus),
+		clusterKubeClientMap: make(map[string]ClusterClient),
+		fedNamespace:         fedNamespace,
+		clusterNamespace:     clusterNamespace,
 	}
 	_, cc.clusterController = cache.NewInformer(
 		&cache.ListWatch{
@@ -123,7 +138,7 @@ func (cc *ClusterController) delFromClusterSetByName(clusterName string) {
 	glog.V(1).Infof("ClusterController observed a cluster deletion: %v", clusterName)
 	cc.knownClusterSet.Delete(clusterName)
 	delete(cc.clusterKubeClientMap, clusterName)
-	delete(cc.clusterClusterStatusMap, clusterName)
+	delete(cc.clusterStatusMap, clusterName)
 }
 
 func (cc *ClusterController) addToClusterSet(obj interface{}) {
@@ -178,7 +193,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 			continue
 		}
 		clusterClient, clientFound := cc.clusterKubeClientMap[cluster.Name]
-		clusterStatusOld, statusFound := cc.clusterClusterStatusMap[cluster.Name]
+		clusterStatusOld, statusFound := cc.clusterStatusMap[cluster.Name]
 		cc.mu.RUnlock()
 
 		if !clientFound {
@@ -224,7 +239,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		}
 
 		cc.mu.Lock()
-		cc.clusterClusterStatusMap[cluster.Name] = *clusterStatusNew
+		cc.clusterStatusMap[cluster.Name] = *clusterStatusNew
 		cc.mu.Unlock()
 		cluster.Status = *clusterStatusNew
 		_, err = cc.fedClient.CoreV1alpha1().FederatedClusters(cc.fedNamespace).UpdateStatus(&cluster)
