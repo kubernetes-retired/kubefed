@@ -149,6 +149,11 @@ func main() {
 		if err != nil {
 			glog.Fatalf("Error starting ingress dns controller: %v", err)
 		}
+
+		err = dnsendpoint.StartIngressDNSEndpointController(config, targetNamespace, stopChan, false)
+		if err != nil {
+			glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
+		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
