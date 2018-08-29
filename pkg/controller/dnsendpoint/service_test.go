@@ -14,69 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package servicednsendpoint
+package dnsendpoint
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
-	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 )
 
 const (
 	dnsZone    = "dzone.io"
 	federation = "galactic"
-	name       = "nginx"
-	namespace  = "test"
-
-	c1 = "c1"
-	c2 = "c2"
 
 	c1Region = "us"
 	c2Region = "eu"
-
-	c1Zone = "us1"
-	c2Zone = "eu1"
-
-	lb1 = "10.20.30.1"
-	lb2 = "10.20.30.2"
-	lb3 = "10.20.30.3"
-
-	userConfiguredTTL = 300
+	c1Zone   = "us1"
+	c2Zone   = "eu1"
 )
-
-type NetWrapperMock struct {
-	result map[string][]string
-}
-
-func (mock *NetWrapperMock) LookupHost(host string) (addrs []string, err error) {
-
-	// If nothing to return, return empty list
-	if mock.result == nil || len(mock.result) == 0 {
-		return make([]string, 0), fmt.Errorf("Mock error response")
-	}
-
-	return mock.result[host], nil
-}
-
-func (mock *NetWrapperMock) AddHost(host string, addrs []string) {
-	// Initialise if null
-	if mock.result == nil {
-		mock.result = make(map[string][]string)
-	}
-
-	mock.result[host] = addrs
-}
 
 func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 	// Fake out the internet
 	netmock := &NetWrapperMock{}
-	netmock.AddHost("a9.us-west-2.elb.amazonaws.com", []string{lb3})
+	netmock.AddHost("a9.us-west-2.elb.amazonaws.test", []string{lb3})
 
 	netWrapper = netmock
 
@@ -99,7 +64,7 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				},
 				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{},
 			},
-			expectEndpoints: []*feddnsv1a1.Endpoint{},
+			expectEndpoints: nil,
 			expectError:     false,
 		},
 		"SingleLBInSingleCluster": {
@@ -122,9 +87,9 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				},
 			},
 			expectEndpoints: []*feddnsv1a1.Endpoint{
-				{DNSName: globalDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
+				{DNSName: globalDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
@@ -152,11 +117,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				},
 			},
 			expectEndpoints: []*feddnsv1a1.Endpoint{
-				{DNSName: globalDNSName, Targets: []string{lb1, lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
+				{DNSName: globalDNSName, Targets: []string{lb1, lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
@@ -183,11 +148,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				},
 			},
 			expectEndpoints: []*feddnsv1a1.Endpoint{
-				{DNSName: globalDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c2RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: minDNSTTL},
-				{DNSName: c2ZoneDNSName, Targets: []string{c2RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: minDNSTTL},
+				{DNSName: globalDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{c2RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
@@ -213,10 +178,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				},
 			},
 			expectEndpoints: []*feddnsv1a1.Endpoint{
-				{DNSName: c1RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: minDNSTTL},
-				{DNSName: c1ZoneDNSName, Targets: []string{c1RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: minDNSTTL},
-				{DNSName: c2RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: minDNSTTL},
-				{DNSName: c2ZoneDNSName, Targets: []string{c2RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: minDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{c1RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{c2RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
@@ -234,7 +199,7 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
-							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{Hostname: "a9.us-west-2.elb.amazonaws.com"}}},
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{Hostname: "a9.us-west-2.elb.amazonaws.test"}}},
 						},
 						{
 							Cluster: c2, Zone: c2Zone, Region: c2Region,
@@ -244,11 +209,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				},
 			},
 			expectEndpoints: []*feddnsv1a1.Endpoint{
-				{DNSName: globalDNSName, Targets: []string{lb2, lb3}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1RegionDNSName, Targets: []string{lb3}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c1ZoneDNSName, Targets: []string{lb3}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
-				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: minDNSTTL},
+				{DNSName: globalDNSName, Targets: []string{lb2, lb3}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb3}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb3}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
@@ -283,7 +248,7 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			endpoints, err := GetEndpointsForServiceDNSObject(&tc.dnsObject)
+			endpoints, err := getServiceDNSEndpoints(&tc.dnsObject)
 			if tc.expectError == false && err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			} else if tc.expectError == true && err == nil {
@@ -293,11 +258,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				return tc.expectEndpoints[i].DNSName < tc.expectEndpoints[j].DNSName
 			})
 			if !reflect.DeepEqual(endpoints, tc.expectEndpoints) {
-				t.Logf("Expected endpoints")
+				t.Logf("Expected endpoints: %#v", tc.expectEndpoints)
 				for _, ep := range tc.expectEndpoints {
 					t.Logf("%+v", ep)
 				}
-				t.Logf("Actual endpoints")
+				t.Logf("Actual endpoints: %#v", endpoints)
 				for _, ep := range endpoints {
 					t.Logf("%+v", ep)
 				}

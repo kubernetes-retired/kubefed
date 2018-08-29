@@ -35,12 +35,12 @@ import (
 	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
@@ -138,7 +138,7 @@ func main() {
 			glog.Fatalf("Error starting dns controller: %v", err)
 		}
 
-		err = servicednsendpoint.StartController(config, targetNamespace, stopChan, false)
+		err = dnsendpoint.StartServiceDNSEndpointController(config, targetNamespace, stopChan, false)
 		if err != nil {
 			glog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}

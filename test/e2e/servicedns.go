@@ -30,7 +30,7 @@ import (
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	dnsv1a1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -96,9 +96,8 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 
 	Context("When ServiceDNS object is created", func() {
 		const (
-			RecordTypeA     = "A"
-			RecordTypeCNAME = "CNAME"
-			RecordTTL       = 300
+			RecordTypeA = "A"
+			RecordTTL   = 300
 		)
 		federation := "galactic"
 		dnsZone := "dzone.io"
@@ -124,7 +123,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 			By("Waiting for the DNSEndpoint object to be created")
-			objectGetter = func(namespace, name string) (pkgruntime.Object, error) {
+			endpointObjectGetter := func(namespace, name string) (pkgruntime.Object, error) {
 				return fedClient.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Get(name, metav1.GetOptions{})
 			}
 
@@ -132,32 +131,32 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 			for _, cluster := range serviceDNS.Status.DNS {
 				zone := clusterRegionZones[cluster.Cluster].Zone
 				region := clusterRegionZones[cluster.Cluster].Region
-				lbs := servicednsendpoint.ExtractLoadBalancerTargets(cluster.LoadBalancer)
+				lbs := dnsendpoint.ExtractLoadBalancerTargets(cluster.LoadBalancer)
 
-				endpoint := newEndpoint(
+				endpoint := common.NewDNSEndpoint(
 					strings.Join([]string{name, namespace, federation, "svc", zone, region, dnsZone}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
-				endpoint = newEndpoint(
+				endpoint = common.NewDNSEndpoint(
 					strings.Join([]string{name, namespace, federation, "svc", region, dnsZone}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
-				endpoint = newEndpoint(
+				endpoint = common.NewDNSEndpoint(
 					strings.Join([]string{name, namespace, federation, "svc", dnsZone}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 			}
 			desiredDNSEndpoint := &dnsv1a1.DNSEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
+					Name:      "service-" + name,
 					Namespace: namespace,
 				},
 				Spec: dnsv1a1.DNSEndpointSpec{
-					Endpoints: servicednsendpoint.DedupeAndMergeEndpoints(endpoints),
+					Endpoints: dnsendpoint.DedupeAndMergeEndpoints(endpoints),
 				},
 			}
 
-			common.WaitForObject(tl, namespace, name, objectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+			common.WaitForObject(tl, namespace, "service-"+name, endpointObjectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 		})
 	})
 })
@@ -209,15 +208,4 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	})
 
 	return serviceDNSStatus
-}
-
-func newEndpoint(dnsName string, targets []string, recordType string, recordTTL dnsv1a1.TTL) *dnsv1a1.Endpoint {
-	endpoint := dnsv1a1.Endpoint{
-		DNSName:    dnsName,
-		Targets:    targets,
-		RecordType: recordType,
-		RecordTTL:  recordTTL,
-	}
-
-	return &endpoint
 }
