@@ -67,6 +67,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	// To help debugging, immediately log version.
+	glog.Infof("Version: %+v", version.Get())
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
