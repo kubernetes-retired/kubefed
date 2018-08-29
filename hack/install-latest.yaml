@@ -930,7 +930,7 @@ spec:
   names:
     kind: FederatedTypeConfig
     plural: federatedtypeconfigs
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       properties:
