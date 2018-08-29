@@ -74,6 +74,10 @@ func NewIngressDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 	if err != nil {
 		tl.Fatalf("Error starting ingress dns controller: %v", err)
 	}
+	err = dnsendpoint.StartIngressDNSEndpointController(config, targetNamespace, f.stopChan, true)
+	if err != nil {
+		tl.Fatalf("Error starting ingress dns endpoint controller: %v", err)
+	}
 	return f
 }
 
