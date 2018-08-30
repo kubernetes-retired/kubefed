@@ -40,7 +40,9 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	template.SetNamespace(namespace)
+	if typeConfig.GetNamespaced() {
+		template.SetNamespace(namespace)
+	}
 	template.SetName("")
 	template.SetGenerateName("test-crud-")
 
