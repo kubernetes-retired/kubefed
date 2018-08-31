@@ -420,6 +420,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	templateKind := s.typeConfig.GetTemplate().Kind
 	key := qualifiedName.String()
+	placementKey := key
 	namespace := qualifiedName.Namespace
 
 	targetKind := s.typeConfig.GetTarget().Kind
@@ -430,6 +431,24 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// clusterregistry.
 		if isSystemNamespace(s.fedNamespace, namespace) {
 			return util.StatusAllOK
+		}
+
+		// TODO(font): Consider how best to deal with qualifiedName keys for
+		// cluster-scoped template resources whose placement and/or override
+		// resources are namespace-scoped e.g. Namespaces. For now, update the
+		// Namespace template and placement keys depending on if we are
+		// reconciling due to a Namespace or FederatedNamespacePlacement
+		// update. This insures we will successfully retrieve the Namespace
+		// template or placement objects from the cache by using the proper
+		// cluster-scoped or namespace-scoped key.
+		if qualifiedName.Namespace == "" {
+			qualifiedName.Namespace = qualifiedName.Name
+			placementKey = qualifiedName.String()
+			glog.V(4).Infof("Received Namespace update for %v. Using placement key %v", key, placementKey)
+		} else if qualifiedName.Namespace != "" {
+			qualifiedName.Namespace = ""
+			key = qualifiedName.String()
+			glog.V(4).Infof("Received FederatedNamespacePlacement update for %v. Using template key %v", placementKey, key)
 		}
 	}
 
@@ -471,9 +490,9 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusNotSynced
 	}
 
-	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(key, clusterNames)
+	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(placementKey, clusterNames)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", templateKind, key, err))
+		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", templateKind, placementKey, err))
 		return util.StatusError
 	}
 
