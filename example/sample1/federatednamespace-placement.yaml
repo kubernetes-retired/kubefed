@@ -5,6 +5,7 @@ items:
   kind: FederatedNamespacePlacement
   metadata:
     name: test-namespace
+    namespace: test-namespace
   spec:
     clusternames:
     - cluster1
