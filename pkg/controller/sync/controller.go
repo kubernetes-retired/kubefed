@@ -430,6 +430,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// to not propagate beyond just the default system namespaces e.g.
 		// clusterregistry.
 		if isSystemNamespace(s.fedNamespace, namespace) {
+			glog.V(4).Infof("Ignoring system namespace %v", namespace)
 			return util.StatusAllOK
 		}
 
@@ -461,6 +462,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusError
 	}
 	if template == nil {
+		glog.V(4).Infof("No template for %v %v found", templateKind, key)
 		return util.StatusAllOK
 	}
 
