@@ -321,8 +321,8 @@ successfully verified a working federation-v2 deployment.
 To cleanup the example simply delete the namespace and its placement:
 
 ```bash
+kubectl -n test-namespace delete federatednamespaceplacement test-namespace
 kubectl delete ns test-namespace
-kubectl delete federatednamespaceplacement test-namespace
 ```
 
 ## Cleanup
