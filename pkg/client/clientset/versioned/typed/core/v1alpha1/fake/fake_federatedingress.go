@@ -62,7 +62,7 @@ func (c *FakeFederatedIngresses) List(opts v1.ListOptions) (result *v1alpha1.Fed
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedIngressList{}
+	list := &v1alpha1.FederatedIngressList{ListMeta: obj.(*v1alpha1.FederatedIngressList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedIngressList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

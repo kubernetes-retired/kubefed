@@ -62,7 +62,7 @@ func (c *FakeFederatedJobs) List(opts v1.ListOptions) (result *v1alpha1.Federate
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedJobList{}
+	list := &v1alpha1.FederatedJobList{ListMeta: obj.(*v1alpha1.FederatedJobList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedJobList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
