@@ -28,6 +28,13 @@ type FederatedJobSpec struct {
 
 // FederatedJobStatus defines the observed state of FederatedJob
 type FederatedJobStatus struct {
+	ClusterStatuses []FederatedJobClusterStatus `json:"clusterStatuses,omitempty"`
+}
+
+// FederatedJobClusterStatus is the observed status for a named cluster
+type FederatedJobClusterStatus struct {
+	ClusterName string            `json:"clusterName,omitempty"`
+	Status      batchv1.JobStatus `json:"status,omitempty"`
 }
 
 // +genclient

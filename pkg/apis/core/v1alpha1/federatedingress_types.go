@@ -29,6 +29,13 @@ type FederatedIngressSpec struct {
 
 // FederatedIngressStatus defines the observed state of FederatedIngress
 type FederatedIngressStatus struct {
+	ClusterStatuses []FederatedIngressClusterStatus `json:"clusterStatuses,omitempty"`
+}
+
+// FederatedIngressClusterStatus is the observed status for a named cluster
+type FederatedIngressClusterStatus struct {
+	ClusterName string                `json:"clusterName,omitempty"`
+	Status      extv1b1.IngressStatus `json:"status,omitempty"`
 }
 
 // +genclient
