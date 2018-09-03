@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
+	"github.com/golang/glog"
 	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
@@ -67,12 +67,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	// To help debugging, immediately log version.
+	glog.Infof("Version: %+v", version.Get())
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
 	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
 	if err != nil {
-		log.Fatalf("Invalid Feature Gate: %v", err)
+		glog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
 	stopChan := signals.SetupSignalHandler()
@@ -81,7 +84,7 @@ func main() {
 
 	if *installCRDs {
 		if err := install.NewInstaller(config).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
-			log.Fatalf("Could not create CRDs: %v", err)
+			glog.Fatalf("Could not create CRDs: %v", err)
 		}
 	}
 
@@ -98,7 +101,7 @@ func main() {
 		for kind, schedulingType := range schedulingtypes.SchedulingTypes() {
 			err = schedulingpreference.StartSchedulingPreferenceController(kind, schedulingType.SchedulerFactory, config, fedNamespace, clusterNamespace, targetNamespace, stopChan, true)
 			if err != nil {
-				log.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
+				glog.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
 			}
 		}
 	}
@@ -106,19 +109,19 @@ func main() {
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
 		err = servicedns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, false)
 		if err != nil {
-			log.Fatalf("Error starting dns controller: %v", err)
+			glog.Fatalf("Error starting dns controller: %v", err)
 		}
 
 		err = servicednsendpoint.StartController(config, stopChan, false)
 		if err != nil {
-			log.Fatalf("Error starting dns endpoint controller: %v", err)
+			glog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
 		err = ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, false)
 		if err != nil {
-			log.Fatalf("Error starting ingress dns controller: %v", err)
+			glog.Fatalf("Error starting ingress dns controller: %v", err)
 		}
 	}
 
@@ -136,7 +139,7 @@ func main() {
 		// RunAll will never return - wrap in goroutine to avoid blocking
 		go func() {
 			if err := inject.RunAll(run.RunArguments{Stop: stopChan}, args.CreateInjectArgs(config)); err != nil {
-				log.Fatalf("%v", err)
+				glog.Fatalf("%v", err)
 			}
 		}()
 	}
