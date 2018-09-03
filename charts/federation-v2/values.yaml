@@ -1,0 +1,30 @@
+# Default values for federation-v2.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+## Configuration values for federation v2 controllermanager statefulset.
+## TODO(gyliu513): Add more parameters here like `feature-gates` etc.
+##
+controllermanager:
+  replicaCount: 1
+  repository: quay.io/kubernetes-multicluster
+  image: federation-v2
+  tag: canary
+  pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+## Configuration values for federation v2 clusterregistry.
+##
+clusterregistry:
+  enabled: true
+
+## Configuration values for federation v2 federatedtypes.
+##
+federatedtypes:
+  enabled: true
