@@ -114,7 +114,9 @@ func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, c
 		return nil, err
 	}
 	placementAPIResource := typeConfig.GetPlacement()
-	placement.SetNamespace(namespace)
+	if typeConfig.GetNamespaced() {
+		placement.SetNamespace(namespace)
+	}
 	placement.SetKind(placementAPIResource.Kind)
 	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
 	err = util.SetClusterNames(placement, clusterNames)
