@@ -18,6 +18,8 @@ package sync
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -620,20 +622,40 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 
 	propagatedClusterVersions := getClusterVersions(template, override, propagatedVersion)
 
-	operations, err := s.clusterOperations(selectedClusters, unselectedClusters, template,
-		override, key, propagatedClusterVersions)
+	operations, federatedStatus, err := s.clusterOperations(selectedClusters, unselectedClusters, template,
+		override, key, propagatedClusterVersions, s.typeConfig.GetCollectStatus())
 	if err != nil {
 		s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "FedClusterOperationsError",
 			"Error obtaining sync operations for %s: %s error: %s", templateKind, key, err.Error())
 		return util.StatusError
 	}
 
-	if len(operations) == 0 {
-		return util.StatusAllOK
-	}
-
 	// TODO(marun) raise the visibility of operationErrors to aid in debugging
 	updatedClusterVersions, operationErrors := s.updater.Update(operations)
+
+	if s.typeConfig.GetCollectStatus() {
+		federatedResource := util.FederatedResource{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       template.GetKind(),
+				APIVersion: template.GetAPIVersion(),
+			},
+			Status: federatedStatus.(util.FederatedResourceStatus),
+		}
+		updatedResource, err := util.GetUnstructured(federatedResource)
+		if err != nil {
+			glog.Errorf("Failed to convert to Unstructured: %s %q: %v", templateKind, key, err)
+			return util.StatusError
+		}
+
+		if !reflect.DeepEqual(template.Object["status"], updatedResource.Object["status"]) {
+			template.Object["status"] = updatedResource.Object["status"]
+			template, err = s.templateClient.Resources(template.GetNamespace()).Update(template)
+			if err != nil {
+				runtime.HandleError(fmt.Errorf("Failed to update status for federated type %s %q: %v", templateKind, key, err))
+				return util.StatusNeedsRecheck
+			}
+		}
+	}
 
 	defer func() {
 		err = updatePropagatedVersion(s.typeConfig, s.fedClient, updatedClusterVersions, template, override,
@@ -685,7 +707,7 @@ func getClusterVersions(template, override *unstructured.Unstructured, propagate
 // updatePropagatedVersion handles creating or updating the propagated version
 // resource in the federation API.
 func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclientset.Interface,
-	updatedVersions map[string]string, template, override *unstructured.Unstructured,
+	updatedClusterVersions map[string]string, template, override *unstructured.Unstructured,
 	version *fedv1a1.PropagatedVersion, selectedClusters []string,
 	pendingVersionUpdates *sync.Map) error {
 
@@ -695,42 +717,27 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 	}
 
 	if version == nil {
-		version := newVersion(updatedVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
-		createdVersion, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
+		version = newVersion(updatedClusterVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
+		var err error
+		version, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
 		if err != nil {
 			return err
 		}
-
-		key := util.NewQualifiedName(createdVersion).String()
-		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
-		pendingVersionUpdates.Store(key, true)
-
-		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(createdVersion)
-		if err != nil {
-			pendingVersionUpdates.Delete(key)
-		}
-		return err
-	}
-
-	oldVersionStatus := version.Status
-	templateVersion := template.GetResourceVersion()
-	var existingVersions []fedv1a1.ClusterObjectVersion
-	if version.Status.TemplateVersion == templateVersion && version.Status.OverrideVersion == overrideVersion {
-		existingVersions = version.Status.ClusterVersions
 	} else {
-		version.Status.TemplateVersion = templateVersion
+		oldVersionStatus := version.Status
+		version.Status.TemplateVersion = template.GetResourceVersion()
 		version.Status.OverrideVersion = overrideVersion
-		existingVersions = []fedv1a1.ClusterObjectVersion{}
-	}
-	version.Status.ClusterVersions = clusterVersions(updatedVersions, existingVersions, selectedClusters)
+		version.Status.ClusterVersions = clusterVersions(updatedClusterVersions, version.Status.ClusterVersions, selectedClusters)
 
-	if util.PropagatedVersionStatusEquivalent(&oldVersionStatus, &version.Status) {
-		glog.V(4).Infof("No PropagatedVersion update necessary for %s %q",
-			typeConfig.GetTemplate().Kind, util.NewQualifiedName(template).String())
-		return nil
+		if util.PropagatedVersionStatusEquivalent(&oldVersionStatus, &version.Status) {
+			glog.V(4).Infof("No PropagatedVersion update necessary for %s %q",
+				typeConfig.GetTemplate().Kind, util.NewQualifiedName(template).String())
+			return nil
+		}
 	}
 
 	key := util.NewQualifiedName(version).String()
+	// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
 	pendingVersionUpdates.Store(key, true)
 
 	_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
@@ -808,15 +815,16 @@ func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.Cluste
 // state of the given object to the provided clusters.
 func (s *FederationSyncController) clusterOperations(selectedClusters, unselectedClusters []string,
 	template, override *unstructured.Unstructured, key string,
-	clusterVersions map[string]string) ([]util.FederatedOperation, error) {
+	clusterVersions map[string]string, collectStatus bool) ([]util.FederatedOperation, interface{}, error) {
 
 	operations := make([]util.FederatedOperation, 0)
+	federatedResourceStatus := util.FederatedResourceStatus{}
 
 	targetKind := s.typeConfig.GetTarget().Kind
 	for _, clusterName := range selectedClusters {
 		desiredObj, err := s.objectForCluster(template, override, clusterName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// TODO(marun) Wait until result of add operation has reached
@@ -827,7 +835,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		if err != nil {
 			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", targetKind, key, clusterName, err)
 			runtime.HandleError(wrappedErr)
-			return nil, wrappedErr
+			return nil, nil, wrappedErr
 		}
 
 		var operationType util.FederatedOperationType = ""
@@ -852,7 +860,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 			if err != nil {
 				wrappedErr := fmt.Errorf("Failed to determine desired object %s %q for cluster %q: %v", targetKind, key, clusterName, err)
 				runtime.HandleError(wrappedErr)
-				return nil, wrappedErr
+				return nil, nil, wrappedErr
 			}
 
 			version, ok := clusterVersions[clusterName]
@@ -870,6 +878,17 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 					operationType = util.OperationTypeUpdate
 				} else if !s.comparisonHelper.Equivalent(desiredObj, clusterObj) {
 					operationType = util.OperationTypeUpdate
+				}
+			}
+
+			if collectStatus {
+				status, ok, err := unstructured.NestedMap(clusterObj.Object, "status")
+				if err != nil || !ok {
+					wrappedErr := fmt.Errorf("Failed to get status of cluster resource object %s %q for cluster %q: %v", targetKind, key, clusterName, err)
+					runtime.HandleError(wrappedErr)
+				} else {
+					resourceClusterStatus := util.ResourceClusterStatus{ClusterName: clusterName, Status: status}
+					federatedResourceStatus.ClusterStatuses = append(federatedResourceStatus.ClusterStatuses, resourceClusterStatus)
 				}
 			}
 		} else {
@@ -891,7 +910,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		if err != nil {
 			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", targetKind, key, clusterName, err)
 			runtime.HandleError(wrappedErr)
-			return nil, wrappedErr
+			return nil, nil, wrappedErr
 		}
 		if found {
 			operations = append(operations, util.FederatedOperation{
@@ -903,7 +922,13 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		}
 	}
 
-	return operations, nil
+	if collectStatus {
+		sort.Slice(federatedResourceStatus.ClusterStatuses, func(i, j int) bool {
+			return federatedResourceStatus.ClusterStatuses[i].ClusterName < federatedResourceStatus.ClusterStatuses[j].ClusterName
+		})
+		return operations, federatedResourceStatus, nil
+	}
+	return operations, nil, nil
 }
 
 func (s *FederationSyncController) objectForCluster(template, override *unstructured.Unstructured, clusterName string) (*unstructured.Unstructured, error) {
