@@ -209,8 +209,8 @@ Follow these instructions for running an example to verify your deployment is
 working. The example will create a test namespace with a
 `federatednamespaceplacement` resource as well as federated template,
 override, and placement resources for the following k8s resources: `configmap`,
-`secret`, and `deployment`. It will then show how to update the
-`federatednamespaceplacement` resource to move resources.
+`secret`, `deployment`, `service` and `serviceaccount`. It will then show how
+to update the `federatednamespaceplacement` resource to move resources.
 
 ### Create the Test Namespace
 
@@ -234,9 +234,9 @@ kubectl apply -R -f example/sample1
 Check the status of all the resources in each cluster by running:
 
 ```bash
-for r in configmaps secrets service deploy; do
+for r in configmaps secrets service deployment serviceaccount; do
     for c in cluster1 cluster2; do
-        echo; echo ------------ ${c} ------------; echo
+        echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
@@ -269,9 +269,9 @@ kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 Then wait to verify all resources are removed from `cluster2`:
 
 ```bash
-for r in configmaps secrets service deploy; do
+for r in configmaps secrets service deployment serviceaccount; do
     for c in cluster1 cluster2; do
-        echo; echo ------------ ${c} ------------; echo
+        echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
