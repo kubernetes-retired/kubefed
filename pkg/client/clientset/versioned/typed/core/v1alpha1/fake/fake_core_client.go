@@ -112,6 +112,10 @@ func (c *FakeCoreV1alpha1) FederatedServiceAccounts(namespace string) v1alpha1.F
 	return &FakeFederatedServiceAccounts{c, namespace}
 }
 
+func (c *FakeCoreV1alpha1) FederatedServiceAccountPlacements(namespace string) v1alpha1.FederatedServiceAccountPlacementInterface {
+	return &FakeFederatedServiceAccountPlacements{c, namespace}
+}
+
 func (c *FakeCoreV1alpha1) FederatedServicePlacements(namespace string) v1alpha1.FederatedServicePlacementInterface {
 	return &FakeFederatedServicePlacements{c, namespace}
 }

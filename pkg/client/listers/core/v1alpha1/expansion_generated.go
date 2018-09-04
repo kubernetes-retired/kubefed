@@ -186,6 +186,14 @@ type FederatedServiceAccountListerExpansion interface{}
 // FederatedServiceAccountNamespaceLister.
 type FederatedServiceAccountNamespaceListerExpansion interface{}
 
+// FederatedServiceAccountPlacementListerExpansion allows custom methods to be added to
+// FederatedServiceAccountPlacementLister.
+type FederatedServiceAccountPlacementListerExpansion interface{}
+
+// FederatedServiceAccountPlacementNamespaceListerExpansion allows custom methods to be added to
+// FederatedServiceAccountPlacementNamespaceLister.
+type FederatedServiceAccountPlacementNamespaceListerExpansion interface{}
+
 // FederatedServicePlacementListerExpansion allows custom methods to be added to
 // FederatedServicePlacementLister.
 type FederatedServicePlacementListerExpansion interface{}

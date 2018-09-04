@@ -21,6 +21,7 @@ import (
 	schedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	rscheme "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/scheme"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedserviceaccount"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedserviceaccountplacement"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -98,6 +99,9 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceAccount{}, arguments.Informers.Core().V1alpha1().FederatedServiceAccounts()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceAccountPlacement{}, arguments.Informers.Core().V1alpha1().FederatedServiceAccountPlacements()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServicePlacement{}, arguments.Informers.Core().V1alpha1().FederatedServicePlacements()); err != nil {
 			return err
 		}
@@ -127,6 +131,11 @@ func init() {
 		} else {
 			arguments.ControllerManager.AddController(c)
 		}
+		if c, err := federatedserviceaccountplacement.ProvideController(arguments); err != nil {
+			return err
+		} else {
+			arguments.ControllerManager.AddController(c)
+		}
 		return nil
 	})
 
@@ -152,6 +161,7 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedSecretPlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountCRD)
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountPlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServicePlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)
