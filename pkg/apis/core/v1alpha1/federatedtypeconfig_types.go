@@ -58,6 +58,9 @@ type FederatedTypeConfigSpec struct {
 	// entry in the path should be the name of the field in the override type.
 	// +optional
 	OverridePath []string `json:"overridePath,omitempty"`
+	// Whether or not federation should collect status from cluster resource.
+	// +optional
+	CollectStatus bool `json:"collectStatus,omitempty"`
 }
 
 // APIResource defines how to configure the dynamic client for an API resource.
@@ -195,6 +198,10 @@ func (f *FederatedTypeConfig) GetOverridePath() []string {
 	overridePath := make([]string, len(f.Spec.OverridePath))
 	copy(overridePath, f.Spec.OverridePath)
 	return overridePath
+}
+
+func (f *FederatedTypeConfig) GetCollectStatus() bool {
+	return f.Spec.CollectStatus
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {

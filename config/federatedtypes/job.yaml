@@ -20,3 +20,4 @@ spec:
   overridePath:
     - spec
     - parallelism
+  collectStatus: true
