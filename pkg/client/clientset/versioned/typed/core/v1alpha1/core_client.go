@@ -47,6 +47,7 @@ type CoreV1alpha1Interface interface {
 	FederatedSecretOverridesGetter
 	FederatedSecretPlacementsGetter
 	FederatedServicesGetter
+	FederatedServiceAccountsGetter
 	FederatedServicePlacementsGetter
 	FederatedTypeConfigsGetter
 	PropagatedVersionsGetter
@@ -135,6 +136,10 @@ func (c *CoreV1alpha1Client) FederatedSecretPlacements(namespace string) Federat
 
 func (c *CoreV1alpha1Client) FederatedServices(namespace string) FederatedServiceInterface {
 	return newFederatedServices(c, namespace)
+}
+
+func (c *CoreV1alpha1Client) FederatedServiceAccounts(namespace string) FederatedServiceAccountInterface {
+	return newFederatedServiceAccounts(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) FederatedServicePlacements(namespace string) FederatedServicePlacementInterface {

@@ -58,6 +58,8 @@ type FederatedSecretPlacementExpansion interface{}
 
 type FederatedServiceExpansion interface{}
 
+type FederatedServiceAccountExpansion interface{}
+
 type FederatedServicePlacementExpansion interface{}
 
 type FederatedTypeConfigExpansion interface{}
