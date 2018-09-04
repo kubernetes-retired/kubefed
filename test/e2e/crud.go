@@ -255,7 +255,8 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig, namespaceTypeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
 	// Initialize in-memory controllers if configuration requires
 	f.SetUpControllerFixture(typeConfig)
-	if typeConfig.GetTarget().Kind != util.NamespaceKind {
+	if typeConfig.GetTarget().Kind != util.NamespaceKind &&
+		framework.TestContext.TargetNamespace() == metav1.NamespaceAll {
 		// The namespace controller is required to ensure namespaces
 		// are created as needed in member clusters in advance of
 		// propagation of other namespaced types.
