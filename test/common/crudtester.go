@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -344,7 +345,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		return
 	}
 
-	version, err := c.waitForPropagatedVersion(template, placement, override)
+	version, newTemplate, err := c.waitForPropagatedVersion(template, placement, override)
 	if err != nil {
 		c.tl.Fatalf("Error waiting for propagated version for %s %q: %v", targetKind, qualifiedName, err)
 	}
@@ -370,6 +371,35 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 			case err != nil:
 				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
+			}
+
+			if c.typeConfig.GetCollectStatus() {
+				status, found, err := unstructured.NestedMap(newTemplate.Object, "status")
+				if !found || err != nil {
+					c.tl.Fatalf("Failed to get status for the federated resource object %s %q: %v", targetKind, qualifiedName, err)
+				}
+				unstructuredStatus := unstructured.Unstructured{status}
+				content, err := unstructuredStatus.MarshalJSON()
+				if err != nil {
+					c.tl.Fatalf("Failed to get json for the federated resource object %s %q: %v", targetKind, qualifiedName, err)
+				}
+
+				resourceStatus := util.FederatedResourceStatus{}
+				err = json.Unmarshal(content, &resourceStatus)
+				if err != nil {
+					c.tl.Fatalf("Failed to json unmarshal federated resource object %s %q: %v", targetKind, qualifiedName, err)
+				}
+
+				statusFound := false
+				for _, resourceClusterStatus := range resourceStatus.ClusterStatuses {
+					if resourceClusterStatus.ClusterName == clusterName {
+						statusFound = true
+						break
+					}
+				}
+				if !statusFound {
+					c.tl.Fatalf("Federated Status not updated for resource %s %q: %v", targetKind, qualifiedName, err)
+				}
 			}
 		} else {
 			if expectedVersion != "" {
@@ -436,7 +466,7 @@ func (c *FederatedTypeCrudTester) updateFedObject(apiResource metav1.APIResource
 	return obj, err
 }
 
-func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override *unstructured.Unstructured) (*fedv1a1.PropagatedVersion, error) {
+func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override *unstructured.Unstructured) (*fedv1a1.PropagatedVersion, *unstructured.Unstructured, error) {
 	targetKind := c.typeConfig.GetTarget().Kind
 
 	overrideVersion := ""
@@ -466,6 +496,7 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 	client := c.fedResourceClient(c.typeConfig.GetTemplate())
 
 	var version *fedv1a1.PropagatedVersion
+	var updatedTemplate *unstructured.Unstructured
 	err = wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		var err error
 		version, err = c.fedClient.CoreV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
@@ -486,15 +517,16 @@ func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, 
 				propagatedClusters.Insert(clusterVersion.ClusterName)
 			}
 			if propagatedClusters.Equal(selectedClusters) {
+				updatedTemplate = template
 				return true, nil
 			}
 		}
 		return false, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return version, nil
+	return version, updatedTemplate, nil
 }
 
 func (c *FederatedTypeCrudTester) getPrimaryClusterName() string {
