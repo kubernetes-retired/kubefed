@@ -454,16 +454,16 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 			saName, joiningClusterName)
 	}
 
-	glog.V(2).Infof("Creating healthz cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+	glog.V(2).Infof("Creating common cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	err = createHealthzRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun)
+	err = createCommonClusterRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating healthz cluster role and binding for service account: %s in joining cluster: %s due to: %v",
+		glog.V(2).Infof("Error creating common cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 			saName, joiningClusterName, err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Created healthz cluster role and binding for service account: %s in joining cluster: %s",
+	glog.V(2).Infof("Created common cluster role and binding for service account: %s in joining cluster: %s",
 		saName, joiningClusterName)
 
 	glog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
@@ -606,15 +606,15 @@ func createNamespacedRoleAndBinding(clientset client.Interface, saName, namespac
 	return nil
 }
 
-// createHealthzRoleAndBinding creates an RBAC cluster role and
+// createCommonClusterRoleAndBinding creates an RBAC cluster role and
 // binding that allows the service account identified by saName to
 // access the health check path of the cluster.
-func createHealthzRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun bool) error {
+func createCommonClusterRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
 
-	roleName := util.HealthzRoleName(saName)
+	roleName := util.CommonClusterRoleName(saName)
 
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -625,11 +625,18 @@ func createHealthzRoleAndBinding(clientset client.Interface, saName, namespace, 
 				Verbs:           []string{"Get"},
 				NonResourceURLs: []string{"/healthz"},
 			},
+			// The cluster client expects to be able to list nodes to retrieve zone and region details.
+			// TODO(marun) Consider making zone/region retrieval optional
+			{
+				Verbs:     []string{"list"},
+				APIGroups: []string{""},
+				Resources: []string{"nodes"},
+			},
 		},
 	}
 	_, err := clientset.RbacV1().ClusterRoles().Create(role)
 	if err != nil {
-		glog.V(2).Infof("Could not create healthz cluster role for service account: %s in joining cluster: %s due to: %v",
+		glog.V(2).Infof("Could not create common cluster role for service account: %s in joining cluster: %s due to: %v",
 			saName, clusterName, err)
 		return err
 	}
@@ -647,7 +654,7 @@ func createHealthzRoleAndBinding(clientset client.Interface, saName, namespace, 
 	}
 	_, err = clientset.RbacV1().ClusterRoleBindings().Create(&binding)
 	if err != nil {
-		glog.V(2).Infof("Could not create healthz cluster role binding for service account: %s in joining cluster: %s due to: %v",
+		glog.V(2).Infof("Could not create common cluster role binding for service account: %s in joining cluster: %s due to: %v",
 			saName, clusterName, err)
 		return err
 	}
