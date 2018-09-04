@@ -104,8 +104,10 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 			By("Waiting for the IngressDNS object to have correct status")
 			common.WaitForObject(tl, namespace, name, objectGetter, ingressDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
-			By("Deleting test namespace in member clusters")
-			cleanup(f, namespace)
+			if !framework.TestContext.LimitedScope {
+				By("Deleting test namespace in member clusters")
+				cleanup(f, namespace)
+			}
 		})
 	})
 })
@@ -123,14 +125,18 @@ func createClusterIngress(f framework.FederationFramework, name, namespace strin
 		lbStatus := apiv1.LoadBalancerStatus{Ingress: []apiv1.LoadBalancerIngress{{IP: clusterLb}}}
 		ingressDNSStatus.DNS = append(ingressDNSStatus.DNS, dnsv1a1.ClusterIngressDNS{Cluster: clusterName, LoadBalancer: lbStatus})
 
-		// Ensure the test namespace exists in the target cluster.
-		_, err := client.CoreV1().Namespaces().Create(&apiv1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-			},
-		})
-		if !errors.IsAlreadyExists(err) {
-			framework.ExpectNoError(err, "Error creating namespace in cluster %q", clusterName)
+		// Ensure the test namespace exists in the target cluster if
+		// not running namespaced.  When namespaced, join will ensure
+		// that the namespace exists.
+		if !framework.TestContext.LimitedScope {
+			_, err := client.CoreV1().Namespaces().Create(&apiv1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespace,
+				},
+			})
+			if !errors.IsAlreadyExists(err) {
+				framework.ExpectNoError(err, "Error creating namespace in cluster %q", clusterName)
+			}
 		}
 
 		createdIngress, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(ingress)
