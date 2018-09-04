@@ -119,3 +119,10 @@ func ClusterServiceAccountName(joiningClusterName, hostClusterName string) strin
 func RoleName(serviceAccountName string) string {
 	return fmt.Sprintf("federation-controller-manager:%s", serviceAccountName)
 }
+
+// HealthzRoleName returns the name of a ClusterRole and its
+// associated ClusterRoleBinding that is used to allow the service
+// account to check the health of the cluster.
+func HealthzRoleName(serviceAccountName string) string {
+	return fmt.Sprintf("federation-controller-manager:healthz-%s", serviceAccountName)
+}
