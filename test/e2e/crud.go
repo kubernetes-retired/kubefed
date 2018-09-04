@@ -93,6 +93,11 @@ var _ = Describe("Federated types", func() {
 
 	Describe("CRD resources", func() {
 		It("should be created, read, updated and deleted successfully", func() {
+			if framework.TestContext.LimitedScope {
+				// TODO(marun) Revisit this if federation of crds (nee
+				// cr/instances of crds) ever becomes a thing.
+				framework.Skipf("Validation of cr federation is not supported for namespaced federation.")
+			}
 
 			// TODO(marun) Is there a better way to create crd's from code?
 
