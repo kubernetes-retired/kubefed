@@ -57,7 +57,8 @@ type FederationFramework interface {
 	// Initialize and cleanup in-memory controller (useful for debugging)
 	SetUpControllerFixture(typeConfig typeconfig.Interface)
 
-	SetUpDNSControllerFixture()
+	SetUpServiceDNSControllerFixture()
+	SetUpIngressDNSControllerFixture()
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -173,6 +174,10 @@ func createNamespace(client kubeclientset.Interface, baseName string) (string, e
 	return namespaceName, nil
 }
 
-func (f *frameworkWrapper) SetUpDNSControllerFixture() {
-	f.framework().SetUpDNSControllerFixture()
+func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {
+	f.framework().SetUpServiceDNSControllerFixture()
+}
+
+func (f *frameworkWrapper) SetUpIngressDNSControllerFixture() {
+	f.framework().SetUpIngressDNSControllerFixture()
 }

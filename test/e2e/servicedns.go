@@ -68,7 +68,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 				Zone:   cluster.Status.Zone,
 			}
 		}
-		f.SetUpDNSControllerFixture()
+		f.SetUpServiceDNSControllerFixture()
 	})
 
 	It("ServiceDNS object status should be updated correctly when there are no service and/or endpoint in member clusters", func() {

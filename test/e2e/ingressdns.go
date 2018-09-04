@@ -53,7 +53,7 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
-		f.SetUpDNSControllerFixture()
+		f.SetUpIngressDNSControllerFixture()
 		namespace = f.TestNamespaceName()
 		dnsClient = fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(namespace)
 	})
