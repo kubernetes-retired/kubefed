@@ -20,21 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the FederatedServiceAccountPlacement resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // FederatedServiceAccountPlacementSpec defines the desired state of FederatedServiceAccountPlacement
 type FederatedServiceAccountPlacementSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
+	ClusterNames []string `json:"clusterNames,omitempty"`
 }
 
 // FederatedServiceAccountPlacementStatus defines the observed state of FederatedServiceAccountPlacement
 type FederatedServiceAccountPlacementStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
 }
 
 // +genclient
