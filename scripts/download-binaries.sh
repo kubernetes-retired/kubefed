@@ -41,24 +41,17 @@ root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dest_dir="${root_dir}/bin"
 mkdir -p "${dest_dir}"
 
-kb_version="1.0.0"
+kb_version="1.0.3"
 kb_tgz="kubebuilder_${kb_version}_linux_amd64.tar.gz"
 kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_version}/${kb_tgz}"
 curl "${curl_args}O" "${kb_url}" \
   && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
   && rm "${kb_tgz}"
 
-# Use a stable version of kube-apiserver to ensure a version >= 1.11.
-# TODO(marun) Remove when kubebuilder includes released 1.11 binaries
-stable_version="$(curl "${curl_args}" https://storage.googleapis.com/kubernetes-release/release/stable.txt)"
-ks_url="https://storage.googleapis.com/kubernetes-release/release/${stable_version}/bin/linux/amd64/kube-apiserver"
-ks_dest="${dest_dir}/kube-apiserver"
-curl "${curl_args}" "${ks_url}" --output "${ks_dest}"
-
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
 echo -n "#   etcd:           "; "${dest_dir}/etcd" --version | head -n 1
-echo -n "#   kube-apiserver: "; "${ks_dest}" --version
+echo -n "#   kube-apiserver: "; "${dest_dir}/kube-apiserver" --version
 echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
