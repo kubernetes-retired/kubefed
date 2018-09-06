@@ -101,15 +101,9 @@ fi
 if [[ ! "${USE_LATEST}" ]]; then
   base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
   dockerfile_dir="${base_dir}/images/federation-v2"
-  if [[ ! -f "${base_dir}/bin/controller-manager" && ! -f "${dockerfile_dir}/controller-manager" ]] ; then
-    echo "${base_dir}/bin/controller-manager not found, building"
-    go build -o "${dockerfile_dir}"/controller-manager "${base_dir}"/cmd/controller-manager/main.go
-  elif [[ -f "${base_dir}/bin/controller-manager" && ! -f "${dockerfile_dir}/controller-manager" ]]; then
-    cp ${base_dir}/bin/controller-manager ${dockerfile_dir}/controller-manager
-  fi
+  go build -o "${dockerfile_dir}"/controller-manager "${base_dir}"/cmd/controller-manager/main.go
   docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
   ${DOCKER_PUSH_CMD}
-  rm -f ${dockerfile_dir}/controller-manager
 fi
 
 if [[ "${NAMESPACED}" ]]; then
