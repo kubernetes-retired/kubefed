@@ -57,7 +57,9 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		override.SetNamespace(namespace)
+		if typeConfig.GetNamespaced() {
+			override.SetNamespace(namespace)
+		}
 		overridesSlice, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("Error retrieving overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
