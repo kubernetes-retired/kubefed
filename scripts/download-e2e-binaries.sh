@@ -57,6 +57,9 @@ curl "${curl_args}O" "${crictl_url}" \
   && tar xzfP "${crictl_tgz}" -C "${dest_dir}" \
   && rm "${crictl_tgz}"
 
+# Pull the busybox image (used in tests of workload types)
+docker pull busybox
+
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
