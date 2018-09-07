@@ -51,7 +51,7 @@ function launch-minikube-cluster() {
 }
 
 function run-e2e-tests() {
-  go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=5m
+  go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m
   rc=$((rc || $?))
   return ${rc}
 }
