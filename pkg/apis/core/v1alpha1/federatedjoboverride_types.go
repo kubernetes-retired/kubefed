@@ -31,6 +31,14 @@ type FederatedJobClusterOverride struct {
 	// once.  Why can't maps be used so this validation is automatic?
 	ClusterName string `json:"clusterName,omitempty"`
 	Parallelism *int32 `json:"parallelism,omitempty"`
+	// Completions value cannot be updated in a k8s job once created.
+	// This is added here with a disclaimer that a user (or a high level
+	// scheduler) will ensure to create a federate job override before
+	// creating a federated job template. Also once created, the same
+	// will not be updated.
+	// TODO(irfanurrehman): This needs to be reflected in documentation
+	// somewhere.
+	Completions *int32 `json:"completions,omitempty"`
 }
 
 // FederatedJobOverrideStatus defines the observed state of FederatedJobOverride
