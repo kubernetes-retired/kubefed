@@ -6,4 +6,4 @@ metadata:
 spec:
   overrides:
     - clusterName: placeholder
-      replicas: 5
+      replicas: 2
