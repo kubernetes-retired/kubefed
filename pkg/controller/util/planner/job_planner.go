@@ -91,7 +91,10 @@ func (p *JobPlanner) Plan(availableClusters []string, toDistribute int32, hashKe
 			} else {
 				// Clusters which do not have explicit weights given, while
 				// some others have, are treated equivalent to 0 weight.
-				plan[cluster] = int32(0)
+				// TODO(irfanurrehman): fix up a strategy about creating jobs
+				// with parallelism as 0. Right now we do not create jobs
+				// in those clusters which have 0 weightage.
+				//plan[cluster] = int32(0)
 			}
 		}
 	}
