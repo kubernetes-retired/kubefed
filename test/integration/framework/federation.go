@@ -91,6 +91,9 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	tl.Logf("Starting cluster controller")
 	f.ClusterController = NewClusterControllerFixture(config, f.SystemNamespace, f.SystemNamespace)
 	tl.Log("Federation started.")
+
+	client := fedclientset.NewForConfigOrDie(config)
+	WaitForClusterReadiness(tl, client, f.SystemNamespace, DefaultWaitInterval, wait.ForeverTestTimeout)
 }
 
 func (f *FederationFixture) TearDown(tl common.TestLogger) {

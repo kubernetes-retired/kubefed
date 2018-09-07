@@ -19,11 +19,8 @@ package framework
 import (
 	"fmt"
 	"sort"
-	"time"
 
-	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -44,8 +41,6 @@ import (
 
 var (
 	clusterControllerFixture *framework.ControllerFixture
-	// Only check that the api is available once
-	checkedApi bool
 )
 
 func SetUpUnmanagedFederation() {
@@ -105,16 +100,6 @@ func (f *UnmanagedFramework) BeforeEach() {
 		var err error
 		f.Config, f.Kubeconfig, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 		Expect(err).NotTo(HaveOccurred())
-	}
-
-	if !checkedApi {
-		// Check the health of the target federation
-		By("Waiting for apiserver to be ready")
-		client := f.FedClient(fmt.Sprintf("%s-setup", f.BaseName))
-		err := waitForApiserver(client)
-		Expect(err).NotTo(HaveOccurred())
-		By("apiserver is ready")
-		checkedApi = true
 	}
 }
 
@@ -240,18 +225,12 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 
 	By("Obtaining a list of federated clusters")
 	fedClient := f.FedClient(userAgent)
-	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).List(metav1.ListOptions{})
-	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
-
-	if len(clusterList.Items) == 0 {
-		Failf("No registered clusters found")
-	}
+	clusterList := framework.ListFederatedClusters(NewE2ELogger(), fedClient, TestContext.FederationSystemNamespace)
 
 	kubeClient := f.KubeClient(userAgent)
 	crClient := f.CrClient(userAgent)
 	clusterConfigs := make(map[string]*restclient.Config)
 	for _, cluster := range clusterList.Items {
-		ClusterIsReadyOrFail(fedClient, &cluster)
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
@@ -349,19 +328,6 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 	return cfg, c, nil
 }
 
-// waitForApiserver waits for the apiserver to be ready.  It tests the
-// readiness by listing a federation resource and expecting a response
-// without error.
-func waitForApiserver(client fedclientset.Interface) error {
-	return wait.PollImmediate(time.Second, 1*time.Minute, func() (bool, error) {
-		_, err := client.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).List(metav1.ListOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
 // byFirstTimestamp sorts a slice of events by first timestamp, using their involvedObject's name as a tie breaker.
 type byFirstTimestamp []corev1.Event
 
@@ -396,26 +362,10 @@ func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
 	// you may or may not see the killing/deletion/Cleanup events.
 }
 
-// ClusterIsReadyOrFail checks whether the named cluster has been
-// marked as ready by the federated cluster controller.  The cluster
-// controller records the results of health checks on member clusters
-// in the status of federated clusters.
-func ClusterIsReadyOrFail(client fedclientset.Interface, cluster *fedv1a1.FederatedCluster) {
-	clusterName := cluster.Name
-	By(fmt.Sprintf("Checking readiness of cluster %q", clusterName))
-	err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
-		for _, condition := range cluster.Status.Conditions {
-			if condition.Type == fedcommon.ClusterReady && condition.Status == corev1.ConditionTrue {
-				return true, nil
-			}
-		}
-		var err error
-		cluster, err = client.CoreV1alpha1().FederatedClusters(TestContext.FederationSystemNamespace).Get(clusterName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		return false, nil
-	})
-	ExpectNoError(err, fmt.Sprintf("Unexpected error in verifying if cluster %q is ready: %+v", clusterName, err))
-	Logf("Cluster %s is Ready", clusterName)
+func WaitForUnmanagedClusterReadiness() {
+	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
+	Expect(err).NotTo(HaveOccurred())
+	restclient.AddUserAgent(config, "readiness-check")
+	client := fedclientset.NewForConfigOrDie(config)
+	framework.WaitForClusterReadiness(NewE2ELogger(), client, TestContext.FederationSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
 }
