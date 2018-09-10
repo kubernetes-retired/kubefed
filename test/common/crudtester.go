@@ -207,15 +207,24 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 		c.tl.Fatalf("Error retrieving cluster names: %v", err)
 	}
 
+	targetIsNamespace := c.typeConfig.GetTarget().Kind == util.NamespaceKind
+	primaryClusterName := c.getPrimaryClusterName()
+
 	// Skip if we're a namespace, we only have one cluster, and it's the
 	// primary cluster. Skipping avoids deleting the namespace from the entire
 	// federation by removing this single cluster from the placement, because
 	// if deleted, this fails the next CheckDelete test.
-	if c.typeConfig.GetTarget().Kind == util.NamespaceKind && len(clusterNames) == 1 &&
-		clusterNames[0] == c.getPrimaryClusterName() {
+	if targetIsNamespace && len(clusterNames) == 1 && clusterNames[0] == primaryClusterName {
 		c.tl.Logf("Skipping %s update for %q due to single primary cluster",
 			placementKind, qualifiedName)
 		return
+	}
+
+	// Any cluster can be removed for non-namespace targets.
+	clusterNameToRetain := ""
+	if targetIsNamespace {
+		// The primary cluster should not be removed for namespace targets.
+		clusterNameToRetain = primaryClusterName
 	}
 
 	c.tl.Logf("Updating %s %q", placementKind, qualifiedName)
@@ -224,23 +233,21 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 		if err != nil {
 			c.tl.Fatalf("Error retrieving cluster names: %v", err)
 		}
-		clusterNames = c.deleteOneNonPrimaryCluster(clusterNames)
-		err = util.SetClusterNames(placement, clusterNames)
+		updatedClusterNames := c.removeOneClusterName(clusterNames, clusterNameToRetain)
+		if len(updatedClusterNames) != len(clusterNames)-1 {
+			// This test depends on a cluster name being removed from
+			// the placement resource to validate that the sync
+			// controller will then remove the resource from the
+			// cluster whose name was removed.
+			c.tl.Fatalf("Expected %d cluster names, got %d", len(clusterNames)-1, len(updatedClusterNames))
+		}
+		err = util.SetClusterNames(placement, updatedClusterNames)
 		if err != nil {
 			c.tl.Fatalf("Error setting cluster names for %s %q: %v", placementKind, qualifiedName, err)
 		}
 	})
 	if err != nil {
 		c.tl.Fatalf("Error updating %s %q: %v", placementKind, qualifiedName, err)
-	}
-
-	// updateFedObject is expected to have reduced the size of the cluster list
-	updatedClusterNames, err := util.GetClusterNames(updatedPlacement)
-	if err != nil {
-		c.tl.Fatalf("Error retrieving cluster names: %v", err)
-	}
-	if len(updatedClusterNames) > len(clusterNames) {
-		c.tl.Fatalf("%s %q not mutated", placementKind, qualifiedName)
 	}
 
 	c.CheckPropagation(template, updatedPlacement, override)
@@ -499,11 +506,9 @@ func (c *FederatedTypeCrudTester) getPrimaryClusterName() string {
 	return ""
 }
 
-func (c *FederatedTypeCrudTester) deleteOneNonPrimaryCluster(clusterNames []string) []string {
-	primaryClusterName := c.getPrimaryClusterName()
-
+func (c *FederatedTypeCrudTester) removeOneClusterName(clusterNames []string, clusterNameToRetain string) []string {
 	for i, name := range clusterNames {
-		if name == primaryClusterName {
+		if name == clusterNameToRetain {
 			continue
 		} else {
 			clusterNames = append(clusterNames[:i], clusterNames[i+1:]...)
