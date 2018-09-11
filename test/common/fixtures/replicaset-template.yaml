@@ -6,7 +6,7 @@ metadata:
 spec:
   template:
     spec:
-      replicas: 3
+      replicas: 1
       selector:
         matchLabels:
           foo: bar
@@ -17,5 +17,6 @@ spec:
         spec:
           terminationGracePeriodSeconds: 0
           containers:
-            - name: nginx
-              image: nginx
+            - name: busybox
+              image: busybox
+              command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]

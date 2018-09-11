@@ -20,11 +20,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const clusterNamesField = "clusterNames"
+
 func GetClusterNames(placement *unstructured.Unstructured) ([]string, error) {
-	clusterNames, _, err := unstructured.NestedStringSlice(placement.Object, "spec", "clusternames")
+	clusterNames, _, err := unstructured.NestedStringSlice(placement.Object, "spec", clusterNamesField)
 	return clusterNames, err
 }
 
 func SetClusterNames(placement *unstructured.Unstructured, clusterNames []string) error {
-	return unstructured.SetNestedStringSlice(placement.Object, clusterNames, "spec", "clusternames")
+	return unstructured.SetNestedStringSlice(placement.Object, clusterNames, "spec", clusterNamesField)
 }

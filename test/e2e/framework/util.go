@@ -28,9 +28,11 @@ import (
 )
 
 const (
+	// Using the same interval as integration should be fine given the
+	// minimal load that the apiserver is likely to be under.
+	PollInterval = 50 * time.Millisecond
 	// How long to try single API calls (like 'get' or 'list'). Used to prevent
 	// transient failures from failing tests.
-	PollInterval             = 2 * time.Second
 	DefaultSingleCallTimeout = 30 * time.Second
 )
 
