@@ -18,7 +18,6 @@ package federatedtypeconfig
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/kubernetes-sigs/kubebuilder/pkg/controller"
@@ -36,6 +35,8 @@ import (
 	corev1alpha1informer "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/core/v1alpha1"
 	corev1alpha1lister "github.com/kubernetes-sigs/federation-v2/pkg/client/listers/core/v1alpha1"
 	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+
+	"github.com/golang/glog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 )
@@ -104,7 +105,7 @@ func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace
 }
 
 func (c *FederatedTypeConfigController) Reconcile(k types.ReconcileKey) error {
-	log.Printf("Running reconcile FederatedTypeConfig for %s\n", k.Name)
+	glog.Infof("Reconciling FederatedTypeConfig %v/%v", k.Namespace, k.Name)
 
 	typeConfig, err := c.lister.FederatedTypeConfigs(k.Namespace).Get(k.Name)
 	if err != nil {
@@ -162,7 +163,7 @@ func (c *FederatedTypeConfigController) getStopChannel(name string) (chan struct
 
 func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTypeConfig) error {
 	kind := tc.Spec.Template.Kind
-	log.Printf("Starting sync controller for %s \n", kind)
+	glog.Infof("Starting sync controller for FederatedTypeConfig %v/%v targeting Kind %v", tc.Namespace, tc.Name, kind)
 
 	// TODO(marun) Perform this defaulting in a webhook
 	corev1a1.SetFederatedTypeConfigDefaults(tc)
@@ -171,9 +172,9 @@ func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTy
 	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, c.targetNamespace, stopChan, false)
 	if err != nil {
 		close(stopChan)
-		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)
+		return fmt.Errorf("Error starting sync controller for Kind %v: %v", kind, err)
 	}
-	log.Printf("Started sync controller for %s \n", kind)
+	glog.Infof("Started sync controller for FederatedTypeConfig %v/%v targeting Kind %v", tc.Namespace, tc.Name, kind)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.stopChannels[tc.Name] = stopChan
@@ -181,7 +182,7 @@ func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTy
 }
 
 func (c *FederatedTypeConfigController) stopController(key string, stopChan chan struct{}) {
-	log.Printf("Stopping sync controller for %s \n", key)
+	glog.Infof("Stopping sync controller for %s", key)
 	close(stopChan)
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -238,7 +239,7 @@ func (np *NamespacePredicate) HandleCreate(obj interface{}) bool {
 func (np *NamespacePredicate) objInNamespace(obj interface{}) bool {
 	metaObj, ok := obj.(metav1.Object)
 	if !ok {
-		log.Printf("Cannot handle %T because obj is not an Object: %v\n", obj, obj)
+		glog.Infof("Cannot handle %T because obj is not an Object: %v\n", obj, obj)
 		return false
 	}
 	return metaObj.GetNamespace() == np.namespace
