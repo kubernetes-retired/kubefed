@@ -12,10 +12,8 @@ is a detailed list of binaries required.
 
 The federation deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
 `kube-apiserver` >= v1.11 being installed in the path. The `kubebuilder`
-release packages all of these dependencies together, but the latest version of
-`kubebuilder` (v1.0.0 as of this writing) only includes binaries for
-kubernetes 1.10. Once `kubebuilder` bundles binaries >= 1.11, it will
-only require downloading the `kubebuilder` release.
+([v1.0.3](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.3)
+as of this writing) release packages all of these dependencies together.
 
 These binaries can be installed via the `download-binaries.sh` script, which
 downloads them to `./bin`:
@@ -31,25 +29,9 @@ Or you can install them manually yourself using the guidelines provided below.
 
 This repo depends on
 [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder)
-to generate code and build binaries. Download the [v1.0.0
-release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.0)
+to generate code and build binaries. Download the [v1.0.3
+release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.3)
 and install it in your `PATH`.
-
-#### kubectl
-
-Download a version of
-[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) >= v1.11 and
-install it in your `PATH`. To download version 1.11:
-  - https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kubectl
-
-#### kube-apiserver
-
-Download a version of
-[`kube-apiserver`](https://github.com/kubernetes/kubernetes/releases) >= 1.11
-and install it in your `PATH`. Make sure the path to this binary comes before
-the path to the `kubebuilder` installation, otherwise you will use the
-`kube-apiserver` from `kubebuilder` instead. To download version 1.11:
-  - https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kube-apiserver
 
 ### Create Clusters
 

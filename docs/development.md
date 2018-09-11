@@ -315,7 +315,7 @@ kubebuilder create config \
 Once the installation YAML config `hack/install.yaml` is created, we need to
 update it to modify a few fields.
 
-First, increase the memory request and limit to avoid OOM issues by running the
+Increase the memory request and limit to avoid OOM issues by running the
 following commands:
 
 ```bash
@@ -323,19 +323,7 @@ sed -i 's/memory: 20Mi/memory: 64Mi/' hack/install.yaml
 sed -i 's/memory: 30Mi/memory: 128Mi/' hack/install.yaml
 ```
 
-Then, delete the `type` field from the OpenAPI schema to avoid triggering validation
-errors in kubernetes version < 1.12 when a type specifies a subresource (e.g.
-status). The `type` field only triggers validation errors for resource types
-that define subresources, but it is simpler to fix for all types. See
-https://github.com/kubernetes/kubernetes/issues/65293 for more details.
-
-Run the following command to fix the config:
-
-```bash
-sed -i -e '/^      type: object$/d' hack/install.yaml
-```
-
-Once the installation YAML config `hack/install.yaml` is fixed, you are able
+Once the installation YAML config `hack/install.yaml` is updated, you are able
 to apply this configuration by following the [manual deployment steps in the
 user guide](userguide.md#manual-deployment). Be sure to use this newly
 generated configuration instead of `hack/install-latest.yaml`.

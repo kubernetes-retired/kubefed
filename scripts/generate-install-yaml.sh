@@ -27,12 +27,3 @@ kubebuilder create config --controller-image "${IMAGE_NAME}" \
 # Increase memory request and limit to avoid OOM issues.
 sed -i 's/memory: 20Mi/memory: 64Mi/' "${INSTALL_YAML}"
 sed -i 's/memory: 30Mi/memory: 128Mi/' "${INSTALL_YAML}"
-
-# Delete the 'type' field from the openapi schema to avoid
-# triggering validation errors in kube < 1.12 when a type specifies
-# a subresource (e.g. status).  The 'type' field only triggers
-# validation errors for resource types that define subresources, but
-# it is simpler to fix for all types.
-#
-# Reference: https://github.com/kubernetes/kubernetes/issues/65293
-sed -i -e '/^      type: object$/d' "${INSTALL_YAML}"
