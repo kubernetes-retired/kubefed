@@ -7,6 +7,6 @@ items:
     name: test-deployment
     namespace: test-namespace
   spec:
-    clusternames:
+    clusterNames:
     - cluster2
     - cluster1

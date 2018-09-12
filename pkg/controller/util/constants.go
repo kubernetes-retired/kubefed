@@ -24,8 +24,10 @@ import (
 const (
 	NoResyncPeriod time.Duration = 0 * time.Second
 
-	NamespaceKind = "Namespace"
-	ServiceKind   = "Service"
+	NamespaceKind     = "Namespace"
+	ServiceKind       = "Service"
+	ClusterNameField  = "clusterName"
+	ClusterNamesField = "clusterNames"
 )
 
 type ReconciliationStatus int

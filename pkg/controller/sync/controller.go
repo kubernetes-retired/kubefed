@@ -957,7 +957,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	overrideField := overridePath[len(overridePath)-1]
 	for _, overrideInterface := range overrides {
 		clusterOverride := overrideInterface.(map[string]interface{})
-		if clusterOverride["clustername"] != clusterName {
+		if clusterOverride[util.ClusterNameField] != clusterName {
 			continue
 		}
 		data, ok := clusterOverride[overrideField]

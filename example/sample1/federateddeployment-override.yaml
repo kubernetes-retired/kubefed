@@ -8,5 +8,5 @@ items:
     namespace: test-namespace
   spec:
     overrides:
-    - clustername: cluster2
+    - clusterName: cluster2
       replicas: 5

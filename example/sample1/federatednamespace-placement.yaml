@@ -6,6 +6,6 @@ items:
   metadata:
     name: test-namespace
   spec:
-    clusternames:
+    clusterNames:
     - cluster1
     - cluster2

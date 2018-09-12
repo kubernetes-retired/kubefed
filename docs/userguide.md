@@ -243,7 +243,7 @@ Remove `cluster2` via a patch command or manually:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
-    --type=merge -p '{"spec":{"clusternames": ["cluster1"]}}'
+    --type=merge -p '{"spec":{"clusterNames": ["cluster1"]}}'
 
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
@@ -266,7 +266,7 @@ manually:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
-    --type=merge -p '{"spec":{"clusternames": ["cluster1", "cluster2"]}}'
+    --type=merge -p '{"spec":{"clusterNames": ["cluster1", "cluster2"]}}'
 
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
