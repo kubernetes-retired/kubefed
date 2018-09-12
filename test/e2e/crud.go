@@ -70,12 +70,17 @@ var _ = Describe("Federated types", func() {
 
 		Describe(fmt.Sprintf("%q resources", templateKind), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				// TODO (font): e2e tests for federated Namespace using a
-				// test managed federation does not work until k8s
-				// namespace controller is added.
-				if framework.TestContext.TestManagedFederation &&
-					templateKind == util.NamespaceKind {
-					framework.Skipf("%s not supported for test managed federation.", templateKind)
+				if templateKind == util.NamespaceKind {
+					// TODO (font): e2e tests for federated Namespace using a
+					// test managed federation does not work until k8s
+					// namespace controller is added.
+					if framework.TestContext.TestManagedFederation {
+						framework.Skipf("%s not supported for test managed federation.", templateKind)
+					}
+					if framework.TestContext.LimitedScope {
+						// It is not possible to propagate namespaces when namespaced.
+						framework.Skipf("%s federation not supported for namespaced control plane.", templateKind)
+					}
 				}
 
 				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
@@ -88,6 +93,11 @@ var _ = Describe("Federated types", func() {
 
 	Describe("CRD resources", func() {
 		It("should be created, read, updated and deleted successfully", func() {
+			if framework.TestContext.LimitedScope {
+				// TODO(marun) Revisit this if federation of crds (nee
+				// cr/instances of crds) ever becomes a thing.
+				framework.Skipf("Validation of cr federation is not supported for namespaced federation.")
+			}
 
 			// TODO(marun) Is there a better way to create crd's from code?
 
@@ -250,7 +260,8 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig, namespaceTypeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
 	// Initialize in-memory controllers if configuration requires
 	f.SetUpControllerFixture(typeConfig)
-	if typeConfig.GetTarget().Kind != util.NamespaceKind {
+	if typeConfig.GetTarget().Kind != util.NamespaceKind &&
+		framework.TestContext.TargetNamespace() == metav1.NamespaceAll {
 		// The namespace controller is required to ensure namespaces
 		// are created as needed in member clusters in advance of
 		// propagation of other namespaced types.

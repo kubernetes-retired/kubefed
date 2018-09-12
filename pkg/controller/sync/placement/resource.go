@@ -18,7 +18,6 @@ package placement
 
 import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -32,8 +31,8 @@ type ResourcePlacementPlugin struct {
 	controller cache.Controller
 }
 
-func NewResourcePlacementPlugin(client util.ResourceClient, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
-	store, controller := util.NewResourceInformer(client, metav1.NamespaceAll, triggerFunc)
+func NewResourcePlacementPlugin(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
+	store, controller := util.NewResourceInformer(client, targetNamespace, triggerFunc)
 	return &ResourcePlacementPlugin{
 		store:      store,
 		controller: controller,

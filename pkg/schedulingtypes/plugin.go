@@ -71,10 +71,10 @@ func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedCli
 	p.templateStore, p.templateController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.TemplateList(metav1.NamespaceAll, options)
+				return adapter.TemplateList(targetNamespace, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.TemplateWatch(metav1.NamespaceAll, options)
+				return adapter.TemplateWatch(targetNamespace, options)
 			},
 		},
 		adapter.TemplateObject(),
@@ -85,10 +85,10 @@ func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedCli
 	p.overrideStore, p.overrideController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.OverrideList(metav1.NamespaceAll, options)
+				return adapter.OverrideList(targetNamespace, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.OverrideWatch(metav1.NamespaceAll, options)
+				return adapter.OverrideWatch(targetNamespace, options)
 			},
 		},
 		adapter.OverrideObject(),
@@ -99,10 +99,10 @@ func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedCli
 	p.placementStore, p.placementController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.PlacementList(metav1.NamespaceAll, options)
+				return adapter.PlacementList(targetNamespace, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.PlacementWatch(metav1.NamespaceAll, options)
+				return adapter.PlacementWatch(targetNamespace, options)
 			},
 		},
 		adapter.PlacementObject(),

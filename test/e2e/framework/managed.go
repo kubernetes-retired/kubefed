@@ -17,6 +17,8 @@ limitations under the License.
 package framework
 
 import (
+	"fmt"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -55,12 +57,15 @@ type ManagedFramework struct {
 
 	// Fixtures to cleanup after each test
 	fixtures []framework.TestFixture
+
+	baseName string
 }
 
 func NewManagedFramework(baseName string) FederationFramework {
 	f := &ManagedFramework{
 		logger:   NewE2ELogger(),
 		fixtures: []framework.TestFixture{},
+		baseName: baseName,
 	}
 	return f
 }
@@ -116,9 +121,9 @@ func (f *ManagedFramework) FederationSystemNamespace() string {
 	return fedFixture.SystemNamespace
 }
 
-// TODO(marun) remove
 func (f *ManagedFramework) TestNamespaceName() string {
-	return ""
+	client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
+	return createTestNamespace(client, f.baseName)
 }
 
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
@@ -128,12 +133,14 @@ func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interfac
 	f.fixtures = append(f.fixtures, fixture)
 }
 
-func (f *ManagedFramework) SetUpDNSControllerFixture() {
+func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
 	config := fedFixture.KubeApi.NewConfig(f.logger)
-
 	fixture := framework.NewServiceDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
 	f.fixtures = append(f.fixtures, fixture)
+}
 
-	fixture = framework.NewIngressDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
+func (f *ManagedFramework) SetUpIngressDNSControllerFixture() {
+	config := fedFixture.KubeApi.NewConfig(f.logger)
+	fixture := framework.NewIngressDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
 	f.fixtures = append(f.fixtures, fixture)
 }

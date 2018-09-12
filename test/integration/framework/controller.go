@@ -58,7 +58,7 @@ func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
-	err = servicednsendpoint.StartController(config, f.stopChan, true)
+	err = servicednsendpoint.StartController(config, targetNamespace, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}

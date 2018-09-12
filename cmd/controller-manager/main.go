@@ -53,6 +53,9 @@ import (
 )
 
 var featureGates map[string]bool
+var fedNamespace string
+var clusterNamespace string
+var limitedScope bool
 var installCRDs = flag.Bool("install-crds", true, "install the CRDs used by the controller as part of startup")
 
 // Controller-manager main.
@@ -60,6 +63,11 @@ func main() {
 	verFlag := flag.Bool("version", false, "Prints the version info of controller-manager")
 	flag.Var(flagutil.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
 		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
+	flag.StringVar(&fedNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
+		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
+	flag.StringVar(&clusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
+		fmt.Sprintf("The cluster registry namespace.  If unset, will default to %q.", util.MulticlusterPublicNamespace))
+	flag.BoolVar(&limitedScope, "limited-scope", false, "Whether the federation namespace will be the only target for federation.")
 
 	flag.Parse()
 	if *verFlag {
@@ -88,10 +96,28 @@ func main() {
 		}
 	}
 
-	// TODO(marun) Make configurable and default to a namespace provided via the downward api
-	fedNamespace := util.DefaultFederationSystemNamespace
-	clusterNamespace := util.MulticlusterPublicNamespace
+	// Allow federation and cluster namespaces to be overridden by
+	// environment variables to allow the namespaces to be set to the
+	// pod namespace via the downward api.
+	fedNamespaceFromEnv := os.Getenv("FEDERATION_NAMESPACE")
+	if len(fedNamespaceFromEnv) > 0 {
+		fedNamespace = fedNamespaceFromEnv
+	}
+	glog.Infof("Federation namespace: %s", fedNamespace)
+
+	clusterNamespaceFromEnv := os.Getenv("CLUSTER_REGISTRY_NAMESPACE")
+	if len(clusterNamespaceFromEnv) > 0 {
+		clusterNamespace = clusterNamespaceFromEnv
+	}
+	glog.Infof("Cluster registry namespace: %s", clusterNamespace)
+
 	targetNamespace := metav1.NamespaceAll
+	if limitedScope {
+		targetNamespace = fedNamespace
+		glog.Infof("Federation will be limited to the %q namespace", fedNamespace)
+	} else {
+		glog.Info("Federation will target all namespaces")
+	}
 
 	// TODO(marun) Make the monitor period configurable
 	clusterMonitorPeriod := time.Second * 40
@@ -112,7 +138,7 @@ func main() {
 			glog.Fatalf("Error starting dns controller: %v", err)
 		}
 
-		err = servicednsendpoint.StartController(config, stopChan, false)
+		err = servicednsendpoint.StartController(config, targetNamespace, stopChan, false)
 		if err != nil {
 			glog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
