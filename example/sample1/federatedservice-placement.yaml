@@ -4,6 +4,6 @@ metadata:
   name: test-service
   namespace: test-namespace
 spec:
-  clusternames:
+  clusterNames:
   - cluster2
   - cluster1
