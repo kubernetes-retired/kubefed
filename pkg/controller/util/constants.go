@@ -26,6 +26,7 @@ const (
 
 	NamespaceKind     = "Namespace"
 	ServiceKind       = "Service"
+	ClusterNameField  = "clusterName"
 	ClusterNamesField = "clusterNames"
 )
 

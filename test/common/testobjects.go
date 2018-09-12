@@ -66,7 +66,7 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 		} else {
 			targetOverrides = map[string]interface{}{}
 		}
-		targetOverrides["clusterName"] = clusterNames[0]
+		targetOverrides[util.ClusterNameField] = clusterNames[0]
 		overridesSlice[0] = targetOverrides
 		err = unstructured.SetNestedSlice(override.Object, overridesSlice, "spec", "overrides")
 		if err != nil {
