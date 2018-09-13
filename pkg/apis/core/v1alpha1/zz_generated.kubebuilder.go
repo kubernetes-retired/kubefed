@@ -83,6 +83,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&FederatedSecretPlacementList{},
 		&FederatedService{},
 		&FederatedServiceList{},
+		&FederatedServiceAccount{},
+		&FederatedServiceAccountList{},
+		&FederatedServiceAccountPlacement{},
+		&FederatedServiceAccountPlacementList{},
 		&FederatedServicePlacement{},
 		&FederatedServicePlacementList{},
 		&FederatedTypeConfig{},
@@ -252,6 +256,22 @@ type FederatedServiceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedService `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedServiceAccountList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedServiceAccount `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type FederatedServiceAccountPlacementList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedServiceAccountPlacement `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -1293,6 +1313,98 @@ var (
 								"template": v1beta1.JSONSchemaProps{
 									Type:       "object",
 									Properties: map[string]v1beta1.JSONSchemaProps{},
+								},
+							},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type:       "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{},
+						},
+					},
+				},
+			},
+		},
+	}
+	// Define CRDs for resources
+	FederatedServiceAccountCRD = v1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "federatedserviceaccounts.core.federation.k8s.io",
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "core.federation.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Kind:   "FederatedServiceAccount",
+				Plural: "federatedserviceaccounts",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Type: "object",
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"template": v1beta1.JSONSchemaProps{
+									Type:       "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{},
+								},
+							},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type:       "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{},
+						},
+					},
+				},
+			},
+		},
+	}
+	// Define CRDs for resources
+	FederatedServiceAccountPlacementCRD = v1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "federatedserviceaccountplacements.core.federation.k8s.io",
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "core.federation.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Kind:   "FederatedServiceAccountPlacement",
+				Plural: "federatedserviceaccountplacements",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Type: "object",
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterNames": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+									},
 								},
 							},
 						},

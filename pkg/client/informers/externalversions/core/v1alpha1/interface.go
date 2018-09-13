@@ -64,6 +64,10 @@ type Interface interface {
 	FederatedSecretPlacements() FederatedSecretPlacementInformer
 	// FederatedServices returns a FederatedServiceInformer.
 	FederatedServices() FederatedServiceInformer
+	// FederatedServiceAccounts returns a FederatedServiceAccountInformer.
+	FederatedServiceAccounts() FederatedServiceAccountInformer
+	// FederatedServiceAccountPlacements returns a FederatedServiceAccountPlacementInformer.
+	FederatedServiceAccountPlacements() FederatedServiceAccountPlacementInformer
 	// FederatedServicePlacements returns a FederatedServicePlacementInformer.
 	FederatedServicePlacements() FederatedServicePlacementInformer
 	// FederatedTypeConfigs returns a FederatedTypeConfigInformer.
@@ -181,6 +185,16 @@ func (v *version) FederatedSecretPlacements() FederatedSecretPlacementInformer {
 // FederatedServices returns a FederatedServiceInformer.
 func (v *version) FederatedServices() FederatedServiceInformer {
 	return &federatedServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedServiceAccounts returns a FederatedServiceAccountInformer.
+func (v *version) FederatedServiceAccounts() FederatedServiceAccountInformer {
+	return &federatedServiceAccountInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedServiceAccountPlacements returns a FederatedServiceAccountPlacementInformer.
+func (v *version) FederatedServiceAccountPlacements() FederatedServiceAccountPlacementInformer {
+	return &federatedServiceAccountPlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedServicePlacements returns a FederatedServicePlacementInformer.

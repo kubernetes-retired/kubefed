@@ -94,6 +94,12 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedService{}, arguments.Informers.Core().V1alpha1().FederatedServices()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceAccount{}, arguments.Informers.Core().V1alpha1().FederatedServiceAccounts()); err != nil {
+			return err
+		}
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceAccountPlacement{}, arguments.Informers.Core().V1alpha1().FederatedServiceAccountPlacements()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServicePlacement{}, arguments.Informers.Core().V1alpha1().FederatedServicePlacements()); err != nil {
 			return err
 		}
@@ -142,6 +148,8 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedSecretOverrideCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedSecretPlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceCRD)
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountCRD)
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountPlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServicePlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)

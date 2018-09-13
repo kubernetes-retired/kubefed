@@ -95,6 +95,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedSecretPlacements().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedservices"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServices().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceaccounts"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceAccounts().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceaccountplacements"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceAccountPlacements().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServicePlacements().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedtypeconfigs"):
