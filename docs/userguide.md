@@ -33,6 +33,14 @@ to generate code and build binaries. Download the [v1.0.3
 release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.3)
 and install it in your `PATH`.
 
+### Deployment Image
+
+If you follow this user guide without any changes you will be using the latest
+stable released version of the federation-v2 image tagged as `latest`.
+Alternatively, we support the ability to deploy the [latest master image tagged
+as `canary`](development.md#test-latest-master-changes-canary) or [your own
+custom image](development.md#test-your-changes).
+
 ### Create Clusters
 
 The quickest way to set up clusters for use with the federation-v2 control
