@@ -256,7 +256,7 @@ Follow the [cleanup instructions in the user guide](userguide.md#cleanup).
 
 ## Test Your Changes
 
-In order to test your changes on your own kubernetes cluster, you'll need
+In order to test your changes on your kubernetes cluster, you'll need
 to build an image and a deployment config.
 
 ### Automated Deployment
@@ -307,23 +307,38 @@ Run the following command to build the deployment config `hack/install.yaml`
 that includes all the necessary kubernetes resources:
 
 ```bash
-kubebuilder create config \
-    --controller-image "<containerregistry>/<username>/federation-v2:test" \
-    --name federation
+INSTALL_YAML="hack/install.yaml"
+IMAGE_NAME="<containerregistry>/<username>/federation-v2:test"
+INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-install-yaml.sh
 ```
 
-Once the installation YAML config `hack/install.yaml` is created, we need to
-update it to modify a few fields.
-
-Increase the memory request and limit to avoid OOM issues by running the
-following commands:
-
-```bash
-sed -i 's/memory: 20Mi/memory: 64Mi/' hack/install.yaml
-sed -i 's/memory: 30Mi/memory: 128Mi/' hack/install.yaml
-```
-
-Once the installation YAML config `hack/install.yaml` is updated, you are able
+Once the installation YAML config `hack/install.yaml` is created, you are able
 to apply this configuration by following the [manual deployment steps in the
 user guide](userguide.md#manual-deployment). Be sure to use this newly
 generated configuration instead of `hack/install-latest.yaml`.
+
+## Test Latest Master Changes (`canary`)
+
+In order to test the latest master changes (tagged as `canary`) on your
+kubernetes cluster, you'll need to generate a config that specifies the correct
+image. To do that, run the following command:
+
+```bash
+INSTALL_YAML="hack/install.yaml"
+IMAGE_NAME="quay.io/kubernetes-multicluster/federation-v2:canary"
+INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-install-yaml.sh
+```
+
+Once the installation YAML config `hack/install.yaml` is created, you are able
+to apply this configuration by following the [manual deployment steps in the
+user guide](userguide.md#manual-deployment). Be sure to use this newly
+generated configuration instead of `hack/install-latest.yaml`.
+
+## Test Latest Stable Version (`latest`)
+
+In order to test the latest stable released version (tagged as `latest`) on
+your kubernetes cluster, follow the
+[automated](userguide.md#automated-deployment) or
+[manual](userguide.md#manual-deployment) instructions from the user guide.
+
+
