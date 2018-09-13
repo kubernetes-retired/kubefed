@@ -323,3 +323,39 @@ The argument(s) used is/are the list of context names of the additional clusters
 unjoined from this federation control plane. Clarifying, say the `host-cluster-context` used is
 `cluster1`, then on successful completion of the script used in example, both `cluster1` and `cluster2`
 will be unjoined from the deployed federation control plane.
+
+## Namespaced Federation
+
+All prior instructions referred to the deployment and use of a
+cluster-scoped federation control plane.  It is also possible to
+deploy a namespace-scoped control plane.  In this mode of operation,
+federation controllers will target resources in a single namespace on
+both host and member clusters.  This may be desirable when
+experimenting with federation on a production cluster.
+
+### Automated Deployment
+
+The only supported method to deploy namespaced federation is via the
+deployment script configured with environment variables:
+
+```bash
+NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <image name>
+```
+
+- `NAMESPACED` indicates that the control plane should target a
+single namespace - the same namespace it is deployed to.
+- `FEDERATION_NAMESPACE`indicates the namespace to deploy the control
+plane to.  The control plane will only have permission to access this
+on both the host and member clusters.
+
+It may be useful to supply `FEDERATION_NAMESPACE=test-namespace` to
+allow the examples to work unmodified.
+
+### Deployment Cleanup
+
+Cleanup similarly requires the use of the same environment variables
+employed by deployment:
+
+```bash
+NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
+```
