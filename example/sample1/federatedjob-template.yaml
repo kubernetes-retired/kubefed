@@ -1,0 +1,24 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedJob
+metadata:
+  name: test-job
+  namespace: test-namespace
+spec:
+  template:
+    spec:
+      parallelism: 1
+      selector:
+        matchLabels:
+          app: busybox
+      manualSelector: true
+      template:
+        metadata:
+          labels:
+            app: busybox
+        spec:
+          terminationGracePeriodSeconds: 0
+          restartPolicy: Never
+          containers:
+            - name: busybox
+              image: busybox
+              command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
