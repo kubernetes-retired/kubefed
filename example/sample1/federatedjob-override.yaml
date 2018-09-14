@@ -1,0 +1,9 @@
+kind: FederatedJobOverride
+apiVersion: core.federation.k8s.io/v1alpha1
+metadata:
+  name: test-job
+  namespace: test-namespace
+spec:
+  overrides:
+    - clusterName: cluster2
+      parallelism: 2

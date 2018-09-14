@@ -216,7 +216,7 @@ kubectl apply -R -f example/sample1
 Check the status of all the resources in each cluster by running:
 
 ```bash
-for r in configmaps secrets service deployment serviceaccount; do
+for r in configmaps secrets service deployment serviceaccount job; do
     for c in cluster1 cluster2; do
         echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
@@ -251,7 +251,7 @@ kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 Then wait to verify all resources are removed from `cluster2`:
 
 ```bash
-for r in configmaps secrets service deployment serviceaccount; do
+for r in configmaps secrets service deployment serviceaccount job; do
     for c in cluster1 cluster2; do
         echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
@@ -274,7 +274,7 @@ kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 Then wait and verify all resources are added back to `cluster2`:
 
 ```bash
-for r in configmaps secrets service deploy; do
+for r in configmaps secrets service deploy job; do
     for c in cluster1 cluster2; do
         echo; echo ------------ ${c} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}

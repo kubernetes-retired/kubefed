@@ -23,5 +23,4 @@ items:
           spec:
             containers:
             - image: nginx
-              imagePullPolicy: Always
               name: nginx
