@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicednsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -58,9 +58,9 @@ func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
-	err = servicednsendpoint.StartController(config, targetNamespace, f.stopChan, true)
+	err = dnsendpoint.StartServiceDNSEndpointController(config, targetNamespace, f.stopChan, true)
 	if err != nil {
-		tl.Fatalf("Error starting service dns controller: %v", err)
+		tl.Fatalf("Error starting service dns endpoint controller: %v", err)
 	}
 	return f
 }
@@ -73,6 +73,10 @@ func NewIngressDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 	err := ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, true)
 	if err != nil {
 		tl.Fatalf("Error starting ingress dns controller: %v", err)
+	}
+	err = dnsendpoint.StartIngressDNSEndpointController(config, targetNamespace, f.stopChan, true)
+	if err != nil {
+		tl.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 	}
 	return f
 }

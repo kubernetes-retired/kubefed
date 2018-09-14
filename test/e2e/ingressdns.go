@@ -29,6 +29,7 @@ import (
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	dnsv1a1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -82,7 +83,8 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 
 		It("IngressDNS status should be updated correctly when there are corresponding ingresses in member clusters", func() {
 			const (
-				RecordTTL = 300
+				RecordTypeA = "A"
+				RecordTTL   = 300
 			)
 			hosts := []string{"foo.bar.test"}
 
@@ -103,6 +105,32 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 
 			By("Waiting for the IngressDNS object to have correct status")
 			common.WaitForObject(tl, namespace, name, objectGetter, ingressDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+
+			By("Waiting for the DNSEndpoint object to be created")
+			endpointObjectGetter := func(namespace, name string) (pkgruntime.Object, error) {
+				return fedClient.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Get(name, metav1.GetOptions{})
+			}
+
+			endpoints := []*dnsv1a1.Endpoint{}
+			for _, cluster := range ingressDNS.Status.DNS {
+				lbs := dnsendpoint.ExtractLoadBalancerTargets(cluster.LoadBalancer)
+
+				endpoint := common.NewDNSEndpoint(
+					"foo.bar.test",
+					lbs, RecordTypeA, RecordTTL)
+				endpoints = append(endpoints, endpoint)
+			}
+			desiredDNSEndpoint := &dnsv1a1.DNSEndpoint{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "ingress-" + name,
+					Namespace: namespace,
+				},
+				Spec: dnsv1a1.DNSEndpointSpec{
+					Endpoints: dnsendpoint.DedupeAndMergeEndpoints(endpoints),
+				},
+			}
+
+			common.WaitForObject(tl, namespace, "ingress-"+name, endpointObjectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 			if !framework.TestContext.LimitedScope {
 				By("Deleting test namespace in member clusters")

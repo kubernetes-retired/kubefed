@@ -92,6 +92,17 @@ func NewIngressObject(name, namespace string) *extv1b1.Ingress {
 	}
 }
 
+func NewDNSEndpoint(dnsName string, targets []string, recordType string, recordTTL dnsv1a1.TTL) *dnsv1a1.Endpoint {
+	endpoint := dnsv1a1.Endpoint{
+		DNSName:    dnsName,
+		Targets:    targets,
+		RecordType: recordType,
+		RecordTTL:  recordTTL,
+	}
+
+	return &endpoint
+}
+
 // WaitForObject waits for object to match the desired status.
 func WaitForObject(tl TestLogger, namespace, name string, objectGetter func(namespace, name string) (pkgruntime.Object, error), desired pkgruntime.Object, interval, timeout time.Duration) {
 	var actual pkgruntime.Object
