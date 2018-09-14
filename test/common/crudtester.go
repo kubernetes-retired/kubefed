@@ -18,6 +18,7 @@ package common
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
@@ -349,6 +350,8 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		c.tl.Fatalf("Error waiting for propagated version for %s %q: %v", targetKind, qualifiedName, err)
 	}
 
+	overrideMap, overridePath := c.marshallOverride(override)
+
 	// TODO(marun) run checks in parallel
 	for clusterName, testCluster := range c.testClusters {
 		objExpected := selectedClusters.Has(clusterName)
@@ -364,7 +367,9 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 			if expectedVersion == "" {
 				c.tl.Fatalf("Failed to determine expected version of %s %q in cluster %q.", targetKind, qualifiedName, clusterName)
 			}
-			err := c.waitForResource(testCluster.Client, qualifiedName, expectedVersion)
+
+			expectedOverride := overrideMap[clusterName]
+			err := c.waitForResource(testCluster.Client, qualifiedName, expectedVersion, overridePath, expectedOverride)
 			switch {
 			case err == wait.ErrWaitTimeout:
 				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
@@ -390,10 +395,23 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedVersion string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedVersion string, overridePath []string, expectedOverride interface{}) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if err == nil && c.comparisonHelper.GetVersion(clusterObj) == expectedVersion {
+			// Validate that the expected override was applied
+			if expectedOverride != nil {
+				value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, overridePath...)
+				if err != nil {
+					c.tl.Fatalf("Error retrieving overridden path: %v", err)
+				}
+				if !ok {
+					c.tl.Fatalf("Missing overridden path %s", overridePath)
+				}
+				if !reflect.DeepEqual(expectedOverride, value) {
+					c.tl.Fatalf("Expected field %s to be %q, got %q", overridePath, expectedOverride, value)
+				}
+			}
 			return true, nil
 		}
 		if errors.IsNotFound(err) {
@@ -533,4 +551,43 @@ func (c *FederatedTypeCrudTester) propagatedVersion(version *fedv1a1.PropagatedV
 		}
 	}
 	return ""
+}
+
+func (c *FederatedTypeCrudTester) marshallOverride(override *unstructured.Unstructured) (map[string]interface{}, []string) {
+	overrideMap := make(map[string]interface{})
+	overridePath := []string{}
+	if c.typeConfig.GetOverride() != nil && override != nil {
+		qualifiedName := util.NewQualifiedName(override)
+		overrideKind := c.typeConfig.GetOverride().Kind
+
+		rawOverrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+		if err != nil {
+			c.tl.Fatalf("Error retrieving spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
+		}
+		if !ok {
+			c.tl.Fatalf("Missing spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
+		}
+
+		overridePath = c.typeConfig.GetOverridePath()
+		if len(overridePath) == 0 {
+			c.tl.Fatalf("Override path is missing for %q", c.typeConfig.GetTarget().Kind)
+		}
+
+		overrideField := overridePath[len(overridePath)-1]
+		for _, overrideInterface := range rawOverrides {
+			clusterOverride := overrideInterface.(map[string]interface{})
+			rawName, ok := clusterOverride[util.ClusterNameField]
+			if !ok {
+				c.tl.Fatalf("Missing cluster name field for %s %q", overrideKind, qualifiedName)
+			}
+			name := rawName.(string)
+			data, ok := clusterOverride[overrideField]
+			if !ok {
+				c.tl.Fatalf("Missing overrides field %q for %s %q", overrideField, overrideKind, qualifiedName)
+			}
+			overrideMap[name] = data
+		}
+	}
+
+	return overrideMap, overridePath
 }
