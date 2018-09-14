@@ -29,7 +29,6 @@ import (
 
 	"github.com/golang/glog"
 	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
-	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -49,7 +48,6 @@ import (
 	flagutil "k8s.io/apiserver/pkg/util/flag"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 )
 
 var featureGates map[string]bool
@@ -152,22 +150,10 @@ func main() {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		// TODO(marun) Reconsider using kubebuilder framework to start
-		// the controller.  It's not a good fit.
-		inject.Inject = append(inject.Inject, func(arguments args.InjectArgs) error {
-			if c, err := federatedtypeconfig.ProvideController(arguments, fedNamespace, clusterNamespace, targetNamespace, stopChan); err != nil {
-				return err
-			} else {
-				arguments.ControllerManager.AddController(c)
-			}
-			return nil
-		})
-		// RunAll will never return - wrap in goroutine to avoid blocking
-		go func() {
-			if err := inject.RunAll(run.RunArguments{Stop: stopChan}, args.CreateInjectArgs(config)); err != nil {
-				glog.Fatalf("%v", err)
-			}
-		}()
+		err = federatedtypeconfig.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan)
+		if err != nil {
+			glog.Fatalf("Error starting federated type config controller: %v", err)
+		}
 	}
 
 	// Blockforever

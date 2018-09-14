@@ -117,11 +117,13 @@ else
 fi
 
 # Create a permissive clusterrolebinding to allow federation controllers to run.
-# TODO(marun) Make this more restrictive.
-# TODO(marun) Use a rolebinding when namespaced once the
-# federaatedtypeconfig controller can limit informer scope to the
-# namespace.
-kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
+if [[ "${NAMESPACED}" ]]; then
+  # TODO(marun) Investigate why cluster-admin is required to view cluster registry clusters in a namespace
+  kubectl -n "${NS}" create rolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
+else
+  # TODO(marun) Make this more restrictive.
+  kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
+fi
 
 if [[ ! "${USE_LATEST}" ]]; then
   if [[ "${NAMESPACED}" ]]; then

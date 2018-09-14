@@ -18,38 +18,36 @@ package federatedtypeconfig
 
 import (
 	"fmt"
-	"log"
 	"sync"
+	"time"
 
-	"github.com/kubernetes-sigs/kubebuilder/pkg/controller"
-	"github.com/kubernetes-sigs/kubebuilder/pkg/controller/types"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/util/workqueue"
 
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	corev1alpha1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
-	corev1alpha1informer "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/core/v1alpha1"
-	corev1alpha1lister "github.com/kubernetes-sigs/federation-v2/pkg/client/listers/core/v1alpha1"
 	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-const (
-	finalizer string = "core.federation.k8s.io/federated-type-config"
-)
+const finalizer string = "core.federation.k8s.io/federated-type-config"
 
-type FederatedTypeConfigController struct {
-	lister corev1alpha1lister.FederatedTypeConfigLister
+// Controller manages the FederatedTypeConfig objects in federation.
+type Controller struct {
 	client corev1alpha1client.CoreV1alpha1Interface
-	// recorder is an event recorder for recording Event resources to the
-	// Kubernetes API.
-	recorder record.EventRecorder
 
 	// Reference to config used to start new controllers
 	config *rest.Config
@@ -66,83 +64,200 @@ type FederatedTypeConfigController struct {
 	// Map of running sync controllers keyed by qualified target type
 	stopChannels map[string]chan struct{}
 	lock         sync.RWMutex
+
+	// For triggering reconciliation of a single resource. This is
+	// used when there is an add/update/delete operation on a resource
+	// in federated API server.
+	deliverer *util.DelayingDeliverer
+
+	// Store for the FederatedTypeConfig objects
+	store cache.Store
+	// Informer for the FederatedTypeConfig objects
+	controller cache.Controller
+
+	// Work queue allowing parallel processing of resources
+	workQueue workqueue.Interface
+
+	// Backoff manager
+	backoff *flowcontrol.Backoff
 }
 
-func ProvideController(arguments args.InjectArgs, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}) (*controller.GenericController, error) {
-	name := "FederatedTypeConfigController"
-	c := &FederatedTypeConfigController{
-		lister:           arguments.ControllerManager.GetInformerProvider(&corev1a1.FederatedTypeConfig{}).(corev1alpha1informer.FederatedTypeConfigInformer).Lister(),
-		client:           arguments.Clientset.CoreV1alpha1(),
-		recorder:         arguments.CreateRecorder(name),
-		config:           arguments.Config,
+// StartController starts the Controller for managing FederatedTypeConfig objects.
+func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}) error {
+	userAgent := "FederatedTypeConfig"
+	restclient.AddUserAgent(config, userAgent)
+	client := fedclientset.NewForConfigOrDie(config).CoreV1alpha1()
+
+	controller, err := newController(client, config, fedNamespace, clusterNamespace, targetNamespace)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Starting FederatedTypeConfig controller")
+	controller.Run(stopChan)
+	return nil
+}
+
+// newController returns a new controller to manage FederatedTypeConfig objects.
+func newController(client corev1alpha1client.CoreV1alpha1Interface, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
+	c := &Controller{
+		client:           client,
+		config:           config,
 		fedNamespace:     fedNamespace,
 		clusterNamespace: clusterNamespace,
 		targetNamespace:  targetNamespace,
 		stopChannels:     make(map[string]chan struct{}),
-	}
-	// Ensure launched controllers are shutdown cleanly
-	go func() {
-		<-stopChan
-		c.shutDown()
-	}()
-
-	gc := &controller.GenericController{
-		Name:             name,
-		Reconcile:        c.Reconcile,
-		InformerRegistry: arguments.ControllerManager,
+		workQueue:        workqueue.New(),
+		backoff:          flowcontrol.NewBackOff(5*time.Second, time.Minute),
 	}
 
-	// Watch only the federation namespace.
-	//
-	// TODO(marun) Avoid requiring cluster read permission on
-	// FederatedTypeConfig by using a namespace-scoped informer
-	// instead of the manager-supplied SharedInformer.
-	if err := gc.Watch(&corev1a1.FederatedTypeConfig{}, &NamespacePredicate{fedNamespace}); err != nil {
-		return gc, err
-	}
-	return gc, nil
+	c.deliverer = util.NewDelayingDeliverer()
+
+	c.store, c.controller = cache.NewInformer(
+		&cache.ListWatch{
+			// Only watch the federation namespace to ensure
+			// restrictive authz can be applied to a namespaced
+			// control plane.
+			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+				return client.FederatedTypeConfigs(fedNamespace).List(options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return client.FederatedTypeConfigs(fedNamespace).Watch(options)
+			},
+		},
+		&corev1a1.FederatedTypeConfig{},
+		util.NoResyncPeriod,
+		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) {
+			c.deliverObj(obj, 0, false)
+		}),
+	)
+
+	return c, nil
 }
 
-func (c *FederatedTypeConfigController) Reconcile(k types.ReconcileKey) error {
-	log.Printf("Running reconcile FederatedTypeConfig for %s\n", k.Name)
+// Run runs the Controller.
+func (c *Controller) Run(stopChan <-chan struct{}) {
+	go c.controller.Run(stopChan)
+	c.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
+		c.workQueue.Add(item)
+	})
 
-	typeConfig, err := c.lister.FederatedTypeConfigs(k.Namespace).Get(k.Name)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("federatedtypeconfig '%s' in work queue no longer exists", k))
-			return nil
-		}
-		return err
+	// wait for the caches to synchronize before starting the worker
+	if !cache.WaitForCacheSync(stopChan, c.controller.HasSynced) {
+		runtime.HandleError(fmt.Errorf("Timed out waiting for cache to sync"))
+		return
 	}
 
-	stopChan, running := c.getStopChannel(k.Name)
+	// TODO: Allow multiple workers.
+	go wait.Until(c.worker, time.Second, stopChan)
+
+	util.StartBackoffGC(c.backoff, stopChan)
+
+	// Ensure all goroutines are cleaned up when the stop channel closes
+	go func() {
+		<-stopChan
+		c.workQueue.ShutDown()
+		c.deliverer.Stop()
+		c.shutDown()
+	}()
+}
+
+type reconciliationStatus int
+
+const (
+	statusAllOK reconciliationStatus = iota
+	statusError
+)
+
+func (c *Controller) worker() {
+	for {
+		obj, quit := c.workQueue.Get()
+		if quit {
+			return
+		}
+
+		item := obj.(*util.DelayingDelivererItem)
+		qualifiedName := item.Value.(*util.QualifiedName)
+		status := c.reconcile(*qualifiedName)
+		c.workQueue.Done(item)
+
+		switch status {
+		case statusAllOK:
+			break
+		case statusError:
+			c.deliver(*qualifiedName, 0, true)
+		}
+	}
+}
+
+func (c *Controller) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
+	qualifiedName := util.NewQualifiedName(obj)
+	c.deliver(qualifiedName, delay, failed)
+}
+
+// Adds backoff to delay if this delivery is related to some failure. Resets backoff if there was no failure.
+func (c *Controller) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
+	key := qualifiedName.String()
+	if failed {
+		c.backoff.Next(key, time.Now())
+		delay = delay + c.backoff.Get(key)
+	} else {
+		c.backoff.Reset(key)
+	}
+	c.deliverer.DeliverAfter(key, &qualifiedName, delay)
+}
+
+func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationStatus {
+	key := qualifiedName.String()
+
+	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)
+
+	cachedObj, exist, err := c.store.GetByKey(key)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to query FederatedTypeConfig store for %q: %v", key, err))
+		return statusError
+	}
+	if !exist {
+		return statusAllOK
+	}
+	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
+
+	stopChan, running := c.getStopChannel(typeConfig.Name)
 
 	deleted := typeConfig.DeletionTimestamp != nil
 	if deleted {
 		if running {
-			c.stopController(k.Name, stopChan)
+			c.stopController(typeConfig.Name, stopChan)
 		}
-		return c.removeFinalizer(typeConfig)
+		err := c.removeFinalizer(typeConfig)
+		if err != nil {
+			runtime.HandleError(fmt.Errorf("Failed to remove finalizer from FederatedTypeConfig %q: %v", key, err))
+			return statusError
+		}
+		return statusAllOK
 	}
 
 	err = c.ensureFinalizer(typeConfig)
 	if err != nil {
-		return err
+		runtime.HandleError(fmt.Errorf("Failed to ensure finalizer for FederatedTypeConfig %q: %v", key, err))
+		return statusError
 	}
 
 	enabled := typeConfig.Spec.PropagationEnabled
 	startNewController := !running && enabled
 	stopController := running && !enabled
 	if startNewController {
-		return c.startController(typeConfig)
+		if err := c.startController(typeConfig); err != nil {
+			runtime.HandleError(err)
+			return statusError
+		}
 	} else if stopController {
-		c.stopController(k.Name, stopChan)
+		c.stopController(typeConfig.Name, stopChan)
 	}
 
-	return nil
+	return statusAllOK
 }
 
-func (c *FederatedTypeConfigController) shutDown() {
+func (c *Controller) shutDown() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -153,16 +268,15 @@ func (c *FederatedTypeConfigController) shutDown() {
 	}
 }
 
-func (c *FederatedTypeConfigController) getStopChannel(name string) (chan struct{}, bool) {
+func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	stopChan, ok := c.stopChannels[name]
 	return stopChan, ok
 }
 
-func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTypeConfig) error {
+func (c *Controller) startController(tc *corev1a1.FederatedTypeConfig) error {
 	kind := tc.Spec.Template.Kind
-	log.Printf("Starting sync controller for %s \n", kind)
 
 	// TODO(marun) Perform this defaulting in a webhook
 	corev1a1.SetFederatedTypeConfigDefaults(tc)
@@ -173,22 +287,22 @@ func (c *FederatedTypeConfigController) startController(tc *corev1a1.FederatedTy
 		close(stopChan)
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)
 	}
-	log.Printf("Started sync controller for %s \n", kind)
+	glog.Infof("Started sync controller for %q", kind)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.stopChannels[tc.Name] = stopChan
 	return nil
 }
 
-func (c *FederatedTypeConfigController) stopController(key string, stopChan chan struct{}) {
-	log.Printf("Stopping sync controller for %s \n", key)
+func (c *Controller) stopController(key string, stopChan chan struct{}) {
+	glog.Infof("Stopping sync controller for %q", key)
 	close(stopChan)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	delete(c.stopChannels, key)
 }
 
-func (c *FederatedTypeConfigController) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) error {
+func (c *Controller) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	accessor, err := meta.Accessor(tc)
 	if err != nil {
 		return err
@@ -203,7 +317,7 @@ func (c *FederatedTypeConfigController) ensureFinalizer(tc *corev1a1.FederatedTy
 	return err
 }
 
-func (c *FederatedTypeConfigController) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
+func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	accessor, err := meta.Accessor(tc)
 	if err != nil {
 		return err
@@ -216,30 +330,4 @@ func (c *FederatedTypeConfigController) removeFinalizer(tc *corev1a1.FederatedTy
 	accessor.SetFinalizers(finalizers.List())
 	_, err = c.client.FederatedTypeConfigs(tc.Namespace).Update(tc)
 	return err
-}
-
-// Predicate to restrict event handling to a single namespace.
-type NamespacePredicate struct {
-	namespace string
-}
-
-func (np *NamespacePredicate) HandleUpdate(old, new interface{}) bool {
-	return np.objInNamespace(old)
-}
-
-func (np *NamespacePredicate) HandleDelete(obj interface{}) bool {
-	return np.objInNamespace(obj)
-}
-
-func (np *NamespacePredicate) HandleCreate(obj interface{}) bool {
-	return np.objInNamespace(obj)
-}
-
-func (np *NamespacePredicate) objInNamespace(obj interface{}) bool {
-	metaObj, ok := obj.(metav1.Object)
-	if !ok {
-		log.Printf("Cannot handle %T because obj is not an Object: %v\n", obj, obj)
-		return false
-	}
-	return metaObj.GetNamespace() == np.namespace
 }
