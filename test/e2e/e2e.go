@@ -52,13 +52,18 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		framework.SetUpManagedFederation()
 		// TODO(marun) support parallel execution by sending
 		// configuration for test-managed federation to other nodes
-	} else if framework.TestContext.InMemoryControllers {
-		// This supports a hybrid setup where the user asks for an unmanaged
-		// federation with in memory controllers. This means the k8s clusters
-		// are already running along with the federation and cluster registry
-		// API servers. This will then join the clusters and launch the
-		// required federation controllers e.g. cluster and sync controllers.
-		framework.SetUpUnmanagedFederation()
+	} else {
+		if framework.TestContext.InMemoryControllers {
+			// This supports a hybrid setup where the user asks for an unmanaged
+			// federation with in memory controllers. This means the k8s clusters
+			// are already running along with the federation and cluster registry
+			// API servers. This will then join the clusters and launch the
+			// required federation controllers e.g. cluster and sync controllers.
+			framework.SetUpUnmanagedFederation()
+		}
+		// Wait for readiness of registered clusters to ensure tests
+		// run against a healthy federation.
+		framework.WaitForUnmanagedClusterReadiness()
 	}
 
 	return nil
