@@ -19,6 +19,7 @@ package sync
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -89,7 +90,7 @@ type FederationSyncController struct {
 	// Informer for propagated versions
 	propagatedVersionController cache.Controller
 	// Map of keys to versions for pending updates
-	pendingVersionUpdates sets.String
+	pendingVersionUpdates *sync.Map
 	// Helper for propagated version comparison for resource types.
 	comparisonHelper util.ComparisonHelper
 
@@ -165,7 +166,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		typeConfig:              typeConfig,
 		fedClient:               fedClient,
 		templateClient:          templateClient,
-		pendingVersionUpdates:   sets.String{},
+		pendingVersionUpdates:   new(sync.Map),
 		fedNamespace:            fedNamespace,
 	}
 
@@ -217,10 +218,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 				// Clear the indication of a pending version update for the object's key
 				version := cur.(*fedv1a1.PropagatedVersion)
 				key := util.NewQualifiedName(version).String()
-				// TODO(marun) LOCK!
-				if s.pendingVersionUpdates.Has(key) {
-					s.pendingVersionUpdates.Delete(key)
-				}
+				s.pendingVersionUpdates.Delete(key)
 			},
 		},
 	)
@@ -510,8 +508,8 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		Namespace: namespace,
 		Name:      s.versionName(qualifiedName.Name),
 	}.String()
-	// TODO(marun) LOCK!
-	if s.pendingVersionUpdates.Has(propagatedVersionKey) {
+	_, pendingVersionUpdate := s.pendingVersionUpdates.Load(propagatedVersionKey)
+	if pendingVersionUpdate {
 		// TODO(marun) Need to revisit how namespace deletion affects
 		// the version cache.  Ignoring may cause some unnecessary
 		// updates, but that's better than looping endlessly.
@@ -689,7 +687,7 @@ func getClusterVersions(template, override *unstructured.Unstructured, propagate
 func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclientset.Interface,
 	updatedVersions map[string]string, template, override *unstructured.Unstructured,
 	version *fedv1a1.PropagatedVersion, selectedClusters []string,
-	pendingVersionUpdates sets.String) error {
+	pendingVersionUpdates *sync.Map) error {
 
 	overrideVersion := ""
 	if override != nil {
@@ -705,7 +703,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 
 		key := util.NewQualifiedName(createdVersion).String()
 		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
-		pendingVersionUpdates.Insert(key)
+		pendingVersionUpdates.Store(key, true)
 
 		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(createdVersion)
 		if err != nil {
@@ -733,7 +731,7 @@ func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclien
 	}
 
 	key := util.NewQualifiedName(version).String()
-	pendingVersionUpdates.Insert(key)
+	pendingVersionUpdates.Store(key, true)
 
 	_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
 	if err != nil {
