@@ -350,7 +350,10 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		c.tl.Fatalf("Error waiting for propagated version for %s %q: %v", targetKind, qualifiedName, err)
 	}
 
-	overrideMap, overridePath := c.marshallOverride(override)
+	clusterOverrides, err := util.NewClusterOverrides(c.typeConfig, override)
+	if err != nil {
+		c.tl.Fatalf("Error marshalling cluster overrides for %s %q: %v", targetKind, qualifiedName, err)
+	}
 
 	// TODO(marun) run checks in parallel
 	for clusterName, testCluster := range c.testClusters {
@@ -368,8 +371,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 				c.tl.Fatalf("Failed to determine expected version of %s %q in cluster %q.", targetKind, qualifiedName, clusterName)
 			}
 
-			expectedOverride := overrideMap[clusterName]
-			err := c.waitForResource(testCluster.Client, qualifiedName, expectedVersion, overridePath, expectedOverride)
+			err := c.waitForResource(testCluster.Client, qualifiedName, expectedVersion, clusterOverrides.Path, clusterOverrides.Overrides[clusterName])
 			switch {
 			case err == wait.ErrWaitTimeout:
 				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
@@ -551,43 +553,4 @@ func (c *FederatedTypeCrudTester) propagatedVersion(version *fedv1a1.PropagatedV
 		}
 	}
 	return ""
-}
-
-func (c *FederatedTypeCrudTester) marshallOverride(override *unstructured.Unstructured) (map[string]interface{}, []string) {
-	overrideMap := make(map[string]interface{})
-	overridePath := []string{}
-	if c.typeConfig.GetOverride() != nil && override != nil {
-		qualifiedName := util.NewQualifiedName(override)
-		overrideKind := c.typeConfig.GetOverride().Kind
-
-		rawOverrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
-		if err != nil {
-			c.tl.Fatalf("Error retrieving spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
-		}
-		if !ok {
-			c.tl.Fatalf("Missing spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
-		}
-
-		overridePath = c.typeConfig.GetOverridePath()
-		if len(overridePath) == 0 {
-			c.tl.Fatalf("Override path is missing for %q", c.typeConfig.GetTarget().Kind)
-		}
-
-		overrideField := overridePath[len(overridePath)-1]
-		for _, overrideInterface := range rawOverrides {
-			clusterOverride := overrideInterface.(map[string]interface{})
-			rawName, ok := clusterOverride[util.ClusterNameField]
-			if !ok {
-				c.tl.Fatalf("Missing cluster name field for %s %q", overrideKind, qualifiedName)
-			}
-			name := rawName.(string)
-			data, ok := clusterOverride[overrideField]
-			if !ok {
-				c.tl.Fatalf("Missing overrides field %q for %s %q", overrideField, overrideKind, qualifiedName)
-			}
-			overrideMap[name] = data
-		}
-	}
-
-	return overrideMap, overridePath
 }
