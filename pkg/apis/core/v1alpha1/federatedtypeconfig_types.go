@@ -25,27 +25,33 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 )
 
-// FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig
+// FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig.
 type FederatedTypeConfigSpec struct {
-	// The configuration of the target type.  Kind will be set to the
-	// name of this resource regardles of the value provided.
+	// The configuration of the target type. If not set, the pluralName and
+	// groupName fields will be set from the metadata.name of this resource. The
+	// kind field must be set.
 	Target APIResource `json:"target"`
-	// Whether or not the target resource is namespaced (all primitive
-	// resources will share this).
+	// Whether or not the target type is namespaced. The federation types
+	// (template, placement, overrides) for the type will share this
+	// characteristic.
 	Namespaced bool `json:"namespaced"`
-	// What field equality determines equality.
+	// Which field of the target type determines whether federation
+	// considers two resources to be equal.
 	ComparisonField common.VersionComparisonField `json:"comparisonField"`
-	// Whether or not federation of the resource should be enabled.
+	// Whether or not propagation to member clusters should be enabled.
 	PropagationEnabled bool `json:"propagationEnabled"`
-	// Configuration for the template resource.
+	// Configuration for the template type that holds the base definition of
+	// a federated resource.
 	Template APIResource `json:"template"`
-	// Configuration for the placement resource. If not provided, the
-	// group and version will default to those provided for the
-	// template resource.
+	// Configuration for the placement type that holds information about which
+	// member clusters the resource should be federated to. If not provided, the
+	// group and version will default to those provided for the template
+	// resource.
 	Placement APIResource `json:"placement"`
-	// Configuration for the override resource. If not provided, the
-	// group and version will default to those provided for the
-	// template resource.
+	// Configuration for the override type that holds information about how the
+	// resource should be changed from the template when in certain member
+	// clusters. If not provided, the group and version will default to those
+	// provided for the template resource.
 	// +optional
 	Override *APIResource `json:"override,omitempty"`
 	// The path to the field to override in the target type.  The last
@@ -54,7 +60,7 @@ type FederatedTypeConfigSpec struct {
 	OverridePath []string `json:"overridePath,omitempty"`
 }
 
-// APIResource defines how to configure the dynamic client for an api resource.
+// APIResource defines how to configure the dynamic client for an API resource.
 type APIResource struct {
 	// metav1.GroupVersion is not used since the json annotation of
 	// the fields enforces them as mandatory.
@@ -78,7 +84,17 @@ type FederatedTypeConfigStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedTypeConfig
+// FederatedTypeConfig programs federation to know about a single API type - the
+// "target type" - that a user wants to federate. For each target type, there is
+// a set of API types that capture the information required to federate that
+// type:
+//
+// - A "template" type specifies the basic definition of a federated resource
+// - A "placement" type specifies the placement information for the federated
+//   resource
+// - (optional) A "override" type specifies how the target resource should
+//   vary across clusters.
+//
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=federatedtypeconfigs
 type FederatedTypeConfig struct {
