@@ -3,5 +3,6 @@
 /default.etcd
 /kubeconfig
 /hack/install.yaml
+/hack/install-crds-latest.yaml
 /hack/install-namespaced.yaml
 /images/federation-v2/controller-manager
