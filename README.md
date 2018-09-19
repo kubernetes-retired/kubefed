@@ -14,7 +14,7 @@ Access to both documents is available to members of the
 [kubernetes-sig-multicluster google
 group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
-<p align="center"><img src="docs/images/propagation.png" width="711"></p>
+<p align="center"><img src="docs/images/concepts.png" width="711"></p>
 
 # Concepts
 
