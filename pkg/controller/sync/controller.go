@@ -942,7 +942,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 		var err error
 		obj.Object, ok, err = unstructured.NestedMap(template.Object, "spec", "template")
 		if err != nil {
-			return nil, fmt.Errorf("Error retrieving template body", err)
+			return nil, fmt.Errorf("Error retrieving template body: %v", err)
 		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve template body")
