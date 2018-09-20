@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/kubernetes-sigs/federation-v2.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/federation-v2 "Travis")
+[![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/federation-v2/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/federation-v2)
 
 # Kubernetes Federation v2
 
