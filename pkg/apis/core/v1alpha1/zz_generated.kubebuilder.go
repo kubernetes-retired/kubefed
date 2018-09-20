@@ -413,7 +413,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -457,7 +456,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -513,7 +511,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -561,7 +558,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -582,8 +578,26 @@ var (
 							},
 						},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterStatuses": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"clusterName": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"status": v1beta1.JSONSchemaProps{
+													Type:       "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -605,7 +619,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -662,7 +675,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -710,7 +722,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -731,8 +742,26 @@ var (
 							},
 						},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterStatuses": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"clusterName": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"status": v1beta1.JSONSchemaProps{
+													Type:       "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -754,7 +783,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -802,7 +830,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -823,8 +850,26 @@ var (
 							},
 						},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterStatuses": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"clusterName": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"status": v1beta1.JSONSchemaProps{
+													Type:       "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -846,7 +891,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -903,7 +947,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -951,7 +994,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -999,7 +1041,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1020,8 +1061,26 @@ var (
 							},
 						},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterStatuses": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"clusterName": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"status": v1beta1.JSONSchemaProps{
+													Type:       "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1043,7 +1102,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1100,7 +1158,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1148,7 +1205,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1192,7 +1248,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1248,7 +1303,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1296,7 +1350,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1317,8 +1370,26 @@ var (
 							},
 						},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterStatuses": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"clusterName": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"status": v1beta1.JSONSchemaProps{
+													Type:       "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1340,7 +1411,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1384,7 +1454,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1432,7 +1501,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1480,7 +1548,6 @@ var (
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
 				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-					Type: "object",
 					Properties: map[string]v1beta1.JSONSchemaProps{
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
@@ -1494,6 +1561,9 @@ var (
 						"spec": v1beta1.JSONSchemaProps{
 							Type: "object",
 							Properties: map[string]v1beta1.JSONSchemaProps{
+								"collectStatus": v1beta1.JSONSchemaProps{
+									Type: "boolean",
+								},
 								"comparisonField": v1beta1.JSONSchemaProps{
 									Type: "string",
 								},

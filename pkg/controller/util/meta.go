@@ -17,10 +17,13 @@ limitations under the License.
 package util
 
 import (
+	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -117,4 +120,18 @@ func MetaAccessor(obj pkgruntime.Object) metav1.Object {
 		// adapters are slated for replacement by unstructured.
 	}
 	return accessor
+}
+
+// GetUnstructured return Unstructured for any given kubernetes type
+func GetUnstructured(resource interface{}) (*unstructured.Unstructured, error) {
+	content, err := json.Marshal(resource)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to JSON Marshal: %v", err)
+	}
+	unstructuredResource := &unstructured.Unstructured{}
+	err = unstructuredResource.UnmarshalJSON(content)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to UnmarshalJSON into unstructured content: %v", err)
+	}
+	return unstructuredResource, nil
 }

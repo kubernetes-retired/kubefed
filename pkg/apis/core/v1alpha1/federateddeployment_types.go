@@ -28,6 +28,13 @@ type FederatedDeploymentSpec struct {
 
 // FederatedDeploymentStatus defines the observed state of FederatedDeployment
 type FederatedDeploymentStatus struct {
+	ClusterStatuses []FederatedDeploymentClusterStatus `json:"clusterStatuses,omitempty"`
+}
+
+// FederatedDeploymentClusterStatus is the observed status for a named cluster
+type FederatedDeploymentClusterStatus struct {
+	ClusterName string                  `json:"clusterName,omitempty"`
+	Status      appsv1.DeploymentStatus `json:"status,omitempty"`
 }
 
 // +genclient

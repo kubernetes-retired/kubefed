@@ -15,3 +15,4 @@ spec:
     kind: FederatedIngress
   placement:
     kind: FederatedIngressPlacement
+  collectStatus: true

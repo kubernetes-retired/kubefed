@@ -28,6 +28,13 @@ type FederatedReplicaSetSpec struct {
 
 // FederatedReplicaSetStatus defines the observed state of FederatedReplicaSet
 type FederatedReplicaSetStatus struct {
+	ClusterStatuses []FederatedReplicaSetClusterStatus `json:"clusterStatuses,omitempty"`
+}
+
+// FederatedReplicaSetClusterStatus is the observed status for a named cluster
+type FederatedReplicaSetClusterStatus struct {
+	ClusterName string                  `json:"clusterName,omitempty"`
+	Status      appsv1.ReplicaSetStatus `json:"status,omitempty"`
 }
 
 // +genclient

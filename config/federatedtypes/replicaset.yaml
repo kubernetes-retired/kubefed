@@ -20,3 +20,4 @@ spec:
   overridePath:
     - spec
     - replicas
+  collectStatus: true

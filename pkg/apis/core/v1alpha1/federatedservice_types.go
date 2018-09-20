@@ -29,6 +29,13 @@ type FederatedServiceSpec struct {
 
 // FederatedServiceStatus defines the observed state of FederatedService
 type FederatedServiceStatus struct {
+	ClusterStatuses []FederatedServiceClusterStatus `json:"clusterStatuses,omitempty"`
+}
+
+// FederatedServiceClusterStatus is the observed status for a named cluster
+type FederatedServiceClusterStatus struct {
+	ClusterName string               `json:"clusterName,omitempty"`
+	Status      corev1.ServiceStatus `json:"status,omitempty"`
 }
 
 // +genclient
