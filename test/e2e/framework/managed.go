@@ -59,6 +59,8 @@ type ManagedFramework struct {
 	fixtures []framework.TestFixture
 
 	baseName string
+
+	testNamespaceName string
 }
 
 func NewManagedFramework(baseName string) FederationFramework {
@@ -122,8 +124,11 @@ func (f *ManagedFramework) FederationSystemNamespace() string {
 }
 
 func (f *ManagedFramework) TestNamespaceName() string {
-	client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
-	return createTestNamespace(client, f.baseName)
+	if f.testNamespaceName == "" {
+		client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
+		f.testNamespaceName = createTestNamespace(client, f.baseName)
+	}
+	return f.testNamespaceName
 }
 
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {

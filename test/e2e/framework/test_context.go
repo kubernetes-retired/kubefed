@@ -24,27 +24,19 @@ import (
 
 	"github.com/golang/glog"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 type TestContextType struct {
-	TestManagedFederation     bool
-	InMemoryControllers       bool
-	KubeConfig                string
-	KubeContext               string
-	FederationSystemNamespace string
-	ClusterNamespace          string
-	SingleCallTimeout         time.Duration
-	LimitedScope              bool
-}
-
-func (tc *TestContextType) TargetNamespace() string {
-	if tc.LimitedScope {
-		return tc.FederationSystemNamespace
-	}
-	return metav1.NamespaceAll
+	TestManagedFederation           bool
+	InMemoryControllers             bool
+	KubeConfig                      string
+	KubeContext                     string
+	FederationSystemNamespace       string
+	ClusterNamespace                string
+	SingleCallTimeout               time.Duration
+	LimitedScope                    bool
+	LimitedScopeInMemoryControllers bool
 }
 
 var TestContext TestContextType
@@ -65,6 +57,8 @@ func registerFlags(t *TestContextType) {
 	flag.DurationVar(&t.SingleCallTimeout, "single-call-timeout", DefaultSingleCallTimeout,
 		fmt.Sprintf("The maximum duration of a single call.  If unset, will default to %v", DefaultSingleCallTimeout))
 	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the federation namespace (configurable via --federation-namespace) will be the only target for federation.")
+	flag.BoolVar(&t.LimitedScopeInMemoryControllers, "limited-scope-in-memory-controllers", true,
+		"Whether federation controllers started in memory should target only the test namespace.  If debugging cluster-scoped federation outside of a test namespace, this should be set to false.")
 }
 
 func validateFlags(t *TestContextType) {

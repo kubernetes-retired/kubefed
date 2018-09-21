@@ -68,9 +68,8 @@ type FederationFramework interface {
 // The workaround is using a wrapper that performs late-binding on the
 // framework flavor.
 type frameworkWrapper struct {
-	impl              FederationFramework
-	baseName          string
-	testNamespaceName string
+	impl     FederationFramework
+	baseName string
 }
 
 func NewFederationFramework(baseName string) FederationFramework {
@@ -142,10 +141,7 @@ func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interfac
 }
 
 func (f *frameworkWrapper) TestNamespaceName() string {
-	if f.testNamespaceName == "" {
-		f.testNamespaceName = f.framework().TestNamespaceName()
-	}
-	return f.testNamespaceName
+	return f.framework().TestNamespaceName()
 }
 
 func createTestNamespace(client kubeclientset.Interface, baseName string) string {
