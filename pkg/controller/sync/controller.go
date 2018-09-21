@@ -19,11 +19,9 @@ package sync
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -38,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -85,14 +82,11 @@ type FederationSyncController struct {
 
 	placementPlugin placement.PlacementPlugin
 
-	// Store for propagated versions
-	propagatedVersionStore cache.Store
-	// Informer for propagated versions
-	propagatedVersionController cache.Controller
-	// Map of keys to versions for pending updates
-	pendingVersionUpdates *sync.Map
 	// Helper for propagated version comparison for resource types.
 	comparisonHelper util.ComparisonHelper
+
+	// Manages propagated versions for the controller
+	versionManager PropagatedVersionManager
 
 	// Work queue allowing parallel processing of resources
 	workQueue workqueue.Interface
@@ -166,7 +160,6 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		typeConfig:              typeConfig,
 		fedClient:               fedClient,
 		templateClient:          templateClient,
-		pendingVersionUpdates:   new(sync.Map),
 		fedNamespace:            fedNamespace,
 	}
 
@@ -200,28 +193,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, deliverObj)
 	}
 
-	s.propagatedVersionStore, s.propagatedVersionController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.CoreV1alpha1().PropagatedVersions(targetNamespace).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.CoreV1alpha1().PropagatedVersions(targetNamespace).Watch(options)
-			},
-		},
-		&fedv1a1.PropagatedVersion{},
-		util.NoResyncPeriod,
-		&cache.ResourceEventHandlerFuncs{
-			DeleteFunc: func(old interface{}) {},
-			AddFunc:    func(cur interface{}) {},
-			UpdateFunc: func(old, cur interface{}) {
-				// Clear the indication of a pending version update for the object's key
-				version := cur.(*fedv1a1.PropagatedVersion)
-				key := util.NewQualifiedName(version).String()
-				s.pendingVersionUpdates.Delete(key)
-			},
-		},
-	)
+	s.versionManager = NewPropagatedVersionManager(typeConfig, fedClient, targetNamespace)
 
 	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.GetComparisonField())
 	if err != nil {
@@ -305,11 +277,11 @@ func (s *FederationSyncController) minimizeLatency() {
 }
 
 func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
+	go s.versionManager.Sync(stopChan)
 	go s.templateController.Run(stopChan)
 	if s.overrideController != nil {
 		go s.overrideController.Run(stopChan)
 	}
-	go s.propagatedVersionController.Run(stopChan)
 	go s.placementPlugin.Run(stopChan)
 	s.informer.Start()
 	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
@@ -385,6 +357,10 @@ func (s *FederationSyncController) isSynced() bool {
 	}
 	if !s.placementPlugin.HasSynced() {
 		glog.V(2).Infof("Placement not synced")
+		return false
+	}
+	if !s.versionManager.HasSynced() {
+		glog.V(2).Infof("Version manager not synced")
 		return false
 	}
 
@@ -504,31 +480,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		}
 	}
 
-	propagatedVersionKey := util.QualifiedName{
-		Namespace: namespace,
-		Name:      s.versionName(qualifiedName.Name),
-	}.String()
-	_, pendingVersionUpdate := s.pendingVersionUpdates.Load(propagatedVersionKey)
-	if pendingVersionUpdate {
-		// TODO(marun) Need to revisit how namespace deletion affects
-		// the version cache.  Ignoring may cause some unnecessary
-		// updates, but that's better than looping endlessly.
-		if targetKind != util.NamespaceKind {
-			// A status update is pending
-			return util.StatusNeedsRecheck
-		}
-	}
-	propagatedVersionFromCache, err := s.rawObjFromCache(s.propagatedVersionStore,
-		"PropagatedVersion", propagatedVersionKey)
-	if err != nil {
-		return util.StatusError
-	}
-	var propagatedVersion *fedv1a1.PropagatedVersion
-	if propagatedVersionFromCache != nil {
-		propagatedVersion = propagatedVersionFromCache.(*fedv1a1.PropagatedVersion)
-	}
-
-	return s.syncToClusters(selectedClusters, unselectedClusters, template, override, propagatedVersion)
+	return s.syncToClusters(selectedClusters, unselectedClusters, template, override)
 }
 
 func (s *FederationSyncController) rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
@@ -584,9 +536,8 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 		return nil
 	}
 
-	versionName := s.versionName(qualifiedName.Name)
-	err = s.fedClient.CoreV1alpha1().PropagatedVersions(qualifiedName.Namespace).Delete(versionName, nil)
-	if err != nil && !errors.IsNotFound(err) {
+	err = s.versionManager.Delete(qualifiedName)
+	if err != nil {
 		return err
 	}
 
@@ -602,15 +553,10 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 	return nil
 }
 
-func (s *FederationSyncController) versionName(resourceName string) string {
-	targetKind := s.typeConfig.GetTarget().Kind
-	return common.PropagatedVersionName(targetKind, resourceName)
-}
-
 // syncToClusters ensures that the state of the given object is synchronized to
 // member clusters.
 func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedClusters []string,
-	template, override *unstructured.Unstructured, propagatedVersion *fedv1a1.PropagatedVersion) util.ReconciliationStatus {
+	template, override *unstructured.Unstructured) util.ReconciliationStatus {
 
 	templateKind := s.typeConfig.GetTemplate().Kind
 	key := util.NewQualifiedName(template).String()
@@ -618,10 +564,7 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	glog.V(3).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s, unselected clusters are: %s",
 		templateKind, key, selectedClusters, unselectedClusters)
 
-	propagatedClusterVersions := getClusterVersions(template, override, propagatedVersion)
-
-	operations, err := s.clusterOperations(selectedClusters, unselectedClusters, template,
-		override, key, propagatedClusterVersions)
+	operations, err := s.clusterOperations(selectedClusters, unselectedClusters, template, override, key)
 	if err != nil {
 		s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "FedClusterOperationsError",
 			"Error obtaining sync operations for %s: %s error: %s", templateKind, key, err.Error())
@@ -633,19 +576,16 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	}
 
 	// TODO(marun) raise the visibility of operationErrors to aid in debugging
-	updatedClusterVersions, operationErrors := s.updater.Update(operations)
+	clusterVersions, operationErrors := s.updater.Update(operations)
 
-	defer func() {
-		err = updatePropagatedVersion(s.typeConfig, s.fedClient, updatedClusterVersions, template, override,
-			propagatedVersion, selectedClusters, s.pendingVersionUpdates)
-		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v", templateKind,
-				key, err))
-			// Failure to record the propagated version does not imply
-			// that propagation for the resource needs to be attempted
-			// again.
-		}
-	}()
+	err = s.versionManager.Update(template, override, selectedClusters, clusterVersions)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v",
+			templateKind, key, err))
+		// Failure to record propagated version does not indicate a
+		// reconcilliation error.  However, it may result in an
+		// unnecessary update during the next reconcile for this key.
+	}
 
 	if len(operationErrors) > 0 {
 		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", templateKind,
@@ -656,161 +596,14 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	return util.StatusAllOK
 }
 
-// getClusterVersions returns the cluster versions populated in the current
-// propagated version object if it exists.
-func getClusterVersions(template, override *unstructured.Unstructured, propagatedVersion *fedv1a1.PropagatedVersion) map[string]string {
-
-	clusterVersions := make(map[string]string)
-
-	if propagatedVersion == nil {
-		return clusterVersions
-	}
-
-	templateVersion := template.GetResourceVersion()
-	overrideVersion := ""
-	if override != nil {
-		overrideVersion = override.GetResourceVersion()
-	}
-
-	if templateVersion == propagatedVersion.Status.TemplateVersion &&
-		overrideVersion == propagatedVersion.Status.OverrideVersion {
-		for _, versions := range propagatedVersion.Status.ClusterVersions {
-			clusterVersions[versions.ClusterName] = versions.Version
-		}
-	}
-
-	return clusterVersions
-}
-
-// updatePropagatedVersion handles creating or updating the propagated version
-// resource in the federation API.
-func updatePropagatedVersion(typeConfig typeconfig.Interface, fedClient fedclientset.Interface,
-	updatedVersions map[string]string, template, override *unstructured.Unstructured,
-	version *fedv1a1.PropagatedVersion, selectedClusters []string,
-	pendingVersionUpdates *sync.Map) error {
-
-	overrideVersion := ""
-	if override != nil {
-		overrideVersion = override.GetResourceVersion()
-	}
-
-	if version == nil {
-		version := newVersion(updatedVersions, template, typeConfig.GetTarget().Kind, overrideVersion)
-		createdVersion, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).Create(version)
-		if err != nil {
-			return err
-		}
-
-		key := util.NewQualifiedName(createdVersion).String()
-		// TODO(marun) add timeout to ensure against lost updates blocking propagation of a given resource
-		pendingVersionUpdates.Store(key, true)
-
-		_, err = fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(createdVersion)
-		if err != nil {
-			pendingVersionUpdates.Delete(key)
-		}
-		return err
-	}
-
-	oldVersionStatus := version.Status
-	templateVersion := template.GetResourceVersion()
-	var existingVersions []fedv1a1.ClusterObjectVersion
-	if version.Status.TemplateVersion == templateVersion && version.Status.OverrideVersion == overrideVersion {
-		existingVersions = version.Status.ClusterVersions
-	} else {
-		version.Status.TemplateVersion = templateVersion
-		version.Status.OverrideVersion = overrideVersion
-		existingVersions = []fedv1a1.ClusterObjectVersion{}
-	}
-	version.Status.ClusterVersions = clusterVersions(updatedVersions, existingVersions, selectedClusters)
-
-	if util.PropagatedVersionStatusEquivalent(&oldVersionStatus, &version.Status) {
-		glog.V(4).Infof("No PropagatedVersion update necessary for %s %q",
-			typeConfig.GetTemplate().Kind, util.NewQualifiedName(template).String())
-		return nil
-	}
-
-	key := util.NewQualifiedName(version).String()
-	pendingVersionUpdates.Store(key, true)
-
-	_, err := fedClient.CoreV1alpha1().PropagatedVersions(version.Namespace).UpdateStatus(version)
-	if err != nil {
-		pendingVersionUpdates.Delete(key)
-	}
-	return err
-}
-
-// newVersion initializes a new propagated version resource for the given
-// cluster versions and template and override.
-func newVersion(clusterVersions map[string]string, templateMeta metav1.Object, targetKind,
-	overrideVersion string) *fedv1a1.PropagatedVersion {
-	versions := []fedv1a1.ClusterObjectVersion{}
-	for clusterName, version := range clusterVersions {
-		versions = append(versions, fedv1a1.ClusterObjectVersion{
-			ClusterName: clusterName,
-			Version:     version,
-		})
-	}
-
-	util.SortClusterVersions(versions)
-	var namespace string
-	if targetKind == util.NamespaceKind {
-		namespace = templateMeta.GetName()
-	} else {
-		namespace = templateMeta.GetNamespace()
-	}
-
-	return &fedv1a1.PropagatedVersion{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      common.PropagatedVersionName(targetKind, templateMeta.GetName()),
-		},
-		Status: fedv1a1.PropagatedVersionStatus{
-			TemplateVersion: templateMeta.GetResourceVersion(),
-			OverrideVersion: overrideVersion,
-			ClusterVersions: versions,
-		},
-	}
-}
-
-// clusterVersions updates the versions for the given status.
-func clusterVersions(newVersions map[string]string, oldVersions []fedv1a1.ClusterObjectVersion,
-	selectedClusters []string) []fedv1a1.ClusterObjectVersion {
-	// Retain versions for selected clusters that were not changed
-	selectedClusterSet := sets.NewString(selectedClusters...)
-	for _, oldVersion := range oldVersions {
-		if !selectedClusterSet.Has(oldVersion.ClusterName) {
-			continue
-		}
-		if _, ok := newVersions[oldVersion.ClusterName]; !ok {
-			newVersions[oldVersion.ClusterName] = oldVersion.Version
-		}
-	}
-
-	// Convert map to slice
-	versions := []fedv1a1.ClusterObjectVersion{}
-	for clusterName, version := range newVersions {
-		// Lack of version indicates deletion
-		if version == "" {
-			continue
-		}
-		versions = append(versions, fedv1a1.ClusterObjectVersion{
-			ClusterName: clusterName,
-			Version:     version,
-		})
-	}
-
-	util.SortClusterVersions(versions)
-	return versions
-}
-
 // clusterOperations returns the list of operations needed to synchronize the
 // state of the given object to the provided clusters.
 func (s *FederationSyncController) clusterOperations(selectedClusters, unselectedClusters []string,
-	template, override *unstructured.Unstructured, key string,
-	clusterVersions map[string]string) ([]util.FederatedOperation, error) {
+	template, override *unstructured.Unstructured, key string) ([]util.FederatedOperation, error) {
 
 	operations := make([]util.FederatedOperation, 0)
+
+	clusterVersions := s.versionManager.Get(template, override)
 
 	targetKind := s.typeConfig.GetTarget().Kind
 	for _, clusterName := range selectedClusters {
@@ -923,7 +716,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 	if targetKind == util.NamespaceKind {
 		metadata, ok, err := unstructured.NestedMap(template.Object, "metadata")
 		if err != nil {
-			return nil, fmt.Errorf("Error retrieving namespace metadata", err)
+			return nil, fmt.Errorf("Error retrieving namespace metadata: %s", err)
 		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
@@ -942,7 +735,7 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 		var err error
 		obj.Object, ok, err = unstructured.NestedMap(template.Object, "spec", "template")
 		if err != nil {
-			return nil, fmt.Errorf("Error retrieving template body", err)
+			return nil, fmt.Errorf("Error retrieving template body: %v", err)
 		}
 		if !ok {
 			return nil, fmt.Errorf("Unable to retrieve template body")
