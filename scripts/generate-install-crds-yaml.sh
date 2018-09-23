@@ -20,7 +20,7 @@ set -o pipefail
 
 INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML:-hack/install-crds-latest.yaml}"
 
-kubebuilder create config --crds --output "${INSTALL_CRDS_YAML}"
+kubebuilder create config --crds --name federation --output "${INSTALL_CRDS_YAML}"
 
 # Add crd-install to make sure the CRDs can be installed first in a helm chart.
 sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/g' "${INSTALL_CRDS_YAML}"
