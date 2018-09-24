@@ -32,8 +32,11 @@ sed -i -e '/^  namespace: federation-system$/d' "${INSTALL_YAML}"
 # Convert rbac from cluster- to namespace-scoped
 sed -i -e 's/ClusterRole/Role/' "${INSTALL_YAML}"
 
-# Add --limited-scope arg to container
-sed -i -e 's/\(\s*- \)\(--install-crds=false\)/\1\2\n\1--limited-scope=true/' "${INSTALL_YAML}"
+# Add args to container
+sed -i -e '/--install-crds=false/a\
+        - --limited-scope=true\
+        - --federation-namespace=$(FEDERATION_NAMESPACE)\
+        - --registry-namespace=$(CLUSTER_REGISTRY_NAMESPACE)' "${INSTALL_YAML}"
 
 # Add namespace env args to container
  sed -i -e '/terminationGracePeriodSeconds/i\
