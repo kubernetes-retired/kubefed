@@ -94,19 +94,7 @@ func main() {
 		}
 	}
 
-	// Allow federation and cluster namespaces to be overridden by
-	// environment variables to allow the namespaces to be set to the
-	// pod namespace via the downward api.
-	fedNamespaceFromEnv := os.Getenv("FEDERATION_NAMESPACE")
-	if len(fedNamespaceFromEnv) > 0 {
-		fedNamespace = fedNamespaceFromEnv
-	}
 	glog.Infof("Federation namespace: %s", fedNamespace)
-
-	clusterNamespaceFromEnv := os.Getenv("CLUSTER_REGISTRY_NAMESPACE")
-	if len(clusterNamespaceFromEnv) > 0 {
-		clusterNamespace = clusterNamespaceFromEnv
-	}
 	glog.Infof("Cluster registry namespace: %s", clusterNamespace)
 
 	targetNamespace := metav1.NamespaceAll
