@@ -282,9 +282,9 @@ kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 Then wait and verify all resources are added back to `cluster2`:
 
 ```bash
-for r in configmaps secrets service deploy job; do
+for r in configmaps secrets service deployment serviceaccount job; do
     for c in cluster1 cluster2; do
-        echo; echo ------------ ${c} ------------; echo
+        echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
@@ -308,10 +308,9 @@ successfully verified a working federation-v2 deployment.
 
 ### Example Cleanup
 
-To cleanup the example simply delete the namespace and its placement:
+To cleanup the example simply delete the namespace:
 
 ```bash
-kubectl -n test-namespace delete federatednamespaceplacement test-namespace
 kubectl delete ns test-namespace
 ```
 
