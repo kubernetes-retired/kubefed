@@ -36,7 +36,8 @@ sed -i -e 's/ClusterRole/Role/' "${INSTALL_YAML}"
 sed -i -e 's/\(\s*- \)\(--install-crds=false\)/\1\2\n\1--limited-scope=true/' "${INSTALL_YAML}"
 
 # Add namespace env args to container
- sed -i -e '/terminationGracePeriodSeconds/i\        env:\
+ sed -i -e '/terminationGracePeriodSeconds/i\
+        env:\
         - name: FEDERATION_NAMESPACE\
           valueFrom:\
             fieldRef:\
