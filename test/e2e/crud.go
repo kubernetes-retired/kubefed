@@ -42,23 +42,7 @@ var _ = Describe("Federated types", func() {
 
 	tl := framework.NewE2ELogger()
 
-	typeConfigs, err := common.FederatedTypeConfigs()
-	if err != nil {
-		tl.Fatalf("Error loading type configs: %v", err)
-	}
-
-	// Find the namespace typeconfig to be able to start its sync
-	// controller as needed.
-	var namespaceTypeConfig typeconfig.Interface
-	for _, typeConfig := range typeConfigs {
-		if typeConfig.GetTarget().Kind == util.NamespaceKind {
-			namespaceTypeConfig = typeConfig
-			break
-		}
-	}
-	if namespaceTypeConfig == nil {
-		tl.Fatalf("Unable to find namespace type config")
-	}
+	typeConfigs := common.TypeConfigsOrDie(tl)
 
 	for i, _ := range typeConfigs {
 		// Bind the type config inside the loop to ensure the ginkgo
@@ -86,7 +70,7 @@ var _ = Describe("Federated types", func() {
 				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
 					return common.NewTestObjects(typeConfig, namespace, clusterNames)
 				}
-				validateCrud(f, tl, typeConfig, namespaceTypeConfig, testObjectFunc)
+				validateCrud(f, tl, typeConfig, testObjectFunc)
 			})
 		})
 	}
@@ -144,7 +128,7 @@ var _ = Describe("Federated types", func() {
 			// Create a template crd
 			templateKind := fmt.Sprintf("Federated%s", targetCrdKind)
 			templateCrd := newTestCrd(tl, templateKind)
-			templateCrd, err = hostCrdClient.Resources("").Create(templateCrd)
+			templateCrd, err := hostCrdClient.Resources("").Create(templateCrd)
 			if err != nil {
 				tl.Fatalf("Error creating template crd: %v", err)
 			}
@@ -235,7 +219,7 @@ spec:
 				return template, placement, nil, nil
 			}
 
-			validateCrud(f, tl, typeConfig, namespaceTypeConfig, testObjectFunc)
+			validateCrud(f, tl, typeConfig, testObjectFunc)
 		})
 	})
 })
@@ -257,16 +241,9 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 	}
 }
 
-func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig, namespaceTypeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
+func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
 	// Initialize in-memory controllers if configuration requires
 	f.SetUpControllerFixture(typeConfig)
-	if typeConfig.GetTarget().Kind != util.NamespaceKind &&
-		framework.TestContext.TargetNamespace() == metav1.NamespaceAll {
-		// The namespace controller is required to ensure namespaces
-		// are created as needed in member clusters in advance of
-		// propagation of other namespaced types.
-		f.SetUpControllerFixture(namespaceTypeConfig)
-	}
 
 	templateKind := typeConfig.GetTemplate().Kind
 
