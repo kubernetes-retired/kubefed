@@ -603,11 +603,18 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 	operations := make([]util.FederatedOperation, 0)
 
+	clusterOverrides, err := util.NewClusterOverrides(s.typeConfig, override)
+	if err != nil {
+		templateKind := s.typeConfig.GetTemplate().Kind
+		return nil, fmt.Errorf("Failed to marshall cluster overrides for %s %q: %v", templateKind, key, err)
+	}
+
 	clusterVersions := s.versionManager.Get(template, override)
 
 	targetKind := s.typeConfig.GetTarget().Kind
 	for _, clusterName := range selectedClusters {
-		desiredObj, err := s.objectForCluster(template, override, clusterName)
+		// TODO(marun) Create the desired object only if needed
+		desiredObj, err := s.objectForCluster(template, clusterOverrides, clusterName)
 		if err != nil {
 			return nil, err
 		}
@@ -662,6 +669,9 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				if version != targetVersion {
 					operationType = util.OperationTypeUpdate
 				} else if !s.comparisonHelper.Equivalent(desiredObj, clusterObj) {
+					// TODO(marun) Since only the metadata is compared
+					// in the call to Equivalent(), use the template
+					// to avoid having to worry about overrides.
 					operationType = util.OperationTypeUpdate
 				}
 			}
@@ -699,7 +709,8 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 	return operations, nil
 }
 
-func (s *FederationSyncController) objectForCluster(template, override *unstructured.Unstructured, clusterName string) (*unstructured.Unstructured, error) {
+// TODO(marun) Marshall the template once per reconcile, not per-cluster
+func (s *FederationSyncController) objectForCluster(template *unstructured.Unstructured, clusterOverrides *util.ClusterOverrides, clusterName string) (*unstructured.Unstructured, error) {
 	// Federation of namespaces uses Namespace resources as the
 	// template for resource creation in member clusters. All other
 	// federated types rely on a template type distinct from the
@@ -752,31 +763,9 @@ func (s *FederationSyncController) objectForCluster(template, override *unstruct
 		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
 	}
 
-	if override == nil {
-		return obj, nil
-	}
-	overrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving overrides for %q: %v", targetKind, err)
-	}
-	if !ok {
-		return obj, nil
-	}
-	overridePath := s.typeConfig.GetOverridePath()
-	if len(overridePath) == 0 {
-		return nil, fmt.Errorf("Override path is missing for %q", targetKind)
-	}
-	overrideField := overridePath[len(overridePath)-1]
-	for _, overrideInterface := range overrides {
-		clusterOverride := overrideInterface.(map[string]interface{})
-		if clusterOverride[util.ClusterNameField] != clusterName {
-			continue
-		}
-		data, ok := clusterOverride[overrideField]
-		if ok {
-			unstructured.SetNestedField(obj.Object, data, overridePath...)
-		}
-		break
+	data, ok := clusterOverrides.Overrides[clusterName]
+	if ok {
+		unstructured.SetNestedField(obj.Object, data, clusterOverrides.Path...)
 	}
 
 	return obj, nil
