@@ -346,7 +346,7 @@ The only supported method to deploy namespaced federation is via the
 deployment script configured with environment variables:
 
 ```bash
-NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <image name>
+NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <image name> <joining cluster list>
 ```
 
 - `NAMESPACED` indicates that the control plane should target a
@@ -356,7 +356,12 @@ plane to.  The control plane will only have permission to access this
 on both the host and member clusters.
 
 It may be useful to supply `FEDERATION_NAMESPACE=test-namespace` to
-allow the examples to work unmodified.
+allow the examples to work unmodified. You can run following command
+to set up the test environment with `cluster1` and `cluster2`.
+
+```bash
+NAMESPACED=y FEDERATION_NAMESPACE=test-namespace scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
+```
 
 ### Joining Clusters
 
