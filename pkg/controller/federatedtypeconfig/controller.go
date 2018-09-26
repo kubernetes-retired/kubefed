@@ -34,6 +34,7 @@ import (
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	corev1alpha1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	statuscontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
 	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
@@ -209,6 +210,14 @@ func (c *Controller) startController(tc *corev1a1.FederatedTypeConfig) error {
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)
 	}
 	glog.Infof("Started sync controller for %q", kind)
+	if tc.GetEnableStatus() {
+		err = statuscontroller.StartFederationStatusController(tc, c.config, c.fedNamespace, c.clusterNamespace, c.targetNamespace, stopChan, c.clusterAvailableDelay, c.clusterUnavailableDelay, false)
+		if err != nil {
+			close(stopChan)
+			return fmt.Errorf("Error starting status controller for %q: %v", kind, err)
+		}
+		glog.Infof("Started status controller for %q", kind)
+	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.stopChannels[tc.Name] = stopChan
