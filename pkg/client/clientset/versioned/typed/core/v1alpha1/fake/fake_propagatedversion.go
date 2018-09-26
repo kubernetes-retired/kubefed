@@ -62,7 +62,7 @@ func (c *FakePropagatedVersions) List(opts v1.ListOptions) (result *v1alpha1.Pro
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.PropagatedVersionList{}
+	list := &v1alpha1.PropagatedVersionList{ListMeta: obj.(*v1alpha1.PropagatedVersionList).ListMeta}
 	for _, item := range obj.(*v1alpha1.PropagatedVersionList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

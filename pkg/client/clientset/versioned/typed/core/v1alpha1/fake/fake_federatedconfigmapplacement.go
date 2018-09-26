@@ -62,7 +62,7 @@ func (c *FakeFederatedConfigMapPlacements) List(opts v1.ListOptions) (result *v1
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedConfigMapPlacementList{}
+	list := &v1alpha1.FederatedConfigMapPlacementList{ListMeta: obj.(*v1alpha1.FederatedConfigMapPlacementList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedConfigMapPlacementList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

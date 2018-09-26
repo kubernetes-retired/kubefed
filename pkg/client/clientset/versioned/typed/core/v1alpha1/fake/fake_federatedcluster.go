@@ -62,7 +62,7 @@ func (c *FakeFederatedClusters) List(opts v1.ListOptions) (result *v1alpha1.Fede
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedClusterList{}
+	list := &v1alpha1.FederatedClusterList{ListMeta: obj.(*v1alpha1.FederatedClusterList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedClusterList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
