@@ -36,9 +36,9 @@ else
   USE_LATEST=
 fi
 
-KF_NS_ARG=
+KF_NS_ARG="--federation-namespace=${NS} "
 if [[ "${NAMESPACED}" ]]; then
-  KF_NS_ARG="--federation-namespace=${NS} --registry-namespace=${NS}"
+  KF_NS_ARG+="--registry-namespace=${NS}"
 fi
 
 # Unjoin clusters by removing objects added by kubefed2.
@@ -65,13 +65,14 @@ done
 if [[ ! "${USE_LATEST}" ]]; then
   if [[ "${NAMESPACED}" ]]; then
     ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
-    ${KCD} ns "${NS}"
   else
     ${KCD} -f hack/install.yaml
   fi
 else
   ${KCD} -f hack/install-latest.yaml
 fi
+
+${KCD} ns "${NS}"
 
 # Remove permissive rolebinding that allows federation controllers to run.
 if [[ "${NAMESPACED}" ]]; then
