@@ -33,7 +33,9 @@ type FederatedNamespacePlacementStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedNamespacePlacement
+// FederatedNamespacePlacement is not implemented yet and should not be
+// used at this time.
+//
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=federatednamespaceplacements
 type FederatedNamespacePlacement struct {
