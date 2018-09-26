@@ -124,6 +124,10 @@ func (c *FakeCoreV1alpha1) FederatedServicePlacements(namespace string) v1alpha1
 	return &FakeFederatedServicePlacements{c, namespace}
 }
 
+func (c *FakeCoreV1alpha1) FederatedServiceStatuses(namespace string) v1alpha1.FederatedServiceStatusInterface {
+	return &FakeFederatedServiceStatuses{c, namespace}
+}
+
 func (c *FakeCoreV1alpha1) FederatedTypeConfigs(namespace string) v1alpha1.FederatedTypeConfigInterface {
 	return &FakeFederatedTypeConfigs{c, namespace}
 }
