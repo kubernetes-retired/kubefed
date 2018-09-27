@@ -31,13 +31,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/client-go/util/workqueue"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -54,11 +51,6 @@ const (
 type Controller struct {
 	fedClient fedclientset.Interface
 
-	// For triggering reconciliation of a single resource. This is
-	// used when there is an add/update/delete operation on a resource
-	// in federated API server.
-	deliverer *util.DelayingDeliverer
-
 	// For triggering reconciliation of all target resources. This is
 	// used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
@@ -71,13 +63,8 @@ type Controller struct {
 	// Informer for the MultiClusterIngressDNSRecord objects
 	ingressDNSController cache.Controller
 
-	// Work queue allowing parallel processing of resources
-	workQueue workqueue.Interface
+	worker util.ReconcileWorker
 
-	// Backoff manager
-	backoff *flowcontrol.Backoff
-
-	reviewDelay             time.Duration
 	clusterAvailableDelay   time.Duration
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
@@ -107,16 +94,16 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
-		reviewDelay:             time.Second * 10,
 		clusterAvailableDelay:   time.Second * 20,
 		clusterUnavailableDelay: time.Second * 60,
 		smallDelay:              time.Second * 3,
-		workQueue:               workqueue.New(),
-		backoff:                 flowcontrol.NewBackOff(5*time.Second, time.Minute),
 	}
 
-	// Build deliverers for triggering reconciliations.
-	s.deliverer = util.NewDelayingDeliverer()
+	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
+		ClusterSyncDelay: s.clusterAvailableDelay,
+	})
+
+	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
 	// Informer for the MultiClusterIngressDNSRecord resource in federation.
@@ -132,7 +119,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		&dnsv1a1.MultiClusterIngressDNSRecord{},
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) {
-			s.deliverObj(obj, 0, false)
+			s.worker.EnqueueObject(obj)
 		}),
 	)
 
@@ -152,7 +139,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 			SingularName: "ingress",
 			Namespaced:   true},
 		func(obj pkgruntime.Object) {
-			s.deliverObj(obj, 0, false)
+			s.worker.EnqueueObject(obj)
 		},
 
 		&util.ClusterLifecycleHandlerFuncs{
@@ -174,85 +161,26 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 func (c *Controller) minimizeLatency() {
 	c.clusterAvailableDelay = time.Second
 	c.clusterUnavailableDelay = time.Second
-	c.reviewDelay = 50 * time.Millisecond
 	c.smallDelay = 20 * time.Millisecond
+	c.worker.SetDelay(50*time.Millisecond, c.clusterAvailableDelay)
 }
 
 // Run runs the Controller.
 func (c *Controller) Run(stopChan <-chan struct{}) {
 	go c.ingressDNSController.Run(stopChan)
 	c.ingressFederatedInformer.Start()
-	c.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
-		c.workQueue.Add(item)
-	})
 	c.clusterDeliverer.StartWithHandler(func(_ *util.DelayingDelivererItem) {
 		c.reconcileOnClusterChange()
 	})
 
-	// TODO: Allow multiple workers.
-	go wait.Until(c.worker, time.Second, stopChan)
-
-	util.StartBackoffGC(c.backoff, stopChan)
+	c.worker.Run(stopChan)
 
 	// Ensure all goroutines are cleaned up when the stop channel closes
 	go func() {
 		<-stopChan
 		c.ingressFederatedInformer.Stop()
-		c.workQueue.ShutDown()
-		c.deliverer.Stop()
 		c.clusterDeliverer.Stop()
 	}()
-}
-
-type reconciliationStatus int
-
-const (
-	statusAllOK reconciliationStatus = iota
-	statusNeedsRecheck
-	statusError
-	statusNotSynced
-)
-
-func (c *Controller) worker() {
-	for {
-		obj, quit := c.workQueue.Get()
-		if quit {
-			return
-		}
-
-		item := obj.(*util.DelayingDelivererItem)
-		qualifiedName := item.Value.(*util.QualifiedName)
-		status := c.reconcile(*qualifiedName)
-		c.workQueue.Done(item)
-
-		switch status {
-		case statusAllOK:
-			break
-		case statusError:
-			c.deliver(*qualifiedName, 0, true)
-		case statusNeedsRecheck:
-			c.deliver(*qualifiedName, c.reviewDelay, false)
-		case statusNotSynced:
-			c.deliver(*qualifiedName, c.clusterAvailableDelay, false)
-		}
-	}
-}
-
-func (c *Controller) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
-	qualifiedName := util.NewQualifiedName(obj)
-	c.deliver(qualifiedName, delay, failed)
-}
-
-// Adds backoff to delay if this delivery is related to some failure. Resets backoff if there was no failure.
-func (c *Controller) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
-	key := qualifiedName.String()
-	if failed {
-		c.backoff.Next(key, time.Now())
-		delay = delay + c.backoff.Get(key)
-	} else {
-		c.backoff.Reset(key)
-	}
-	c.deliverer.DeliverAfter(key, &qualifiedName, delay)
 }
 
 // Check whether all data stores are in sync. False is returned if any of the ingressFederatedInformer/stores is not yet
@@ -281,13 +209,13 @@ func (c *Controller) reconcileOnClusterChange() {
 	}
 	for _, obj := range c.ingressDNSStore.List() {
 		qualifiedName := util.NewQualifiedName(obj.(pkgruntime.Object))
-		c.deliver(qualifiedName, c.smallDelay, false)
+		c.worker.EnqueueWithDelay(qualifiedName, c.smallDelay)
 	}
 }
 
-func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationStatus {
+func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	if !c.isSynced() {
-		return statusNotSynced
+		return util.StatusNotSynced
 	}
 
 	key := qualifiedName.String()
@@ -299,10 +227,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to query MultiClusterIngressDNS store for %q: %v", key, err))
-		return statusError
+		return util.StatusError
 	}
 	if !exist {
-		return statusAllOK
+		return util.StatusAllOK
 	}
 	cachedIngressDNS := cachedIngressDNSObj.(*dnsv1a1.MultiClusterIngressDNSRecord)
 
@@ -315,7 +243,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 	clusters, err := c.ingressFederatedInformer.GetReadyClusters()
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to get ready cluster list: %v", err))
-		return statusError
+		return util.StatusError
 	}
 
 	// Iterate through all ready clusters and aggregate the ingress status for the key
@@ -326,7 +254,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 
 		lbStatus, err := c.getIngressStatusInCluster(cluster.Name, key)
 		if err != nil {
-			return statusError
+			return util.StatusError
 		}
 		clusterDNS.LoadBalancer = *lbStatus
 		newIngressDNS.Status.DNS = append(newIngressDNS.Status.DNS, clusterDNS)
@@ -340,11 +268,11 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 		_, err = c.fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(newIngressDNS.Namespace).UpdateStatus(newIngressDNS)
 		if err != nil {
 			runtime.HandleError(fmt.Errorf("Error updating the MultiClusterIngressDNS object %s: %v", key, err))
-			return statusError
+			return util.StatusError
 		}
 	}
 
-	return statusAllOK
+	return util.StatusAllOK
 }
 
 // getIngressStatusInCluster returns ingress status in federated cluster
