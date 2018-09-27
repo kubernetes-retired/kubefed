@@ -325,14 +325,12 @@ Run the following command to perform a cleanup of the cluster registry and
 federation deployments:
 
 ```bash
-./scripts/delete-federation.sh cluster2
+./scripts/delete-federation.sh
 ```
 
-The above script unjoins the host cluster from the federation control plane it deploys, by default.
-The argument(s) used is/are the list of context names of the additional clusters that needs to be
-unjoined from this federation control plane. Clarifying, say the `host-cluster-context` used is
-`cluster1`, then on successful completion of the script used in example, both `cluster1` and `cluster2`
-will be unjoined from the deployed federation control plane.
+The above script unjoins the all of the clusters from the federation control plane it deploys,
+by default. On successful completion of the script used in example, both `cluster1` and
+`cluster2` will be unjoined from the deployed federation control plane.
 
 ## Namespaced Federation
 
