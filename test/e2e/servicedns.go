@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
@@ -175,19 +174,8 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 		loadbalancerStatus := apiv1.LoadBalancerStatus{Ingress: []apiv1.LoadBalancerIngress{{IP: clusterLb}}}
 		serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{Cluster: clusterName, LoadBalancer: loadbalancerStatus})
 
-		// Ensure the test namespace exists in the target cluster if
-		// not running namespaced.  When namespaced, join will ensure
-		// that the namespace exists.
-		if !framework.TestContext.LimitedScope {
-			_, err := client.CoreV1().Namespaces().Create(&apiv1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespace,
-				},
-			})
-			if !errors.IsAlreadyExists(err) {
-				framework.ExpectNoError(err, "Error creating namespace in cluster %q", clusterName)
-			}
-		}
+		common.WaitForNamespaceOrDie(framework.NewE2ELogger(), client, clusterName, namespace,
+			framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 		createdService, err := client.CoreV1().Services(namespace).Create(service)
 		framework.ExpectNoError(err, "Error creating service in cluster %q", clusterName)

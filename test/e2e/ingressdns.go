@@ -22,7 +22,6 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	extv1b1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
@@ -131,11 +130,6 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 			}
 
 			common.WaitForObject(tl, namespace, "ingress-"+name, endpointObjectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
-
-			if !framework.TestContext.LimitedScope {
-				By("Deleting test namespace in member clusters")
-				cleanup(f, namespace)
-			}
 		})
 	})
 })
@@ -153,19 +147,8 @@ func createClusterIngress(f framework.FederationFramework, name, namespace strin
 		lbStatus := apiv1.LoadBalancerStatus{Ingress: []apiv1.LoadBalancerIngress{{IP: clusterLb}}}
 		ingressDNSStatus.DNS = append(ingressDNSStatus.DNS, dnsv1a1.ClusterIngressDNS{Cluster: clusterName, LoadBalancer: lbStatus})
 
-		// Ensure the test namespace exists in the target cluster if
-		// not running namespaced.  When namespaced, join will ensure
-		// that the namespace exists.
-		if !framework.TestContext.LimitedScope {
-			_, err := client.CoreV1().Namespaces().Create(&apiv1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespace,
-				},
-			})
-			if !errors.IsAlreadyExists(err) {
-				framework.ExpectNoError(err, "Error creating namespace in cluster %q", clusterName)
-			}
-		}
+		common.WaitForNamespaceOrDie(framework.NewE2ELogger(), client, clusterName, namespace,
+			framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 		createdIngress, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(ingress)
 		framework.ExpectNoError(err, "Error creating ingress in cluster %q", clusterName)
@@ -182,12 +165,4 @@ func createClusterIngress(f framework.FederationFramework, name, namespace strin
 	})
 
 	return ingressDNSStatus
-}
-
-func cleanup(f framework.FederationFramework, namespace string) {
-	const userAgent = "test-ingress-dns"
-	propogationPolicy := metav1.DeletePropagationBackground
-	for _, client := range f.ClusterKubeClients(userAgent) {
-		client.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{PropagationPolicy: &propogationPolicy})
-	}
 }

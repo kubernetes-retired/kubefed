@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -133,7 +134,11 @@ func (f *frameworkWrapper) FederationSystemNamespace() string {
 }
 
 func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
-	f.framework().SetUpControllerFixture(typeConfig)
+	// Avoid running more than one sync controller for namespaces
+	if typeConfig.GetTarget().Kind != util.NamespaceKind {
+		f.framework().SetUpControllerFixture(typeConfig)
+	}
+	f.setUpNamespaceControllerFixture()
 }
 
 func (f *frameworkWrapper) TestNamespaceName() string {
@@ -176,8 +181,21 @@ func createNamespace(client kubeclientset.Interface, baseName string) (string, e
 
 func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {
 	f.framework().SetUpServiceDNSControllerFixture()
+	f.setUpNamespaceControllerFixture()
 }
 
 func (f *frameworkWrapper) SetUpIngressDNSControllerFixture() {
 	f.framework().SetUpIngressDNSControllerFixture()
+	f.setUpNamespaceControllerFixture()
+}
+
+func (f *frameworkWrapper) setUpNamespaceControllerFixture() {
+	// When targeting a single namespace the namespace controller is not required.
+	if TestContext.LimitedScope {
+		return
+	}
+	// The namespace controller is required to ensure namespaces
+	// are created as needed in member clusters in advance of
+	// propagation of other namespaced types.
+	f.framework().SetUpControllerFixture(common.NamespaceTypeConfigOrDie(NewE2ELogger()))
 }
