@@ -18,6 +18,7 @@ RUN apt-get update
 RUN apt-get install -y ca-certificates
 WORKDIR /root/
 COPY /controller-manager .
+COPY /kubefed2 .
 ENTRYPOINT ["./controller-manager"]
 CMD ["--install-crds=false"]
 
