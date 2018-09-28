@@ -27,10 +27,6 @@ type FederatedServiceSpec struct {
 	Template corev1.Service `json:"template,omitempty"`
 }
 
-// FederatedServiceStatus defines the observed state of FederatedService
-type FederatedServiceStatus struct {
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -41,6 +37,5 @@ type FederatedService struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FederatedServiceSpec   `json:"spec,omitempty"`
-	Status FederatedServiceStatus `json:"status,omitempty"`
+	Spec FederatedServiceSpec `json:"spec,omitempty"`
 }
