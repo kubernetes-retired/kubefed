@@ -106,6 +106,9 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServicePlacement{}, arguments.Informers.Core().V1alpha1().FederatedServicePlacements()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceStatus{}, arguments.Informers.Core().V1alpha1().FederatedServiceStatuses()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedTypeConfig{}, arguments.Informers.Core().V1alpha1().FederatedTypeConfigs()); err != nil {
 			return err
 		}
@@ -158,6 +161,7 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountPlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServicePlacementCRD)
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceStatusCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.DNSEndpointCRD)
