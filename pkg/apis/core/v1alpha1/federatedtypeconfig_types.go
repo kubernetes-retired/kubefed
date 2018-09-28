@@ -57,6 +57,14 @@ type FederatedTypeConfigSpec struct {
 	// The list of name:path pairs of the fields to override in target template.
 	// +optional
 	OverridePaths []OverridePath `json:"overridePaths,omitempty"`
+	// Configuration for the status type that holds information about which type
+	// holds the status of the federated resource. If not provided, the group
+	// and version will default to those provided for the template resource.
+	// +optional
+	Status *APIResource `json:"status,omitempty"`
+	// Whether or not Status object should be populated.
+	// +optional
+	EnableStatus bool `json:"enableStatus,omitempty"`
 }
 
 // APIResource defines how to configure the dynamic client for an API resource.
@@ -141,6 +149,11 @@ func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 			setStringDefault(&obj.Spec.OverridePaths[index].Name, splitPath[len(splitPath)-1])
 		}
 	}
+	if obj.Spec.Status != nil {
+		setStringDefault(&obj.Spec.Status.PluralName, PluralName(obj.Spec.Status.Kind))
+		setStringDefault(&obj.Spec.Status.Group, obj.Spec.Template.Group)
+		setStringDefault(&obj.Spec.Status.Version, obj.Spec.Template.Version)
+	}
 }
 
 // GetDefaultedString returns the value if provided, and otherwise
@@ -220,6 +233,18 @@ func (f *FederatedTypeConfig) GetOverridePaths() map[string][]string {
 		overridePaths[overridePath.Name] = strings.Split(overridePath.Path, ".")
 	}
 	return overridePaths
+}
+
+func (f *FederatedTypeConfig) GetStatus() *metav1.APIResource {
+	if f.Spec.Status == nil {
+		return nil
+	}
+	metaAPIResource := apiResourceToMeta(*f.Spec.Status, f.Spec.Namespaced)
+	return &metaAPIResource
+}
+
+func (f *FederatedTypeConfig) GetEnableStatus() bool {
+	return f.Spec.EnableStatus
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {
