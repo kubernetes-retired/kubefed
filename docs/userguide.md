@@ -60,7 +60,10 @@ Once you have minikube installed run:
 ```bash
 minikube start -p cluster1 --kubernetes-version v1.11.0
 minikube start -p cluster2 --kubernetes-version v1.11.0
-kubectl config use-context cluster1
+```
+**NOTE:** Please make sure to set the correct context using the command below as this guide depends on it.
+```bash
+kubectl config use-context cluster1   
 ```
 
 Even though the `minikube` cluster has been started, you'll want to verify all
