@@ -144,10 +144,6 @@ kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registr
 
 # Enable available types
 for filename in ./config/federatedtypes/*.yaml; do
-  # The namespace controller is not required when the control plane is namespaced
-  if [[ "${NAMESPACED}" && "${filename}" == *namespace.yaml ]]; then
-    continue
-  fi
   kubectl -n "${NS}" apply -f "${filename}"
 done
 
