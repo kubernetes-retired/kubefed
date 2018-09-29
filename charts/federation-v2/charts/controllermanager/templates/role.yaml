@@ -1,4 +1,4 @@
-{{- if .Values.controllermanager.limitedScope }}
+{{- if .Values.limitedScope }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

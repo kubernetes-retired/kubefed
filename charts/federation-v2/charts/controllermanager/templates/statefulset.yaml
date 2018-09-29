@@ -10,7 +10,7 @@ metadata:
   name: federation-controller-manager
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: {{ .Values.controllermanager.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       api: federation
@@ -28,30 +28,30 @@ spec:
       containers:
       - args:
         - --install-crds=false
-{{- if .Values.controllermanager.featureGates }}
-        - --feature-gates={{ .Values.controllermanager.featureGates }}
+{{- if .Values.featureGates }}
+        - --feature-gates={{ .Values.featureGates }}
 {{- end }}
-{{- if .Values.controllermanager.limitedScope }}
-        - --limited-scope={{ .Values.controllermanager.limitedScope }}
+{{- if .Values.limitedScope }}
+        - --limited-scope={{ .Values.limitedScope }}
         - --federation-namespace=$(FEDERATION_NAMESPACE)
         - --registry-namespace=$(CLUSTER_REGISTRY_NAMESPACE)
 {{- else }}
-{{- if .Values.controllermanager.federationNamespace }}
-        - --federation-namespace={{ .Values.controllermanager.federationNamespace }}
+{{- if .Values.federationNamespace }}
+        - --federation-namespace={{ .Values.federationNamespace }}
 {{- end }}
-{{- if .Values.controllermanager.registryNamespace }}
-        - --registry-namespace={{ .Values.controllermanager.registryNamespace }}
+{{- if .Values.registryNamespace }}
+        - --registry-namespace={{ .Values.registryNamespace }}
 {{- end }}
 {{- end }}
         command:
         - /root/controller-manager
-        image: "{{ .Values.controllermanager.repository }}/{{ .Values.controllermanager.image }}:{{ .Values.controllermanager.tag }}"
+        image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
         name: controller-manager
         resources:
-{{- if .Values.controllermanager.resources }}
-{{ toYaml .Values.controllermanager.resources | indent 12 }}
+{{- if .Values.resources }}
+{{ toYaml .Values.resources | indent 12 }}
 {{- end }}
-{{- if .Values.controllermanager.limitedScope }}
+{{- if .Values.limitedScope }}
         env:
         - name: FEDERATION_NAMESPACE
           valueFrom:

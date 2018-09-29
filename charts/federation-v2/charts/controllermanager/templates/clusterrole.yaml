@@ -1,4 +1,4 @@
-{{- if not .Values.controllermanager.limitedScope }}
+{{- if not .Values.limitedScope }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

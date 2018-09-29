@@ -83,6 +83,7 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| controllermanager.enabled | Specifies whether to enable the controller manager in federation v2. | true |
 | controllermanager.replicaCount | Number of replica for federation v2 controller manager. | 1 |
 | controllermanager.repository | Repo of the federation v2 image. | quay.io/kubernetes-multicluster |
 | controllermanager.image | Name of the federation v2 image. | federation-v2 |
@@ -93,7 +94,6 @@ chart and their default values.
 | controllermanager.registryNamespace | The cluster registry namespace. | kube-multicluster-public |
 | controllermanager.limitedScope | Whether the federation namespace will be the only target for federation. If set to true, the value set for `controllermanager.registryNamespace` and `controllermanager.registryNamespace` will be ignored. | false |
 | clusterregistry.enabled | Specifies whether to enable the clusterregistry in federation v2. | true |
-| federatedtypes.enabled | Specifies whether to install the `FederatedTypeConfig` in federation v2. | true |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.

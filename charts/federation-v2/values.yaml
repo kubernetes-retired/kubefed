@@ -6,6 +6,7 @@
 ## TODO(gyliu513): Add more parameters here like `feature-gates` etc.
 ##
 controllermanager:
+  enabled: true
   replicaCount: 1
   repository: quay.io/kubernetes-multicluster
   image: federation-v2
@@ -37,9 +38,4 @@ controllermanager:
 ## Configuration values for federation v2 clusterregistry.
 ##
 clusterregistry:
-  enabled: true
-
-## Configuration values for federation v2 federatedtypes.
-##
-federatedtypes:
   enabled: true
