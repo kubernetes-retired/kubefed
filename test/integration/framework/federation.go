@@ -235,19 +235,29 @@ func (f *FederationFixture) NewCrClient(tl common.TestLogger, userAgent string) 
 	return crclientset.NewForConfigOrDie(config)
 }
 
-func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
-	clientMap := make(map[string]common.TestCluster)
+func (f *FederationFixture) ClusterConfigs(tl common.TestLogger, userAgent string) map[string]common.TestClusterConfig {
+	configMap := make(map[string]common.TestClusterConfig)
 	for name, cluster := range f.Clusters {
 		config := cluster.NewConfig(tl)
 		rest.AddUserAgent(config, userAgent)
-		client, err := util.NewResourceClientFromConfig(config, apiResource)
+		configMap[name] = common.TestClusterConfig{
+			config,
+			cluster.IsPrimary,
+		}
+	}
+	return configMap
+}
+
+func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
+	clientMap := make(map[string]common.TestCluster)
+	for name, clusterConfig := range f.ClusterConfigs(tl, userAgent) {
+		client, err := util.NewResourceClientFromConfig(clusterConfig.Config, apiResource)
 		if err != nil {
 			tl.Fatalf("Error creating a resource client in cluster %q for kind %q: %v", name, apiResource.Kind, err)
 		}
 		clientMap[name] = common.TestCluster{
-			config,
+			clusterConfig,
 			client,
-			cluster.IsPrimary,
 		}
 	}
 	return clientMap
@@ -255,10 +265,8 @@ func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResou
 
 func (f *FederationFixture) ClusterKubeClients(tl common.TestLogger, userAgent string) map[string]kubeclientset.Interface {
 	clientMap := make(map[string]kubeclientset.Interface)
-	for name, cluster := range f.Clusters {
-		config := cluster.NewConfig(tl)
-		rest.AddUserAgent(config, userAgent)
-		client, err := kubeclientset.NewForConfig(config)
+	for name, clusterConfig := range f.ClusterConfigs(tl, userAgent) {
+		client, err := kubeclientset.NewForConfig(clusterConfig.Config)
 		if err != nil {
 			tl.Fatalf("Error creating a resource client in cluster %q: %v", name, err)
 		}
@@ -269,7 +277,7 @@ func (f *FederationFixture) ClusterKubeClients(tl common.TestLogger, userAgent s
 
 func (f *FederationFixture) ClusterNames() []string {
 	clusterNames := []string{}
-	for name, _ := range f.Clusters {
+	for name := range f.Clusters {
 		clusterNames = append(clusterNames, name)
 	}
 	return clusterNames

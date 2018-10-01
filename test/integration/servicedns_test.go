@@ -36,7 +36,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 )
 
-var TestMultiClusterServiceDNS = func(t *testing.T) {
+var TestServiceDNS = func(t *testing.T) {
 	t.Parallel()
 	tl := framework.NewIntegrationLogger(t)
 	fixture := newServiceDNSTestFixture(tl, FedFixture)
@@ -48,19 +48,19 @@ var TestMultiClusterServiceDNS = func(t *testing.T) {
 		createEndpoint   bool
 		desiredDNSStatus []dnsv1a1.ClusterDNS
 	}{
-		"MultiClusterServiceDNS object in federation with no service and endpoint in cluster": {
+		"ServiceDNS object in federation with no service and endpoint in cluster": {
 			name:             "test-dns1",
 			createService:    false,
 			createEndpoint:   false,
 			desiredDNSStatus: fixture.serviceDNSStatusWithoutLoadbalancer,
 		},
-		"MultiClusterServiceDNS object in federation with service but no endpoint in cluster": {
+		"ServiceDNS object in federation with service but no endpoint in cluster": {
 			name:             "test-dns2",
 			createService:    true,
 			createEndpoint:   false,
 			desiredDNSStatus: fixture.serviceDNSStatusWithoutLoadbalancer,
 		},
-		"MultiClusterServiceDNS object in federation with service and endpoint in cluster": {
+		"ServiceDNS object in federation with service and endpoint in cluster": {
 			name:             "test-dns3",
 			createService:    true,
 			createEndpoint:   true,
@@ -75,17 +75,17 @@ var TestMultiClusterServiceDNS = func(t *testing.T) {
 			key := fmt.Sprintf("%s/%s", namespace, tc.name)
 
 			objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-				return fixture.client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Get(name, metav1.GetOptions{})
+				return fixture.client.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace).Get(name, metav1.GetOptions{})
 			}
 
 			serviceDNS := common.NewServiceDNSObject(tc.name, namespace)
 			tl.Logf("Create serviceDNSObj: %s", key)
-			serviceDNSObj, err := fixture.client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Create(serviceDNS)
+			serviceDNSObj, err := fixture.client.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace).Create(serviceDNS)
 			name := serviceDNSObj.Name
 			if err != nil {
-				tl.Fatalf("Error creating MultiClusterServiceDNS object %q: %v", key, err)
+				tl.Fatalf("Error creating ServiceDNS object %q: %v", key, err)
 			}
-			tl.Logf("Create MultiClusterServiceDNS object success: %s", key)
+			tl.Logf("Create ServiceDNS object success: %s", key)
 
 			for clusterName, clusterClient := range fixture.clusterClients {
 				if tc.createService {
@@ -117,14 +117,14 @@ var TestMultiClusterServiceDNS = func(t *testing.T) {
 
 			serviceDNSObj.Status.DNS = tc.desiredDNSStatus
 
-			tl.Logf("Wait for MultiClusterServiceDNS object status update")
+			tl.Logf("Wait for ServiceDNS object status update")
 			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNSObj, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
-			tl.Logf("MultiClusterServiceDNS object status is updated successfully: %s", key)
+			tl.Logf("ServiceDNS object status is updated successfully: %s", key)
 		})
 	}
 }
 
-// serviceDNSControllerFixture manages the MultiClusterServiceDNS controller for testing.
+// serviceDNSControllerFixture manages the ServiceDNS controller for testing.
 type serviceDNSControllerFixture struct {
 	stopChan                            chan struct{}
 	client                              fedclientset.Interface
@@ -162,7 +162,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	f.clusterClients = FedFixture.ClusterKubeClients(tl, userAgent)
 	f.clusterLbs = map[string]string{}
 	f.clusterRegionZones = map[string]fedv1a1.FederatedClusterStatus{}
-	for clusterName, _ := range FedFixture.Clusters {
+	for clusterName := range FedFixture.Clusters {
 		f.clusterLbs[clusterName] = fmt.Sprintf("10.20.30.%d", lbsuffix)
 		lbsuffix++
 		suffix := strings.TrimPrefix(clusterName, "test-cluster-")
