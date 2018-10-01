@@ -28,6 +28,14 @@ NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
 NAMESPACED="${NAMESPACED:-}"
 
+IMAGE_NAME=`kubectl get sts -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
+if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
+  USE_LATEST=y
+else
+  USE_LATEST=
+fi
+
 KF_NS_ARG=
 if [[ "${NAMESPACED}" ]]; then
   KF_NS_ARG="--federation-namespace=${NS} --registry-namespace=${NS}"
@@ -54,9 +62,13 @@ for filename in ./config/federatedtypes/*.yaml; do
 done
 
 # Remove federation CRDs, namespace, RBAC and deployment resources.
-if [[ "${NAMESPACED}" ]]; then
-  ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
-  ${KCD} ns "${NS}"
+if [[ ! "${USE_LATEST}" ]]; then
+  if [[ "${NAMESPACED}" ]]; then
+    ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+    ${KCD} ns "${NS}"
+  else
+    ${KCD} -f hack/install.yaml
+  fi
 else
   ${KCD} -f hack/install-latest.yaml
 fi
