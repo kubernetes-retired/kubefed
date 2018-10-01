@@ -221,6 +221,14 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 	}
 	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 
+	enabled := typeConfig.Spec.PropagationEnabled
+
+	limitedScope := c.targetNamespace != metav1.NamespaceAll
+	if limitedScope && enabled && typeConfig.Spec.Template.Kind == util.NamespaceKind {
+		glog.Infof("Skipping start of sync controller for %q.  It is not required for a namespaced federation control plane.", util.NamespaceKind)
+		return statusAllOK
+	}
+
 	stopChan, running := c.getStopChannel(typeConfig.Name)
 
 	deleted := typeConfig.DeletionTimestamp != nil
@@ -242,7 +250,6 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 		return statusError
 	}
 
-	enabled := typeConfig.Spec.PropagationEnabled
 	startNewController := !running && enabled
 	stopController := running && !enabled
 	if startNewController {
