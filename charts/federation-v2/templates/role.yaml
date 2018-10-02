@@ -1,12 +1,13 @@
-{{- if not .Values.controllermanager.limitedScope }}
+{{- if .Values.controllermanager.limitedScope }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
   name: federation-role
+  namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:
   - scheduling.federation.k8s.io
@@ -28,12 +29,6 @@ rules:
   - '*'
 - apiGroups:
   - clusterregistry.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - ""
   resources:
   - '*'
   verbs:
