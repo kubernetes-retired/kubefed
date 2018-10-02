@@ -40,7 +40,9 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	template.SetNamespace(namespace)
+	if typeConfig.GetNamespaced() {
+		template.SetNamespace(namespace)
+	}
 	template.SetName("")
 	template.SetGenerateName("test-crud-")
 
@@ -55,7 +57,9 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		override.SetNamespace(namespace)
+		if typeConfig.GetNamespaced() {
+			override.SetNamespace(namespace)
+		}
 		overridesSlice, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("Error retrieving overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
@@ -112,7 +116,9 @@ func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, c
 		return nil, err
 	}
 	placementAPIResource := typeConfig.GetPlacement()
-	placement.SetNamespace(namespace)
+	if typeConfig.GetNamespaced() {
+		placement.SetNamespace(namespace)
+	}
 	placement.SetKind(placementAPIResource.Kind)
 	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
 	err = util.SetClusterNames(placement, clusterNames)
