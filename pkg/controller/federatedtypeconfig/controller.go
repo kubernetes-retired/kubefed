@@ -19,7 +19,6 @@ package federatedtypeconfig
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
 
@@ -28,13 +27,10 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/client-go/util/workqueue"
 
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -65,21 +61,12 @@ type Controller struct {
 	stopChannels map[string]chan struct{}
 	lock         sync.RWMutex
 
-	// For triggering reconciliation of a single resource. This is
-	// used when there is an add/update/delete operation on a resource
-	// in federated API server.
-	deliverer *util.DelayingDeliverer
-
 	// Store for the FederatedTypeConfig objects
 	store cache.Store
 	// Informer for the FederatedTypeConfig objects
 	controller cache.Controller
 
-	// Work queue allowing parallel processing of resources
-	workQueue workqueue.Interface
-
-	// Backoff manager
-	backoff *flowcontrol.Backoff
+	worker util.ReconcileWorker
 }
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
@@ -106,11 +93,9 @@ func newController(client corev1alpha1client.CoreV1alpha1Interface, config *rest
 		clusterNamespace: clusterNamespace,
 		targetNamespace:  targetNamespace,
 		stopChannels:     make(map[string]chan struct{}),
-		workQueue:        workqueue.New(),
-		backoff:          flowcontrol.NewBackOff(5*time.Second, time.Minute),
 	}
 
-	c.deliverer = util.NewDelayingDeliverer()
+	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
 
 	c.store, c.controller = cache.NewInformer(
 		&cache.ListWatch{
@@ -126,9 +111,7 @@ func newController(client corev1alpha1client.CoreV1alpha1Interface, config *rest
 		},
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) {
-			c.deliverObj(obj, 0, false)
-		}),
+		util.NewTriggerOnAllChanges(c.worker.EnqueueObject),
 	)
 
 	return c, nil
@@ -137,9 +120,6 @@ func newController(client corev1alpha1client.CoreV1alpha1Interface, config *rest
 // Run runs the Controller.
 func (c *Controller) Run(stopChan <-chan struct{}) {
 	go c.controller.Run(stopChan)
-	c.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
-		c.workQueue.Add(item)
-	})
 
 	// wait for the caches to synchronize before starting the worker
 	if !cache.WaitForCacheSync(stopChan, c.controller.HasSynced) {
@@ -147,66 +127,16 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 		return
 	}
 
-	// TODO: Allow multiple workers.
-	go wait.Until(c.worker, time.Second, stopChan)
-
-	util.StartBackoffGC(c.backoff, stopChan)
+	c.worker.Run(stopChan)
 
 	// Ensure all goroutines are cleaned up when the stop channel closes
 	go func() {
 		<-stopChan
-		c.workQueue.ShutDown()
-		c.deliverer.Stop()
 		c.shutDown()
 	}()
 }
 
-type reconciliationStatus int
-
-const (
-	statusAllOK reconciliationStatus = iota
-	statusError
-)
-
-func (c *Controller) worker() {
-	for {
-		obj, quit := c.workQueue.Get()
-		if quit {
-			return
-		}
-
-		item := obj.(*util.DelayingDelivererItem)
-		qualifiedName := item.Value.(*util.QualifiedName)
-		status := c.reconcile(*qualifiedName)
-		c.workQueue.Done(item)
-
-		switch status {
-		case statusAllOK:
-			break
-		case statusError:
-			c.deliver(*qualifiedName, 0, true)
-		}
-	}
-}
-
-func (c *Controller) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
-	qualifiedName := util.NewQualifiedName(obj)
-	c.deliver(qualifiedName, delay, failed)
-}
-
-// Adds backoff to delay if this delivery is related to some failure. Resets backoff if there was no failure.
-func (c *Controller) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
-	key := qualifiedName.String()
-	if failed {
-		c.backoff.Next(key, time.Now())
-		delay = delay + c.backoff.Get(key)
-	} else {
-		c.backoff.Reset(key)
-	}
-	c.deliverer.DeliverAfter(key, &qualifiedName, delay)
-}
-
-func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationStatus {
+func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
 	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)
@@ -214,10 +144,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 	cachedObj, exist, err := c.store.GetByKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to query FederatedTypeConfig store for %q: %v", key, err))
-		return statusError
+		return util.StatusError
 	}
 	if !exist {
-		return statusAllOK
+		return util.StatusAllOK
 	}
 	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 
@@ -239,15 +169,15 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 		err := c.removeFinalizer(typeConfig)
 		if err != nil {
 			runtime.HandleError(fmt.Errorf("Failed to remove finalizer from FederatedTypeConfig %q: %v", key, err))
-			return statusError
+			return util.StatusError
 		}
-		return statusAllOK
+		return util.StatusAllOK
 	}
 
 	err = c.ensureFinalizer(typeConfig)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to ensure finalizer for FederatedTypeConfig %q: %v", key, err))
-		return statusError
+		return util.StatusError
 	}
 
 	startNewController := !running && enabled
@@ -255,13 +185,13 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) reconciliationS
 	if startNewController {
 		if err := c.startController(typeConfig); err != nil {
 			runtime.HandleError(err)
-			return statusError
+			return util.StatusError
 		}
 	} else if stopController {
 		c.stopController(typeConfig.Name, stopChan)
 	}
 
-	return statusAllOK
+	return util.StatusAllOK
 }
 
 func (c *Controller) shutDown() {
