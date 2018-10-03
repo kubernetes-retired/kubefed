@@ -29,7 +29,7 @@ type ClusterOverrides struct {
 }
 
 func NewClusterOverrides(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (*ClusterOverrides, error) {
-	overrides, path, err := marshallOverrides(typeConfig, override)
+	overrides, path, err := unmarshallOverrides(typeConfig, override)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func NewClusterOverrides(typeConfig typeconfig.Interface, override *unstructured
 	}, nil
 }
 
-func marshallOverrides(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (map[string]interface{}, []string, error) {
+func unmarshallOverrides(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (map[string]interface{}, []string, error) {
 	overrideMap := make(map[string]interface{})
 	overridePath := []string{}
 	if typeConfig.GetOverride() != nil && override != nil {
