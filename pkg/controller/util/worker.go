@@ -134,7 +134,6 @@ func (w *asyncWorker) SetDelay(retryDelay, clusterSyncDelay time.Duration) {
 // deliver adds backoff to delay if this delivery is related to some
 // failure. Resets backoff if there was no failure.
 func (w *asyncWorker) deliver(qualifiedName QualifiedName, delay time.Duration, failed bool) {
-
 	key := qualifiedName.String()
 	if failed {
 		w.backoff.Next(key, time.Now())
