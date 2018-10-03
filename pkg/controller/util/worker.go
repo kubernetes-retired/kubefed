@@ -53,7 +53,7 @@ type asyncWorker struct {
 
 	// For triggering reconciliation of a single resource. This is
 	// used when there is an add/update/delete operation on a resource
-	// in either federated API server or in some member of the
+	// in either the federation api or in some member of the
 	// federation.
 	deliverer *DelayingDeliverer
 
@@ -134,7 +134,6 @@ func (w *asyncWorker) SetDelay(retryDelay, clusterSyncDelay time.Duration) {
 // deliver adds backoff to delay if this delivery is related to some
 // failure. Resets backoff if there was no failure.
 func (w *asyncWorker) deliver(qualifiedName QualifiedName, delay time.Duration, failed bool) {
-
 	key := qualifiedName.String()
 	if failed {
 		w.backoff.Next(key, time.Now())
