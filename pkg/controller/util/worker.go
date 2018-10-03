@@ -53,7 +53,7 @@ type asyncWorker struct {
 
 	// For triggering reconciliation of a single resource. This is
 	// used when there is an add/update/delete operation on a resource
-	// in either federated API server or in some member of the
+	// in either the federation api or in some member of the
 	// federation.
 	deliverer *DelayingDeliverer
 
