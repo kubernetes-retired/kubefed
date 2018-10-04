@@ -47,7 +47,8 @@ func (p *ResourcePlacementPlugin) HasSynced() bool {
 	return p.controller.HasSynced()
 }
 
-func (p *ResourcePlacementPlugin) ComputePlacement(key string, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
+func (p *ResourcePlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
+	key := qualifiedName.String()
 	cachedObj, _, err := p.store.GetByKey(key)
 	if err != nil {
 		return nil, nil, err

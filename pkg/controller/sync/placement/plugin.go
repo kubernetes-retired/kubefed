@@ -16,8 +16,12 @@ limitations under the License.
 
 package placement
 
+import (
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+)
+
 type PlacementPlugin interface {
 	Run(stopCh <-chan struct{})
 	HasSynced() bool
-	ComputePlacement(key string, clusterNames []string) (selectedClusters, unselectedClusters []string, err error)
+	ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error)
 }
