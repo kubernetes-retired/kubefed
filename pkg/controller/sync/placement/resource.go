@@ -32,6 +32,10 @@ type ResourcePlacementPlugin struct {
 }
 
 func NewResourcePlacementPlugin(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
+	return newResourcePlacementPluginWithOk(client, targetNamespace, triggerFunc)
+}
+
+func newResourcePlacementPluginWithOk(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) *ResourcePlacementPlugin {
 	store, controller := util.NewResourceInformer(client, targetNamespace, triggerFunc)
 	return &ResourcePlacementPlugin{
 		store:      store,
@@ -48,21 +52,26 @@ func (p *ResourcePlacementPlugin) HasSynced() bool {
 }
 
 func (p *ResourcePlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
+	selectedClusters, unselectedClusters, _, err = p.computePlacementWithOk(qualifiedName, clusterNames)
+	return selectedClusters, unselectedClusters, err
+}
+
+func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, ok bool, err error) {
 	key := qualifiedName.String()
 	cachedObj, _, err := p.store.GetByKey(key)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 	if cachedObj == nil {
-		return []string{}, clusterNames, nil
+		return []string{}, clusterNames, false, nil
 	}
 	unstructuredObj := cachedObj.(*unstructured.Unstructured)
 
 	selectedNames, err := util.GetClusterNames(unstructuredObj)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 	clusterSet := sets.NewString(clusterNames...)
 	selectedSet := sets.NewString(selectedNames...)
-	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), nil
+	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), true, nil
 }

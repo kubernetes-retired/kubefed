@@ -176,8 +176,22 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	targetAPIResource := typeConfig.GetTarget()
 	if targetAPIResource.Kind == util.NamespaceKind {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, targetNamespace, enqueueObj)
-	} else {
+	} else if targetNamespace == metav1.NamespaceAll {
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
+	} else {
+		// TODO(marun) Source this configuration from the API
+		namespacePlacementAPIResource := metav1.APIResource{
+			Kind:       "FederatedNamespacePlacement",
+			Name:       "federatednamespaceplacements",
+			Group:      "core.federation.k8s.io",
+			Version:    "v1alpha1",
+			Namespaced: true,
+		}
+		namespacePlacementClient, err := util.NewResourceClient(pool, &namespacePlacementAPIResource)
+		if err != nil {
+			return nil, err
+		}
+		s.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj)
 	}
 
 	s.versionManager = version.NewNamespacedVersionManager(
