@@ -21,11 +21,13 @@ set -o nounset
 set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
+ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
+MAKE_CMD="make -C ${ROOT_DIR}"
 E2E_TEST_CMD="go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace"
 
 function build-binaries() {
-  go build -o bin/controller-manager ./cmd/controller-manager
-  go build -o bin/kubefed2 ./cmd/kubefed2
+  ${MAKE_CMD} controller
+  ${MAKE_CMD} kubefed2
 }
 
 function run-integration-tests() {
