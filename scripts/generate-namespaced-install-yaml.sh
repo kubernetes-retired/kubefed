@@ -21,13 +21,7 @@ set -o pipefail
 INSTALL_YAML="${INSTALL_YAML:-hack/install-namespaced.yaml}"
 IMAGE_NAME="${IMAGE_NAME:-quay.io/kubernetes-multicluster/federation-v2:latest}"
 
-INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-install-yaml.sh
-
-# Remove namespace resource from the top of the file
-sed -i -e '/---/,$!d' "${INSTALL_YAML}"
-
-# Remove namespace fields
-sed -i -e '/^  namespace: federation-system$/d' "${INSTALL_YAML}"
+INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" FEDERATION_NAMESPACE= scripts/generate-install-yaml.sh
 
 # Convert rbac from cluster- to namespace-scoped
 sed -i -e 's/ClusterRole/Role/' "${INSTALL_YAML}"
