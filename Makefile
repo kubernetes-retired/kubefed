@@ -18,6 +18,7 @@ GOTARGET = github.com/kubernetes-sigs/$(TARGET)
 REGISTRY ?= quay.io/kubernetes-multicluster
 IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
+BIN_DIR := bin
 DOCKER ?= docker
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
@@ -53,7 +54,7 @@ BUILD_KUBEFED2 = $(BUILDCMD_KUBEFED2) cmd/kubefed2/kubefed2.go
 TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
 TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
-TEST = $(TEST_CMD) $(TEST_PKGS) 
+TEST = $(TEST_CMD) $(TEST_PKGS)
 
 VET = go vet $(TEST_PKGS)
 FMT = go fmt $(TEST_PKGS)
@@ -68,7 +69,7 @@ all: container controller kubefed2
 local-test:
 	$(TEST)
 
-# Unit tests 
+# Unit tests
 test: controller kubefed2 vet
 	$(DOCKER_BUILD) '$(TEST)'
 
@@ -84,10 +85,13 @@ container: controller
 		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION)
 	rm -f images/federation-v2/controller-manager
 
-controller:
+$(BIN_DIR):
+	mkdir $(BIN_DIR)
+
+controller: $(BIN_DIR)
 	$(DOCKER_BUILD) '$(BUILD_CONTROLLER)'
 
-kubefed2:
+kubefed2: $(BIN_DIR)
 	$(DOCKER_BUILD) '$(BUILD_KUBEFED2)'
 
 push:
