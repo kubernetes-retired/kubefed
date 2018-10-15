@@ -1,17 +1,17 @@
----
-apiVersion: v1
-kind: Service
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
 metadata:
-  creationTimestamp: null
-  labels:
-    api: federation
-    control-plane: controller-manager
-    kubebuilder.k8s.io: 1.0.3
-  name: federation-controller-manager-service
-  namespace: {{ .Release.Namespace }}
+  name: services
 spec:
-  clusterIP: None
-  selector:
-    api: federation
-    control-plane: controller-manager
-    kubebuilder.k8s.io: 1.0.3
+  target:
+    version: v1
+    kind: Service
+  namespaced: true
+  comparisonField: Generation
+  propagationEnabled: true
+  template:
+    group: core.federation.k8s.io
+    version: v1alpha1
+    kind: FederatedService
+  placement:
+    kind: FederatedServicePlacement
