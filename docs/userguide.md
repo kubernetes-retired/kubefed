@@ -309,6 +309,9 @@ done
 If you were able to verify the resources removed and added back then you have
 successfully verified a working federation-v2 deployment.
 
+### Example: federating a CRD
+Please use this [guide](./federating_crds.md) to federate a CRD in the target cluster.
+
 ### Example Cleanup
 
 To cleanup the example simply delete the namespace:
