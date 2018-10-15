@@ -26,6 +26,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/placement"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
 	corev1 "k8s.io/api/core/v1"
@@ -80,7 +81,7 @@ type FederationSyncController struct {
 	comparisonHelper util.ComparisonHelper
 
 	// Manages propagated versions for the controller
-	versionManager PropagatedVersionManager
+	versionManager *version.VersionManager
 
 	// For events
 	eventRecorder record.EventRecorder
@@ -179,7 +180,8 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
 	}
 
-	s.versionManager = NewPropagatedVersionManager(typeConfig, fedClient, targetNamespace)
+	s.versionManager = version.NewNamespacedVersionManager(
+		fedClient, templateAPIResource.Kind, targetAPIResource.Kind, targetNamespace)
 
 	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.GetComparisonField())
 	if err != nil {
@@ -513,16 +515,9 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	}
 
 	// TODO(marun) raise the visibility of operationErrors to aid in debugging
-	clusterVersions, operationErrors := s.updater.Update(operations)
+	versionMap, operationErrors := s.updater.Update(operations)
 
-	err = s.versionManager.Update(template, override, selectedClusters, clusterVersions)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to record propagated version for %s %q: %v",
-			templateKind, key, err))
-		// Failure to record propagated version does not indicate a
-		// reconcilliation error.  However, it may result in an
-		// unnecessary update during the next reconcile for this key.
-	}
+	s.versionManager.Update(template, override, selectedClusters, versionMap)
 
 	if len(operationErrors) > 0 {
 		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", templateKind,
@@ -546,7 +541,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		return nil, fmt.Errorf("Failed to marshall cluster overrides for %s %q: %v", templateKind, key, err)
 	}
 
-	clusterVersions := s.versionManager.Get(template, override)
+	versionMap := s.versionManager.Get(template, override)
 
 	targetKind := s.typeConfig.GetTarget().Kind
 	for _, clusterName := range selectedClusters {
@@ -592,7 +587,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				return nil, wrappedErr
 			}
 
-			version, ok := clusterVersions[clusterName]
+			version, ok := versionMap[clusterName]
 			if !ok {
 				// No target version recorded for template+override version
 				operationType = util.OperationTypeUpdate
