@@ -17,6 +17,7 @@ limitations under the License.
 package version
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -27,7 +28,7 @@ type VersionAdapter interface {
 	TypeName() string
 
 	// Create a new instance of the version type
-	NewVersion(qualifiedName util.QualifiedName, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object
+	NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object
 
 	// Type-agnostic access / mutation of the Status field of a version resource
 	GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus
@@ -35,7 +36,6 @@ type VersionAdapter interface {
 
 	// Methods that interact with the API
 	Create(obj pkgruntime.Object) (pkgruntime.Object, error)
-	Delete(qualifiedName util.QualifiedName) error
 	Get(qualifiedName util.QualifiedName) (pkgruntime.Object, error)
 	List(namespace string) (pkgruntime.Object, error)
 	UpdateStatus(obj pkgruntime.Object) (pkgruntime.Object, error)

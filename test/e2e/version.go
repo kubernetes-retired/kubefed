@@ -17,15 +17,19 @@ limitations under the License.
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/pborman/uuid"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kubeclientset "k8s.io/client-go/kubernetes"
 
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -40,17 +44,23 @@ import (
 )
 
 var _ = Describe("VersionManager", func() {
-	userAgent := "version-manager"
+	userAgent := "test-version-manager"
 
 	f := framework.NewFederationFramework(userAgent)
 
 	tl := framework.NewE2ELogger()
 
-	// Picking the first item is likely to pick ConfigMap due to
-	// alphabetical sorting, but any type config will do.
-	typeConfig := testcommon.TypeConfigsOrDie(tl)[0]
+	templateKind := "FederatedFoo"
 
-	var templateKind string
+	configMapYAML := `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  generateName: test-version-manager
+data:
+  foo: bar
+`
+
 	var targetKind string
 	var namespace string
 	var template, override *unstructured.Unstructured
@@ -60,14 +70,13 @@ var _ = Describe("VersionManager", func() {
 	var clusterNames []string
 	var versionMap map[string]string
 	var client fedclientset.Interface
+	var kubeClient kubeclientset.Interface
 	var qualifiedName util.QualifiedName
 
 	var stopChan chan struct{}
 
 	Context("NamespacedVersionManager", func() {
 		BeforeEach(func() {
-			templateKind = typeConfig.GetTemplate().Kind
-
 			// Use a random string for the target kind to ensure test
 			// isolation for any test that depends on the state of the
 			// API (like the sync test).  The target kind is used by
@@ -80,14 +89,38 @@ var _ = Describe("VersionManager", func() {
 
 			clusterNames = []string{"cluster1", "cluster2", "cluster3"}
 
+			// Use a non-template type as the template to avoid having
+			// sync controllers add a deletion finalizer to the
+			// created template that would complicate validating
+			// garbage collection.
 			var err error
-			template, _, override, err = testcommon.NewTestObjects(typeConfig, namespace, clusterNames)
+			template, err = testcommon.ReaderToObj(strings.NewReader(configMapYAML))
 			if err != nil {
-				tl.Fatalf("Failed to retrieve test objects for %q: %v", typeConfig.GetTarget().Name, err)
+				tl.Fatalf("Failed to parse template yaml: %v", err)
 			}
-			template.SetName(uuid.New())
-			template.SetResourceVersion("templateVer")
-			override.SetResourceVersion("overrideVer")
+			template.SetNamespace(namespace)
+			content, err := template.MarshalJSON()
+			if err != nil {
+				tl.Fatalf("Failed to marshall template yaml: %v", err)
+			}
+			configMap := &corev1.ConfigMap{}
+			err = json.Unmarshal(content, configMap)
+			if err != nil {
+				tl.Fatalf("Failed to unmarshall template: %v", err)
+			}
+
+			kubeClient = f.KubeClient("user-agent")
+
+			// Create the template to ensure that created versions
+			// will have a valid owner and not be subject to immediate
+			// garbage collection.
+			createdConfigMap, err := kubeClient.CoreV1().ConfigMaps(namespace).Create(configMap)
+			if err != nil {
+				tl.Fatalf("Error creating template: %v", err)
+			}
+			template.SetName(createdConfigMap.Name)
+			template.SetUID(createdConfigMap.UID)
+			template.SetResourceVersion(createdConfigMap.ResourceVersion)
 
 			versionName = apicommon.PropagatedVersionName(targetKind, template.GetName())
 			qualifiedName = util.QualifiedName{Namespace: namespace, Name: versionName}
@@ -99,7 +132,7 @@ var _ = Describe("VersionManager", func() {
 
 			expectedStatus = fedv1a1.PropagatedVersionStatus{
 				TemplateVersion: template.GetResourceVersion(),
-				OverrideVersion: override.GetResourceVersion(),
+				OverrideVersion: "",
 				ClusterVersions: version.VersionMapToClusterVersions(versionMap),
 			}
 
@@ -113,9 +146,21 @@ var _ = Describe("VersionManager", func() {
 
 		AfterEach(func() {
 			close(stopChan)
-			err := client.CoreV1alpha1().PropagatedVersions(namespace).Delete(versionName, nil)
-			if err != nil && !errors.IsNotFound(err) {
-				tl.Fatalf("Error deleting %q: %v", versionName, err)
+			// Ensure removal of the template, which will prompt the
+			// removal of owned versions by the garbage collector.
+			if template != nil {
+				err := kubeClient.CoreV1().ConfigMaps(namespace).Delete(template.GetName(), nil)
+				if err != nil && !errors.IsNotFound(err) {
+					tl.Errorf("Error deleting ConfigMap %q: %v", qualifiedName, err)
+				}
+			}
+			// Managed fixture doesn't run the garbage collector, so
+			// manual cleanup of propagated versions is required.
+			if framework.TestContext.TestManagedFederation {
+				err := client.CoreV1alpha1().PropagatedVersions(namespace).Delete(versionName, nil)
+				if err != nil && !errors.IsNotFound(err) {
+					tl.Errorf("Error deleting PropagatedVersion %q: %v", versionName, err)
+				}
 			}
 		})
 
@@ -194,20 +239,36 @@ var _ = Describe("VersionManager", func() {
 			waitForPropVer(tl, client, qualifiedName, expectedStatus)
 		})
 
-		It("should delete a version from the API", func() {
+		It("should add owner reference that ensures garbage collection when template is deleted", func() {
+			if framework.TestContext.TestManagedFederation {
+				// Test-managed fixture does not run the garbage collector.
+				framework.Skipf("Validation of garbage collection is not supported for test-managed federation.")
+			}
+
 			versionManager.Update(template, override, clusterNames, versionMap)
 			waitForPropVer(tl, client, qualifiedName, expectedStatus)
 
-			// Deletion is performed synchronously, so it's not necessary to poll
-			err := versionManager.Delete(util.QualifiedName{Namespace: namespace, Name: template.GetName()})
+			// Removal of the template should prompt the garbage
+			// collection of the associated version resource due to
+			// the owner reference added by the version manager.
+			err := kubeClient.CoreV1().ConfigMaps(namespace).Delete(template.GetName(), nil)
 			if err != nil {
-				tl.Fatalf("Error deleting propagated version: %v", err)
+				tl.Fatalf("Error deleting ConfigMap %q: %v", qualifiedName, err)
 			}
-			_, err = client.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
-			if err == nil {
-				tl.Fatalf("Version manager did not delete propagated version.")
-			} else if err != nil && !errors.IsNotFound(err) {
-				tl.Fatalf("Error retrieving deleted version: %v", err)
+
+			err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+				_, err = client.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
+				if err == nil {
+					return false, nil
+				}
+				if err != nil && !errors.IsNotFound(err) {
+					tl.Errorf("Error retrieving PropagatedVersion %q: %v", qualifiedName, err)
+					return false, nil
+				}
+				return true, nil
+			})
+			if err != nil {
+				tl.Fatalf("Timed out waiting for PropagatedVersion %q to be deleted.", qualifiedName)
 			}
 		})
 	})

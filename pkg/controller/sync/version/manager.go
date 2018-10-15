@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -171,7 +172,8 @@ func (m *VersionManager) Update(template, override *unstructured.Unstructured,
 	if oldStatus != nil && util.PropagatedVersionStatusEquivalent(oldStatus, status) {
 		glog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
 	} else if obj == nil {
-		obj = m.adapter.NewVersion(qualifiedName, status)
+		ownerReference := ownerReferenceForUnstructured(template)
+		obj = m.adapter.NewVersion(qualifiedName, ownerReference, status)
 		m.versions[key] = obj
 	} else {
 		m.adapter.SetStatus(obj, status)
@@ -183,14 +185,14 @@ func (m *VersionManager) Update(template, override *unstructured.Unstructured,
 }
 
 // Delete removes the named propagated version from the manager.
-func (m *VersionManager) Delete(qualifiedName util.QualifiedName) error {
+// Versions are written to the API with an owner reference to the
+// template, and they should be removed by the garbage collector on
+// template removal.
+func (m *VersionManager) Delete(qualifiedName util.QualifiedName) {
 	versionQualifiedName := m.versionQualifiedName(qualifiedName)
-	// Remove from memory first to ensure that writeVersion knows not
-	// to write to the api.
 	m.Lock()
 	delete(m.versions, versionQualifiedName.String())
 	m.Unlock()
-	return m.deleteFromAPI(versionQualifiedName)
 }
 
 func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool) {
@@ -270,12 +272,7 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 	obj, ok := m.versions[key]
 	m.RUnlock()
 	if !ok {
-		// Version is no longer tracked - ensure removal from API
-		err := m.deleteFromAPI(qualifiedName)
-		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to delete %s %q: %s", adapterType, key, err))
-			return util.StatusError
-		}
+		// Version is no longer tracked
 		return util.StatusAllOK
 	}
 
@@ -401,13 +398,14 @@ func (m *VersionManager) clearResourceVersion(key string) error {
 	return nil
 }
 
-func (m *VersionManager) deleteFromAPI(qualifiedName util.QualifiedName) error {
-	err := m.adapter.Delete(qualifiedName)
-	if errors.IsNotFound(err) {
-		// Resource is already deleted
-		return nil
+func ownerReferenceForUnstructured(obj *unstructured.Unstructured) metav1.OwnerReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return metav1.OwnerReference{
+		APIVersion: gvk.GroupVersion().String(),
+		Kind:       gvk.Kind,
+		Name:       obj.GetName(),
+		UID:        obj.GetUID(),
 	}
-	return err
 }
 
 func updateClusterVersions(oldVersions []fedv1a1.ClusterObjectVersion,
