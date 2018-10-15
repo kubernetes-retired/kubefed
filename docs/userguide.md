@@ -393,3 +393,164 @@ employed by deployment:
 ```bash
 NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
 ```
+
+## Higher order behaviour
+
+The architecture of federation v2 API allows higher level APIs to be 
+constructed using the mechanics provided by the core API types (`template`, 
+`placement` and `override`) and associated controllers for a given resource.
+Further sections describe few of higher level APIs implemented as part of 
+Federation V2.
+
+###  ReplicaSchedulingPreference
+
+ReplicaSchedulingPreference provides an automated mechanism of distributing 
+and maintaining total number of replicas for `deployment` or `replicaset` based 
+federated workloads into federated clusters. This is based on high level 
+user preferences given by the user. These preferences include the semantics 
+of weighted distribution and limits (min and max) for distributing the replicas. 
+These also include semantics to allow redistribution of replicas dynamically 
+in case some replica pods remain unscheduled in some clusters, for example 
+due to insufficient resources in that cluster. 
+
+RSP is used in place of ReplicaSchedulingPreference for brevity in text further on.
+
+The RSP controller works in a sync loop observing the RSP resource and the 
+matching `namespace/name` pair `FederatedDeployment` or `FederatedReplicaset` 
+resource. 
+If it finds that both RSP and its target template resource, the type of which 
+is specified using `spec.targetKind`, exists, it goes ahead to list currently 
+healthy clusters and distributes the `spec.totalReplicas` using the associated 
+per cluster user preferences. If the per cluster preferences are absent, it 
+distributes the `spec.totalReplicas` evenly among all clusters. It updates (or 
+creates if missing) the same `namespace/name` `placement` and `overrides` for the 
+`targetKind` with the replica values calculated, leveraging the sync controller 
+to actually propagate the k8s resource to federated clusters. Its noteworthy that 
+if an RSP is present, the `spec.replicas` from the `template` resource are unused. 
+RSP also provides a further more useful feature using `spec.rebalance`. If this is 
+set to `true`, the RSP controller monitors the replica pods for target replica 
+workload from each federated cluster and if it finds that some clusters are not 
+able to schedule those pods for long, it moves (rebalances) the replicas to 
+clusters where all the pods are running and healthy. This in other words helps 
+moving the replica workloads to those clusters where there is enough capacity 
+and away from those clusters which are currently running out of capacity. The 
+`rebalance` feature might cause initial shuffle of replicas to  reach an eventually 
+balanced state of distribution. The controller might further keep trying to move 
+few replicas back into the cluster(s) which ran out of capacity, to check if it can 
+be scheduled again to reach the normalised state (even distribution or the state 
+desired by user preferences), which apparently is the only mechanism to check if 
+this cluster has capacity now. The `spec.rebalance` should not be used if this 
+behaviour is unacceptable.
+
+The RSP can be considered as more user friendly mechanism to distribute the 
+replicas, where the inputs needed from the user at federated control plane are 
+reduced. The user only needs to create the RSP resource and the mapping template 
+resource, to distribute the replicas. It can also be considered as a more 
+automated approach at distribution and further reconciliation of the workload 
+replicas.
+
+The usage of the RSP semantics is illustrated using some examples below. The 
+examples considers 3 federated clusters `A`, `B` and `C`.
+
+#### Distribute total replicas evenly in all available clusters
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+```
+or 
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+  clusters:
+    "*":
+      weight: 1
+```
+A, B and C get 3 replicas each.
+
+#### Distribute total replicas in weighted proportions
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+  clusters:
+    A:
+      weight: 1
+    B:
+      weight: 2
+```
+A gets 3 and B gets 6 replicas in the proportion of 1:2. C does not get 
+any replica as missing weight preference is considered as weight=0.
+
+#### Distribute replicas in weighted proportions, also enforcing replica limits per cluster
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+  clusters:
+    A:
+      minReplicas: 4
+      maxReplicas: 6
+      weight: 1
+    B:
+      minReplicas: 4
+      maxReplicas: 8
+      weight: 2
+```
+A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas=4. 
+
+#### Distribute replicas evenly in all clusters, however not more then 20 in C
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 50
+  clusters:
+    "*":
+      weight: 1
+    "C":
+      maxReplicas: 20
+```
+Possible scenarios
+
+All have capacity. 
+```
+Replica layout: A=16 B=17 C=17.
+```
+B is offline/has no capacity
+```
+Replica layout: A=30 B=0 C=20
+```
+A and B are offline: 
+```
+Replica layout: C=20 
+```
