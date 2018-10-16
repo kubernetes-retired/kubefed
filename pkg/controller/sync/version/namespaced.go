@@ -42,16 +42,6 @@ func (a *namespacedVersionAdapter) List(namespace string) (pkgruntime.Object, er
 	return a.client.PropagatedVersions(namespace).List(metav1.ListOptions{})
 }
 
-func (a *namespacedVersionAdapter) Iterate(versionList pkgruntime.Object, handler iterationHandler) bool {
-	propagatedVersionList := versionList.(*fedv1a1.PropagatedVersionList)
-	for _, version := range propagatedVersionList.Items {
-		if !handler(&version) {
-			return false
-		}
-	}
-	return true
-}
-
 func (a *namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{

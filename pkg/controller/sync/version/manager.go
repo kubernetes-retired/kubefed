@@ -224,7 +224,12 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 // returning true, locking is assumed to be unnecessary.
 func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan struct{}) bool {
 	typePrefix := common.PropagatedVersionPrefix(m.targetKind)
-	ok := m.adapter.Iterate(versionList, func(obj pkgruntime.Object) bool {
+	items, err := meta.ExtractList(versionList)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to understand list result for %q: %v", m.adapter.TypeName(), err))
+		return false
+	}
+	for _, obj := range items {
 		select {
 		case <-stopChan:
 			glog.V(4).Infof("Halting version manager load due to closed stop channel")
@@ -237,10 +242,6 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 		if strings.HasPrefix(qualifiedName.Name, typePrefix) {
 			m.versions[qualifiedName.String()] = obj
 		}
-		return true
-	})
-	if !ok {
-		return false
 	}
 	m.Lock()
 	m.hasSynced = true

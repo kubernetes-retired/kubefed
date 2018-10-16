@@ -23,15 +23,8 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-// Accepts an object, returns a boolean indication of whether the
-// object was processed successfully.
-type iterationHandler func(obj pkgruntime.Object) bool
-
 type VersionAdapter interface {
 	TypeName() string
-
-	// Iterate over a list of the concrete version type, calling the handler for each item.
-	Iterate(versionList pkgruntime.Object, handler iterationHandler) bool
 
 	// Create a new instance of the version type
 	NewVersion(qualifiedName util.QualifiedName, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object
