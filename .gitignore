@@ -6,3 +6,4 @@
 /hack/install-crds-latest.yaml
 /hack/install-namespaced.yaml
 /images/federation-v2/controller-manager
+/images/federation-v2/kubefed2

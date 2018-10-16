@@ -102,6 +102,7 @@ if [[ ! "${USE_LATEST}" ]]; then
   base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
   dockerfile_dir="${base_dir}/images/federation-v2"
   go build -o "${dockerfile_dir}"/controller-manager "${base_dir}"/cmd/controller-manager/main.go
+  go build -o "${dockerfile_dir}"/kubefed2 "${base_dir}"/cmd/kubefed2/kubefed2.go
   docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
   ${DOCKER_PUSH_CMD}
 fi
