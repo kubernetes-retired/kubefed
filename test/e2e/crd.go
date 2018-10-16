@@ -20,22 +20,25 @@ import (
 	"fmt"
 	"strings"
 
-	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 
+	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("CRD resources", func() {
-	f := framework.NewFederationFramework("federated-types")
+	f := framework.NewFederationFramework("crd-resources")
 
 	tl := framework.NewE2ELogger()
 
@@ -46,10 +49,8 @@ var _ = Describe("CRD resources", func() {
 			framework.Skipf("Validation of cr federation is not supported for namespaced federation.")
 		}
 
-		// TODO(marun) Is there a better way to create crd's from code?
-
 		targetCrdKind := "FedTestCrd"
-		targetCrd := newTestCrd(tl, targetCrdKind)
+		targetCrd := newTestCrd(targetCrdKind)
 		targetCrdName := targetCrd.GetName()
 
 		userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
@@ -57,54 +58,29 @@ var _ = Describe("CRD resources", func() {
 		// Create the target crd in all clusters
 		var pools []dynamic.ClientPool
 		var hostPool dynamic.ClientPool
-		var hostCrdClient util.ResourceClient
-		crdApiResource := &metav1.APIResource{
-			Group:      "apiextensions.k8s.io",
-			Version:    "v1beta1",
-			Name:       "customresourcedefinitions",
-			Namespaced: false,
-		}
-		testClusters := f.ClusterDynamicClients(crdApiResource, userAgent)
-		for clusterName, cluster := range testClusters {
-			pool := dynamic.NewDynamicClientPool(cluster.Config)
-			crdClient, err := util.NewResourceClient(pool, crdApiResource)
-			if err != nil {
-				tl.Fatalf("Error creating crd resource client for cluster %s: %v", clusterName, err)
-			}
-
+		var hostCrdClient *apiextv1b1client.ApiextensionsV1beta1Client
+		for clusterName, clusterConfig := range f.ClusterConfigs(userAgent) {
+			pool := dynamic.NewDynamicClientPool(clusterConfig.Config)
 			pools = append(pools, pool)
-			if cluster.IsPrimary {
+			crdClient := apiextv1b1client.NewForConfigOrDie(clusterConfig.Config)
+			if clusterConfig.IsPrimary {
 				hostPool = pool
 				hostCrdClient = crdClient
+				createCrdForHost(tl, crdClient, targetCrd)
+			} else {
+				createCrd(tl, crdClient, targetCrd, clusterName)
 			}
-
-			_, err = crdClient.Resources("").Create(targetCrd)
-			if err != nil {
-				tl.Fatalf("Error creating crd %s in cluster %s: %v", targetCrdKind, clusterName, err)
-			}
-			// TODO(marun) CRD cleanup needs use AfterEach to maximize
-			// the chances of removal.  The cluster-scoped nature of
-			// CRDs mean cleanup is even more important.
-			defer crdClient.Resources("").Delete(targetCrdName, nil)
 		}
 
 		// Create a template crd
 		templateKind := fmt.Sprintf("Federated%s", targetCrdKind)
-		templateCrd := newTestCrd(tl, templateKind)
-		templateCrd, err := hostCrdClient.Resources("").Create(templateCrd)
-		if err != nil {
-			tl.Fatalf("Error creating template crd: %v", err)
-		}
-		defer hostCrdClient.Resources("").Delete(templateCrd.GetName(), nil)
+		templateCrd := newTestCrd(templateKind)
+		createCrdForHost(tl, hostCrdClient, templateCrd)
 
 		// Create a placement crd
 		placementKind := fmt.Sprintf("Federated%sPlacement", targetCrdKind)
-		placementCrd := newTestCrd(tl, placementKind)
-		placementCrd, err = hostCrdClient.Resources("").Create(placementCrd)
-		if err != nil {
-			tl.Fatalf("Error creating placement crd: %v", err)
-		}
-		defer hostCrdClient.Resources("").Delete(placementCrd.GetName(), nil)
+		placementCrd := newTestCrd(placementKind)
+		createCrdForHost(tl, hostCrdClient, placementCrd)
 
 		// Create a type config for these types
 		version := "v1alpha1"
@@ -186,31 +162,24 @@ spec:
 	})
 })
 
-func newTestCrd(tl common.TestLogger, kind string) *unstructured.Unstructured {
-	template := `
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: %s
-spec:
-  group: %s
-  version: v1alpha1
-  scope: Namespaced
-  names:
-    plural: %s
-    singular: %s
-    kind: %s
-`
+func newTestCrd(kind string) *apiextv1b1.CustomResourceDefinition {
+	plural := fedv1a1.PluralName(kind)
 	group := "example.com"
-	singular := strings.ToLower(kind)
-	plural := singular + "s"
-	name := fmt.Sprintf("%s.%s", plural, group)
-	data := fmt.Sprintf(template, name, group, plural, singular, kind)
-	obj, err := common.ReaderToObj(strings.NewReader(data))
-	if err != nil {
-		tl.Fatalf("Error loading test object: %v", err)
+	return &apiextv1b1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s.%s", plural, group),
+		},
+		Spec: apiextv1b1.CustomResourceDefinitionSpec{
+			Group:   group,
+			Version: "v1alpha1",
+			Scope:   apiextv1b1.NamespaceScoped,
+			Names: apiextv1b1.CustomResourceDefinitionNames{
+				Plural:   plural,
+				Singular: strings.ToLower(kind),
+				Kind:     kind,
+			},
+		},
 	}
-	return obj
 }
 
 func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav1.APIResource) {
@@ -228,4 +197,30 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 	if err != nil {
 		tl.Fatalf("Error waiting for crd %q to become established: %v", apiResource.Kind, err)
 	}
+}
+
+func createCrdForHost(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition) *apiextv1b1.CustomResourceDefinition {
+	return createCrd(tl, client, crd, "")
+}
+
+func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition, clusterName string) *apiextv1b1.CustomResourceDefinition {
+	clusterMsg := "host cluster"
+	if len(clusterName) > 0 {
+		clusterMsg = fmt.Sprintf("cluster %q", clusterName)
+	}
+	createdCrd, err := client.CustomResourceDefinitions().Create(crd)
+	if err != nil {
+		tl.Fatalf("Error creating crd %s in %s: %v", crd.Name, clusterMsg, err)
+	}
+
+	// Using a cleanup action is more reliable than defer()
+	framework.AddCleanupAction(func() {
+		crdName := createdCrd.Name
+		err := client.CustomResourceDefinitions().Delete(crdName, nil)
+		if err != nil {
+			tl.Errorf("Error deleting crd %q in %s: %v", crdName, clusterMsg, err)
+		}
+	})
+
+	return createdCrd
 }
