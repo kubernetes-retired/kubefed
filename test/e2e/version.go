@@ -465,7 +465,7 @@ func inSupportedScopeIt(description string, namespaced bool, f interface{}) {
 	// that skip details can be logged.  The implicit skipping this
 	// function performs doesn't provide a good indication of which
 	// tests are skipped and why.
-	if namespaced && framework.TestContext.LimitedScope {
+	if !namespaced && framework.TestContext.LimitedScope {
 		// Validation of cluster-scoped versioning is not supported for namespaced federation
 		PIt(description, f)
 	} else {
