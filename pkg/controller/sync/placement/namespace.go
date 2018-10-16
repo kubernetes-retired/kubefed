@@ -47,7 +47,8 @@ func (p *NamespacePlacementPlugin) HasSynced() bool {
 	return p.controller.HasSynced()
 }
 
-func (p *NamespacePlacementPlugin) ComputePlacement(key string, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
+func (p *NamespacePlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
+	key := qualifiedName.String()
 	cachedObj, _, err := p.store.GetByKey(key)
 	if err != nil {
 		return nil, nil, err

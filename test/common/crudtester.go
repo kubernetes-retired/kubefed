@@ -428,6 +428,10 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 	return err
 }
 
+func (c *FederatedTypeCrudTester) TestClusters() map[string]TestCluster {
+	return c.testClusters
+}
+
 func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName util.QualifiedName, versionRemoved func() bool) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})

@@ -176,8 +176,22 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	targetAPIResource := typeConfig.GetTarget()
 	if targetAPIResource.Kind == util.NamespaceKind {
 		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, targetNamespace, enqueueObj)
-	} else {
+	} else if targetNamespace == metav1.NamespaceAll {
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
+	} else {
+		// TODO(marun) Source this configuration from the API
+		namespacePlacementAPIResource := metav1.APIResource{
+			Kind:       "FederatedNamespacePlacement",
+			Name:       "federatednamespaceplacements",
+			Group:      "core.federation.k8s.io",
+			Version:    "v1alpha1",
+			Namespaced: true,
+		}
+		namespacePlacementClient, err := util.NewResourceClient(pool, &namespacePlacementAPIResource)
+		if err != nil {
+			return nil, err
+		}
+		s.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj)
 	}
 
 	s.versionManager = version.NewNamespacedVersionManager(
@@ -333,7 +347,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	templateKind := s.typeConfig.GetTemplate().Kind
 	key := qualifiedName.String()
-	placementKey := key
+	placementName := util.QualifiedName{Namespace: qualifiedName.Namespace, Name: qualifiedName.Name}
 	namespace := qualifiedName.Namespace
 
 	targetKind := s.typeConfig.GetTarget().Kind
@@ -356,13 +370,13 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// template or placement objects from the cache by using the proper
 		// cluster-scoped or namespace-scoped key.
 		if qualifiedName.Namespace == "" {
-			qualifiedName.Namespace = qualifiedName.Name
-			placementKey = qualifiedName.String()
-			glog.V(4).Infof("Received Namespace update for %v. Using placement key %v", key, placementKey)
+			qualifiedName.Namespace = namespace
+			placementName.Namespace = namespace
+			glog.V(4).Infof("Received Namespace update for %v. Using placement key %v", key, placementName)
 		} else if qualifiedName.Namespace != "" {
 			qualifiedName.Namespace = ""
 			key = qualifiedName.String()
-			glog.V(4).Infof("Received FederatedNamespacePlacement update for %v. Using template key %v", placementKey, key)
+			glog.V(4).Infof("Received FederatedNamespacePlacement update for %v. Using template key %v", placementName, key)
 		}
 	}
 
@@ -405,9 +419,9 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusNotSynced
 	}
 
-	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(placementKey, clusterNames)
+	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(placementName, clusterNames)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", templateKind, placementKey, err))
+		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", templateKind, placementName, err))
 		return util.StatusError
 	}
 

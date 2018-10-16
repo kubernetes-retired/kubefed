@@ -241,7 +241,11 @@ func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav
 	}
 }
 
-func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
+func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
+	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) (
+	crudTester *common.FederatedTypeCrudTester, template, placement,
+	override *unstructured.Unstructured) {
+
 	// Initialize in-memory controllers if configuration requires
 	f.SetUpControllerFixture(typeConfig)
 
@@ -261,11 +265,18 @@ func validateCrud(f framework.FederationFramework, tl common.TestLogger, typeCon
 	for name, _ := range testClusters {
 		clusterNames = append(clusterNames, name)
 	}
-	template, placement, override, err := testObjectFunc(f.TestNamespaceName(), clusterNames)
+	template, placement, override, err = testObjectFunc(f.TestNamespaceName(), clusterNames)
 	if err != nil {
 		tl.Fatalf("Error creating test objects: %v", err)
 	}
 
+	return crudTester, template, placement, override
+}
+
+func validateCrud(f framework.FederationFramework, tl common.TestLogger,
+	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
+
+	crudTester, template, placement, override := initCrudTest(f, tl, typeConfig, testObjectFunc)
 	crudTester.CheckLifecycle(template, placement, override)
 }
 
