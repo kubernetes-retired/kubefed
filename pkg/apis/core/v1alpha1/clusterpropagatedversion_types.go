@@ -20,34 +20,31 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the ClusterPropagatedVersion resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ClusterPropagatedVersionSpec defines the desired state of ClusterPropagatedVersion
 type ClusterPropagatedVersionSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
-}
-
-// ClusterPropagatedVersionStatus defines the observed state of ClusterPropagatedVersion
-type ClusterPropagatedVersionStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:nonNamespaced
 
-// ClusterPropagatedVersion
+// ClusterPropagatedVersion holds version information about the state
+// propagated from cluster-scoped federation APIs configured by
+// FederatedTypeConfig to target clusters. The name of a
+// ClusterPropagatedVersion encodes the kind and name of the resource
+// it stores information for. The type of version information stored
+// in ClusterPropagatedVersion will be the metadata.resourceVersion or
+// metadata.Generation of the resource depending on the value of
+// spec.comparisonField in the FederatedTypeConfig associated with the
+// resource.
+//
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=clusterpropagatedversions
+// +kubebuilder:subresource:status
 type ClusterPropagatedVersion struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterPropagatedVersionSpec   `json:"spec,omitempty"`
-	Status ClusterPropagatedVersionStatus `json:"status,omitempty"`
+	Spec   ClusterPropagatedVersionSpec `json:"spec,omitempty"`
+	Status PropagatedVersionStatus      `json:"status,omitempty"`
 }
