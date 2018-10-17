@@ -18,6 +18,8 @@ limitations under the License.
 
 package v1alpha1
 
+type ClusterPropagatedVersionExpansion interface{}
+
 type FederatedClusterExpansion interface{}
 
 type FederatedConfigMapExpansion interface{}
