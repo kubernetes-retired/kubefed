@@ -387,6 +387,11 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
     --federation-namespace=test-namespace --registry-namespace=test-namespace \
     --limited-scope=true
 ```
+### Multi-Cluster Ingress DNS
+
+Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
+through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
+[Multi-Cluster Ingress DNS with ExternalDNS Guide](./ingressdns-with-externaldns.md) to learn more.
 
 ### Deployment Cleanup
 
