@@ -154,8 +154,8 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	enabled := typeConfig.Spec.PropagationEnabled
 
 	limitedScope := c.targetNamespace != metav1.NamespaceAll
-	if limitedScope && enabled && typeConfig.Spec.Template.Kind == util.NamespaceKind {
-		glog.Infof("Skipping start of sync controller for %q.  It is not required for a namespaced federation control plane.", util.NamespaceKind)
+	if limitedScope && enabled && !typeConfig.GetNamespaced() {
+		glog.Infof("Skipping start of sync controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetTemplate().Kind)
 		return util.StatusAllOK
 	}
 
