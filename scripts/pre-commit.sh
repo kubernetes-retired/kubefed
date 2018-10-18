@@ -65,6 +65,28 @@ function run-namespaced-e2e-tests() {
   return ${rc}
 }
 
+function check-kubebuilder-output() {
+  echo "Checking initial state of working tree"
+  if ! check-git-state; then
+    return 1
+  fi
+  ./bin/kubebuilder generate
+  echo "Checking state of working tree after running 'kubebuilder generate'"
+  check-git-state
+}
+
+function check-git-state() {
+  local output
+  if output=$(git status --porcelain) && [ -z "${output}" ]; then
+    return
+  fi
+  echo "ERROR: the working tree is dirty:"
+  for line in "${output}"; do
+    echo "${line}"
+  done
+  return 1
+}
+
 # Make sure, we run in the root of the repo and
 # therefore run the tests on all packages
 base_dir="$( cd "$(dirname "$0")/.." && pwd )"
@@ -75,11 +97,14 @@ cd "$base_dir" || {
 
 rc=0
 
-echo "Building federation binaries"
-build-binaries
-
 echo "Downloading test dependencies"
 ./scripts/download-binaries.sh
+
+echo "Checking that 'kubebuilder generate' is up-to-date"
+check-kubebuilder-output
+
+echo "Building federation binaries"
+build-binaries
 
 echo "Running go integration tests"
 run-integration-tests
