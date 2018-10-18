@@ -42,11 +42,14 @@ func (a *namespacedVersionAdapter) List(namespace string) (pkgruntime.Object, er
 	return a.client.PropagatedVersions(namespace).List(metav1.ListOptions{})
 }
 
-func (a *namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
+func (a *namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: qualifiedName.Namespace,
 			Name:      qualifiedName.Name,
+			OwnerReferences: []metav1.OwnerReference{
+				ownerReference,
+			},
 		},
 		Status: *status,
 	}
@@ -70,10 +73,6 @@ func (a *namespacedVersionAdapter) Create(obj pkgruntime.Object) (pkgruntime.Obj
 
 func (a *namespacedVersionAdapter) Get(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
 	return a.client.PropagatedVersions(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-}
-
-func (a *namespacedVersionAdapter) Delete(qualifiedName util.QualifiedName) error {
-	return a.client.PropagatedVersions(qualifiedName.Namespace).Delete(qualifiedName.Name, nil)
 }
 
 func (a *namespacedVersionAdapter) UpdateStatus(obj pkgruntime.Object) (pkgruntime.Object, error) {

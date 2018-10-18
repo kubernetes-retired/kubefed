@@ -489,10 +489,7 @@ func (s *FederationSyncController) delete(template pkgruntime.Object,
 		return nil
 	}
 
-	err = s.versionManager.Delete(qualifiedName)
-	if err != nil {
-		return err
-	}
+	s.versionManager.Delete(qualifiedName)
 
 	err = s.templateClient.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, nil)
 	if err != nil {
