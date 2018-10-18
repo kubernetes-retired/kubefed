@@ -131,7 +131,7 @@ spec:
         status:
           type: object
   version: v1alpha1
-status:federatedbarsfederatedbars
+status:
   acceptedNames:
     kind: ""
     plural: ""
