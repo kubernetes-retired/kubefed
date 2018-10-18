@@ -50,8 +50,10 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	// Prevent glog errors about logging before parsing.
 	flag.CommandLine.Parse(nil)
 
-	rootCmd.AddCommand(NewCmdJoin(out, util.NewFedConfig(clientcmd.NewDefaultPathOptions())))
-	rootCmd.AddCommand(NewCmdUnjoin(out, util.NewFedConfig(clientcmd.NewDefaultPathOptions())))
+	fedConfig := util.NewFedConfig(clientcmd.NewDefaultPathOptions())
+	rootCmd.AddCommand(NewCmdFederate(out, fedConfig))
+	rootCmd.AddCommand(NewCmdJoin(out, fedConfig))
+	rootCmd.AddCommand(NewCmdUnjoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdVersion(out))
 
 	return rootCmd
