@@ -49,8 +49,8 @@ var (
 		Join adds a cluster to a federation.
 
 		Current context is assumed to be a Kubernetes cluster
-		with an aggregated federation API server. Please use
-		the --host-cluster-context flag otherwise.`
+		hosting the federation control plane. Please use the
+		--host-cluster-context flag otherwise.`
 	join_example = `
 		# Join a cluster to a federation by specifying the
 		# cluster name and the context name of the federation
