@@ -56,7 +56,11 @@ function run-e2e-tests() {
 }
 
 function run-namespaced-e2e-tests() {
-  ${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true
+  local namespaced_e2e_test_cmd="${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true"
+  # Run the placement test separately to avoid crud failures if
+  # teardown doesn't remove namespace placement.
+  ${namespaced_e2e_test_cmd} --ginkgo.skip=Placement
+  ${namespaced_e2e_test_cmd} --ginkgo.focus=Placement
 }
 
 function check-kubebuilder-output() {
