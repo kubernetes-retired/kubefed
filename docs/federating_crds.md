@@ -1,7 +1,7 @@
 # Federate a CRD in the target cluster
 
 Handling arbitrary resources is one of the essential use-cases for federation. This example will demonstrate how to 
-configure federation to handle a previously unknown, arbitrary Custom Resource.
+configure federation to handle a previously unknown, arbitrary custom resource.
 
 **Note:**
 If your Custom resource works with a controller, the controller should be handle separately.  
@@ -184,7 +184,6 @@ $ kubectl --validate=false apply -f ./example/crd/federatedbar_crd.yaml --contex
 customresourcedefinition.apiextensions.k8s.io/federatedbars.federation.example.io created
 customresourcedefinition.apiextensions.k8s.io/federatedbarplacements.federation.example.io created
 customresourcedefinition.apiextensions.k8s.io/federatedbaroverrides.federation.example.io created
-
 ```
 
 **Note:**
@@ -225,7 +224,7 @@ spec:
 Deploy it to the federated host cluster
 
 ```shell
-$ kubectl apply  --validate=false   -f ./example/crd/federatedBar.yaml --context=cluster1
+$ kubectl apply --validate=false -f ./example/crd/federatedBar.yaml --context=cluster1
 federatedtypeconfig.core.federation.k8s.io/bars.example.io created
 ``` 
 
@@ -266,11 +265,10 @@ spec:
   clusterNames:
   - cluster2
   - cluster1
-
 ```
 Deploy it to the cluster that hosts federation
 ```shell
-kubectl --validate=false apply -f example/crd/federatedbar_test.yaml  --context=cluster1
+$ kubectl --validate=false apply -f example/crd/federatedbar_test.yaml --context=cluster1
 federatedbar.federation.example.io/test-crd created
 federatedbaroverride.federation.example.io/test-crd created
 federatedbarplacement.federation.example.io/test-crd created
@@ -278,7 +276,7 @@ federatedbarplacement.federation.example.io/test-crd created
 
 Now we can check instances of our CRD
 
-```
+```shell
 $ kubectl get bars -n test-namespace --context=cluster1
 NAME       AGE
 test-crd   30m
@@ -299,13 +297,11 @@ metadata:
 spec:
   data: Hello
 
-
 $ kubectl get bars -n test-namespace --context=cluster2
 NAME       AGE
 test-crd   30m
 
 $ kubectl get bars test-crd -n test-namespace --context=cluster2 -oyaml
-
 apiVersion: example.io/v1
 kind: Bar
 metadata:
@@ -320,5 +316,4 @@ metadata:
   uid: 495ebd3a-d36e-11e8-837a-06f4106cee1c
 spec:
   data: World
-
 ```
