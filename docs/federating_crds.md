@@ -4,7 +4,7 @@ Handling arbitrary resources is one of the essential use-cases for federation. T
 configure federation to handle a previously unknown, arbitrary custom resource.
 
 **Note:**
-If your Custom resource works with a controller, the controller should be handle separately.  
+This guide addresses only propagating instances of a custom resource. Controllers that service custom resource are not addressed here.
 
 ### Prerequisites
 
