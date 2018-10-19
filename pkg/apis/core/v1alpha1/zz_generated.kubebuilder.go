@@ -348,11 +348,37 @@ var (
 							Properties: map[string]v1beta1.JSONSchemaProps{},
 						},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterVersions": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"clusterName": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"version": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+											},
+										},
+									},
+								},
+								"overridesVersion": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"templateVersion": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
 						},
 					},
 				},
+			},
+			Subresources: &v1beta1.CustomResourceSubresources{
+				Status: &v1beta1.CustomResourceSubresourceStatus{},
 			},
 		},
 	}
