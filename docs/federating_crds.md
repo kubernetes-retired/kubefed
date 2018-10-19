@@ -8,7 +8,7 @@ This guide addresses only propagating instances of a custom resource. Controller
 
 ### Prerequisites
 
-The federation v2 suppports installation for both cluster-scoped and namespace-scoped. In [user guide](./userguide.md), we are following cluster-scoped federation and deploying federation controller in the namespace `federation-system`. Also, you will be creating the two clusters i.e. `cluster1` and `cluster2` and federation v2 will be installed on `cluster1`.
+You must have federation deployed according to the [user guide](./userguide.md). The cluster where federation is deployed will be `cluster1`. You must have another cluster available to use as `cluster2` in this guide.
 
 ### Example CRD to federate
 
