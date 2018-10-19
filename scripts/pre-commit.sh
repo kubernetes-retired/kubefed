@@ -66,12 +66,17 @@ function run-namespaced-e2e-tests() {
 }
 
 function check-kubebuilder-output() {
-  echo "Checking initial state of working tree"
-  if ! check-git-state; then
-    return 1
-  fi
   ./bin/kubebuilder generate
   echo "Checking state of working tree after running 'kubebuilder generate'"
+  check-git-state
+}
+
+function check-install-yaml() {
+  PATH="${PATH}:${base_dir}/bin" FEDERATION_NAMESPACE=federation-system \
+    INSTALL_YAML=./hack/install-latest.yaml \
+    ./scripts/generate-install-yaml.sh \
+    quay.io/kubernetes-multicluster/federation-v2:latest
+  echo "Checking state of working tree after generating install yaml"
   check-git-state
 }
 
@@ -100,8 +105,14 @@ rc=0
 echo "Downloading test dependencies"
 ./scripts/download-binaries.sh
 
+echo "Checking initial state of working tree"
+check-git-state
+
 echo "Checking that 'kubebuilder generate' is up-to-date"
 check-kubebuilder-output
+
+echo "Checking that hack/install-latest.yaml is up-to-date"
+check-install-yaml
 
 echo "Building federation binaries"
 build-binaries
