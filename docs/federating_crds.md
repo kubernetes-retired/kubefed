@@ -1,14 +1,18 @@
 # Federate a CRD in the target cluster
 
-Handling arbitrary resources is one of the essential use-cases for federation. This example will demonstrate how to configure federation to handle a previously unknown, arbitrary custom resource.
+Handling arbitrary resources is one of the essential use-cases for federation. This example will demonstrate how to 
+configure federation to handle a previously unknown, arbitrary Custom Resource.
+
+**Note:**
+If your Custom resource works with a controller, the controller should be handle separately.  
 
 ### Prerequisites
 
-The federation v2 suppports installation for both cluster-scoped and namespace-scoped. In user guide, we are following cluster-scoped federation and deploying federation controller in the namespace `federation-system`. Also, you will be creating the two clusters i.e. `cluster1` and `cluster2` and federation v2 will be installed on `cluster1`.
+The federation v2 suppports installation for both cluster-scoped and namespace-scoped. In [user guide](./userguide.md), we are following cluster-scoped federation and deploying federation controller in the namespace `federation-system`. Also, you will be creating the two clusters i.e. `cluster1` and `cluster2` and federation v2 will be installed on `cluster1`.
 
 ### Example CRD to federate
 
-Let's say you want to federate a CRD of the type `Bar` then use the following `bar_crd.yaml`.
+Let's say you want to federate a CRD of the type `Bar` then use the following [bar_crd.yaml](../example/crd/bar_crd.yaml).
 
 ```
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -17,10 +21,7 @@ metadata:
   name: bars.example.io
 spec:
   group: example.io
-  versions:
-    - name: v1
-      served: true
-      storage: true
+  version: v1
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -32,10 +33,8 @@ spec:
         metadata:
           type: object
         spec:
-          properties:
-            template:
-              type: object
-          type: object
+          data:
+            type: string
         status:
           type: object
   names:
@@ -49,10 +48,10 @@ spec:
 Make sure to install target CRDs on all member clusters otherwise this example will not work as expected.
 
 ```shell
-$ kubectl --validate=false apply -f bar_crd.yaml --context=cluster1
+$ kubectl --validate=false apply -f ./example/crd/bar_crd.yaml --context=cluster1
 customresourcedefinition.apiextensions.k8s.io/bars.example.io created
 
-$ kubectl --validate=false apply -f bar_crd.yaml --context=cluster2
+$ kubectl --validate=false apply -f ./example/crd/bar_crd.yaml --context=cluster2
 customresourcedefinition.apiextensions.k8s.io/bars.example.io created
 ```
 
@@ -65,8 +64,9 @@ There are three pieces of the federation API for a type.
 * The **placement type** holds information about which clusters a federated resource should be spread to.
 * The **overrides type** optionally defines how a particular resource should be varied in certain federated clusters:
 
-```shell
-$ cat federatedbar_crd.yaml 
+We stored all these definition in the [federatedbar_crd.yaml](../example/crd/federatedbar_crd.yaml) file.
+
+```shell 
 #template type
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -88,10 +88,8 @@ spec:
         metadata:
           type: object
         spec:
-          properties:
-            template:
-              type: object
-          type: object
+          data:
+            type: string
         status:
           type: object
   version: v1alpha1
@@ -164,9 +162,8 @@ spec:
                 properties:
                   clusterName:
                     type: string
-                  replicas:
-                    format: int32
-                    type: integer
+                  data:
+                    type: string
                 type: object
               type: array
           type: object
@@ -182,19 +179,29 @@ status:
 
 The federation APIs must be created in the cluster that hosts federation.
 
+```shell
+$ kubectl --validate=false apply -f ./example/crd/federatedbar_crd.yaml --context=cluster1
+customresourcedefinition.apiextensions.k8s.io/federatedbars.federation.example.io created
+customresourcedefinition.apiextensions.k8s.io/federatedbarplacements.federation.example.io created
+customresourcedefinition.apiextensions.k8s.io/federatedbaroverrides.federation.example.io created
+
+```
+
 **Note:**
-Only federated resources are propagated. Hence it's important to create a `federatedbar` to have an instance of the target type created in member clusters.
+Only federated resources are propagated. Hence it's important to create a `federatedbar` to have an instance of the 
+target type created in member clusters.
 
 ### Enable propagation of your federated CRD
 
-It's time to work towards enabling the push configuration for those CRDs by creating a `FederatedTypeConfig` for `Bar`. Here's how you define it:
+It's time to work towards enabling the push configuration for those CRDs by creating a `FederatedTypeConfig` for `Bar`. 
+See example in the [federatedBar.yaml](../example/crd/federatedBar.yaml) file.
 
 ```
-$ cat federatedBar.yaml 
 apiVersion: core.federation.k8s.io/v1alpha1
 kind: FederatedTypeConfig
 metadata:
   name: bars.example.io
+  namespace: federation-system
 spec:
   target:
     version: v1
@@ -211,16 +218,22 @@ spec:
   override:
     kind: FederatedBarOverride
   overridePath:
-    - spec
-    - replicas
+   - spec
+   - data
 ```
+
+Deploy it to the federated host cluster
+
+```shell
+$ kubectl apply  --validate=false   -f ./example/crd/federatedBar.yaml --context=cluster1
+federatedtypeconfig.core.federation.k8s.io/bars.example.io created
+``` 
 
 ### Create federated API resources and see them propagate
 
-Use `federatedbar_test.yaml` file to verify if you can federate a CRD of the type `Bar` in the target clusters.
+Use  [federatedbar_test.yaml](../example/crd/federatedbar_test.yaml)  file to verify if you can federate a CRD of the type `Bar` in the target clusters.
 
 ```
-$ cat federatedbar_test.yaml 
 apiVersion: federation.example.io/v1alpha1
 kind: FederatedBar
 metadata:
@@ -230,9 +243,9 @@ spec:
   template:
     metadata:
       labels:
-        app: nginx
+        app: fed-crd
     spec:
-      replicas: 3
+      data: "Hello"
 ---
 apiVersion: federation.example.io/v1alpha1
 kind: FederatedBarOverride
@@ -242,7 +255,7 @@ metadata:
 spec:
   overrides:
   - clusterName: cluster2
-    replicas: 5    
+     data: "World"    
 ---
 apiVersion: federation.example.io/v1alpha1
 kind: FederatedBarPlacement
@@ -255,16 +268,57 @@ spec:
   - cluster1
 
 ```
+Deploy it to the cluster that hosts federation
+```shell
+kubectl --validate=false apply -f example/crd/federatedbar_test.yaml  --context=cluster1
+federatedbar.federation.example.io/test-crd created
+federatedbaroverride.federation.example.io/test-crd created
+federatedbarplacement.federation.example.io/test-crd created
+``` 
+
+Now we can check instances of our CRD
 
 ```
-
 $ kubectl get bars -n test-namespace --context=cluster1
 NAME       AGE
 test-crd   30m
+
+$ kubectl get bars test-crd -n test-namespace --context=cluster1 -oyaml
+apiVersion: example.io/v1
+kind: Bar
+metadata:
+  creationTimestamp: 2018-10-19T07:12:07Z
+  generation: 1
+  labels:
+    app: fed-crd
+  name: test-crd
+  namespace: test-namespace
+  resourceVersion: "14445996"
+  selfLink: /apis/example.io/v1/namespaces/test-namespace/bars/test-crd
+  uid: 49d31994-d36e-11e8-a4f3-fa163e77d0a4
+spec:
+  data: Hello
 
 
 $ kubectl get bars -n test-namespace --context=cluster2
 NAME       AGE
 test-crd   30m
+
+$ kubectl get bars test-crd -n test-namespace --context=cluster2 -oyaml
+
+apiVersion: example.io/v1
+kind: Bar
+metadata:
+  creationTimestamp: 2018-10-19T07:12:06Z
+  generation: 1
+  labels:
+    app: fed-crd
+  name: test-crd
+  namespace: test-namespace
+  resourceVersion: "7018452"
+  selfLink: /apis/example.io/v1/namespaces/test-namespace/bars/test-crd
+  uid: 495ebd3a-d36e-11e8-837a-06f4106cee1c
+spec:
+  data: World
 
 ```
