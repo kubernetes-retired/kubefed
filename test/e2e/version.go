@@ -256,23 +256,36 @@ data:
 				tl.Fatalf("Error deleting ConfigMap %q: %v", qualifiedName, err)
 			}
 
-			err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-				_, err = client.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
-				if err == nil {
-					return false, nil
-				}
-				if err != nil && !errors.IsNotFound(err) {
-					tl.Errorf("Error retrieving PropagatedVersion %q: %v", qualifiedName, err)
-					return false, nil
-				}
-				return true, nil
+			// The removal of the ConfigMap instance is the
+			// precondition for the garbage collection of the version
+			// resource.
+			checkForDeletion(tl, "ConfigMap", fmt.Sprintf("%s/%s", namespace, template.GetName()), func() error {
+				_, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(template.GetName(), metav1.GetOptions{})
+				return err
 			})
-			if err != nil {
-				tl.Fatalf("Timed out waiting for PropagatedVersion %q to be deleted.", qualifiedName)
-			}
+			checkForDeletion(tl, "PropagatedVersion", qualifiedName.String(), func() error {
+				_, err = client.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
+				return err
+			})
 		})
 	})
 })
+
+func checkForDeletion(tl common.TestLogger, typeName, key string, checkFunc func() error) {
+	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+		err := checkFunc()
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			tl.Errorf("Error checking %s %q for deletion: %v", typeName, key, err)
+		}
+		return false, nil
+	})
+	if err != nil {
+		tl.Fatalf("Timed out waiting for %s %q to be deleted.", typeName, key)
+	}
+}
 
 func waitForPropVer(tl common.TestLogger, client fedclientset.Interface, qualifiedName util.QualifiedName, expectedStatus fedv1a1.PropagatedVersionStatus) {
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
