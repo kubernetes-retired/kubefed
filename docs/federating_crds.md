@@ -14,7 +14,7 @@ You must have federation deployed according to the [user guide](./userguide.md).
 
 Let's say you want to federate a CRD of the type `Bar` then use the following [bar_crd.yaml](../example/crd/bar_crd.yaml).
 
-```
+```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -66,7 +66,7 @@ There are three pieces of the federation API for a type.
 
 We stored all these definition in the [federatedbar_crd.yaml](../example/crd/federatedbar_crd.yaml) file.
 
-```shell 
+```yaml
 #template type
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -195,7 +195,7 @@ target type created in member clusters.
 It's time to work towards enabling the push configuration for those CRDs by creating a `FederatedTypeConfig` for `Bar`. 
 See example in the [federatedBar.yaml](../example/crd/federatedBar.yaml) file.
 
-```
+```yaml
 apiVersion: core.federation.k8s.io/v1alpha1
 kind: FederatedTypeConfig
 metadata:
@@ -232,7 +232,7 @@ federatedtypeconfig.core.federation.k8s.io/bars.example.io created
 
 Use  [federatedbar_test.yaml](../example/crd/federatedbar_test.yaml)  file to verify if you can federate a CRD of the type `Bar` in the target clusters.
 
-```
+```yaml
 apiVersion: federation.example.io/v1alpha1
 kind: FederatedBar
 metadata:
