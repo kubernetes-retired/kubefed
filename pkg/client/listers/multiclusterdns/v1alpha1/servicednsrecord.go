@@ -34,7 +34,7 @@ type ServiceDNSRecordLister interface {
 	ServiceDNSRecordListerExpansion
 }
 
-// ServiceDNSRecordLister implements the ServiceDNSRecordLister interface.
+// serviceDNSRecordLister implements the ServiceDNSRecordLister interface.
 type serviceDNSRecordLister struct {
 	indexer cache.Indexer
 }
@@ -66,7 +66,7 @@ type ServiceDNSRecordNamespaceLister interface {
 	ServiceDNSRecordNamespaceListerExpansion
 }
 
-// ServiceDNSRecordNamespaceLister implements the ServiceDNSRecordNamespaceLister
+// serviceDNSRecordNamespaceLister implements the ServiceDNSRecordNamespaceLister
 // interface.
 type serviceDNSRecordNamespaceLister struct {
 	indexer   cache.Indexer

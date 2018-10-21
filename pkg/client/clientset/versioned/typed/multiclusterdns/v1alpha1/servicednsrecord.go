@@ -47,22 +47,22 @@ type ServiceDNSRecordInterface interface {
 	ServiceDNSRecordExpansion
 }
 
-// ServiceDNSRecords implements ServiceDNSRecordInterface
-type ServiceDNSRecords struct {
+// serviceDNSRecords implements ServiceDNSRecordInterface
+type serviceDNSRecords struct {
 	client rest.Interface
 	ns     string
 }
 
 // newServiceDNSRecords returns a ServiceDNSRecords
-func newServiceDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *ServiceDNSRecords {
-	return &ServiceDNSRecords{
+func newServiceDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *serviceDNSRecords {
+	return &serviceDNSRecords{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the ServiceDNSRecord, and returns the corresponding ServiceDNSRecord object, and an error if there is any.
-func (c *ServiceDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceDNSRecord, err error) {
+// Get takes name of the serviceDNSRecord, and returns the corresponding serviceDNSRecord object, and an error if there is any.
+func (c *serviceDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceDNSRecord, err error) {
 	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -75,7 +75,7 @@ func (c *ServiceDNSRecords) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of ServiceDNSRecords that match those selectors.
-func (c *ServiceDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.ServiceDNSRecordList, err error) {
+func (c *serviceDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.ServiceDNSRecordList, err error) {
 	result = &v1alpha1.ServiceDNSRecordList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -86,8 +86,8 @@ func (c *ServiceDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.ServiceD
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested ServiceDNSRecords.
-func (c *ServiceDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested serviceDNSRecords.
+func (c *serviceDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
@@ -96,26 +96,26 @@ func (c *ServiceDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) 
 		Watch()
 }
 
-// Create takes the representation of a ServiceDNSRecord and creates it.  Returns the server's representation of the ServiceDNSRecord, and an error, if there is any.
-func (c *ServiceDNSRecords) Create(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+// Create takes the representation of a serviceDNSRecord and creates it.  Returns the server's representation of the serviceDNSRecord, and an error, if there is any.
+func (c *serviceDNSRecords) Create(serviceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
 	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("servicednsrecords").
-		Body(ServiceDNSRecord).
+		Body(serviceDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a ServiceDNSRecord and updates it. Returns the server's representation of the ServiceDNSRecord, and an error, if there is any.
-func (c *ServiceDNSRecords) Update(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+// Update takes the representation of a serviceDNSRecord and updates it. Returns the server's representation of the serviceDNSRecord, and an error, if there is any.
+func (c *serviceDNSRecords) Update(serviceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
 	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("servicednsrecords").
-		Name(ServiceDNSRecord.Name).
-		Body(ServiceDNSRecord).
+		Name(serviceDNSRecord.Name).
+		Body(serviceDNSRecord).
 		Do().
 		Into(result)
 	return
@@ -124,21 +124,21 @@ func (c *ServiceDNSRecords) Update(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *ServiceDNSRecords) UpdateStatus(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+func (c *serviceDNSRecords) UpdateStatus(serviceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
 	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("servicednsrecords").
-		Name(ServiceDNSRecord.Name).
+		Name(serviceDNSRecord.Name).
 		SubResource("status").
-		Body(ServiceDNSRecord).
+		Body(serviceDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the ServiceDNSRecord and deletes it. Returns an error if one occurs.
-func (c *ServiceDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the serviceDNSRecord and deletes it. Returns an error if one occurs.
+func (c *serviceDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("servicednsrecords").
@@ -149,7 +149,7 @@ func (c *ServiceDNSRecords) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *ServiceDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *serviceDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("servicednsrecords").
@@ -159,8 +159,8 @@ func (c *ServiceDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOpti
 		Error()
 }
 
-// Patch applies the patch and returns the patched ServiceDNSRecord.
-func (c *ServiceDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceDNSRecord, err error) {
+// Patch applies the patch and returns the patched serviceDNSRecord.
+func (c *serviceDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceDNSRecord, err error) {
 	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

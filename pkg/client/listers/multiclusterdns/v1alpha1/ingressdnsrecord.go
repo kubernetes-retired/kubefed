@@ -34,7 +34,7 @@ type IngressDNSRecordLister interface {
 	IngressDNSRecordListerExpansion
 }
 
-// IngressDNSRecordLister implements the IngressDNSRecordLister interface.
+// ingressDNSRecordLister implements the IngressDNSRecordLister interface.
 type ingressDNSRecordLister struct {
 	indexer cache.Indexer
 }
@@ -66,7 +66,7 @@ type IngressDNSRecordNamespaceLister interface {
 	IngressDNSRecordNamespaceListerExpansion
 }
 
-// IngressDNSRecordNamespaceLister implements the IngressDNSRecordNamespaceLister
+// ingressDNSRecordNamespaceLister implements the IngressDNSRecordNamespaceLister
 // interface.
 type ingressDNSRecordNamespaceLister struct {
 	indexer   cache.Indexer

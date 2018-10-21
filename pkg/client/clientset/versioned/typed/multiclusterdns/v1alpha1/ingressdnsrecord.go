@@ -47,22 +47,22 @@ type IngressDNSRecordInterface interface {
 	IngressDNSRecordExpansion
 }
 
-// IngressDNSRecords implements IngressDNSRecordInterface
-type IngressDNSRecords struct {
+// ingressDNSRecords implements IngressDNSRecordInterface
+type ingressDNSRecords struct {
 	client rest.Interface
 	ns     string
 }
 
 // newIngressDNSRecords returns a IngressDNSRecords
-func newIngressDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *IngressDNSRecords {
-	return &IngressDNSRecords{
+func newIngressDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *ingressDNSRecords {
+	return &ingressDNSRecords{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the IngressDNSRecord, and returns the corresponding IngressDNSRecord object, and an error if there is any.
-func (c *IngressDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.IngressDNSRecord, err error) {
+// Get takes name of the ingressDNSRecord, and returns the corresponding ingressDNSRecord object, and an error if there is any.
+func (c *ingressDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.IngressDNSRecord, err error) {
 	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -75,7 +75,7 @@ func (c *IngressDNSRecords) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of IngressDNSRecords that match those selectors.
-func (c *IngressDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.IngressDNSRecordList, err error) {
+func (c *ingressDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.IngressDNSRecordList, err error) {
 	result = &v1alpha1.IngressDNSRecordList{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -86,8 +86,8 @@ func (c *IngressDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.IngressD
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested IngressDNSRecords.
-func (c *IngressDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested ingressDNSRecords.
+func (c *ingressDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
@@ -96,26 +96,26 @@ func (c *IngressDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) 
 		Watch()
 }
 
-// Create takes the representation of a IngressDNSRecord and creates it.  Returns the server's representation of the IngressDNSRecord, and an error, if there is any.
-func (c *IngressDNSRecords) Create(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+// Create takes the representation of a ingressDNSRecord and creates it.  Returns the server's representation of the ingressDNSRecord, and an error, if there is any.
+func (c *ingressDNSRecords) Create(ingressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
 	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("ingressdnsrecords").
-		Body(IngressDNSRecord).
+		Body(ingressDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a IngressDNSRecord and updates it. Returns the server's representation of the IngressDNSRecord, and an error, if there is any.
-func (c *IngressDNSRecords) Update(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+// Update takes the representation of a ingressDNSRecord and updates it. Returns the server's representation of the ingressDNSRecord, and an error, if there is any.
+func (c *ingressDNSRecords) Update(ingressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
 	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("ingressdnsrecords").
-		Name(IngressDNSRecord.Name).
-		Body(IngressDNSRecord).
+		Name(ingressDNSRecord.Name).
+		Body(ingressDNSRecord).
 		Do().
 		Into(result)
 	return
@@ -124,21 +124,21 @@ func (c *IngressDNSRecords) Update(IngressDNSRecord *v1alpha1.IngressDNSRecord) 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *IngressDNSRecords) UpdateStatus(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+func (c *ingressDNSRecords) UpdateStatus(ingressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
 	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("ingressdnsrecords").
-		Name(IngressDNSRecord.Name).
+		Name(ingressDNSRecord.Name).
 		SubResource("status").
-		Body(IngressDNSRecord).
+		Body(ingressDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the IngressDNSRecord and deletes it. Returns an error if one occurs.
-func (c *IngressDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the ingressDNSRecord and deletes it. Returns an error if one occurs.
+func (c *ingressDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("ingressdnsrecords").
@@ -149,7 +149,7 @@ func (c *IngressDNSRecords) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *IngressDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *ingressDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("ingressdnsrecords").
@@ -159,8 +159,8 @@ func (c *IngressDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOpti
 		Error()
 }
 
-// Patch applies the patch and returns the patched IngressDNSRecord.
-func (c *IngressDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IngressDNSRecord, err error) {
+// Patch applies the patch and returns the patched ingressDNSRecord.
+func (c *ingressDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IngressDNSRecord, err error) {
 	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
