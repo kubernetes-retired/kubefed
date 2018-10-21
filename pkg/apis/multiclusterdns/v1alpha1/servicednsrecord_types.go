@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MultiClusterServiceDNSRecordSpec defines the desired state of MultiClusterServiceDNSRecord
-type MultiClusterServiceDNSRecordSpec struct {
+// ServiceDNSRecordSpec defines the desired state of ServiceDNSRecord
+type ServiceDNSRecordSpec struct {
 	// FederationName is the name of the federation to which the corresponding federated service belongs
 	FederationName string `json:"federationName,omitempty"`
 	// DNSSuffix is the suffix (domain) to append to DNS names
@@ -31,8 +31,8 @@ type MultiClusterServiceDNSRecordSpec struct {
 	RecordTTL TTL `json:"recordTTL,omitempty"`
 }
 
-// MultiClusterServiceDNSRecordStatus defines the observed state of MultiClusterServiceDNSRecord
-type MultiClusterServiceDNSRecordStatus struct {
+// ServiceDNSRecordStatus defines the observed state of ServiceDNSRecord
+type ServiceDNSRecordStatus struct {
 	DNS []ClusterDNS `json:"dns,omitempty"`
 }
 
@@ -51,14 +51,14 @@ type ClusterDNS struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MultiClusterServiceDNSRecord
+// ServiceDNSRecord
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=multiclusterservicednsrecords
+// +kubebuilder:resource:path=servicednsrecords
 // +kubebuilder:subresource:status
-type MultiClusterServiceDNSRecord struct {
+type ServiceDNSRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterServiceDNSRecordSpec   `json:"spec,omitempty"`
-	Status MultiClusterServiceDNSRecordStatus `json:"status,omitempty"`
+	Spec   ServiceDNSRecordSpec   `json:"spec,omitempty"`
+	Status ServiceDNSRecordStatus `json:"status,omitempty"`
 }

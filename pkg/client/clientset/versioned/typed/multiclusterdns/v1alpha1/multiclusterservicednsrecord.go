@@ -27,46 +27,46 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// MultiClusterServiceDNSRecordsGetter has a method to return a MultiClusterServiceDNSRecordInterface.
+// ServiceDNSRecordsGetter has a method to return a ServiceDNSRecordInterface.
 // A group's client should implement this interface.
-type MultiClusterServiceDNSRecordsGetter interface {
-	MultiClusterServiceDNSRecords(namespace string) MultiClusterServiceDNSRecordInterface
+type ServiceDNSRecordsGetter interface {
+	ServiceDNSRecords(namespace string) ServiceDNSRecordInterface
 }
 
-// MultiClusterServiceDNSRecordInterface has methods to work with MultiClusterServiceDNSRecord resources.
-type MultiClusterServiceDNSRecordInterface interface {
-	Create(*v1alpha1.MultiClusterServiceDNSRecord) (*v1alpha1.MultiClusterServiceDNSRecord, error)
-	Update(*v1alpha1.MultiClusterServiceDNSRecord) (*v1alpha1.MultiClusterServiceDNSRecord, error)
-	UpdateStatus(*v1alpha1.MultiClusterServiceDNSRecord) (*v1alpha1.MultiClusterServiceDNSRecord, error)
+// ServiceDNSRecordInterface has methods to work with ServiceDNSRecord resources.
+type ServiceDNSRecordInterface interface {
+	Create(*v1alpha1.ServiceDNSRecord) (*v1alpha1.ServiceDNSRecord, error)
+	Update(*v1alpha1.ServiceDNSRecord) (*v1alpha1.ServiceDNSRecord, error)
+	UpdateStatus(*v1alpha1.ServiceDNSRecord) (*v1alpha1.ServiceDNSRecord, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.MultiClusterServiceDNSRecord, error)
-	List(opts v1.ListOptions) (*v1alpha1.MultiClusterServiceDNSRecordList, error)
+	Get(name string, options v1.GetOptions) (*v1alpha1.ServiceDNSRecord, error)
+	List(opts v1.ListOptions) (*v1alpha1.ServiceDNSRecordList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.MultiClusterServiceDNSRecord, err error)
-	MultiClusterServiceDNSRecordExpansion
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceDNSRecord, err error)
+	ServiceDNSRecordExpansion
 }
 
-// multiClusterServiceDNSRecords implements MultiClusterServiceDNSRecordInterface
-type multiClusterServiceDNSRecords struct {
+// ServiceDNSRecords implements ServiceDNSRecordInterface
+type ServiceDNSRecords struct {
 	client rest.Interface
 	ns     string
 }
 
-// newMultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecords
-func newMultiClusterServiceDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *multiClusterServiceDNSRecords {
-	return &multiClusterServiceDNSRecords{
+// newServiceDNSRecords returns a ServiceDNSRecords
+func newServiceDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *ServiceDNSRecords {
+	return &ServiceDNSRecords{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the multiClusterServiceDNSRecord, and returns the corresponding multiClusterServiceDNSRecord object, and an error if there is any.
-func (c *multiClusterServiceDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.MultiClusterServiceDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterServiceDNSRecord{}
+// Get takes name of the ServiceDNSRecord, and returns the corresponding ServiceDNSRecord object, and an error if there is any.
+func (c *ServiceDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceDNSRecord, err error) {
+	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
+		Resource("servicednsrecords").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -74,48 +74,48 @@ func (c *multiClusterServiceDNSRecords) Get(name string, options v1.GetOptions) 
 	return
 }
 
-// List takes label and field selectors, and returns the list of MultiClusterServiceDNSRecords that match those selectors.
-func (c *multiClusterServiceDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.MultiClusterServiceDNSRecordList, err error) {
-	result = &v1alpha1.MultiClusterServiceDNSRecordList{}
+// List takes label and field selectors, and returns the list of ServiceDNSRecords that match those selectors.
+func (c *ServiceDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.ServiceDNSRecordList, err error) {
+	result = &v1alpha1.ServiceDNSRecordList{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
+		Resource("servicednsrecords").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested multiClusterServiceDNSRecords.
-func (c *multiClusterServiceDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested ServiceDNSRecords.
+func (c *ServiceDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
+		Resource("servicednsrecords").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
-// Create takes the representation of a multiClusterServiceDNSRecord and creates it.  Returns the server's representation of the multiClusterServiceDNSRecord, and an error, if there is any.
-func (c *multiClusterServiceDNSRecords) Create(multiClusterServiceDNSRecord *v1alpha1.MultiClusterServiceDNSRecord) (result *v1alpha1.MultiClusterServiceDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterServiceDNSRecord{}
+// Create takes the representation of a ServiceDNSRecord and creates it.  Returns the server's representation of the ServiceDNSRecord, and an error, if there is any.
+func (c *ServiceDNSRecords) Create(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Post().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
-		Body(multiClusterServiceDNSRecord).
+		Resource("servicednsrecords").
+		Body(ServiceDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a multiClusterServiceDNSRecord and updates it. Returns the server's representation of the multiClusterServiceDNSRecord, and an error, if there is any.
-func (c *multiClusterServiceDNSRecords) Update(multiClusterServiceDNSRecord *v1alpha1.MultiClusterServiceDNSRecord) (result *v1alpha1.MultiClusterServiceDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterServiceDNSRecord{}
+// Update takes the representation of a ServiceDNSRecord and updates it. Returns the server's representation of the ServiceDNSRecord, and an error, if there is any.
+func (c *ServiceDNSRecords) Update(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
-		Name(multiClusterServiceDNSRecord.Name).
-		Body(multiClusterServiceDNSRecord).
+		Resource("servicednsrecords").
+		Name(ServiceDNSRecord.Name).
+		Body(ServiceDNSRecord).
 		Do().
 		Into(result)
 	return
@@ -124,24 +124,24 @@ func (c *multiClusterServiceDNSRecords) Update(multiClusterServiceDNSRecord *v1a
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *multiClusterServiceDNSRecords) UpdateStatus(multiClusterServiceDNSRecord *v1alpha1.MultiClusterServiceDNSRecord) (result *v1alpha1.MultiClusterServiceDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterServiceDNSRecord{}
+func (c *ServiceDNSRecords) UpdateStatus(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
-		Name(multiClusterServiceDNSRecord.Name).
+		Resource("servicednsrecords").
+		Name(ServiceDNSRecord.Name).
 		SubResource("status").
-		Body(multiClusterServiceDNSRecord).
+		Body(ServiceDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the multiClusterServiceDNSRecord and deletes it. Returns an error if one occurs.
-func (c *multiClusterServiceDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the ServiceDNSRecord and deletes it. Returns an error if one occurs.
+func (c *ServiceDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
+		Resource("servicednsrecords").
 		Name(name).
 		Body(options).
 		Do().
@@ -149,22 +149,22 @@ func (c *multiClusterServiceDNSRecords) Delete(name string, options *v1.DeleteOp
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *multiClusterServiceDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *ServiceDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
+		Resource("servicednsrecords").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
-// Patch applies the patch and returns the patched multiClusterServiceDNSRecord.
-func (c *multiClusterServiceDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.MultiClusterServiceDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterServiceDNSRecord{}
+// Patch applies the patch and returns the patched ServiceDNSRecord.
+func (c *ServiceDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceDNSRecord, err error) {
+	result = &v1alpha1.ServiceDNSRecord{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
-		Resource("multiclusterservicednsrecords").
+		Resource("servicednsrecords").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).

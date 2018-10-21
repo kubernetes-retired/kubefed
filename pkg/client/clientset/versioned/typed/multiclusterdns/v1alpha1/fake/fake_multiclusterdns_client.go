@@ -32,12 +32,12 @@ func (c *FakeMulticlusterdnsV1alpha1) DNSEndpoints(namespace string) v1alpha1.DN
 	return &FakeDNSEndpoints{c, namespace}
 }
 
-func (c *FakeMulticlusterdnsV1alpha1) MultiClusterIngressDNSRecords(namespace string) v1alpha1.MultiClusterIngressDNSRecordInterface {
-	return &FakeMultiClusterIngressDNSRecords{c, namespace}
+func (c *FakeMulticlusterdnsV1alpha1) IngressDNSRecords(namespace string) v1alpha1.IngressDNSRecordInterface {
+	return &FakeIngressDNSRecords{c, namespace}
 }
 
-func (c *FakeMulticlusterdnsV1alpha1) MultiClusterServiceDNSRecords(namespace string) v1alpha1.MultiClusterServiceDNSRecordInterface {
-	return &FakeMultiClusterServiceDNSRecords{c, namespace}
+func (c *FakeMulticlusterdnsV1alpha1) ServiceDNSRecords(namespace string) v1alpha1.ServiceDNSRecordInterface {
+	return &FakeServiceDNSRecords{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

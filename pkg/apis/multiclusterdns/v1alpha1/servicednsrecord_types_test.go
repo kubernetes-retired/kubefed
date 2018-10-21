@@ -27,15 +27,15 @@ import (
 )
 
 // EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the MultiClusterIngressDNSRecord resource tests
+// Created by "kubebuilder create resource" for you to implement the ServiceDNSRecord resource tests
 
-var _ = Describe("MultiClusterIngressDNSRecord", func() {
-	var instance MultiClusterIngressDNSRecord
-	var expected MultiClusterIngressDNSRecord
-	var client MultiClusterIngressDNSRecordInterface
+var _ = Describe("ServiceDNSRecord", func() {
+	var instance ServiceDNSRecord
+	var expected ServiceDNSRecord
+	var client ServiceDNSRecordInterface
 
 	BeforeEach(func() {
-		instance = MultiClusterIngressDNSRecord{}
+		instance = ServiceDNSRecord{}
 		instance.Name = "instance-1"
 
 		expected = instance
@@ -51,7 +51,7 @@ var _ = Describe("MultiClusterIngressDNSRecord", func() {
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords("default")
+				client = cs.MulticlusterdnsV1alpha1().ServiceDNSRecords("default")
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)

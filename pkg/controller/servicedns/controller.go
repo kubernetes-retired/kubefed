@@ -46,7 +46,7 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// Controller manages the MultiClusterServiceDNSRecord objects in federation.
+// Controller manages the ServiceDNSRecord objects in federation.
 type Controller struct {
 	fedClient fedclientset.Interface
 
@@ -60,9 +60,9 @@ type Controller struct {
 	// informer for endpoint object from members of federation.
 	endpointInformer util.FederatedInformer
 
-	// Store for the MultiClusterServiceDNSRecord objects
+	// Store for the ServiceDNSRecord objects
 	serviceDNSStore cache.Store
-	// Informer for the MultiClusterServiceDNSRecord objects
+	// Informer for the ServiceDNSRecord objects
 	serviceDNSController cache.Controller
 
 	worker util.ReconcileWorker
@@ -72,9 +72,9 @@ type Controller struct {
 	smallDelay              time.Duration
 }
 
-// StartController starts the Controller for managing MultiClusterServiceDNSRecord objects.
+// StartController starts the Controller for managing ServiceDNSRecord objects.
 func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	userAgent := "MultiClusterServiceDNS"
+	userAgent := "ServiceDNS"
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
@@ -87,12 +87,12 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof("Starting MultiClusterServiceDNS controller")
+	glog.Infof("Starting ServiceDNS controller")
 	controller.Run(stopChan)
 	return nil
 }
 
-// newController returns a new controller to manage MultiClusterServiceDNSRecord objects.
+// newController returns a new controller to manage ServiceDNSRecord objects.
 func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
@@ -108,17 +108,17 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	// Informer for the MultiClusterServiceDNSRecord resource in federation.
+	// Informer for the ServiceDNSRecord resource in federation.
 	s.serviceDNSStore, s.serviceDNSController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).List(options)
+				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).Watch(options)
+				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).Watch(options)
 			},
 		},
-		&dnsv1a1.MultiClusterServiceDNSRecord{},
+		&dnsv1a1.ServiceDNSRecord{},
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(s.worker.EnqueueObject),
 	)
@@ -252,21 +252,21 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	key := qualifiedName.String()
 
-	glog.V(4).Infof("Starting to reconcile MultiClusterServiceDNS resource: %v", key)
+	glog.V(4).Infof("Starting to reconcile ServiceDNS resource: %v", key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling MultiClusterServiceDNS resource %v (duration: %v)", key, time.Now().Sub(startTime))
+	defer glog.V(4).Infof("Finished reconciling ServiceDNS resource %v (duration: %v)", key, time.Now().Sub(startTime))
 
 	cachedObj, exist, err := c.serviceDNSStore.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query MultiClusterServiceDNS store for %q: %v", key, err))
+		runtime.HandleError(fmt.Errorf("Failed to query ServiceDNS store for %q: %v", key, err))
 		return util.StatusError
 	}
 	if !exist {
 		return util.StatusAllOK
 	}
-	cachedDNS := cachedObj.(*dnsv1a1.MultiClusterServiceDNSRecord)
+	cachedDNS := cachedObj.(*dnsv1a1.ServiceDNSRecord)
 
-	fedDNS := &dnsv1a1.MultiClusterServiceDNSRecord{
+	fedDNS := &dnsv1a1.ServiceDNSRecord{
 		ObjectMeta: util.DeepCopyRelevantObjectMeta(cachedDNS.ObjectMeta),
 		Spec:       *cachedDNS.Spec.DeepCopy(),
 	}
@@ -330,9 +330,9 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	fedDNS.Status.DNS = fedDNSStatus
 
 	if !reflect.DeepEqual(cachedDNS.Status, fedDNS.Status) {
-		_, err = c.fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(fedDNS.Namespace).UpdateStatus(fedDNS)
+		_, err = c.fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(fedDNS.Namespace).UpdateStatus(fedDNS)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Error updating the MultiClusterServiceDNS object %s: %v", key, err))
+			runtime.HandleError(fmt.Errorf("Error updating the ServiceDNS object %s: %v", key, err))
 			return util.StatusError
 		}
 	}

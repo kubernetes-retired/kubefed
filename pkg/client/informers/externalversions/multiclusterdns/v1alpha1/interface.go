@@ -26,10 +26,10 @@ import (
 type Interface interface {
 	// DNSEndpoints returns a DNSEndpointInformer.
 	DNSEndpoints() DNSEndpointInformer
-	// MultiClusterIngressDNSRecords returns a MultiClusterIngressDNSRecordInformer.
-	MultiClusterIngressDNSRecords() MultiClusterIngressDNSRecordInformer
-	// MultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecordInformer.
-	MultiClusterServiceDNSRecords() MultiClusterServiceDNSRecordInformer
+	// IngressDNSRecords returns a IngressDNSRecordInformer.
+	IngressDNSRecords() IngressDNSRecordInformer
+	// ServiceDNSRecords returns a ServiceDNSRecordInformer.
+	ServiceDNSRecords() ServiceDNSRecordInformer
 }
 
 type version struct {
@@ -48,12 +48,12 @@ func (v *version) DNSEndpoints() DNSEndpointInformer {
 	return &dNSEndpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// MultiClusterIngressDNSRecords returns a MultiClusterIngressDNSRecordInformer.
-func (v *version) MultiClusterIngressDNSRecords() MultiClusterIngressDNSRecordInformer {
-	return &multiClusterIngressDNSRecordInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// IngressDNSRecords returns a IngressDNSRecordInformer.
+func (v *version) IngressDNSRecords() IngressDNSRecordInformer {
+	return &ingressDNSRecordInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// MultiClusterServiceDNSRecords returns a MultiClusterServiceDNSRecordInformer.
-func (v *version) MultiClusterServiceDNSRecords() MultiClusterServiceDNSRecordInformer {
-	return &multiClusterServiceDNSRecordInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// ServiceDNSRecords returns a ServiceDNSRecordInformer.
+func (v *version) ServiceDNSRecords() ServiceDNSRecordInformer {
+	return &serviceDNSRecordInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

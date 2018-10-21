@@ -25,70 +25,70 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// MultiClusterIngressDNSRecordLister helps list MultiClusterIngressDNSRecords.
-type MultiClusterIngressDNSRecordLister interface {
-	// List lists all MultiClusterIngressDNSRecords in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.MultiClusterIngressDNSRecord, err error)
-	// MultiClusterIngressDNSRecords returns an object that can list and get MultiClusterIngressDNSRecords.
-	MultiClusterIngressDNSRecords(namespace string) MultiClusterIngressDNSRecordNamespaceLister
-	MultiClusterIngressDNSRecordListerExpansion
+// IngressDNSRecordLister helps list IngressDNSRecords.
+type IngressDNSRecordLister interface {
+	// List lists all IngressDNSRecords in the indexer.
+	List(selector labels.Selector) (ret []*v1alpha1.IngressDNSRecord, err error)
+	// IngressDNSRecords returns an object that can list and get IngressDNSRecords.
+	IngressDNSRecords(namespace string) IngressDNSRecordNamespaceLister
+	IngressDNSRecordListerExpansion
 }
 
-// multiClusterIngressDNSRecordLister implements the MultiClusterIngressDNSRecordLister interface.
-type multiClusterIngressDNSRecordLister struct {
+// IngressDNSRecordLister implements the IngressDNSRecordLister interface.
+type ingressDNSRecordLister struct {
 	indexer cache.Indexer
 }
 
-// NewMultiClusterIngressDNSRecordLister returns a new MultiClusterIngressDNSRecordLister.
-func NewMultiClusterIngressDNSRecordLister(indexer cache.Indexer) MultiClusterIngressDNSRecordLister {
-	return &multiClusterIngressDNSRecordLister{indexer: indexer}
+// NewIngressDNSRecordLister returns a new IngressDNSRecordLister.
+func NewIngressDNSRecordLister(indexer cache.Indexer) IngressDNSRecordLister {
+	return &ingressDNSRecordLister{indexer: indexer}
 }
 
-// List lists all MultiClusterIngressDNSRecords in the indexer.
-func (s *multiClusterIngressDNSRecordLister) List(selector labels.Selector) (ret []*v1alpha1.MultiClusterIngressDNSRecord, err error) {
+// List lists all IngressDNSRecords in the indexer.
+func (s *ingressDNSRecordLister) List(selector labels.Selector) (ret []*v1alpha1.IngressDNSRecord, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.MultiClusterIngressDNSRecord))
+		ret = append(ret, m.(*v1alpha1.IngressDNSRecord))
 	})
 	return ret, err
 }
 
-// MultiClusterIngressDNSRecords returns an object that can list and get MultiClusterIngressDNSRecords.
-func (s *multiClusterIngressDNSRecordLister) MultiClusterIngressDNSRecords(namespace string) MultiClusterIngressDNSRecordNamespaceLister {
-	return multiClusterIngressDNSRecordNamespaceLister{indexer: s.indexer, namespace: namespace}
+// IngressDNSRecords returns an object that can list and get IngressDNSRecords.
+func (s *ingressDNSRecordLister) IngressDNSRecords(namespace string) IngressDNSRecordNamespaceLister {
+	return ingressDNSRecordNamespaceLister{indexer: s.indexer, namespace: namespace}
 }
 
-// MultiClusterIngressDNSRecordNamespaceLister helps list and get MultiClusterIngressDNSRecords.
-type MultiClusterIngressDNSRecordNamespaceLister interface {
-	// List lists all MultiClusterIngressDNSRecords in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.MultiClusterIngressDNSRecord, err error)
-	// Get retrieves the MultiClusterIngressDNSRecord from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.MultiClusterIngressDNSRecord, error)
-	MultiClusterIngressDNSRecordNamespaceListerExpansion
+// IngressDNSRecordNamespaceLister helps list and get IngressDNSRecords.
+type IngressDNSRecordNamespaceLister interface {
+	// List lists all IngressDNSRecords in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.IngressDNSRecord, err error)
+	// Get retrieves the IngressDNSRecord from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.IngressDNSRecord, error)
+	IngressDNSRecordNamespaceListerExpansion
 }
 
-// multiClusterIngressDNSRecordNamespaceLister implements the MultiClusterIngressDNSRecordNamespaceLister
+// IngressDNSRecordNamespaceLister implements the IngressDNSRecordNamespaceLister
 // interface.
-type multiClusterIngressDNSRecordNamespaceLister struct {
+type ingressDNSRecordNamespaceLister struct {
 	indexer   cache.Indexer
 	namespace string
 }
 
-// List lists all MultiClusterIngressDNSRecords in the indexer for a given namespace.
-func (s multiClusterIngressDNSRecordNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.MultiClusterIngressDNSRecord, err error) {
+// List lists all IngressDNSRecords in the indexer for a given namespace.
+func (s ingressDNSRecordNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.IngressDNSRecord, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.MultiClusterIngressDNSRecord))
+		ret = append(ret, m.(*v1alpha1.IngressDNSRecord))
 	})
 	return ret, err
 }
 
-// Get retrieves the MultiClusterIngressDNSRecord from the indexer for a given namespace and name.
-func (s multiClusterIngressDNSRecordNamespaceLister) Get(name string) (*v1alpha1.MultiClusterIngressDNSRecord, error) {
+// Get retrieves the IngressDNSRecord from the indexer for a given namespace and name.
+func (s ingressDNSRecordNamespaceLister) Get(name string) (*v1alpha1.IngressDNSRecord, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("multiclusteringressdnsrecord"), name)
+		return nil, errors.NewNotFound(v1alpha1.Resource("ingressdnsrecord"), name)
 	}
-	return obj.(*v1alpha1.MultiClusterIngressDNSRecord), nil
+	return obj.(*v1alpha1.IngressDNSRecord), nil
 }

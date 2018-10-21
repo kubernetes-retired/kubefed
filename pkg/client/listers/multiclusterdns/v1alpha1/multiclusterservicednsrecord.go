@@ -25,70 +25,70 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// MultiClusterServiceDNSRecordLister helps list MultiClusterServiceDNSRecords.
-type MultiClusterServiceDNSRecordLister interface {
-	// List lists all MultiClusterServiceDNSRecords in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.MultiClusterServiceDNSRecord, err error)
-	// MultiClusterServiceDNSRecords returns an object that can list and get MultiClusterServiceDNSRecords.
-	MultiClusterServiceDNSRecords(namespace string) MultiClusterServiceDNSRecordNamespaceLister
-	MultiClusterServiceDNSRecordListerExpansion
+// ServiceDNSRecordLister helps list ServiceDNSRecords.
+type ServiceDNSRecordLister interface {
+	// List lists all ServiceDNSRecords in the indexer.
+	List(selector labels.Selector) (ret []*v1alpha1.ServiceDNSRecord, err error)
+	// ServiceDNSRecords returns an object that can list and get ServiceDNSRecords.
+	ServiceDNSRecords(namespace string) ServiceDNSRecordNamespaceLister
+	ServiceDNSRecordListerExpansion
 }
 
-// multiClusterServiceDNSRecordLister implements the MultiClusterServiceDNSRecordLister interface.
-type multiClusterServiceDNSRecordLister struct {
+// ServiceDNSRecordLister implements the ServiceDNSRecordLister interface.
+type serviceDNSRecordLister struct {
 	indexer cache.Indexer
 }
 
-// NewMultiClusterServiceDNSRecordLister returns a new MultiClusterServiceDNSRecordLister.
-func NewMultiClusterServiceDNSRecordLister(indexer cache.Indexer) MultiClusterServiceDNSRecordLister {
-	return &multiClusterServiceDNSRecordLister{indexer: indexer}
+// NewServiceDNSRecordLister returns a new ServiceDNSRecordLister.
+func NewServiceDNSRecordLister(indexer cache.Indexer) ServiceDNSRecordLister {
+	return &serviceDNSRecordLister{indexer: indexer}
 }
 
-// List lists all MultiClusterServiceDNSRecords in the indexer.
-func (s *multiClusterServiceDNSRecordLister) List(selector labels.Selector) (ret []*v1alpha1.MultiClusterServiceDNSRecord, err error) {
+// List lists all ServiceDNSRecords in the indexer.
+func (s *serviceDNSRecordLister) List(selector labels.Selector) (ret []*v1alpha1.ServiceDNSRecord, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.MultiClusterServiceDNSRecord))
+		ret = append(ret, m.(*v1alpha1.ServiceDNSRecord))
 	})
 	return ret, err
 }
 
-// MultiClusterServiceDNSRecords returns an object that can list and get MultiClusterServiceDNSRecords.
-func (s *multiClusterServiceDNSRecordLister) MultiClusterServiceDNSRecords(namespace string) MultiClusterServiceDNSRecordNamespaceLister {
-	return multiClusterServiceDNSRecordNamespaceLister{indexer: s.indexer, namespace: namespace}
+// ServiceDNSRecords returns an object that can list and get ServiceDNSRecords.
+func (s *serviceDNSRecordLister) ServiceDNSRecords(namespace string) ServiceDNSRecordNamespaceLister {
+	return serviceDNSRecordNamespaceLister{indexer: s.indexer, namespace: namespace}
 }
 
-// MultiClusterServiceDNSRecordNamespaceLister helps list and get MultiClusterServiceDNSRecords.
-type MultiClusterServiceDNSRecordNamespaceLister interface {
-	// List lists all MultiClusterServiceDNSRecords in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.MultiClusterServiceDNSRecord, err error)
-	// Get retrieves the MultiClusterServiceDNSRecord from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.MultiClusterServiceDNSRecord, error)
-	MultiClusterServiceDNSRecordNamespaceListerExpansion
+// ServiceDNSRecordNamespaceLister helps list and get ServiceDNSRecords.
+type ServiceDNSRecordNamespaceLister interface {
+	// List lists all ServiceDNSRecords in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.ServiceDNSRecord, err error)
+	// Get retrieves the ServiceDNSRecord from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.ServiceDNSRecord, error)
+	ServiceDNSRecordNamespaceListerExpansion
 }
 
-// multiClusterServiceDNSRecordNamespaceLister implements the MultiClusterServiceDNSRecordNamespaceLister
+// ServiceDNSRecordNamespaceLister implements the ServiceDNSRecordNamespaceLister
 // interface.
-type multiClusterServiceDNSRecordNamespaceLister struct {
+type serviceDNSRecordNamespaceLister struct {
 	indexer   cache.Indexer
 	namespace string
 }
 
-// List lists all MultiClusterServiceDNSRecords in the indexer for a given namespace.
-func (s multiClusterServiceDNSRecordNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.MultiClusterServiceDNSRecord, err error) {
+// List lists all ServiceDNSRecords in the indexer for a given namespace.
+func (s serviceDNSRecordNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.ServiceDNSRecord, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.MultiClusterServiceDNSRecord))
+		ret = append(ret, m.(*v1alpha1.ServiceDNSRecord))
 	})
 	return ret, err
 }
 
-// Get retrieves the MultiClusterServiceDNSRecord from the indexer for a given namespace and name.
-func (s multiClusterServiceDNSRecordNamespaceLister) Get(name string) (*v1alpha1.MultiClusterServiceDNSRecord, error) {
+// Get retrieves the ServiceDNSRecord from the indexer for a given namespace and name.
+func (s serviceDNSRecordNamespaceLister) Get(name string) (*v1alpha1.ServiceDNSRecord, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("multiclusterservicednsrecord"), name)
+		return nil, errors.NewNotFound(v1alpha1.Resource("servicednsrecord"), name)
 	}
-	return obj.(*v1alpha1.MultiClusterServiceDNSRecord), nil
+	return obj.(*v1alpha1.ServiceDNSRecord), nil
 }

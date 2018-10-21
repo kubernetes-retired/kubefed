@@ -27,46 +27,46 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// MultiClusterIngressDNSRecordsGetter has a method to return a MultiClusterIngressDNSRecordInterface.
+// IngressDNSRecordsGetter has a method to return a IngressDNSRecordInterface.
 // A group's client should implement this interface.
-type MultiClusterIngressDNSRecordsGetter interface {
-	MultiClusterIngressDNSRecords(namespace string) MultiClusterIngressDNSRecordInterface
+type IngressDNSRecordsGetter interface {
+	IngressDNSRecords(namespace string) IngressDNSRecordInterface
 }
 
-// MultiClusterIngressDNSRecordInterface has methods to work with MultiClusterIngressDNSRecord resources.
-type MultiClusterIngressDNSRecordInterface interface {
-	Create(*v1alpha1.MultiClusterIngressDNSRecord) (*v1alpha1.MultiClusterIngressDNSRecord, error)
-	Update(*v1alpha1.MultiClusterIngressDNSRecord) (*v1alpha1.MultiClusterIngressDNSRecord, error)
-	UpdateStatus(*v1alpha1.MultiClusterIngressDNSRecord) (*v1alpha1.MultiClusterIngressDNSRecord, error)
+// IngressDNSRecordInterface has methods to work with IngressDNSRecord resources.
+type IngressDNSRecordInterface interface {
+	Create(*v1alpha1.IngressDNSRecord) (*v1alpha1.IngressDNSRecord, error)
+	Update(*v1alpha1.IngressDNSRecord) (*v1alpha1.IngressDNSRecord, error)
+	UpdateStatus(*v1alpha1.IngressDNSRecord) (*v1alpha1.IngressDNSRecord, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.MultiClusterIngressDNSRecord, error)
-	List(opts v1.ListOptions) (*v1alpha1.MultiClusterIngressDNSRecordList, error)
+	Get(name string, options v1.GetOptions) (*v1alpha1.IngressDNSRecord, error)
+	List(opts v1.ListOptions) (*v1alpha1.IngressDNSRecordList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.MultiClusterIngressDNSRecord, err error)
-	MultiClusterIngressDNSRecordExpansion
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IngressDNSRecord, err error)
+	IngressDNSRecordExpansion
 }
 
-// multiClusterIngressDNSRecords implements MultiClusterIngressDNSRecordInterface
-type multiClusterIngressDNSRecords struct {
+// IngressDNSRecords implements IngressDNSRecordInterface
+type IngressDNSRecords struct {
 	client rest.Interface
 	ns     string
 }
 
-// newMultiClusterIngressDNSRecords returns a MultiClusterIngressDNSRecords
-func newMultiClusterIngressDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *multiClusterIngressDNSRecords {
-	return &multiClusterIngressDNSRecords{
+// newIngressDNSRecords returns a IngressDNSRecords
+func newIngressDNSRecords(c *MulticlusterdnsV1alpha1Client, namespace string) *IngressDNSRecords {
+	return &IngressDNSRecords{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the multiClusterIngressDNSRecord, and returns the corresponding multiClusterIngressDNSRecord object, and an error if there is any.
-func (c *multiClusterIngressDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.MultiClusterIngressDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterIngressDNSRecord{}
+// Get takes name of the IngressDNSRecord, and returns the corresponding IngressDNSRecord object, and an error if there is any.
+func (c *IngressDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.IngressDNSRecord, err error) {
+	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
+		Resource("ingressdnsrecords").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -74,48 +74,48 @@ func (c *multiClusterIngressDNSRecords) Get(name string, options v1.GetOptions) 
 	return
 }
 
-// List takes label and field selectors, and returns the list of MultiClusterIngressDNSRecords that match those selectors.
-func (c *multiClusterIngressDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.MultiClusterIngressDNSRecordList, err error) {
-	result = &v1alpha1.MultiClusterIngressDNSRecordList{}
+// List takes label and field selectors, and returns the list of IngressDNSRecords that match those selectors.
+func (c *IngressDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.IngressDNSRecordList, err error) {
+	result = &v1alpha1.IngressDNSRecordList{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
+		Resource("ingressdnsrecords").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested multiClusterIngressDNSRecords.
-func (c *multiClusterIngressDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested IngressDNSRecords.
+func (c *IngressDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
+		Resource("ingressdnsrecords").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
-// Create takes the representation of a multiClusterIngressDNSRecord and creates it.  Returns the server's representation of the multiClusterIngressDNSRecord, and an error, if there is any.
-func (c *multiClusterIngressDNSRecords) Create(multiClusterIngressDNSRecord *v1alpha1.MultiClusterIngressDNSRecord) (result *v1alpha1.MultiClusterIngressDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterIngressDNSRecord{}
+// Create takes the representation of a IngressDNSRecord and creates it.  Returns the server's representation of the IngressDNSRecord, and an error, if there is any.
+func (c *IngressDNSRecords) Create(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Post().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
-		Body(multiClusterIngressDNSRecord).
+		Resource("ingressdnsrecords").
+		Body(IngressDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a multiClusterIngressDNSRecord and updates it. Returns the server's representation of the multiClusterIngressDNSRecord, and an error, if there is any.
-func (c *multiClusterIngressDNSRecords) Update(multiClusterIngressDNSRecord *v1alpha1.MultiClusterIngressDNSRecord) (result *v1alpha1.MultiClusterIngressDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterIngressDNSRecord{}
+// Update takes the representation of a IngressDNSRecord and updates it. Returns the server's representation of the IngressDNSRecord, and an error, if there is any.
+func (c *IngressDNSRecords) Update(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
-		Name(multiClusterIngressDNSRecord.Name).
-		Body(multiClusterIngressDNSRecord).
+		Resource("ingressdnsrecords").
+		Name(IngressDNSRecord.Name).
+		Body(IngressDNSRecord).
 		Do().
 		Into(result)
 	return
@@ -124,24 +124,24 @@ func (c *multiClusterIngressDNSRecords) Update(multiClusterIngressDNSRecord *v1a
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *multiClusterIngressDNSRecords) UpdateStatus(multiClusterIngressDNSRecord *v1alpha1.MultiClusterIngressDNSRecord) (result *v1alpha1.MultiClusterIngressDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterIngressDNSRecord{}
+func (c *IngressDNSRecords) UpdateStatus(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
-		Name(multiClusterIngressDNSRecord.Name).
+		Resource("ingressdnsrecords").
+		Name(IngressDNSRecord.Name).
 		SubResource("status").
-		Body(multiClusterIngressDNSRecord).
+		Body(IngressDNSRecord).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the multiClusterIngressDNSRecord and deletes it. Returns an error if one occurs.
-func (c *multiClusterIngressDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the IngressDNSRecord and deletes it. Returns an error if one occurs.
+func (c *IngressDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
+		Resource("ingressdnsrecords").
 		Name(name).
 		Body(options).
 		Do().
@@ -149,22 +149,22 @@ func (c *multiClusterIngressDNSRecords) Delete(name string, options *v1.DeleteOp
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *multiClusterIngressDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *IngressDNSRecords) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
+		Resource("ingressdnsrecords").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
-// Patch applies the patch and returns the patched multiClusterIngressDNSRecord.
-func (c *multiClusterIngressDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.MultiClusterIngressDNSRecord, err error) {
-	result = &v1alpha1.MultiClusterIngressDNSRecord{}
+// Patch applies the patch and returns the patched IngressDNSRecord.
+func (c *IngressDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IngressDNSRecord, err error) {
+	result = &v1alpha1.IngressDNSRecord{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
-		Resource("multiclusteringressdnsrecords").
+		Resource("ingressdnsrecords").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
