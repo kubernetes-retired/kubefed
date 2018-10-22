@@ -36,8 +36,6 @@ function run-integration-tests() {
   export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
   export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
   go test -v ./test/integration
-  rc=$((rc || $?))
-  return ${rc}
 }
 
 function launch-minikube-cluster() {
@@ -55,14 +53,14 @@ function launch-minikube-cluster() {
 
 function run-e2e-tests() {
   ${E2E_TEST_CMD}
-  rc=$((rc || $?))
-  return ${rc}
 }
 
 function run-namespaced-e2e-tests() {
-  ${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true
-  rc=$((rc || $?))
-  return ${rc}
+  local namespaced_e2e_test_cmd="${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true"
+  # Run the placement test separately to avoid crud failures if
+  # teardown doesn't remove namespace placement.
+  ${namespaced_e2e_test_cmd} --ginkgo.skip=Placement
+  ${namespaced_e2e_test_cmd} --ginkgo.focus=Placement
 }
 
 function check-kubebuilder-output() {
@@ -94,8 +92,6 @@ cd "$base_dir" || {
   echo "Cannot cd to '$base_dir'. Aborting." >&2
   exit 1
 }
-
-rc=0
 
 echo "Downloading test dependencies"
 ./scripts/download-binaries.sh
@@ -134,5 +130,3 @@ FEDERATION_NAMESPACE=foo NAMESPACED=y DOCKER_PUSH=false ./scripts/deploy-federat
 
 echo "Running go e2e tests"
 run-namespaced-e2e-tests
-
-exit $rc
