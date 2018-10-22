@@ -23,17 +23,21 @@ import (
 
 // ServiceDNSRecordSpec defines the desired state of ServiceDNSRecord.
 type ServiceDNSRecordSpec struct {
-	// FederationName is the name of the federation to which the corresponding federated service belongs
-	FederationName string `json:"federationName,omitempty"`
-	// DNSSuffix is the suffix (domain) to append to DNS names
-	DNSSuffix string `json:"dnsSuffix,omitempty"`
+	// DomainRef is the name of the domain object to which the corresponding federated service belongs
+	DomainRef string `json:"domainRef"`
 	// RecordTTL is the TTL in seconds for DNS records created for this Service, if omitted a default would be used
 	RecordTTL TTL `json:"recordTTL,omitempty"`
+	// DNSPrefix when specified, an additional DNS record would be created with <DNSPrefix>.<FederationDomain>
+	DNSPrefix string `json:"dnsPrefix,omitempty"`
+	// AllowServiceWithoutEndpoints allows DNS records to be written for Service shards without endpoints
+	AllowServiceWithoutEndpoints bool `json:"allowServiceWithoutEndpoints,omitempty"`
 }
 
-// ServiceDNSRecordStatus defines the observed state of ServiceDNSRecord
+// ServiceDNSRecordStatus defines the observed state of ServiceDNSRecord.
 type ServiceDNSRecordStatus struct {
-	DNS []ClusterDNS `json:"dns,omitempty"`
+	// Domain is the DNS domain of the federation as in Domain API
+	Domain string       `json:"domain,omitempty"`
+	DNS    []ClusterDNS `json:"dns,omitempty"`
 }
 
 // ClusterDNS defines the observed status of LoadBalancer within a cluster.
@@ -64,13 +68,16 @@ type ClusterDNS struct {
 // metadata.name: test-service
 // metadata.namespace: test-namespace
 // spec.federationName: test-federation
-// spec.dnsSuffix: example.com
 //
 // the following set of DNS names will be programmed:
 //
-// Global Level: test-service.test-namespace.test-federation.svc.example.com
-// Region Level: test-service.test-namespace.test-federation.svc.(status.DNS[*].region).example.com
-// Zone Level  : test-service.test-namespace.test-federation.svc.(status.DNS[*].zone).(status.DNS[*].region).example.com
+// Global Level: test-service.test-namespace.test-federation.svc.<federation-domain>
+// Region Level: test-service.test-namespace.test-federation.svc.(status.DNS[*].region).<federation-domain>
+// Zone Level  : test-service.test-namespace.test-federation.svc.(status.DNS[*].zone).(status.DNS[*].region).<federation-domain>
+//
+// Optionally, when DNSPrefix is specified, another DNS name will be programmed
+// which would be a CNAME record pointing to DNS name at global level as below:
+// <dns-prefix>.<federation-domain> --> test-service.test-namespace.test-federation.svc.<federation-domain>
 //
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=servicednsrecords
