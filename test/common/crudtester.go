@@ -57,10 +57,14 @@ type FederatedTypeCrudTester struct {
 	clusterWaitTimeout time.Duration
 }
 
-type TestCluster struct {
+type TestClusterConfig struct {
 	Config    *rest.Config
-	Client    util.ResourceClient
 	IsPrimary bool
+}
+
+type TestCluster struct {
+	TestClusterConfig
+	Client util.ResourceClient
 }
 
 func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
