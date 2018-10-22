@@ -28,8 +28,8 @@ import (
 type MulticlusterdnsV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	DNSEndpointsGetter
-	MultiClusterIngressDNSRecordsGetter
-	MultiClusterServiceDNSRecordsGetter
+	IngressDNSRecordsGetter
+	ServiceDNSRecordsGetter
 }
 
 // MulticlusterdnsV1alpha1Client is used to interact with features provided by the multiclusterdns.federation.k8s.io group.
@@ -41,12 +41,12 @@ func (c *MulticlusterdnsV1alpha1Client) DNSEndpoints(namespace string) DNSEndpoi
 	return newDNSEndpoints(c, namespace)
 }
 
-func (c *MulticlusterdnsV1alpha1Client) MultiClusterIngressDNSRecords(namespace string) MultiClusterIngressDNSRecordInterface {
-	return newMultiClusterIngressDNSRecords(c, namespace)
+func (c *MulticlusterdnsV1alpha1Client) IngressDNSRecords(namespace string) IngressDNSRecordInterface {
+	return newIngressDNSRecords(c, namespace)
 }
 
-func (c *MulticlusterdnsV1alpha1Client) MultiClusterServiceDNSRecords(namespace string) MultiClusterServiceDNSRecordInterface {
-	return newMultiClusterServiceDNSRecords(c, namespace)
+func (c *MulticlusterdnsV1alpha1Client) ServiceDNSRecords(namespace string) ServiceDNSRecordInterface {
+	return newServiceDNSRecords(c, namespace)
 }
 
 // NewForConfig creates a new MulticlusterdnsV1alpha1Client for the given config.

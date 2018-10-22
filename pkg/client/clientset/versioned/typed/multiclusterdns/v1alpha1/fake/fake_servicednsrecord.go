@@ -38,7 +38,7 @@ var servicednsrecordsResource = schema.GroupVersionResource{Group: "multicluster
 
 var servicednsrecordsKind = schema.GroupVersionKind{Group: "multiclusterdns.federation.k8s.io", Version: "v1alpha1", Kind: "ServiceDNSRecord"}
 
-// Get takes name of the ServiceDNSRecord, and returns the corresponding ServiceDNSRecord object, and an error if there is any.
+// Get takes name of the serviceDNSRecord, and returns the corresponding serviceDNSRecord object, and an error if there is any.
 func (c *FakeServiceDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceDNSRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(servicednsrecordsResource, c.ns, name), &v1alpha1.ServiceDNSRecord{})
@@ -71,17 +71,17 @@ func (c *FakeServiceDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.Serv
 	return list, err
 }
 
-// Watch returns a watch.Interface that watches the requested ServiceDNSRecords.
+// Watch returns a watch.Interface that watches the requested serviceDNSRecords.
 func (c *FakeServiceDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(servicednsrecordsResource, c.ns, opts))
 
 }
 
-// Create takes the representation of a ServiceDNSRecord and creates it.  Returns the server's representation of the ServiceDNSRecord, and an error, if there is any.
-func (c *FakeServiceDNSRecords) Create(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+// Create takes the representation of a serviceDNSRecord and creates it.  Returns the server's representation of the serviceDNSRecord, and an error, if there is any.
+func (c *FakeServiceDNSRecords) Create(serviceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(servicednsrecordsResource, c.ns, ServiceDNSRecord), &v1alpha1.ServiceDNSRecord{})
+		Invokes(testing.NewCreateAction(servicednsrecordsResource, c.ns, serviceDNSRecord), &v1alpha1.ServiceDNSRecord{})
 
 	if obj == nil {
 		return nil, err
@@ -89,10 +89,10 @@ func (c *FakeServiceDNSRecords) Create(ServiceDNSRecord *v1alpha1.ServiceDNSReco
 	return obj.(*v1alpha1.ServiceDNSRecord), err
 }
 
-// Update takes the representation of a ServiceDNSRecord and updates it. Returns the server's representation of the ServiceDNSRecord, and an error, if there is any.
-func (c *FakeServiceDNSRecords) Update(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
+// Update takes the representation of a serviceDNSRecord and updates it. Returns the server's representation of the serviceDNSRecord, and an error, if there is any.
+func (c *FakeServiceDNSRecords) Update(serviceDNSRecord *v1alpha1.ServiceDNSRecord) (result *v1alpha1.ServiceDNSRecord, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(servicednsrecordsResource, c.ns, ServiceDNSRecord), &v1alpha1.ServiceDNSRecord{})
+		Invokes(testing.NewUpdateAction(servicednsrecordsResource, c.ns, serviceDNSRecord), &v1alpha1.ServiceDNSRecord{})
 
 	if obj == nil {
 		return nil, err
@@ -102,9 +102,9 @@ func (c *FakeServiceDNSRecords) Update(ServiceDNSRecord *v1alpha1.ServiceDNSReco
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeServiceDNSRecords) UpdateStatus(ServiceDNSRecord *v1alpha1.ServiceDNSRecord) (*v1alpha1.ServiceDNSRecord, error) {
+func (c *FakeServiceDNSRecords) UpdateStatus(serviceDNSRecord *v1alpha1.ServiceDNSRecord) (*v1alpha1.ServiceDNSRecord, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(servicednsrecordsResource, "status", c.ns, ServiceDNSRecord), &v1alpha1.ServiceDNSRecord{})
+		Invokes(testing.NewUpdateSubresourceAction(servicednsrecordsResource, "status", c.ns, serviceDNSRecord), &v1alpha1.ServiceDNSRecord{})
 
 	if obj == nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (c *FakeServiceDNSRecords) UpdateStatus(ServiceDNSRecord *v1alpha1.ServiceD
 	return obj.(*v1alpha1.ServiceDNSRecord), err
 }
 
-// Delete takes name of the ServiceDNSRecord and deletes it. Returns an error if one occurs.
+// Delete takes name of the serviceDNSRecord and deletes it. Returns an error if one occurs.
 func (c *FakeServiceDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(servicednsrecordsResource, c.ns, name), &v1alpha1.ServiceDNSRecord{})
@@ -128,7 +128,7 @@ func (c *FakeServiceDNSRecords) DeleteCollection(options *v1.DeleteOptions, list
 	return err
 }
 
-// Patch applies the patch and returns the patched ServiceDNSRecord.
+// Patch applies the patch and returns the patched serviceDNSRecord.
 func (c *FakeServiceDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceDNSRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(servicednsrecordsResource, c.ns, name, data, subresources...), &v1alpha1.ServiceDNSRecord{})

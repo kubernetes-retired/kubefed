@@ -45,10 +45,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&DNSEndpoint{},
 		&DNSEndpointList{},
-		&MultiClusterIngressDNSRecord{},
-		&MultiClusterIngressDNSRecordList{},
-		&MultiClusterServiceDNSRecord{},
-		&MultiClusterServiceDNSRecordList{},
+		&IngressDNSRecord{},
+		&IngressDNSRecordList{},
+		&ServiceDNSRecord{},
+		&ServiceDNSRecordList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
@@ -64,18 +64,18 @@ type DNSEndpointList struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type MultiClusterIngressDNSRecordList struct {
+type IngressDNSRecordList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MultiClusterIngressDNSRecord `json:"items"`
+	Items           []IngressDNSRecord `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type MultiClusterServiceDNSRecordList struct {
+type ServiceDNSRecordList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MultiClusterServiceDNSRecord `json:"items"`
+	Items           []ServiceDNSRecord `json:"items"`
 }
 
 // CRD Generation
@@ -167,16 +167,16 @@ var (
 		},
 	}
 	// Define CRDs for resources
-	MultiClusterIngressDNSRecordCRD = v1beta1.CustomResourceDefinition{
+	IngressDNSRecordCRD = v1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "multiclusteringressdnsrecords.multiclusterdns.federation.k8s.io",
+			Name: "ingressdnsrecords.multiclusterdns.federation.k8s.io",
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
 			Group:   "multiclusterdns.federation.k8s.io",
 			Version: "v1alpha1",
 			Names: v1beta1.CustomResourceDefinitionNames{
-				Kind:   "MultiClusterIngressDNSRecord",
-				Plural: "multiclusteringressdnsrecords",
+				Kind:   "IngressDNSRecord",
+				Plural: "ingressdnsrecords",
 			},
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{
@@ -239,16 +239,16 @@ var (
 		},
 	}
 	// Define CRDs for resources
-	MultiClusterServiceDNSRecordCRD = v1beta1.CustomResourceDefinition{
+	ServiceDNSRecordCRD = v1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "multiclusterservicednsrecords.multiclusterdns.federation.k8s.io",
+			Name: "servicednsrecords.multiclusterdns.federation.k8s.io",
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
 			Group:   "multiclusterdns.federation.k8s.io",
 			Version: "v1alpha1",
 			Names: v1beta1.CustomResourceDefinitionNames{
-				Kind:   "MultiClusterServiceDNSRecord",
-				Plural: "multiclusterservicednsrecords",
+				Kind:   "ServiceDNSRecord",
+				Plural: "servicednsrecords",
 			},
 			Scope: "Namespaced",
 			Validation: &v1beta1.CustomResourceValidation{

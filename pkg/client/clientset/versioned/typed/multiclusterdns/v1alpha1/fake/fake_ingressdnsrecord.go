@@ -38,7 +38,7 @@ var ingressdnsrecordsResource = schema.GroupVersionResource{Group: "multicluster
 
 var ingressdnsrecordsKind = schema.GroupVersionKind{Group: "multiclusterdns.federation.k8s.io", Version: "v1alpha1", Kind: "IngressDNSRecord"}
 
-// Get takes name of the IngressDNSRecord, and returns the corresponding IngressDNSRecord object, and an error if there is any.
+// Get takes name of the ingressDNSRecord, and returns the corresponding ingressDNSRecord object, and an error if there is any.
 func (c *FakeIngressDNSRecords) Get(name string, options v1.GetOptions) (result *v1alpha1.IngressDNSRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(ingressdnsrecordsResource, c.ns, name), &v1alpha1.IngressDNSRecord{})
@@ -71,17 +71,17 @@ func (c *FakeIngressDNSRecords) List(opts v1.ListOptions) (result *v1alpha1.Ingr
 	return list, err
 }
 
-// Watch returns a watch.Interface that watches the requested IngressDNSRecords.
+// Watch returns a watch.Interface that watches the requested ingressDNSRecords.
 func (c *FakeIngressDNSRecords) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(ingressdnsrecordsResource, c.ns, opts))
 
 }
 
-// Create takes the representation of a IngressDNSRecord and creates it.  Returns the server's representation of the IngressDNSRecord, and an error, if there is any.
-func (c *FakeIngressDNSRecords) Create(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+// Create takes the representation of a ingressDNSRecord and creates it.  Returns the server's representation of the ingressDNSRecord, and an error, if there is any.
+func (c *FakeIngressDNSRecords) Create(ingressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(ingressdnsrecordsResource, c.ns, IngressDNSRecord), &v1alpha1.IngressDNSRecord{})
+		Invokes(testing.NewCreateAction(ingressdnsrecordsResource, c.ns, ingressDNSRecord), &v1alpha1.IngressDNSRecord{})
 
 	if obj == nil {
 		return nil, err
@@ -89,10 +89,10 @@ func (c *FakeIngressDNSRecords) Create(IngressDNSRecord *v1alpha1.IngressDNSReco
 	return obj.(*v1alpha1.IngressDNSRecord), err
 }
 
-// Update takes the representation of a IngressDNSRecord and updates it. Returns the server's representation of the IngressDNSRecord, and an error, if there is any.
-func (c *FakeIngressDNSRecords) Update(IngressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
+// Update takes the representation of a ingressDNSRecord and updates it. Returns the server's representation of the ingressDNSRecord, and an error, if there is any.
+func (c *FakeIngressDNSRecords) Update(ingressDNSRecord *v1alpha1.IngressDNSRecord) (result *v1alpha1.IngressDNSRecord, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(ingressdnsrecordsResource, c.ns, IngressDNSRecord), &v1alpha1.IngressDNSRecord{})
+		Invokes(testing.NewUpdateAction(ingressdnsrecordsResource, c.ns, ingressDNSRecord), &v1alpha1.IngressDNSRecord{})
 
 	if obj == nil {
 		return nil, err
@@ -102,9 +102,9 @@ func (c *FakeIngressDNSRecords) Update(IngressDNSRecord *v1alpha1.IngressDNSReco
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeIngressDNSRecords) UpdateStatus(IngressDNSRecord *v1alpha1.IngressDNSRecord) (*v1alpha1.IngressDNSRecord, error) {
+func (c *FakeIngressDNSRecords) UpdateStatus(ingressDNSRecord *v1alpha1.IngressDNSRecord) (*v1alpha1.IngressDNSRecord, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(ingressdnsrecordsResource, "status", c.ns, IngressDNSRecord), &v1alpha1.IngressDNSRecord{})
+		Invokes(testing.NewUpdateSubresourceAction(ingressdnsrecordsResource, "status", c.ns, ingressDNSRecord), &v1alpha1.IngressDNSRecord{})
 
 	if obj == nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (c *FakeIngressDNSRecords) UpdateStatus(IngressDNSRecord *v1alpha1.IngressD
 	return obj.(*v1alpha1.IngressDNSRecord), err
 }
 
-// Delete takes name of the IngressDNSRecord and deletes it. Returns an error if one occurs.
+// Delete takes name of the ingressDNSRecord and deletes it. Returns an error if one occurs.
 func (c *FakeIngressDNSRecords) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(ingressdnsrecordsResource, c.ns, name), &v1alpha1.IngressDNSRecord{})
@@ -128,7 +128,7 @@ func (c *FakeIngressDNSRecords) DeleteCollection(options *v1.DeleteOptions, list
 	return err
 }
 
-// Patch applies the patch and returns the patched IngressDNSRecord.
+// Patch applies the patch and returns the patched ingressDNSRecord.
 func (c *FakeIngressDNSRecords) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.IngressDNSRecord, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(ingressdnsrecordsResource, c.ns, name, data, subresources...), &v1alpha1.IngressDNSRecord{})

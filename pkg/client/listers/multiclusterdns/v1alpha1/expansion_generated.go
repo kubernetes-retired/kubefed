@@ -26,18 +26,18 @@ type DNSEndpointListerExpansion interface{}
 // DNSEndpointNamespaceLister.
 type DNSEndpointNamespaceListerExpansion interface{}
 
-// MultiClusterIngressDNSRecordListerExpansion allows custom methods to be added to
-// MultiClusterIngressDNSRecordLister.
-type MultiClusterIngressDNSRecordListerExpansion interface{}
+// IngressDNSRecordListerExpansion allows custom methods to be added to
+// IngressDNSRecordLister.
+type IngressDNSRecordListerExpansion interface{}
 
-// MultiClusterIngressDNSRecordNamespaceListerExpansion allows custom methods to be added to
-// MultiClusterIngressDNSRecordNamespaceLister.
-type MultiClusterIngressDNSRecordNamespaceListerExpansion interface{}
+// IngressDNSRecordNamespaceListerExpansion allows custom methods to be added to
+// IngressDNSRecordNamespaceLister.
+type IngressDNSRecordNamespaceListerExpansion interface{}
 
-// MultiClusterServiceDNSRecordListerExpansion allows custom methods to be added to
-// MultiClusterServiceDNSRecordLister.
-type MultiClusterServiceDNSRecordListerExpansion interface{}
+// ServiceDNSRecordListerExpansion allows custom methods to be added to
+// ServiceDNSRecordLister.
+type ServiceDNSRecordListerExpansion interface{}
 
-// MultiClusterServiceDNSRecordNamespaceListerExpansion allows custom methods to be added to
-// MultiClusterServiceDNSRecordNamespaceLister.
-type MultiClusterServiceDNSRecordNamespaceListerExpansion interface{}
+// ServiceDNSRecordNamespaceListerExpansion allows custom methods to be added to
+// ServiceDNSRecordNamespaceLister.
+type ServiceDNSRecordNamespaceListerExpansion interface{}

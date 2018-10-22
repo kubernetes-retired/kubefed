@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// MultiClusterServiceDNSRecordInformer provides access to a shared informer and lister for
-// MultiClusterServiceDNSRecords.
-type MultiClusterServiceDNSRecordInformer interface {
+// ServiceDNSRecordInformer provides access to a shared informer and lister for
+// ServiceDNSRecords.
+type ServiceDNSRecordInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.MultiClusterServiceDNSRecordLister
+	Lister() v1alpha1.ServiceDNSRecordLister
 }
 
-type multiClusterServiceDNSRecordInformer struct {
+type serviceDNSRecordInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewMultiClusterServiceDNSRecordInformer constructs a new informer for MultiClusterServiceDNSRecord type.
+// NewServiceDNSRecordInformer constructs a new informer for ServiceDNSRecord type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewMultiClusterServiceDNSRecordInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredMultiClusterServiceDNSRecordInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewServiceDNSRecordInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredServiceDNSRecordInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredMultiClusterServiceDNSRecordInformer constructs a new informer for MultiClusterServiceDNSRecord type.
+// NewFilteredServiceDNSRecordInformer constructs a new informer for ServiceDNSRecord type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredMultiClusterServiceDNSRecordInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredServiceDNSRecordInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).List(options)
+				return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace).Watch(options)
+				return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace).Watch(options)
 			},
 		},
-		&multiclusterdns_v1alpha1.MultiClusterServiceDNSRecord{},
+		&multiclusterdns_v1alpha1.ServiceDNSRecord{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *multiClusterServiceDNSRecordInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredMultiClusterServiceDNSRecordInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *serviceDNSRecordInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredServiceDNSRecordInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *multiClusterServiceDNSRecordInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&multiclusterdns_v1alpha1.MultiClusterServiceDNSRecord{}, f.defaultInformer)
+func (f *serviceDNSRecordInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&multiclusterdns_v1alpha1.ServiceDNSRecord{}, f.defaultInformer)
 }
 
-func (f *multiClusterServiceDNSRecordInformer) Lister() v1alpha1.MultiClusterServiceDNSRecordLister {
-	return v1alpha1.NewMultiClusterServiceDNSRecordLister(f.Informer().GetIndexer())
+func (f *serviceDNSRecordInformer) Lister() v1alpha1.ServiceDNSRecordLister {
+	return v1alpha1.NewServiceDNSRecordLister(f.Informer().GetIndexer())
 }

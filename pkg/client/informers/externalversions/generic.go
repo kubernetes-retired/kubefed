@@ -109,10 +109,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=multiclusterdns.federation.k8s.io, Version=v1alpha1
 	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("dnsendpoints"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().DNSEndpoints().Informer()}, nil
-	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("multiclusteringressdnsrecords"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().MultiClusterIngressDNSRecords().Informer()}, nil
-	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("multiclusterservicednsrecords"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().MultiClusterServiceDNSRecords().Informer()}, nil
+	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("ingressdnsrecords"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().IngressDNSRecords().Informer()}, nil
+	case multiclusterdns_v1alpha1.SchemeGroupVersion.WithResource("servicednsrecords"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().ServiceDNSRecords().Informer()}, nil
 
 		// Group=scheduling.federation.k8s.io, Version=v1alpha1
 	case scheduling_v1alpha1.SchemeGroupVersion.WithResource("replicaschedulingpreferences"):

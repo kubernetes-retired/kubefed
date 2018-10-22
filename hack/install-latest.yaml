@@ -1207,12 +1207,12 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.3
-  name: multiclusteringressdnsrecords.multiclusterdns.federation.k8s.io
+  name: ingressdnsrecords.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
   names:
-    kind: MultiClusterIngressDNSRecord
-    plural: multiclusteringressdnsrecords
+    kind: IngressDNSRecord
+    plural: ingressdnsrecords
   scope: Namespaced
   subresources:
     status: {}
@@ -1261,12 +1261,12 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.3
-  name: multiclusterservicednsrecords.multiclusterdns.federation.k8s.io
+  name: servicednsrecords.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
   names:
-    kind: MultiClusterServiceDNSRecord
-    plural: multiclusterservicednsrecords
+    kind: ServiceDNSRecord
+    plural: servicednsrecords
   scope: Namespaced
   subresources:
     status: {}

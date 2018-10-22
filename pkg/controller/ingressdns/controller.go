@@ -47,7 +47,7 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// Controller manages the MultiClusterIngressDNSRecord objects in federation.
+// Controller manages the IngressDNSRecord objects in federation.
 type Controller struct {
 	fedClient fedclientset.Interface
 
@@ -58,9 +58,9 @@ type Controller struct {
 	// informer for ingress object from members of federation.
 	ingressFederatedInformer util.FederatedInformer
 
-	// Store for the MultiClusterIngressDNSRecord objects
+	// Store for the IngressDNSRecord objects
 	ingressDNSStore cache.Store
-	// Informer for the MultiClusterIngressDNSRecord objects
+	// Informer for the IngressDNSRecord objects
 	ingressDNSController cache.Controller
 
 	worker util.ReconcileWorker
@@ -70,9 +70,9 @@ type Controller struct {
 	smallDelay              time.Duration
 }
 
-// StartController starts the Controller for managing MultiClusterIngressDNSRecord objects.
+// StartController starts the Controller for managing IngressDNSRecord objects.
 func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	userAgent := "MultiClusterIngressDNS"
+	userAgent := "IngressDNS"
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
@@ -85,12 +85,12 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof("Starting MultiClusterIngressDNS controller")
+	glog.Infof("Starting IngressDNS controller")
 	controller.Run(stopChan)
 	return nil
 }
 
-// newController returns a new controller to manage MultiClusterIngressDNSRecord objects.
+// newController returns a new controller to manage IngressDNSRecord objects.
 func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
@@ -106,17 +106,17 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	// Informer for the MultiClusterIngressDNSRecord resource in federation.
+	// Informer for the IngressDNSRecord resource in federation.
 	s.ingressDNSStore, s.ingressDNSController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(targetNamespace).List(options)
+				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(targetNamespace).Watch(options)
+				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).Watch(options)
 			},
 		},
-		&dnsv1a1.MultiClusterIngressDNSRecord{},
+		&dnsv1a1.IngressDNSRecord{},
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) {
 			s.worker.EnqueueObject(obj)
@@ -220,24 +220,24 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	key := qualifiedName.String()
 
-	glog.V(2).Infof("Starting to reconcile MultiClusterIngressDNS resource: %v", key)
+	glog.V(2).Infof("Starting to reconcile IngressDNS resource: %v", key)
 	startTime := time.Now()
-	defer glog.V(2).Infof("Finished reconciling MultiClusterIngressDNS resource %v (duration: %v)", key, time.Now().Sub(startTime))
+	defer glog.V(2).Infof("Finished reconciling IngressDNS resource %v (duration: %v)", key, time.Now().Sub(startTime))
 
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query MultiClusterIngressDNS store for %q: %v", key, err))
+		runtime.HandleError(fmt.Errorf("Failed to query IngressDNS store for %q: %v", key, err))
 		return util.StatusError
 	}
 	if !exist {
 		return util.StatusAllOK
 	}
-	cachedIngressDNS := cachedIngressDNSObj.(*dnsv1a1.MultiClusterIngressDNSRecord)
+	cachedIngressDNS := cachedIngressDNSObj.(*dnsv1a1.IngressDNSRecord)
 
-	newIngressDNS := &dnsv1a1.MultiClusterIngressDNSRecord{
+	newIngressDNS := &dnsv1a1.IngressDNSRecord{
 		ObjectMeta: util.DeepCopyRelevantObjectMeta(cachedIngressDNS.ObjectMeta),
 		Spec:       *cachedIngressDNS.Spec.DeepCopy(),
-		Status:     dnsv1a1.MultiClusterIngressDNSRecordStatus{},
+		Status:     dnsv1a1.IngressDNSRecordStatus{},
 	}
 
 	clusters, err := c.ingressFederatedInformer.GetReadyClusters()
@@ -265,9 +265,9 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	})
 
 	if !reflect.DeepEqual(cachedIngressDNS.Status, newIngressDNS.Status) {
-		_, err = c.fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(newIngressDNS.Namespace).UpdateStatus(newIngressDNS)
+		_, err = c.fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(newIngressDNS.Namespace).UpdateStatus(newIngressDNS)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Error updating the MultiClusterIngressDNS object %s: %v", key, err))
+			runtime.HandleError(fmt.Errorf("Error updating the IngressDNS object %s: %v", key, err))
 			return util.StatusError
 		}
 	}

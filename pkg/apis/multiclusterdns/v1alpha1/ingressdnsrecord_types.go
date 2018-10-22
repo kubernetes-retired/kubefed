@@ -21,16 +21,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MultiClusterIngressDNSRecordSpec defines the desired state of MultiClusterIngressDNSRecord
-type MultiClusterIngressDNSRecordSpec struct {
+// IngressDNSRecordSpec defines the desired state of IngressDNSRecord
+type IngressDNSRecordSpec struct {
 	// Host from the IngressRule in Cluster Ingress Spec
 	Hosts []string `json:"hosts,omitempty"`
 	// RecordTTL is the TTL in seconds for DNS records created for the Ingress, if omitted a default would be used
 	RecordTTL TTL `json:"recordTTL,omitempty"`
 }
 
-// MultiClusterIngressDNSRecordStatus defines the observed state of MultiClusterIngressDNSRecord
-type MultiClusterIngressDNSRecordStatus struct {
+// IngressDNSRecordStatus defines the observed state of IngressDNSRecord
+type IngressDNSRecordStatus struct {
 	// Array of Ingress Controller LoadBalancers
 	DNS []ClusterIngressDNS `json:"dns,omitempty"`
 }
@@ -46,14 +46,14 @@ type ClusterIngressDNS struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MultiClusterIngressDNSRecord
+// IngressDNSRecord
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=multiclusteringressdnsrecords
+// +kubebuilder:resource:path=ingressdnsrecords
 // +kubebuilder:subresource:status
-type MultiClusterIngressDNSRecord struct {
+type IngressDNSRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterIngressDNSRecordSpec   `json:"spec,omitempty"`
-	Status MultiClusterIngressDNSRecordStatus `json:"status,omitempty"`
+	Spec   IngressDNSRecordSpec   `json:"spec,omitempty"`
+	Status IngressDNSRecordStatus `json:"status,omitempty"`
 }

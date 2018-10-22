@@ -33,13 +33,13 @@ func StartIngressDNSEndpointController(config *restclient.Config, targetNamespac
 	client := fedclientset.NewForConfigOrDie(config)
 
 	listFunc := func(options metav1.ListOptions) (pkgruntime.Object, error) {
-		return client.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(targetNamespace).List(options)
+		return client.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).List(options)
 	}
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
-		return client.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(targetNamespace).Watch(options)
+		return client.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).Watch(options)
 	}
 
-	controller, err := newDNSEndpointController(client, &feddnsv1a1.MultiClusterIngressDNSRecord{}, "ingress",
+	controller, err := newDNSEndpointController(client, &feddnsv1a1.IngressDNSRecord{}, "ingress",
 		listFunc, watchFunc, getIngressDNSEndpoints, minimizeLatency)
 	if err != nil {
 		return err
@@ -49,11 +49,11 @@ func StartIngressDNSEndpointController(config *restclient.Config, targetNamespac
 	return nil
 }
 
-// getIngressDNSEndpoints returns endpoint objects for each MultiClusterIngressDNSRecord object that should be processed.
+// getIngressDNSEndpoints returns endpoint objects for each IngressDNSRecord object that should be processed.
 func getIngressDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 	var endpoints []*feddnsv1a1.Endpoint
 
-	dnsObject, ok := obj.(*feddnsv1a1.MultiClusterIngressDNSRecord)
+	dnsObject, ok := obj.(*feddnsv1a1.IngressDNSRecord)
 	if !ok {
 		return nil, fmt.Errorf("received event for unknown object %v", obj)
 	}

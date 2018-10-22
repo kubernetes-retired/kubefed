@@ -35,7 +35,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("MultiClusterIngressDNS", func() {
+var _ = Describe("IngressDNS", func() {
 	f := framework.NewFederationFramework("multicluster-ingress-dns")
 	tl := framework.NewE2ELogger()
 
@@ -44,10 +44,10 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 
 	var fedClient fedclientset.Interface
 	var namespace string
-	var dnsClient dnsv1a1client.MultiClusterIngressDNSRecordInterface
+	var dnsClient dnsv1a1client.IngressDNSRecordInterface
 
 	objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-		dnsClient := fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(namespace)
+		dnsClient := fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(namespace)
 		return dnsClient.Get(name, metav1.GetOptions{})
 	}
 
@@ -55,7 +55,7 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 		fedClient = f.FedClient(userAgent)
 		f.SetUpIngressDNSControllerFixture()
 		namespace = f.TestNamespaceName()
-		dnsClient = fedClient.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords(namespace)
+		dnsClient = fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(namespace)
 	})
 
 	Context("When IngressDNS is created", func() {
@@ -63,9 +63,9 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 			By("Creating the IngressDNS object")
 			ingressDNSObj := common.NewIngressDNSObject(baseName, namespace)
 			ingressDNS, err := dnsClient.Create(ingressDNSObj)
-			framework.ExpectNoError(err, "Error creating MultiClusterIngressDNS object: %v", ingressDNS)
+			framework.ExpectNoError(err, "Error creating IngressDNS object: %v", ingressDNS)
 
-			ingressDNSStatus := dnsv1a1.MultiClusterIngressDNSRecordStatus{DNS: []dnsv1a1.ClusterIngressDNS{}}
+			ingressDNSStatus := dnsv1a1.IngressDNSRecordStatus{DNS: []dnsv1a1.ClusterIngressDNS{}}
 			for _, clusterName := range f.ClusterNames(userAgent) {
 				ingressDNSStatus.DNS = append(ingressDNSStatus.DNS, dnsv1a1.ClusterIngressDNS{
 					Cluster: clusterName,
@@ -92,10 +92,10 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 			ingressDNSObj.Spec.Hosts = hosts
 			ingressDNSObj.Spec.RecordTTL = RecordTTL
 			ingressDNS, err := dnsClient.Create(ingressDNSObj)
-			framework.ExpectNoError(err, "Error creating MultiClusterIngressDNS object %v", ingressDNS)
+			framework.ExpectNoError(err, "Error creating IngressDNS object %v", ingressDNS)
 			name := ingressDNS.Name
 
-			ingressDNSStatus := &dnsv1a1.MultiClusterIngressDNSRecordStatus{DNS: []dnsv1a1.ClusterIngressDNS{}}
+			ingressDNSStatus := &dnsv1a1.IngressDNSRecordStatus{DNS: []dnsv1a1.ClusterIngressDNS{}}
 
 			By("Creating corresponding ingress for the IngressDNS object in member clusters")
 			ingressDNSStatus = createClusterIngress(f, name, namespace, ingressDNSStatus)
@@ -134,7 +134,7 @@ var _ = Describe("MultiClusterIngressDNS", func() {
 	})
 })
 
-func createClusterIngress(f framework.FederationFramework, name, namespace string, ingressDNSStatus *dnsv1a1.MultiClusterIngressDNSRecordStatus) *dnsv1a1.MultiClusterIngressDNSRecordStatus {
+func createClusterIngress(f framework.FederationFramework, name, namespace string, ingressDNSStatus *dnsv1a1.IngressDNSRecordStatus) *dnsv1a1.IngressDNSRecordStatus {
 	const userAgent = "test-ingress-dns"
 
 	ingress := common.NewIngressObject(name, namespace)
