@@ -35,6 +35,30 @@ sed -i -e '/---/,$!d' "${INSTALL_YAML}"
 # Remove namespace fields
 sed -i -e '/^  namespace: federation-system$/d' "${INSTALL_YAML}"
 
+# The order of the ClusterRole rules is not sorted by kubebuilder so
+# it can change arbitrarily.  Reset it back to alphabetical to allow
+# for a ci check that the install yaml is up-to-date.
+perl -0777 -i -p -e 's/rules(.*?)---/rules:\
+- apiGroups:\
+  - core.federation.k8s.io\
+  resources:\
+  - '\''*'\''\
+  verbs:\
+  - '\''*'\''\
+- apiGroups:\
+  - multiclusterdns.federation.k8s.io\
+  resources:\
+  - '\''*'\''\
+  verbs:\
+  - '\''*'\''\
+- apiGroups:\
+  - scheduling.federation.k8s.io\
+  resources:\
+  - '\''*'\''\
+  verbs:\
+  - '\''*'\''\
+---/igs' "${INSTALL_YAML}"
+
 if [[ "${FEDERATION_NAMESPACE}" ]]; then
   # Add namespace to ClusterRoleBinding
   sed -i -e '/- kind: ServiceAccount/a\
