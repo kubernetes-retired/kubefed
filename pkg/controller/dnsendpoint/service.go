@@ -59,15 +59,15 @@ func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 		return nil, fmt.Errorf("received event for unknown object %v", obj)
 	}
 
-	commonPrefix := strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.FederationName, "svc"}, ".")
+	commonPrefix := strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
 	for _, clusterDNS := range dnsObject.Status.DNS {
 		zone := clusterDNS.Zone
 		region := clusterDNS.Region
 
 		dnsNames := []string{
-			strings.Join([]string{commonPrefix, zone, region, dnsObject.Spec.DNSSuffix}, "."), // zone level
-			strings.Join([]string{commonPrefix, region, dnsObject.Spec.DNSSuffix}, "."),       // region level, one up from zone level
-			strings.Join([]string{commonPrefix, dnsObject.Spec.DNSSuffix}, "."),               // global level, one up from region level
+			strings.Join([]string{commonPrefix, zone, region, dnsObject.Status.Domain}, "."), // zone level
+			strings.Join([]string{commonPrefix, region, dnsObject.Status.Domain}, "."),       // region level, one up from zone level
+			strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, "."),               // global level, one up from region level
 			"", // nowhere to go up from global level
 		}
 
@@ -99,6 +99,15 @@ func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 			if err != nil {
 				return nil, err
 			}
+			endpoints = append(endpoints, endpoint)
+		}
+		if dnsObject.Spec.DNSPrefix != "" {
+			endpoint := &feddnsv1a1.Endpoint{
+				DNSName:    dnsObject.Spec.DNSPrefix + "." + dnsObject.Status.Domain,
+				RecordTTL:  ttl,
+				RecordType: RecordTypeCNAME,
+			}
+			endpoint.Targets = []string{strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, ".")}
 			endpoints = append(endpoints, endpoint)
 		}
 	}

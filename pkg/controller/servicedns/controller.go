@@ -65,11 +65,18 @@ type Controller struct {
 	// Informer for the ServiceDNSRecord objects
 	serviceDNSController cache.Controller
 
+	// Store for the Domain objects
+	domainStore cache.Store
+	// Informer for the Domain objects
+	domainController cache.Controller
+
 	worker util.ReconcileWorker
 
 	clusterAvailableDelay   time.Duration
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
+
+	fedNamespace string
 }
 
 // StartController starts the Controller for managing ServiceDNSRecord objects.
@@ -99,6 +106,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		clusterAvailableDelay:   clusterAvailableDelay,
 		clusterUnavailableDelay: clusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
+		fedNamespace:            fedNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -121,6 +129,23 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		&dnsv1a1.ServiceDNSRecord{},
 		util.NoResyncPeriod,
 		util.NewTriggerOnAllChanges(s.worker.EnqueueObject),
+	)
+
+	// Informer for the Domain resource
+	s.domainStore, s.domainController = cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
+				return fedClient.MulticlusterdnsV1alpha1().Domains(fedNamespace).List(options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return fedClient.MulticlusterdnsV1alpha1().Domains(fedNamespace).Watch(options)
+			},
+		},
+		&dnsv1a1.Domain{},
+		util.NoResyncPeriod,
+		util.NewTriggerOnAllChanges(func(pkgruntime.Object) {
+			s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now())
+		}),
 	)
 
 	// Federated serviceInformer for the service resource in members of federation.
@@ -185,6 +210,7 @@ func (c *Controller) minimizeLatency() {
 // Run runs the Controller.
 func (c *Controller) Run(stopChan <-chan struct{}) {
 	go c.serviceDNSController.Run(stopChan)
+	go c.domainController.Run(stopChan)
 	c.serviceInformer.Start()
 	c.endpointInformer.Start()
 	c.clusterDeliverer.StartWithHandler(func(_ *util.DelayingDelivererItem) {
@@ -266,6 +292,17 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	}
 	cachedDNS := cachedObj.(*dnsv1a1.ServiceDNSRecord)
 
+	domainKey := util.QualifiedName{Namespace: c.fedNamespace, Name: cachedDNS.Spec.DomainRef}.String()
+	cachedDomain, exist, err := c.domainStore.GetByKey(domainKey)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to query Domain store for %q: %v", domainKey, err))
+		return util.StatusError
+	}
+	if !exist {
+		return util.StatusAllOK
+	}
+	domainObj := cachedDomain.(*dnsv1a1.Domain)
+
 	fedDNS := &dnsv1a1.ServiceDNSRecord{
 		ObjectMeta: util.DeepCopyRelevantObjectMeta(cachedDNS.ObjectMeta),
 		Spec:       *cachedDNS.Spec.DeepCopy(),
@@ -287,13 +324,13 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		}
 
 		// If there are no endpoints for the service, the service is not backed by pods
-		// and traffic is not routable to the service.
-		// We avoid such service shards while writing DNS records.
+		// and traffic is not routable to the service. We avoid such service shards while
+		// writing DNS records, except when user specified to AllowServiceWithoutEndpoints
 		endpointsExist, err := c.serviceBackedByEndpointsInCluster(cluster.Name, key)
 		if err != nil {
 			return util.StatusError
 		}
-		if endpointsExist {
+		if cachedDNS.Spec.AllowServiceWithoutEndpoints || endpointsExist {
 			lbStatus, err := c.getServiceStatusInCluster(cluster.Name, key)
 			if err != nil {
 				return util.StatusError
@@ -328,6 +365,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return fedDNSStatus[i].Cluster < fedDNSStatus[j].Cluster
 	})
 	fedDNS.Status.DNS = fedDNSStatus
+	fedDNS.Status.Domain = domainObj.Domain
 
 	if !reflect.DeepEqual(cachedDNS.Status, fedDNS.Status) {
 		_, err = c.fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(fedDNS.Namespace).UpdateStatus(fedDNS)
