@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+// ClusterPropagatedVersionListerExpansion allows custom methods to be added to
+// ClusterPropagatedVersionLister.
+type ClusterPropagatedVersionListerExpansion interface{}
+
 // FederatedClusterListerExpansion allows custom methods to be added to
 // FederatedClusterLister.
 type FederatedClusterListerExpansion interface{}

@@ -27,6 +27,7 @@ import (
 
 type CoreV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	ClusterPropagatedVersionsGetter
 	FederatedClustersGetter
 	FederatedConfigMapsGetter
 	FederatedConfigMapOverridesGetter
@@ -57,6 +58,10 @@ type CoreV1alpha1Interface interface {
 // CoreV1alpha1Client is used to interact with features provided by the core.federation.k8s.io group.
 type CoreV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *CoreV1alpha1Client) ClusterPropagatedVersions() ClusterPropagatedVersionInterface {
+	return newClusterPropagatedVersions(c)
 }
 
 func (c *CoreV1alpha1Client) FederatedClusters(namespace string) FederatedClusterInterface {

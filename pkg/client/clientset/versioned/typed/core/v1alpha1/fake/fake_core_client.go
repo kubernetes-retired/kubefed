@@ -28,6 +28,10 @@ type FakeCoreV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeCoreV1alpha1) ClusterPropagatedVersions() v1alpha1.ClusterPropagatedVersionInterface {
+	return &FakeClusterPropagatedVersions{c}
+}
+
 func (c *FakeCoreV1alpha1) FederatedClusters(namespace string) v1alpha1.FederatedClusterInterface {
 	return &FakeFederatedClusters{c, namespace}
 }

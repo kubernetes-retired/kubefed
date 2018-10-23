@@ -128,6 +128,7 @@ func init() {
 	})
 
 	// Inject CRDs
+	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.ClusterPropagatedVersionCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedClusterCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedConfigMapCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedConfigMapOverrideCRD)

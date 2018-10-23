@@ -51,6 +51,56 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.3
+  name: clusterpropagatedversions.core.federation.k8s.io
+spec:
+  group: core.federation.k8s.io
+  names:
+    kind: ClusterPropagatedVersion
+    plural: clusterpropagatedversions
+  scope: Cluster
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+        status:
+          properties:
+            clusterVersions:
+              items:
+                properties:
+                  clusterName:
+                    type: string
+                  version:
+                    type: string
+                type: object
+              type: array
+            overridesVersion:
+              type: string
+            templateVersion:
+              type: string
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 1.0.3
   name: federatedclusters.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
