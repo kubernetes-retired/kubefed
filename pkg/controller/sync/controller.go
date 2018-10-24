@@ -546,7 +546,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 	operations := make([]util.FederatedOperation, 0)
 
-	clusterOverrides, err := util.NewClusterOverrides(s.typeConfig, override)
+	clusterOverrides, err := util.GetClusterOverrides(s.typeConfig, override)
 	if err != nil {
 		templateKind := s.typeConfig.GetTemplate().Kind
 		return nil, fmt.Errorf("Failed to marshall cluster overrides for %s %q: %v", templateKind, key, err)
@@ -653,7 +653,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 }
 
 // TODO(marun) Marshall the template once per reconcile, not per-cluster
-func (s *FederationSyncController) objectForCluster(template *unstructured.Unstructured, clusterOverrides *util.ClusterOverrides, clusterName string) (*unstructured.Unstructured, error) {
+func (s *FederationSyncController) objectForCluster(template *unstructured.Unstructured, clusterOverrides util.ClusterOverrides, clusterName string) (*unstructured.Unstructured, error) {
 	// Federation of namespaces uses Namespace resources as the
 	// template for resource creation in member clusters. All other
 	// federated types rely on a template type distinct from the
@@ -706,9 +706,11 @@ func (s *FederationSyncController) objectForCluster(template *unstructured.Unstr
 		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
 	}
 
-	data, ok := clusterOverrides.Overrides[clusterName]
+	overrides, ok := clusterOverrides[clusterName]
 	if ok {
-		unstructured.SetNestedField(obj.Object, data, clusterOverrides.Path...)
+		for _, override := range overrides {
+			unstructured.SetNestedField(obj.Object, override.FieldValue, override.Path...)
+		}
 	}
 
 	return obj, nil

@@ -206,13 +206,16 @@ func (f *FederatedTypeConfig) GetOverride() *metav1.APIResource {
 	return &metaAPIResource
 }
 
-func (f *FederatedTypeConfig) GetOverridePath() []string {
-	if len(f.Spec.OverridePath) == 0 {
+func (f *FederatedTypeConfig) GetOverridePaths() map[string][]string {
+	if len(f.Spec.OverridePaths) == 0 {
 		return nil
 	}
-	overridePath := make([]string, len(f.Spec.OverridePath))
-	copy(overridePath, f.Spec.OverridePath)
-	return overridePath
+
+	overridePaths := make(map[string][]string, len(f.Spec.OverridePaths))
+	for _, overridePath := range f.Spec.OverridePaths {
+		overridePaths[overridePath.Name] = strings.Split(overridePath.Path, ".")
+	}
+	return overridePaths
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {

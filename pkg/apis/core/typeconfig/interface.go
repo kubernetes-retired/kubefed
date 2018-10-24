@@ -30,5 +30,5 @@ type Interface interface {
 	GetTemplate() metav1.APIResource
 	GetPlacement() metav1.APIResource
 	GetOverride() *metav1.APIResource
-	GetOverridePath() []string
+	GetOverridePaths() map[string][]string
 }

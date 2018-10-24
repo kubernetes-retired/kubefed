@@ -333,7 +333,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		return
 	}
 
-	clusterOverrides, err := util.NewClusterOverrides(c.typeConfig, override)
+	clusterOverrides, err := util.GetClusterOverrides(c.typeConfig, override)
 	if err != nil {
 		c.tl.Fatalf("Error marshalling cluster overrides for %s %q: %v", targetKind, qualifiedName, err)
 	}
@@ -354,7 +354,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		c.tl.Logf("Waiting for %s %q %s cluster %q", targetKind, qualifiedName, operation, clusterName)
 
 		if objExpected {
-			err := c.waitForResource(testCluster.Client, qualifiedName, clusterOverrides.Path, clusterOverrides.Overrides[clusterName], func() string {
+			err := c.waitForResource(testCluster.Client, qualifiedName, clusterOverrides[clusterName], func() string {
 				version, _ := c.expectedVersion(qualifiedName, overrideVersion, clusterName)
 				return version
 			})
@@ -383,7 +383,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, overridePath []string, expectedOverride interface{}, expectedVersion func() string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides []util.ClusterOverride, expectedVersion func() string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		expectedVersion := expectedVersion()
 		if len(expectedVersion) == 0 {
@@ -393,17 +393,20 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if err == nil && c.comparisonHelper.GetVersion(clusterObj) == expectedVersion {
 			// Validate that the expected override was applied
-			if expectedOverride != nil {
-				value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, overridePath...)
-				if err != nil {
-					c.tl.Fatalf("Error retrieving overridden path: %v", err)
-				}
-				if !ok {
-					c.tl.Fatalf("Missing overridden path %s", overridePath)
-				}
-				if !reflect.DeepEqual(expectedOverride, value) {
-					c.tl.Errorf("Expected field %s to be %q, got %q", overridePath, expectedOverride, value)
-					return false, nil
+			if len(expectedOverrides) > 0 {
+				for _, expectedOverride := range expectedOverrides {
+					path := expectedOverride.Path
+					value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, path...)
+					if err != nil {
+						c.tl.Fatalf("Error retrieving overridden path: %v", err)
+					}
+					if !ok {
+						c.tl.Fatalf("Missing overridden path %s", path)
+					}
+					if !reflect.DeepEqual(expectedOverride.FieldValue, value) {
+						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedOverride.FieldValue, value)
+						return false, nil
+					}
 				}
 			}
 			return true, nil
