@@ -79,6 +79,9 @@ type APIResource struct {
 
 // FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig
 type FederatedTypeConfigStatus struct {
+	// ObservedGeneration is the generation as observed by the controller consuming the FederatedTypeConfig.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +genclient
@@ -97,6 +100,7 @@ type FederatedTypeConfigStatus struct {
 //
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=federatedtypeconfigs
+// +kubebuilder:subresource:status
 type FederatedTypeConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

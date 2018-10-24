@@ -1046,6 +1046,8 @@ spec:
     kind: FederatedTypeConfig
     plural: federatedtypeconfigs
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -1128,6 +1130,10 @@ spec:
           - placement
           type: object
         status:
+          properties:
+            observedGeneration:
+              format: int64
+              type: integer
           type: object
   version: v1alpha1
 status:

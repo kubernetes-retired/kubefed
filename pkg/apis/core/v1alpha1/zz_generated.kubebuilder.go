@@ -1648,11 +1648,19 @@ var (
 								"placement",
 							}},
 						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"observedGeneration": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int64",
+								},
+							},
 						},
 					},
 				},
+			},
+			Subresources: &v1beta1.CustomResourceSubresources{
+				Status: &v1beta1.CustomResourceSubresourceStatus{},
 			},
 		},
 	}
