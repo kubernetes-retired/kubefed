@@ -456,6 +456,10 @@ var (
 											}},
 									},
 								},
+								"observedGeneration": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int64",
+								},
 								"region": v1beta1.JSONSchemaProps{
 									Type: "string",
 								},
