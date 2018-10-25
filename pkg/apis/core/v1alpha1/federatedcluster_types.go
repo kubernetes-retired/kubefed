@@ -58,6 +58,9 @@ type FederatedClusterStatus struct {
 	// Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.
 	// +optional
 	Region string `json:"region,omitempty"`
+	// ObservedGeneration is the generation as observed by the controller consuming the FederatedCluster.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +genclient
