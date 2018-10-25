@@ -57,6 +57,11 @@ After completing the steps in one of the above guides, return here to continue t
 kubectl config use-context cluster1
 ```
 
+## Helm Chart Deployment
+
+You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md)
+to install federation-v2.
+
 ## Automated Deployment
 
 If you would like to have the deployment of the federation-v2 control plane
