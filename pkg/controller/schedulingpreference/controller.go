@@ -71,12 +71,12 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay int, minimizeLatency bool) error {
 	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
-	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace)
+	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
 	if err != nil {
 		return err
 	}
@@ -89,14 +89,14 @@ func StartSchedulingPreferenceController(kind string, schedulerFactory schedulin
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay int) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
 
 	s := &SchedulingPreferenceController{
-		clusterAvailableDelay:   time.Second * 20,
-		clusterUnavailableDelay: time.Second * 60,
+		clusterAvailableDelay:   time.Second * time.Duration(clusterAvailableDelay),
+		clusterUnavailableDelay: time.Second * time.Duration(clusterUnavailableDelay),
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,

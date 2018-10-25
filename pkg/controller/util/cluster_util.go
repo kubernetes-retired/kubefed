@@ -37,6 +37,8 @@ import (
 const (
 	DefaultFederationSystemNamespace = "federation-system"
 	MulticlusterPublicNamespace      = "kube-multicluster-public"
+	DefaultClusterAvailableDelay     = 20
+	DefaultClusterUnavailableDelay   = 60
 
 	KubeAPIQPS              = 20.0
 	KubeAPIBurst            = 30

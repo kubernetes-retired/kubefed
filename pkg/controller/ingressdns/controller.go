@@ -71,14 +71,14 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing IngressDNSRecord objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay int, minimizeLatency bool) error {
 	userAgent := "IngressDNS"
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
 
-	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace)
+	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
 	if err != nil {
 		return err
 	}
@@ -91,11 +91,11 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 }
 
 // newController returns a new controller to manage IngressDNSRecord objects.
-func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
+func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay int) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
-		clusterAvailableDelay:   time.Second * 20,
-		clusterUnavailableDelay: time.Second * 60,
+		clusterAvailableDelay:   time.Second * time.Duration(clusterAvailableDelay),
+		clusterUnavailableDelay: time.Second * time.Duration(clusterUnavailableDelay),
 		smallDelay:              time.Second * 3,
 	}
 
