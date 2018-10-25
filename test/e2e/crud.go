@@ -38,7 +38,7 @@ var _ = Describe("Federated types", func() {
 
 	typeConfigs := common.TypeConfigsOrDie(tl)
 
-	for i, _ := range typeConfigs {
+	for i := range typeConfigs {
 		// Bind the type config inside the loop to ensure the ginkgo
 		// closure gets a different value for every loop iteration.
 		//
@@ -91,7 +91,7 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	}
 
 	clusterNames := []string{}
-	for name, _ := range testClusters {
+	for name := range testClusters {
 		clusterNames = append(clusterNames, name)
 	}
 	template, placement, override, err = testObjectFunc(f.TestNamespaceName(), clusterNames)
