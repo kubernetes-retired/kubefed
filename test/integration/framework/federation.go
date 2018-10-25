@@ -277,7 +277,7 @@ func (f *FederationFixture) ClusterKubeClients(tl common.TestLogger, userAgent s
 
 func (f *FederationFixture) ClusterNames() []string {
 	clusterNames := []string{}
-	for name, _ := range f.Clusters {
+	for name := range f.Clusters {
 		clusterNames = append(clusterNames, name)
 	}
 	return clusterNames

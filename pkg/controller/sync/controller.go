@@ -677,7 +677,7 @@ func (s *FederationSyncController) objectForCluster(template *unstructured.Unstr
 		}
 		// Retain only the target fields from the template
 		targetFields := sets.NewString("name", "namespace", "labels", "annotations")
-		for key, _ := range metadata {
+		for key := range metadata {
 			if !targetFields.Has(key) {
 				delete(metadata, key)
 			}
@@ -757,8 +757,8 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 	if !ok {
 		desiredPorts = []interface{}{}
 	}
-	for desiredIndex, _ := range desiredPorts {
-		for clusterIndex, _ := range clusterPorts {
+	for desiredIndex := range desiredPorts {
+		for clusterIndex := range clusterPorts {
 			fPort := desiredPorts[desiredIndex].(map[string]interface{})
 			cPort := clusterPorts[clusterIndex].(map[string]interface{})
 			if !(fPort["name"] == cPort["name"] && fPort["protocol"] == cPort["protocol"] && fPort["port"] == cPort["port"]) {
