@@ -58,12 +58,12 @@ type VersionManager struct {
 	versions map[string]pkgruntime.Object
 }
 
-func NewNamespacedVersionManager(client fedclientset.Interface, templateKind, targetKind, namespace string) *VersionManager {
+func NewVersionManager(client fedclientset.Interface, namespaced bool, templateKind, targetKind, namespace string) *VersionManager {
 	v := &VersionManager{
 		targetKind:   targetKind,
 		templateKind: templateKind,
 		namespace:    namespace,
-		adapter:      newNamespacedVersionAdapter(client),
+		adapter:      NewVersionAdapter(client, namespaced),
 		versions:     make(map[string]pkgruntime.Object),
 	}
 

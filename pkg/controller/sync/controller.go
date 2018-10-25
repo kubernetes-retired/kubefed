@@ -194,8 +194,9 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		s.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj)
 	}
 
-	s.versionManager = version.NewNamespacedVersionManager(
-		fedClient, templateAPIResource.Kind, targetAPIResource.Kind, targetNamespace)
+	s.versionManager = version.NewVersionManager(
+		fedClient, templateAPIResource.Namespaced, templateAPIResource.Kind, targetAPIResource.Kind, targetNamespace,
+	)
 
 	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.GetComparisonField())
 	if err != nil {

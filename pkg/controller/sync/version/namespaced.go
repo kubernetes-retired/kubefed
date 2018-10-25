@@ -45,11 +45,9 @@ func (a *namespacedVersionAdapter) List(namespace string) (pkgruntime.Object, er
 func (a *namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: qualifiedName.Namespace,
-			Name:      qualifiedName.Name,
-			OwnerReferences: []metav1.OwnerReference{
-				ownerReference,
-			},
+			Namespace:       qualifiedName.Namespace,
+			Name:            qualifiedName.Name,
+			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
 		Status: *status,
 	}
