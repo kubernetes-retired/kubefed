@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -37,8 +36,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/client-go/util/workqueue"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
@@ -49,11 +46,6 @@ const (
 // SchedulingPreferenceController syncronises the template, override
 // and placement for a target template with its spec (user preference).
 type SchedulingPreferenceController struct {
-	// Used to allow time delay in triggering reconciliation
-	// when any of RSP, target template, override or placement
-	// changes.
-	deliverer *util.DelayingDeliverer
-
 	// For triggering reconciliation of all resources (only in
 	// federation). This is used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
@@ -67,16 +59,11 @@ type SchedulingPreferenceController struct {
 	// Informer for self
 	controller cache.Controller
 
-	// Work queue allowing parallel processing of resources
-	workQueue workqueue.Interface
-
-	// Backoff manager
-	backoff *flowcontrol.Backoff
+	worker util.ReconcileWorker
 
 	// For events
 	eventRecorder record.EventRecorder
 
-	reviewDelay             time.Duration
 	clusterAvailableDelay   time.Duration
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
@@ -108,15 +95,16 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
 
 	s := &SchedulingPreferenceController{
-		reviewDelay:             time.Second * 10,
 		clusterAvailableDelay:   time.Second * 20,
 		clusterUnavailableDelay: time.Second * 60,
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
-		workQueue:               workqueue.New(),
-		backoff:                 flowcontrol.NewBackOff(5*time.Second, time.Minute),
 		eventRecorder:           recorder,
 	}
+
+	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
+		ClusterSyncDelay: s.clusterAvailableDelay,
+	})
 
 	s.scheduler = schedulerFactory(fedClient,
 		kubeClient,
@@ -124,11 +112,10 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 		fedNamespace,
 		clusterNamespace,
 		targetNamespace,
+		s.worker.EnqueueObject,
 		func(obj pkgruntime.Object) {
-			s.deliverObj(obj, 0, false)
-		},
-		func(obj pkgruntime.Object) {
-			s.deliverObj(obj, s.reviewDelay, false)
+			qualifiedName := util.NewQualifiedName(obj)
+			s.worker.EnqueueForRetry(qualifiedName)
 		},
 		&util.ClusterLifecycleHandlerFuncs{
 			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
@@ -141,8 +128,7 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 			},
 		})
 
-	// Build delivereres for triggering reconciliations.
-	s.deliverer = util.NewDelayingDeliverer()
+	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
 	s.store, s.controller = cache.NewInformer(
@@ -156,10 +142,7 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 		},
 		s.scheduler.ObjectType(),
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(
-			func(obj pkgruntime.Object) {
-				s.deliverObj(obj, 0, false)
-			}),
+		util.NewTriggerOnAllChanges(s.worker.EnqueueObject),
 	)
 
 	return s, nil
@@ -169,75 +152,27 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 func (s *SchedulingPreferenceController) minimizeLatency() {
 	s.clusterAvailableDelay = time.Second
 	s.clusterUnavailableDelay = time.Second
-	s.reviewDelay = 50 * time.Millisecond
 	s.smallDelay = 20 * time.Millisecond
 	s.updateTimeout = 5 * time.Second
+	s.worker.SetDelay(50*time.Millisecond, s.clusterAvailableDelay)
 }
 
 func (s *SchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	go s.controller.Run(stopChan)
 	s.scheduler.Start(stopChan)
 
-	s.deliverer.StartWithHandler(func(item *util.DelayingDelivererItem) {
-		s.workQueue.Add(item)
-	})
 	s.clusterDeliverer.StartWithHandler(func(_ *util.DelayingDelivererItem) {
 		s.reconcileOnClusterChange()
 	})
 
-	go wait.Until(s.worker, time.Second, stopChan)
-
-	util.StartBackoffGC(s.backoff, stopChan)
+	s.worker.Run(stopChan)
 
 	// Ensure all goroutines are cleaned up when the stop channel closes
 	go func() {
 		<-stopChan
-		s.workQueue.ShutDown()
-		s.deliverer.Stop()
 		s.clusterDeliverer.Stop()
 		s.scheduler.Stop()
 	}()
-}
-
-func (s *SchedulingPreferenceController) worker() {
-	for {
-		item, quit := s.workQueue.Get()
-		if quit {
-			return
-		}
-		typedItem := item.(*util.DelayingDelivererItem)
-		qualifiedName := typedItem.Value.(*util.QualifiedName)
-		status := s.reconcile(*qualifiedName)
-		s.workQueue.Done(typedItem)
-
-		switch status {
-		case util.StatusAllOK:
-			break
-		case util.StatusError:
-			s.deliver(*qualifiedName, 0, true)
-		case util.StatusNeedsRecheck:
-			s.deliver(*qualifiedName, s.reviewDelay, false)
-		case util.StatusNotSynced:
-			s.deliver(*qualifiedName, s.clusterAvailableDelay, false)
-		}
-	}
-}
-
-func (s *SchedulingPreferenceController) deliverObj(obj pkgruntime.Object, delay time.Duration, failed bool) {
-	qualifiedName := util.NewQualifiedName(obj)
-	s.deliver(qualifiedName, delay, failed)
-}
-
-// Adds backoff to delay if this delivery is related to some failure. Resets backoff if there was no failure.
-func (s *SchedulingPreferenceController) deliver(qualifiedName util.QualifiedName, delay time.Duration, failed bool) {
-	key := qualifiedName.String()
-	if failed {
-		s.backoff.Next(key, time.Now())
-		delay = delay + s.backoff.Get(key)
-	} else {
-		s.backoff.Reset(key)
-	}
-	s.deliverer.DeliverAfter(key, &qualifiedName, delay)
 }
 
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
@@ -253,7 +188,7 @@ func (s *SchedulingPreferenceController) reconcileOnClusterChange() {
 	}
 	for _, obj := range s.store.List() {
 		qualifiedName := util.NewQualifiedName(obj.(pkgruntime.Object))
-		s.deliver(qualifiedName, s.smallDelay, false)
+		s.worker.EnqueueWithDelay(qualifiedName, s.smallDelay)
 	}
 }
 

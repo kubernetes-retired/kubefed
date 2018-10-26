@@ -59,6 +59,8 @@ type ManagedFramework struct {
 	fixtures []framework.TestFixture
 
 	baseName string
+
+	testNamespaceName string
 }
 
 func NewManagedFramework(baseName string) FederationFramework {
@@ -109,6 +111,10 @@ func (f *ManagedFramework) ClusterNames(userAgent string) []string {
 	return fedFixture.ClusterNames()
 }
 
+func (f *ManagedFramework) ClusterConfigs(userAgent string) map[string]common.TestClusterConfig {
+	return fedFixture.ClusterConfigs(f.logger, userAgent)
+}
+
 func (f *ManagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	return fedFixture.ClusterDynamicClients(f.logger, apiResource, userAgent)
 }
@@ -122,8 +128,11 @@ func (f *ManagedFramework) FederationSystemNamespace() string {
 }
 
 func (f *ManagedFramework) TestNamespaceName() string {
-	client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
-	return createTestNamespace(client, f.baseName)
+	if f.testNamespaceName == "" {
+		client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.baseName))
+		f.testNamespaceName = createTestNamespace(client, f.baseName)
+	}
+	return f.testNamespaceName
 }
 
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {

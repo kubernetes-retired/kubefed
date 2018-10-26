@@ -61,10 +61,8 @@ func main() {
 	verFlag := flag.Bool("version", false, "Prints the version info of controller-manager")
 	flag.Var(flagutil.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
 		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
-	flag.StringVar(&fedNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
-		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
-	flag.StringVar(&clusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
-		fmt.Sprintf("The cluster registry namespace.  If unset, will default to %q.", util.MulticlusterPublicNamespace))
+	flag.StringVar(&fedNamespace, "federation-namespace", util.DefaultFederationSystemNamespace, "The namespace the federation control plane is deployed in.")
+	flag.StringVar(&clusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace, "The cluster registry namespace.")
 	flag.BoolVar(&limitedScope, "limited-scope", false, "Whether the federation namespace will be the only target for federation.")
 
 	flag.Parse()

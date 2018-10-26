@@ -52,32 +52,32 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 	c2ZoneDNSName := strings.Join([]string{name, namespace, federation, "svc", c2Zone, c2Region, dnsZone}, ".")
 
 	testCases := map[string]struct {
-		dnsObject       feddnsv1a1.MultiClusterServiceDNSRecord
+		dnsObject       feddnsv1a1.ServiceDNSRecord
 		expectEndpoints []*feddnsv1a1.Endpoint
 		expectError     bool
 	}{
 		"NoClusters": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{},
+				Status: feddnsv1a1.ServiceDNSRecordStatus{},
 			},
 			expectEndpoints: nil,
 			expectError:     false,
 		},
 		"SingleLBInSingleCluster": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -94,16 +94,16 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"LBsInBothClusters": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -126,16 +126,16 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"NoLBInOneCluster": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -157,16 +157,16 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"NoLBInBothClusters": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -186,16 +186,16 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"HostnameInLB": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -218,17 +218,17 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"UserConfiguredDNSRecordTTL": {
-			dnsObject: feddnsv1a1.MultiClusterServiceDNSRecord{
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterServiceDNSRecordSpec{
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
 					FederationName: federation,
 					DNSSuffix:      dnsZone,
 					RecordTTL:      userConfiguredTTL,
 				},
-				Status: feddnsv1a1.MultiClusterServiceDNSRecordStatus{
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,

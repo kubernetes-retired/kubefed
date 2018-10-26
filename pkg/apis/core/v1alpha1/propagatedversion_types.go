@@ -26,20 +26,33 @@ type PropagatedVersionSpec struct {
 
 // PropagatedVersionStatus defines the observed state of PropagatedVersion
 type PropagatedVersionStatus struct {
-	TemplateVersion string                 `json:"templateVersion,omitempty"`
-	OverrideVersion string                 `json:"overridesVersion,omitempty"`
+	// The observed version of the template for this resource.
+	TemplateVersion string `json:"templateVersion,omitempty"`
+	// The observed version of the overrides for this resource.
+	OverrideVersion string `json:"overridesVersion,omitempty"`
+	// The last versions produced in each cluster for this resource.
 	ClusterVersions []ClusterObjectVersion `json:"clusterVersions,omitempty"`
 }
 
 type ClusterObjectVersion struct {
+	// The name of the cluster the version is for.
 	ClusterName string `json:"clusterName,omitempty"`
-	Version     string `json:"version,omitempty"`
+	// The last version produced for the resource by a federation
+	// operation.
+	Version string `json:"version,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PropagatedVersion
+// PropagatedVersion holds version information about the state propagated from
+// federation APIs configured by FederatedTypeConfig to target clusters. The
+// name of a PropagatedVersion encodes the kind and name of the resource it
+// stores information for. The type of version information stored in
+// PropagatedVersion will be the metadata.resourceVersion or metadata.Generation
+// of the resource depending on the value of spec.comparisonField in the
+// FederatedTypeConfig associated with the resource.
+//
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=propagatedversions
 // +kubebuilder:subresource:status

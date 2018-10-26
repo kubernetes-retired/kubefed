@@ -61,9 +61,9 @@ else
   INSTALL_YAML=hack/install.yaml
 fi
 
-KF_NS_ARGS=
+KF_NS_ARGS="--federation-namespace=${NS} "
 if [[ "${NAMESPACED}" ]]; then
-  KF_NS_ARGS="--federation-namespace=${NS} --registry-namespace=${NS} --limited-scope=true"
+  KF_NS_ARGS+="--registry-namespace=${NS} --limited-scope=true"
   INSTALL_YAML=hack/install-namespaced.yaml
 fi
 
@@ -106,11 +106,11 @@ if [[ ! "${USE_LATEST}" ]]; then
   ${DOCKER_PUSH_CMD}
 fi
 
-if [[ "${NAMESPACED}" ]]; then
-  if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
-    kubectl create ns "${NS}"
-  fi
-else
+if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
+  kubectl create ns "${NS}"
+fi
+
+if [[ ! "${NAMESPACED}" ]]; then
   if ! kubectl get ns "${PUBLIC_NS}" > /dev/null 2>&1; then
     kubectl create ns "${PUBLIC_NS}"
   fi
@@ -129,7 +129,7 @@ if [[ ! "${USE_LATEST}" ]]; then
   if [[ "${NAMESPACED}" ]]; then
     INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-namespaced-install-yaml.sh
   else
-    INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-install-yaml.sh
+    INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" FEDERATION_NAMESPACE="${NS}" scripts/generate-install-yaml.sh
   fi
 fi
 
@@ -144,10 +144,6 @@ kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registr
 
 # Enable available types
 for filename in ./config/federatedtypes/*.yaml; do
-  # The namespace controller is not required when the control plane is namespaced
-  if [[ "${NAMESPACED}" && "${filename}" == *namespace.yaml ]]; then
-    continue
-  fi
   kubectl -n "${NS}" apply -f "${filename}"
 done
 

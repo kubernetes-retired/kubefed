@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,7 @@ type FederationFramework interface {
 	FedClient(userAgent string) fedclientset.Interface
 	CrClient(userAgent string) crclientset.Interface
 
+	ClusterConfigs(userAgent string) map[string]common.TestClusterConfig
 	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
 	ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface
 	ClusterNames(userAgent string) []string
@@ -67,9 +69,8 @@ type FederationFramework interface {
 // The workaround is using a wrapper that performs late-binding on the
 // framework flavor.
 type frameworkWrapper struct {
-	impl              FederationFramework
-	baseName          string
-	testNamespaceName string
+	impl     FederationFramework
+	baseName string
 }
 
 func NewFederationFramework(baseName string) FederationFramework {
@@ -116,6 +117,10 @@ func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
 	return f.framework().CrClient(userAgent)
 }
 
+func (f *frameworkWrapper) ClusterConfigs(userAgent string) map[string]common.TestClusterConfig {
+	return f.framework().ClusterConfigs(userAgent)
+}
+
 func (f *frameworkWrapper) ClusterNames(userAgent string) []string {
 	return f.framework().ClusterNames(userAgent)
 }
@@ -133,14 +138,15 @@ func (f *frameworkWrapper) FederationSystemNamespace() string {
 }
 
 func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
-	f.framework().SetUpControllerFixture(typeConfig)
+	// Avoid running more than one sync controller for namespaces
+	if typeConfig.GetTarget().Kind != util.NamespaceKind {
+		f.framework().SetUpControllerFixture(typeConfig)
+	}
+	f.setUpNamespaceControllerFixture()
 }
 
 func (f *frameworkWrapper) TestNamespaceName() string {
-	if f.testNamespaceName == "" {
-		f.testNamespaceName = f.framework().TestNamespaceName()
-	}
-	return f.testNamespaceName
+	return f.framework().TestNamespaceName()
 }
 
 func createTestNamespace(client kubeclientset.Interface, baseName string) string {
@@ -176,8 +182,21 @@ func createNamespace(client kubeclientset.Interface, baseName string) (string, e
 
 func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {
 	f.framework().SetUpServiceDNSControllerFixture()
+	f.setUpNamespaceControllerFixture()
 }
 
 func (f *frameworkWrapper) SetUpIngressDNSControllerFixture() {
 	f.framework().SetUpIngressDNSControllerFixture()
+	f.setUpNamespaceControllerFixture()
+}
+
+func (f *frameworkWrapper) setUpNamespaceControllerFixture() {
+	// When targeting a single namespace the namespace controller is not required.
+	if TestContext.LimitedScope {
+		return
+	}
+	// The namespace controller is required to ensure namespaces
+	// are created as needed in member clusters in advance of
+	// propagation of other namespaced types.
+	f.framework().SetUpControllerFixture(common.NamespaceTypeConfigOrDie(NewE2ELogger()))
 }

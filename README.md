@@ -15,23 +15,38 @@ Access to both documents is available to members of the
 [kubernetes-sig-multicluster google
 group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
-<p align="center"><img src="docs/images/concepts.png" width="711"></p>
-
 # Concepts
 
-The following abstractions support the propagation of a logical
-federated type:
+<p align="center"><img src="docs/images/concepts.png" width="711"></p>
 
-- Template: defines the representation of the resource common across clusters
-- Placement: defines which clusters the resource is intended to appear in
-- Override: optionally defines per-cluster field-level variation to apply to the template
+Federation is configured with two types of information:
 
-These 3 abstractions provide a concise representation of a resource
-intended to appear in multiple clusters.  Since the details encoded by
-the abstractions are the minimum required for propagation, they are
-well-suited to serve as the glue between any given propagation
-mechanism and higher-order behaviors like policy-based placement and
+- **Type configuration** declares which API types federation should handle
+- **Cluster configuration** declares which clusters federation should target
+
+**Propagation** refers to the mechanism that distributes resources to federated
+clusters.
+
+Type configuration has three fundamental concepts:
+
+- **Template types** define the representation of a resource common across clusters
+- **Placement types** define which clusters the resource is intended to appear in
+- **Override types** optionally define per-cluster field-level variation to apply to the template
+
+These three abstractions provide a concise representation of a resource intended
+to appear in multiple clusters. They encode the minimum information required for
+**propagation** and are well-suited to serve as the glue between any given
+propagation mechanism and higher-order behaviors like policy-based placement and
 dynamic scheduling.
+
+These fundamental concepts provide building blocks that can be used by
+higher-level APIs:
+
+- **Status** collects the status of resources distributed by federation across all federated clusters
+- **Policy** determines which subset of clusters a resource is allowed to be distributed to
+- **Scheduling** refers to a decision-making capability that can decide how 
+  workloads should be spread across different clusters similar to how a human
+  operator would
 
 # Guides
 

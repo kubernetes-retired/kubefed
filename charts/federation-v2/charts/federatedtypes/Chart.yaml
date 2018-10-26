@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: "0.0.2"
-description: A Helm chart for Kubernetes Federation V2 FederatedTypeConfig
-name: federatedtypes
-version: 0.0.2

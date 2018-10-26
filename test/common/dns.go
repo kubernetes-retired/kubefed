@@ -26,13 +26,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kubeclientset "k8s.io/client-go/kubernetes"
 
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-func NewServiceDNSObject(baseName, namespace string) *dnsv1a1.MultiClusterServiceDNSRecord {
-	return &dnsv1a1.MultiClusterServiceDNSRecord{
+func NewServiceDNSObject(baseName, namespace string) *dnsv1a1.ServiceDNSRecord {
+	return &dnsv1a1.ServiceDNSRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: baseName,
 			Namespace:    namespace,
@@ -40,8 +41,8 @@ func NewServiceDNSObject(baseName, namespace string) *dnsv1a1.MultiClusterServic
 	}
 }
 
-func NewIngressDNSObject(baseName, namespace string) *dnsv1a1.MultiClusterIngressDNSRecord {
-	return &dnsv1a1.MultiClusterIngressDNSRecord{
+func NewIngressDNSObject(baseName, namespace string) *dnsv1a1.IngressDNSRecord {
+	return &dnsv1a1.IngressDNSRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: baseName,
 			Namespace:    namespace,
@@ -149,4 +150,24 @@ func equivalent(actual, desired pkgruntime.Object) bool {
 	statusActual := reflect.ValueOf(actual).Elem().FieldByName("Status").Interface()
 	statusDesired := reflect.ValueOf(desired).Elem().FieldByName("Status").Interface()
 	return reflect.DeepEqual(statusActual, statusDesired)
+}
+
+// WaitForNamespace waits for namespace to be created in a cluster.
+func WaitForNamespaceOrDie(tl TestLogger, client kubeclientset.Interface, clusterName, namespace string, interval, timeout time.Duration) {
+	err := wait.PollImmediate(interval, timeout, func() (exist bool, err error) {
+		_, err = client.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			tl.Errorf("Error waiting for namespace %q to be created in cluster %q: %v",
+				namespace, clusterName, err)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		tl.Fatalf("Timed out waiting for namespace %q to exist in cluster %q: %v",
+			namespace, clusterName, err)
+	}
 }

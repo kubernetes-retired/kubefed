@@ -62,7 +62,7 @@ func (c *FakeFederatedServiceAccounts) List(opts v1.ListOptions) (result *v1alph
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedServiceAccountList{}
+	list := &v1alpha1.FederatedServiceAccountList{ListMeta: obj.(*v1alpha1.FederatedServiceAccountList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedServiceAccountList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

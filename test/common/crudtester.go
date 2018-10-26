@@ -25,6 +25,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,10 +58,14 @@ type FederatedTypeCrudTester struct {
 	clusterWaitTimeout time.Duration
 }
 
-type TestCluster struct {
+type TestClusterConfig struct {
 	Config    *rest.Config
-	Client    util.ResourceClient
 	IsPrimary bool
+}
+
+type TestCluster struct {
+	TestClusterConfig
+	Client util.ResourceClient
 }
 
 func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
@@ -291,23 +296,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 		c.tl.Fatalf("Error deleting %s %q: %v", templateKind, qualifiedName, err)
 	}
 
-	// Version tracker should also be removed. Wait for it to be removed.
 	targetKind := c.typeConfig.GetTarget().Kind
-	versionName := common.PropagatedVersionName(targetKind, name)
-	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
-		if targetKind == util.NamespaceKind {
-			_, err = c.fedClient.CoreV1alpha1().PropagatedVersions(name).Get(versionName, metav1.GetOptions{})
-		} else {
-			_, err = c.fedClient.CoreV1alpha1().PropagatedVersions(namespace).Get(versionName, metav1.GetOptions{})
-		}
-		if errors.IsNotFound(err) {
-			return true, nil
-		}
-		return false, err
-	})
-	if err != nil {
-		c.tl.Fatalf("Expecting PropagatedVersion %s to be deleted", versionName)
-	}
 
 	var stateMsg string = "present"
 	if deletingInCluster {
@@ -338,21 +327,21 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	selectedClusters := sets.NewString(clusterNames...)
 
 	// If we are a namespace, there is only one cluster, and the cluster is the
-	// host cluster, then do not check for PropagatedVersion as it will never
+	// host cluster, then do not check for a propagated version as it will never
 	// be created.
 	if targetKind == util.NamespaceKind && len(clusterNames) == 1 &&
 		clusterNames[0] == c.getPrimaryClusterName() {
 		return
 	}
 
-	version, err := c.waitForPropagatedVersion(template, placement, override)
-	if err != nil {
-		c.tl.Fatalf("Error waiting for propagated version for %s %q: %v", targetKind, qualifiedName, err)
-	}
-
 	clusterOverrides, err := util.NewClusterOverrides(c.typeConfig, override)
 	if err != nil {
 		c.tl.Fatalf("Error marshalling cluster overrides for %s %q: %v", targetKind, qualifiedName, err)
+	}
+
+	overrideVersion := ""
+	if override != nil {
+		overrideVersion = override.GetResourceVersion()
 	}
 
 	// TODO(marun) run checks in parallel
@@ -365,13 +354,11 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		}
 		c.tl.Logf("Waiting for %s %q %s cluster %q", targetKind, qualifiedName, operation, clusterName)
 
-		expectedVersion := c.propagatedVersion(version, clusterName)
 		if objExpected {
-			if expectedVersion == "" {
-				c.tl.Fatalf("Failed to determine expected version of %s %q in cluster %q.", targetKind, qualifiedName, clusterName)
-			}
-
-			err := c.waitForResource(testCluster.Client, qualifiedName, expectedVersion, clusterOverrides.Path, clusterOverrides.Overrides[clusterName])
+			err := c.waitForResource(testCluster.Client, qualifiedName, clusterOverrides.Path, clusterOverrides.Overrides[clusterName], func() string {
+				version, _ := c.expectedVersion(qualifiedName, overrideVersion, clusterName)
+				return version
+			})
 			switch {
 			case err == wait.ErrWaitTimeout:
 				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
@@ -379,10 +366,10 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 			}
 		} else {
-			if expectedVersion != "" {
-				c.tl.Fatalf("Expected resource version for %s %q in cluster %q to be removed", targetKind, qualifiedName, clusterName)
-			}
-			err := c.waitForResourceDeletion(testCluster.Client, qualifiedName)
+			err := c.waitForResourceDeletion(testCluster.Client, qualifiedName, func() bool {
+				version, ok := c.expectedVersion(qualifiedName, overrideVersion, clusterName)
+				return version == "" && ok
+			})
 			// Once resource deletion is complete, wait for the status to reflect the deletion
 
 			switch {
@@ -397,8 +384,13 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedVersion string, overridePath []string, expectedOverride interface{}) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, overridePath []string, expectedOverride interface{}, expectedVersion func() string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+		expectedVersion := expectedVersion()
+		if len(expectedVersion) == 0 {
+			return false, nil
+		}
+
 		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if err == nil && c.comparisonHelper.GetVersion(clusterObj) == expectedVersion {
 			// Validate that the expected override was applied
@@ -411,7 +403,8 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 					c.tl.Fatalf("Missing overridden path %s", overridePath)
 				}
 				if !reflect.DeepEqual(expectedOverride, value) {
-					c.tl.Fatalf("Expected field %s to be %q, got %q", overridePath, expectedOverride, value)
+					c.tl.Errorf("Expected field %s to be %q, got %q", overridePath, expectedOverride, value)
+					return false, nil
 				}
 			}
 			return true, nil
@@ -424,13 +417,24 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 	return err
 }
 
-func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName util.QualifiedName) error {
+func (c *FederatedTypeCrudTester) TestClusters() map[string]TestCluster {
+	return c.testClusters
+}
+
+func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName util.QualifiedName, versionRemoved func() bool) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
+			if !versionRemoved() {
+				c.tl.Logf("Removal of %q %s successful, but propagated version still exists", c.typeConfig.GetTarget().Kind, qualifiedName)
+				return false, nil
+			}
 			return true, nil
 		}
-		return false, err
+		if err != nil {
+			c.tl.Errorf("Error checking that %q %s was deleted: %v", c.typeConfig.GetTarget().Kind, qualifiedName, err)
+		}
+		return false, nil
 	})
 	return err
 }
@@ -456,65 +460,57 @@ func (c *FederatedTypeCrudTester) updateFedObject(apiResource metav1.APIResource
 	return obj, err
 }
 
-func (c *FederatedTypeCrudTester) waitForPropagatedVersion(template, placement, override *unstructured.Unstructured) (*fedv1a1.PropagatedVersion, error) {
+// expectedVersion retrieves the version of the resource expected in the named cluster
+func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedName, overrideVersion, clusterName string) (string, bool) {
 	targetKind := c.typeConfig.GetTarget().Kind
-
-	overrideVersion := ""
-	if override != nil {
-		overrideVersion = override.GetResourceVersion()
+	versionName := util.QualifiedName{
+		Namespace: qualifiedName.Namespace,
+		Name:      common.PropagatedVersionName(targetKind, qualifiedName.Name),
 	}
-
-	name := template.GetName()
-	namespace := template.GetNamespace()
-
-	versionName := common.PropagatedVersionName(targetKind, name)
-	versionNamespace := namespace
-
-	clusterNames, err := util.GetClusterNames(placement)
-	if err != nil {
-		c.tl.Fatalf("Error retrieving cluster names: %v", err)
-	}
-	selectedClusters := sets.NewString(clusterNames...)
-
 	if targetKind == util.NamespaceKind {
-		versionNamespace = name
-		// Delete the primary cluster as it will never be included in
-		// PropagatedVersion's list of cluster versions.
-		selectedClusters.Delete(c.getPrimaryClusterName())
+		versionName.Namespace = qualifiedName.Name
 	}
 
-	client := c.fedResourceClient(c.typeConfig.GetTemplate())
-
-	var version *fedv1a1.PropagatedVersion
-	err = wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-		var err error
-		version, err = c.fedClient.CoreV1alpha1().PropagatedVersions(versionNamespace).Get(versionName, metav1.GetOptions{})
+	loggedWaiting := false
+	adapter := versionmanager.NewVersionAdapter(c.fedClient, c.typeConfig.GetNamespaced())
+	var version *fedv1a1.PropagatedVersionStatus
+	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+		versionObj, err := adapter.Get(versionName)
 		if errors.IsNotFound(err) {
+			if !loggedWaiting {
+				loggedWaiting = true
+				c.tl.Logf("Waiting for %s %q", adapter.TypeName(), versionName)
+			}
 			return false, nil
 		}
 		if err != nil {
-			return false, err
+			c.tl.Errorf("Error retrieving %s %q: %v", adapter.TypeName(), versionName, err)
+			return false, nil
 		}
-		template, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		if version.Status.TemplateVersion == template.GetResourceVersion() && version.Status.OverrideVersion == overrideVersion {
-			// Check that the list of clusters propagated to matches the list of selected clusters
-			propagatedClusters := sets.String{}
-			for _, clusterVersion := range version.Status.ClusterVersions {
-				propagatedClusters.Insert(clusterVersion.ClusterName)
-			}
-			if propagatedClusters.Equal(selectedClusters) {
-				return true, nil
-			}
-		}
-		return false, nil
+		version = adapter.GetStatus(versionObj)
+		return true, nil
 	})
+
+	// The template version may have been updated if the
+	// controller added the deletion finalizer.
+	client := c.fedResourceClient(c.typeConfig.GetTemplate())
+	template, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		c.tl.Errorf("Error retrieving %s %q: %v", c.typeConfig.GetTemplate().Kind, qualifiedName, err)
+		return "", false
 	}
-	return version, nil
+
+	matchedVersions := (version.TemplateVersion == template.GetResourceVersion() &&
+		version.OverrideVersion == overrideVersion)
+	if !matchedVersions {
+		c.tl.Logf("Expected template and override versions (%q, %q), got (%q, %q)",
+			template.GetResourceVersion(), overrideVersion,
+			version.TemplateVersion, version.OverrideVersion,
+		)
+		return "", false
+	}
+
+	return c.versionForCluster(version, clusterName), true
 }
 
 func (c *FederatedTypeCrudTester) getPrimaryClusterName() string {
@@ -539,15 +535,15 @@ func (c *FederatedTypeCrudTester) removeOneClusterName(clusterNames []string, cl
 	return clusterNames
 }
 
-func (c *FederatedTypeCrudTester) propagatedVersion(version *fedv1a1.PropagatedVersion, clusterName string) string {
+func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedVersionStatus, clusterName string) string {
 	// For namespaces, since we do not store the primary cluster's namespace
 	// version in PropagatedVersion's ClusterVersions slice, grab it from the
 	// TemplateVersion field instead.
 	if c.typeConfig.GetTarget().Kind == util.NamespaceKind && clusterName == c.getPrimaryClusterName() {
-		return version.Status.TemplateVersion
+		return version.TemplateVersion
 	}
 
-	for _, clusterVersion := range version.Status.ClusterVersions {
+	for _, clusterVersion := range version.ClusterVersions {
 		if clusterVersion.ClusterName == clusterName {
 			return clusterVersion.Version
 		}

@@ -62,7 +62,7 @@ func (c *FakeFederatedSecretOverrides) List(opts v1.ListOptions) (result *v1alph
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedSecretOverrideList{}
+	list := &v1alpha1.FederatedSecretOverrideList{ListMeta: obj.(*v1alpha1.FederatedSecretOverrideList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedSecretOverrideList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

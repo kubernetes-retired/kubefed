@@ -62,7 +62,7 @@ func (c *FakeDNSEndpoints) List(opts v1.ListOptions) (result *v1alpha1.DNSEndpoi
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.DNSEndpointList{}
+	list := &v1alpha1.DNSEndpointList{ListMeta: obj.(*v1alpha1.DNSEndpointList).ListMeta}
 	for _, item := range obj.(*v1alpha1.DNSEndpointList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
