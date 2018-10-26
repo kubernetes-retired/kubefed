@@ -119,7 +119,7 @@ func (s *ReplicaScheduler) RegisterPlugins(kind string, apiResource metav1.APIRe
 		return
 	}
 
-	if _, ok = s.plugins[kind]; ok {
+	if _, ok := s.plugins[kind]; ok {
 		return
 	}
 
