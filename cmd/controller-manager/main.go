@@ -42,7 +42,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
@@ -110,11 +109,9 @@ func main() {
 	federatedcluster.StartClusterController(config, fedNamespace, clusterNamespace, stopChan, clusterMonitorPeriod)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		for kind, schedulingType := range schedulingtypes.SchedulingTypes() {
-			err = schedulingpreference.StartSchedulingPreferenceController(kind, schedulingType.SchedulerFactory, config, fedNamespace, clusterNamespace, targetNamespace, stopChan, true)
-			if err != nil {
-				glog.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
-			}
+		err = schedulingpreference.StartSchedulerController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, true)
+		if err != nil {
+			glog.Fatalf("Error starting scheduler controller: %v", err)
 		}
 	}
 

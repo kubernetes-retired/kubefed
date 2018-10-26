@@ -48,8 +48,21 @@ func init() {
 	RegisterSchedulingType(RSPKind, NewReplicaScheduler)
 }
 
+type pluginArgs struct {
+	kubeClient             kubeclientset.Interface
+	crClient               crclientset.Interface
+	fedNamespace           string
+	clusterNamespace       string
+	targetNamespace        string
+	federationEventHandler func(pkgruntime.Object)
+	clusterEventHandler    func(pkgruntime.Object)
+	handlers               *ClusterLifecycleHandlerFuncs
+}
+
 type ReplicaScheduler struct {
-	plugins         map[string]*Plugin
+	plugins map[string]*Plugin
+	pluginArgs
+
 	fedClient       fedclientset.Interface
 	podInformer     FederatedInformer
 	targetNamespace string
@@ -57,32 +70,19 @@ type ReplicaScheduler struct {
 
 func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
 	scheduler := &ReplicaScheduler{
-		plugins:         make(map[string]*Plugin),
+		plugins: make(map[string]*Plugin),
+		pluginArgs: pluginArgs{
+			kubeClient:             kubeClient,
+			crClient:               crClient,
+			fedNamespace:           fedNamespace,
+			clusterNamespace:       clusterNamespace,
+			targetNamespace:        targetNamespace,
+			federationEventHandler: federationEventHandler,
+			clusterEventHandler:    clusterEventHandler,
+			handlers:               handlers,
+		},
 		fedClient:       fedClient,
 		targetNamespace: targetNamespace,
-	}
-
-	for name, apiResource := range ReplicaSechedulingResources {
-		var adapter adapters.Adapter
-		switch name {
-		case FederatedDeployment:
-			adapter = adapters.NewFederatedDeploymentAdapter(fedClient)
-		case FederatedReplicaSet:
-			adapter = adapters.NewFederatedReplicaSetAdapter(fedClient)
-		}
-		scheduler.plugins[name] = NewPlugin(
-			adapter,
-			&apiResource,
-			fedClient,
-			kubeClient,
-			crClient,
-			fedNamespace,
-			clusterNamespace,
-			targetNamespace,
-			federationEventHandler,
-			clusterEventHandler,
-			handlers,
-		)
 	}
 
 	// TODO: Update this to use a typed client from single target informer.
@@ -106,6 +106,38 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 
 func (s *ReplicaScheduler) Kind() string {
 	return RSPKind
+}
+
+func (s *ReplicaScheduler) RegisterPlugins(kind string, apiResource metav1.APIResource, stopChan <-chan struct{}) {
+	var adapter adapters.Adapter
+	switch kind {
+	case FederatedDeployment:
+		adapter = adapters.NewFederatedDeploymentAdapter(s.fedClient)
+	case FederatedReplicaSet:
+		adapter = adapters.NewFederatedReplicaSetAdapter(s.fedClient)
+	default:
+		return
+	}
+
+	if _, ok = s.plugins[kind]; ok {
+		return
+	}
+
+	glog.Infof("Kind %s is registered to the scheduler plugin", kind)
+	s.plugins[kind] = NewPlugin(
+		adapter,
+		&apiResource,
+		s.fedClient,
+		s.pluginArgs.kubeClient,
+		s.pluginArgs.crClient,
+		s.pluginArgs.fedNamespace,
+		s.pluginArgs.clusterNamespace,
+		s.pluginArgs.targetNamespace,
+		s.pluginArgs.federationEventHandler,
+		s.pluginArgs.clusterEventHandler,
+		s.pluginArgs.handlers,
+	)
+	s.plugins[kind].Start(stopChan)
 }
 
 func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
@@ -178,7 +210,12 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName Qualif
 		return StatusNeedsRecheck
 	}
 
-	if !s.plugins[kind].TemplateExists(qualifiedName.String()) {
+	v, ok := s.plugins[kind]
+	if !ok {
+		return StatusAllOK
+	}
+
+	if !v.TemplateExists(qualifiedName.String()) {
 		// target FederatedTemplate does not exist, nothing to do
 		return StatusAllOK
 	}
@@ -217,6 +254,11 @@ func (s *ReplicaScheduler) ReconcileFederationTargets(fedClient fedclientset.Int
 	newClusterNames := []string{}
 	for name := range result {
 		newClusterNames = append(newClusterNames, name)
+	}
+
+	_, ok := s.plugins[kind]
+	if !ok {
+		return nil
 	}
 
 	err := s.plugins[kind].adapter.ReconcilePlacement(fedClient, qualifiedName, newClusterNames)

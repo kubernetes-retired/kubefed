@@ -84,21 +84,21 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
+func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) (schedulingtypes.Scheduler, error) {
 	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
 	crClient := crclientset.NewForConfigOrDie(config)
 	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if minimizeLatency {
 		controller.minimizeLatency()
 	}
 	glog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
 	controller.Run(stopChan)
-	return nil
+	return controller.scheduler, nil
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
