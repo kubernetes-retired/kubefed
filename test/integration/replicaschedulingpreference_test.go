@@ -110,7 +110,7 @@ var TestReplicaSchedulingPreference = func(t *testing.T) {
 
 func initRSPTest(tl common.TestLogger, fedFixture *framework.FederationFixture) (*framework.ControllerFixture, clientset.Interface) {
 	controllerConfig := fedFixture.ControllerConfig(tl)
-	fixture := framework.NewRSPControllerFixture(tl, controllerConfig)
+	fixture := framework.NewRSPControllerFixture(tl, controllerConfig, TypeConfigs)
 	kubeConfig := controllerConfig.KubeConfig
 	restclient.AddUserAgent(kubeConfig, "rsp-test")
 	client := clientset.NewForConfigOrDie(kubeConfig)

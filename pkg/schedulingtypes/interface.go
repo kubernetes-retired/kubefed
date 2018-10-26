@@ -36,6 +36,8 @@ type Scheduler interface {
 	HasSynced() bool
 	Stop()
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
+
+	StartPlugin(kind string, apiResource *metav1.APIResource, stopChan <-chan struct{}) error
 }
 
 type SchedulerFactory func(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces FederationNamespaces, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler

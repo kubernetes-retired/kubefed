@@ -38,11 +38,10 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
@@ -125,12 +124,7 @@ func main() {
 	federatedcluster.StartClusterController(controllerConfig, stopChan, clusterMonitorPeriod)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		for kind, schedulingType := range schedulingtypes.SchedulingTypes() {
-			err = schedulingpreference.StartSchedulingPreferenceController(controllerConfig, stopChan, kind, schedulingType.SchedulerFactory)
-			if err != nil {
-				glog.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
-			}
-		}
+		schedulingmanager.StartSchedulerController(controllerConfig, stopChan)
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {

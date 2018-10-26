@@ -23,6 +23,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
@@ -98,15 +99,31 @@ func NewClusterControllerFixture(config *util.ControllerConfig) *ControllerFixtu
 }
 
 // NewRSPControllerFixture initializes a new RSP controller fixture.
-func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
+func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig, typeConfigs []typeconfig.Interface) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 	kind := schedulingtypes.RSPKind
-	err := schedulingpreference.StartSchedulingPreferenceController(config, f.stopChan, kind, schedulingtypes.GetSchedulerFactory(kind))
+	scheduler, err := schedulingpreference.StartSchedulingPreferenceController(config, f.stopChan, kind, schedulingtypes.GetSchedulerFactory(kind))
 	if err != nil {
 		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
 	}
+
+	for _, typeConfig := range typeConfigs {
+		apiResource := typeConfig.GetTarget()
+		resourceKind := typeConfig.GetTemplate().Kind
+
+		schedulingKind, ok := schedulingmanager.SchedulingRegistry[resourceKind]
+		if !ok || schedulingKind != kind {
+			continue
+		}
+
+		err := scheduler.StartPlugin(resourceKind, &apiResource, f.stopChan)
+		if err != nil {
+			tl.Fatalf("Error starting plugin for %q : %v", resourceKind, err)
+		}
+	}
+
 	return f
 }
 
