@@ -20,6 +20,7 @@ set -o pipefail
 
 INSTALL_YAML="${INSTALL_YAML:-hack/install-latest.yaml}"
 IMAGE_NAME="${IMAGE_NAME:-quay.io/kubernetes-multicluster/federation-v2:latest}"
+FEDERATION_NAMESPACE="${FEDERATION_NAMESPACE:-""}"
 
 kubebuilder create config --controller-image "${IMAGE_NAME}" \
             --name federation --output "${INSTALL_YAML}"
@@ -27,3 +28,43 @@ kubebuilder create config --controller-image "${IMAGE_NAME}" \
 # Increase memory request and limit to avoid OOM issues.
 sed -i 's/memory: 20Mi/memory: 64Mi/' "${INSTALL_YAML}"
 sed -i 's/memory: 30Mi/memory: 128Mi/' "${INSTALL_YAML}"
+
+# Remove namespace resource from the top of the file
+sed -i -e '/---/,$!d' "${INSTALL_YAML}"
+
+# Remove namespace fields
+sed -i -e '/^  namespace: federation-system$/d' "${INSTALL_YAML}"
+
+# The order of the ClusterRole rules is not sorted by kubebuilder so
+# it can change arbitrarily.  Reset it back to alphabetical to allow
+# for a ci check that the install yaml is up-to-date.
+perl -0777 -i -p -e 's/rules(.*?)---/rules:\
+- apiGroups:\
+  - core.federation.k8s.io\
+  resources:\
+  - '\''*'\''\
+  verbs:\
+  - '\''*'\''\
+- apiGroups:\
+  - multiclusterdns.federation.k8s.io\
+  resources:\
+  - '\''*'\''\
+  verbs:\
+  - '\''*'\''\
+- apiGroups:\
+  - scheduling.federation.k8s.io\
+  resources:\
+  - '\''*'\''\
+  verbs:\
+  - '\''*'\''\
+---/igs' "${INSTALL_YAML}"
+
+if [[ "${FEDERATION_NAMESPACE}" ]]; then
+  # Add namespace to ClusterRoleBinding
+  sed -i -e '/- kind: ServiceAccount/a\
+  namespace: '${FEDERATION_NAMESPACE}'' "${INSTALL_YAML}"
+
+  # Add args to container
+  sed -i -e '/--install-crds=false/a\
+        - --federation-namespace='${FEDERATION_NAMESPACE}'' "${INSTALL_YAML}"
+fi

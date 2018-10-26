@@ -22,20 +22,20 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
+	. "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	. "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
 )
 
 // EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the MultiClusterIngressDNSRecord resource tests
+// Created by "kubebuilder create resource" for you to implement the ClusterPropagatedVersion resource tests
 
-var _ = Describe("MultiClusterIngressDNSRecord", func() {
-	var instance MultiClusterIngressDNSRecord
-	var expected MultiClusterIngressDNSRecord
-	var client MultiClusterIngressDNSRecordInterface
+var _ = Describe("ClusterPropagatedVersion", func() {
+	var instance ClusterPropagatedVersion
+	var expected ClusterPropagatedVersion
+	var client ClusterPropagatedVersionInterface
 
 	BeforeEach(func() {
-		instance = MultiClusterIngressDNSRecord{}
+		instance = ClusterPropagatedVersion{}
 		instance.Name = "instance-1"
 
 		expected = instance
@@ -51,7 +51,7 @@ var _ = Describe("MultiClusterIngressDNSRecord", func() {
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.MulticlusterdnsV1alpha1().MultiClusterIngressDNSRecords("default")
+				client = cs.CoreV1alpha1().ClusterPropagatedVersions()
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)

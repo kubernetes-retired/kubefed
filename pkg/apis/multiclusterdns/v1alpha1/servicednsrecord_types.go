@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MultiClusterServiceDNSRecordSpec defines the desired state of MultiClusterServiceDNSRecord
-type MultiClusterServiceDNSRecordSpec struct {
+// ServiceDNSRecordSpec defines the desired state of ServiceDNSRecord.
+type ServiceDNSRecordSpec struct {
 	// FederationName is the name of the federation to which the corresponding federated service belongs
 	FederationName string `json:"federationName,omitempty"`
 	// DNSSuffix is the suffix (domain) to append to DNS names
@@ -31,8 +31,8 @@ type MultiClusterServiceDNSRecordSpec struct {
 	RecordTTL TTL `json:"recordTTL,omitempty"`
 }
 
-// MultiClusterServiceDNSRecordStatus defines the observed state of MultiClusterServiceDNSRecord
-type MultiClusterServiceDNSRecordStatus struct {
+// ServiceDNSRecordStatus defines the observed state of ServiceDNSRecord
+type ServiceDNSRecordStatus struct {
 	DNS []ClusterDNS `json:"dns,omitempty"`
 }
 
@@ -51,14 +51,34 @@ type ClusterDNS struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MultiClusterServiceDNSRecord
+// ServiceDNSRecord defines a scheme of DNS name and subdomains that
+// should be programmed with endpoint information about a Service deployed in
+// multiple Kubernetes clusters. ServiceDNSRecord is name-associated
+// with the Services it programs endpoint information for, meaning that a
+// ServiceDNSRecord expresses the intent to program DNS with
+// information about endpoints for the Kubernetes Service resources with the
+// same name and namespace in different clusters.
+//
+// For the example, given the following values:
+//
+// metadata.name: test-service
+// metadata.namespace: test-namespace
+// spec.federationName: test-federation
+// spec.dnsSuffix: example.com
+//
+// the following set of DNS names will be programmed:
+//
+// Global Level: test-service.test-namespace.test-federation.svc.example.com
+// Region Level: test-service.test-namespace.test-federation.svc.(status.DNS[*].region).example.com
+// Zone Level  : test-service.test-namespace.test-federation.svc.(status.DNS[*].zone).(status.DNS[*].region).example.com
+//
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=multiclusterservicednsrecords
+// +kubebuilder:resource:path=servicednsrecords
 // +kubebuilder:subresource:status
-type MultiClusterServiceDNSRecord struct {
+type ServiceDNSRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterServiceDNSRecordSpec   `json:"spec,omitempty"`
-	Status MultiClusterServiceDNSRecordStatus `json:"status,omitempty"`
+	Spec   ServiceDNSRecordSpec   `json:"spec,omitempty"`
+	Status ServiceDNSRecordStatus `json:"status,omitempty"`
 }

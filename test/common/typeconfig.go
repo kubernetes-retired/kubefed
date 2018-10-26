@@ -26,8 +26,40 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
+
+var (
+	typeConfigs         []typeconfig.Interface
+	namespaceTypeConfig typeconfig.Interface
+)
+
+func TypeConfigsOrDie(tl TestLogger) []typeconfig.Interface {
+	if typeConfigs == nil {
+		var err error
+		typeConfigs, err = FederatedTypeConfigs()
+		if err != nil {
+			tl.Fatalf("Error loading type configs: %v", err)
+		}
+	}
+	return typeConfigs
+}
+
+func NamespaceTypeConfigOrDie(tl TestLogger) typeconfig.Interface {
+	if namespaceTypeConfig == nil {
+		for _, typeConfig := range TypeConfigsOrDie(tl) {
+			if typeConfig.GetTarget().Kind == util.NamespaceKind {
+				namespaceTypeConfig = typeConfig
+				break
+			}
+		}
+		if namespaceTypeConfig == nil {
+			tl.Fatalf("Unable to find namespace type config")
+		}
+	}
+	return namespaceTypeConfig
+}
 
 func FederatedTypeConfigs() ([]typeconfig.Interface, error) {
 	path := typeConfigPath()

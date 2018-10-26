@@ -1,17 +1,23 @@
 apiVersion: core.federation.k8s.io/v1alpha1
 kind: FederatedTypeConfig
 metadata:
-  name: services
+  name: bars.example.io
+  namespace: federation-system
 spec:
   target:
     version: v1
-    kind: Service
+    kind: Bar
   namespaced: true
   comparisonField: Generation
   propagationEnabled: true
   template:
-    group: core.federation.k8s.io
+    group: federation.example.io
     version: v1alpha1
-    kind: FederatedService
+    kind: FederatedBar
   placement:
-    kind: FederatedServicePlacement
+    kind: FederatedBarPlacement
+  override:
+    kind: FederatedBarOverride
+  overridePath:
+  - spec
+  - data

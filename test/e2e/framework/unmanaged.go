@@ -186,19 +186,16 @@ func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 
 func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	testClusters := make(map[string]common.TestCluster)
-	// Assume host cluster name is the same as the current context name.
-	hostClusterName := f.Kubeconfig.CurrentContext
-	for clusterName, config := range f.ClusterConfigs(userAgent) {
-		client, err := util.NewResourceClientFromConfig(config, apiResource)
+	for clusterName, clusterConfig := range f.ClusterConfigs(userAgent) {
+		client, err := util.NewResourceClientFromConfig(clusterConfig.Config, apiResource)
 		if err != nil {
 			Failf("Error creating a resource client in cluster %q for kind %q: %v", clusterName, apiResource.Kind, err)
 		}
 		// Check if this cluster is the same name as the host cluster name to
 		// make it the primary cluster.
 		testClusters[clusterName] = common.TestCluster{
-			config,
+			clusterConfig,
 			client,
-			(clusterName == hostClusterName),
 		}
 	}
 	return testClusters
@@ -206,8 +203,8 @@ func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResour
 
 func (f *UnmanagedFramework) ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface {
 	typedClients := make(map[string]kubeclientset.Interface)
-	for clusterName, config := range f.ClusterConfigs(userAgent) {
-		client, err := kubeclientset.NewForConfig(config)
+	for clusterName, clusterConfig := range f.ClusterConfigs(userAgent) {
+		client, err := kubeclientset.NewForConfig(clusterConfig.Config)
 		if err != nil {
 			Failf("Error creating a typed client in cluster %q: %v", clusterName, err)
 		}
@@ -216,7 +213,7 @@ func (f *UnmanagedFramework) ClusterKubeClients(userAgent string) map[string]kub
 	return typedClients
 }
 
-func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restclient.Config {
+func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.TestClusterConfig {
 	// TODO(marun) Avoid having to reload configuration on every call.
 	// Clusters may be added or removed between calls, but
 	// configuration is unlikely to change.
@@ -227,14 +224,20 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]*restcl
 	fedClient := f.FedClient(userAgent)
 	clusterList := framework.ListFederatedClusters(NewE2ELogger(), fedClient, TestContext.FederationSystemNamespace)
 
+	// Assume host cluster name is the same as the current context name.
+	hostClusterName := f.Kubeconfig.CurrentContext
+
 	kubeClient := f.KubeClient(userAgent)
 	crClient := f.CrClient(userAgent)
-	clusterConfigs := make(map[string]*restclient.Config)
+	clusterConfigs := make(map[string]common.TestClusterConfig)
 	for _, cluster := range clusterList.Items {
 		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
-		clusterConfigs[cluster.Name] = config
+		clusterConfigs[cluster.Name] = common.TestClusterConfig{
+			config,
+			(cluster.Name == hostClusterName),
+		}
 	}
 
 	return clusterConfigs
@@ -245,11 +248,22 @@ func (f *UnmanagedFramework) FederationSystemNamespace() string {
 }
 
 func (f *UnmanagedFramework) TestNamespaceName() string {
-	if TestContext.LimitedScope {
-		return TestContext.FederationSystemNamespace
+	if f.testNamespaceName == "" {
+		if TestContext.LimitedScope {
+			f.testNamespaceName = TestContext.FederationSystemNamespace
+		} else {
+			client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
+			f.testNamespaceName = createTestNamespace(client, f.BaseName)
+		}
 	}
-	client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
-	return createTestNamespace(client, f.BaseName)
+	return f.testNamespaceName
+}
+
+func (f *UnmanagedFramework) inMemoryTargetNamespace() string {
+	if TestContext.LimitedScopeInMemoryControllers {
+		return f.TestNamespaceName()
+	}
+	return metav1.NamespaceAll
 }
 
 func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
@@ -257,21 +271,26 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace())
+		namespace := f.inMemoryTargetNamespace()
+		// Namespaces are cluster scoped so all namespaces must be targeted
+		if typeConfig.GetTarget().Kind == util.NamespaceKind {
+			namespace = metav1.NamespaceAll
+		}
+		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, namespace)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace())
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, f.inMemoryTargetNamespace())
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpIngressDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, TestContext.TargetNamespace())
+		fixture := framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, f.inMemoryTargetNamespace())
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }

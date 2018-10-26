@@ -43,36 +43,24 @@ custom image](development.md#test-your-changes).
 
 ### Create Clusters
 
-The quickest way to set up clusters for use with the federation-v2 control
-plane is to use [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
+The federation v2 control plane can run on any v1.11 or greater Kubernetes clusters. The following is a list of
+Kubernetes environments that have been tested and are supported by the Federation v2 community:
 
-**NOTE:** You will need to use a minikube version that supports deploying a
-kubernetes cluster >= 1.11. Currently there is no released version of minikube
-that supports kube v1.11 with profiles so you'll need to either:
+- [Minikube](./environments/minikube.md)
 
-1. Build minikube from master by following these
-   [instructions](https://github.com/kubernetes/minikube/blob/master/docs/contributors/build_guide.md).
-2. Or use a recent CI build such as [this one from PR
-   2943](http://storage.googleapis.com/minikube-builds/2943/minikube-linux-amd64).
+- [Google Kubernetes Engine (GKE)](./environments/gke.md)
 
-Once you have minikube installed run:
+After completing the steps in one of the above guides, return here to continue the Federation v2 deployment.
 
+**NOTE:** You must set the correct context using the command below as this guide depends on it.
 ```bash
-minikube start -p cluster1 --kubernetes-version v1.11.0
-minikube start -p cluster2 --kubernetes-version v1.11.0
 kubectl config use-context cluster1
 ```
 
-Even though the `minikube` cluster has been started, you'll want to verify all
-your `minikube` components are up and ready by examining the state of the
-kubernetes components in the clusters via:
+## Helm Chart Deployment
 
-```bash
-kubectl get all --all-namespaces
-```
-
-Once all pods are running you can move on to deploy the cluster registry and
-federation-v2 control plane.
+You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md)
+to install federation-v2.
 
 ## Automated Deployment
 
@@ -306,6 +294,9 @@ done
 If you were able to verify the resources removed and added back then you have
 successfully verified a working federation-v2 deployment.
 
+### Example: federating a CRD
+Please use this [guide](./federating_crds.md) to federate a CRD in the target cluster.
+
 ### Example Cleanup
 
 To cleanup the example simply delete the namespace:
@@ -322,14 +313,12 @@ Run the following command to perform a cleanup of the cluster registry and
 federation deployments:
 
 ```bash
-./scripts/delete-federation.sh cluster2
+./scripts/delete-federation.sh
 ```
 
-The above script unjoins the host cluster from the federation control plane it deploys, by default.
-The argument(s) used is/are the list of context names of the additional clusters that needs to be
-unjoined from this federation control plane. Clarifying, say the `host-cluster-context` used is
-`cluster1`, then on successful completion of the script used in example, both `cluster1` and `cluster2`
-will be unjoined from the deployed federation control plane.
+The above script unjoins the all of the clusters from the federation control plane it deploys,
+by default. On successful completion of the script used in example, both `cluster1` and
+`cluster2` will be unjoined from the deployed federation control plane.
 
 ## Namespaced Federation
 
@@ -346,7 +335,7 @@ The only supported method to deploy namespaced federation is via the
 deployment script configured with environment variables:
 
 ```bash
-NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <image name>
+NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <image name> <joining cluster list>
 ```
 
 - `NAMESPACED` indicates that the control plane should target a
@@ -356,7 +345,12 @@ plane to.  The control plane will only have permission to access this
 on both the host and member clusters.
 
 It may be useful to supply `FEDERATION_NAMESPACE=test-namespace` to
-allow the examples to work unmodified.
+allow the examples to work unmodified. You can run following command
+to set up the test environment with `cluster1` and `cluster2`.
+
+```bash
+NAMESPACED=y FEDERATION_NAMESPACE=test-namespace scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
+```
 
 ### Joining Clusters
 
@@ -386,4 +380,165 @@ employed by deployment:
 
 ```bash
 NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
+```
+
+## Higher order behaviour
+
+The architecture of federation v2 API allows higher level APIs to be 
+constructed using the mechanics provided by the core API types (`template`, 
+`placement` and `override`) and associated controllers for a given resource.
+Further sections describe few of higher level APIs implemented as part of 
+Federation V2.
+
+###  ReplicaSchedulingPreference
+
+ReplicaSchedulingPreference provides an automated mechanism of distributing 
+and maintaining total number of replicas for `deployment` or `replicaset` based 
+federated workloads into federated clusters. This is based on high level 
+user preferences given by the user. These preferences include the semantics 
+of weighted distribution and limits (min and max) for distributing the replicas. 
+These also include semantics to allow redistribution of replicas dynamically 
+in case some replica pods remain unscheduled in some clusters, for example 
+due to insufficient resources in that cluster. 
+
+RSP is used in place of ReplicaSchedulingPreference for brevity in text further on.
+
+The RSP controller works in a sync loop observing the RSP resource and the 
+matching `namespace/name` pair `FederatedDeployment` or `FederatedReplicaset` 
+resource. 
+If it finds that both RSP and its target template resource, the type of which 
+is specified using `spec.targetKind`, exists, it goes ahead to list currently 
+healthy clusters and distributes the `spec.totalReplicas` using the associated 
+per cluster user preferences. If the per cluster preferences are absent, it 
+distributes the `spec.totalReplicas` evenly among all clusters. It updates (or 
+creates if missing) the same `namespace/name` `placement` and `overrides` for the 
+`targetKind` with the replica values calculated, leveraging the sync controller 
+to actually propagate the k8s resource to federated clusters. Its noteworthy that 
+if an RSP is present, the `spec.replicas` from the `template` resource are unused. 
+RSP also provides a further more useful feature using `spec.rebalance`. If this is 
+set to `true`, the RSP controller monitors the replica pods for target replica 
+workload from each federated cluster and if it finds that some clusters are not 
+able to schedule those pods for long, it moves (rebalances) the replicas to 
+clusters where all the pods are running and healthy. This in other words helps 
+moving the replica workloads to those clusters where there is enough capacity 
+and away from those clusters which are currently running out of capacity. The 
+`rebalance` feature might cause initial shuffle of replicas to  reach an eventually 
+balanced state of distribution. The controller might further keep trying to move 
+few replicas back into the cluster(s) which ran out of capacity, to check if it can 
+be scheduled again to reach the normalised state (even distribution or the state 
+desired by user preferences), which apparently is the only mechanism to check if 
+this cluster has capacity now. The `spec.rebalance` should not be used if this 
+behaviour is unacceptable.
+
+The RSP can be considered as more user friendly mechanism to distribute the 
+replicas, where the inputs needed from the user at federated control plane are 
+reduced. The user only needs to create the RSP resource and the mapping template 
+resource, to distribute the replicas. It can also be considered as a more 
+automated approach at distribution and further reconciliation of the workload 
+replicas.
+
+The usage of the RSP semantics is illustrated using some examples below. The 
+examples considers 3 federated clusters `A`, `B` and `C`.
+
+#### Distribute total replicas evenly in all available clusters
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+```
+or 
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+  clusters:
+    "*":
+      weight: 1
+```
+A, B and C get 3 replicas each.
+
+#### Distribute total replicas in weighted proportions
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+  clusters:
+    A:
+      weight: 1
+    B:
+      weight: 2
+```
+A gets 3 and B gets 6 replicas in the proportion of 1:2. C does not get 
+any replica as missing weight preference is considered as weight=0.
+
+#### Distribute replicas in weighted proportions, also enforcing replica limits per cluster
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 9
+  clusters:
+    A:
+      minReplicas: 4
+      maxReplicas: 6
+      weight: 1
+    B:
+      minReplicas: 4
+      maxReplicas: 8
+      weight: 2
+```
+A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas=4. 
+
+#### Distribute replicas evenly in all clusters, however not more then 20 in C
+
+```bash
+apiVersion: scheduling.federation.k8s.io/v1alpha1
+kind: ReplicaSchedulingPreference
+metadata:
+  name: test-deployment
+  namespace: test-ns
+spec:
+  targetKind: FederatedDeployment
+  totalReplicas: 50
+  clusters:
+    "*":
+      weight: 1
+    "C":
+      maxReplicas: 20
+```
+Possible scenarios
+
+All have capacity. 
+```
+Replica layout: A=16 B=17 C=17.
+```
+B is offline/has no capacity
+```
+Replica layout: A=30 B=0 C=20
+```
+A and B are offline: 
+```
+Replica layout: C=20 
 ```

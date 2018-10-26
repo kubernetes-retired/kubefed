@@ -29,7 +29,7 @@ type ClusterOverrides struct {
 }
 
 func NewClusterOverrides(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (*ClusterOverrides, error) {
-	overrides, path, err := marshallOverrides(typeConfig, override)
+	overrides, path, err := unmarshallOverrides(typeConfig, override)
 	if err != nil {
 		return nil, err
 	}
@@ -39,40 +39,42 @@ func NewClusterOverrides(typeConfig typeconfig.Interface, override *unstructured
 	}, nil
 }
 
-func marshallOverrides(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (map[string]interface{}, []string, error) {
+func unmarshallOverrides(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (map[string]interface{}, []string, error) {
 	overrideMap := make(map[string]interface{})
 	overridePath := []string{}
-	if typeConfig.GetOverride() != nil && override != nil {
-		qualifiedName := NewQualifiedName(override)
-		overrideKind := typeConfig.GetOverride().Kind
+	if override == nil || typeConfig.GetOverride() == nil {
+		return overrideMap, overridePath, nil
+	}
 
-		rawOverrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
-		if err != nil {
-			return nil, nil, fmt.Errorf("Error retrieving spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
-		}
+	qualifiedName := NewQualifiedName(override)
+	overrideKind := typeConfig.GetOverride().Kind
+
+	rawOverrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error retrieving spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
+	}
+	if !ok {
+		return nil, nil, fmt.Errorf("Missing spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
+	}
+
+	overridePath = typeConfig.GetOverridePath()
+	if len(overridePath) == 0 {
+		return nil, nil, fmt.Errorf("Override path is missing for %q", typeConfig.GetTarget().Kind)
+	}
+
+	overrideField := overridePath[len(overridePath)-1]
+	for _, overrideInterface := range rawOverrides {
+		clusterOverride := overrideInterface.(map[string]interface{})
+		rawName, ok := clusterOverride[ClusterNameField]
 		if !ok {
-			return nil, nil, fmt.Errorf("Missing spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
+			return nil, nil, fmt.Errorf("Missing cluster name field for %s %q", overrideKind, qualifiedName)
 		}
-
-		overridePath = typeConfig.GetOverridePath()
-		if len(overridePath) == 0 {
-			return nil, nil, fmt.Errorf("Override path is missing for %q", typeConfig.GetTarget().Kind)
+		name := rawName.(string)
+		data, ok := clusterOverride[overrideField]
+		if !ok {
+			return nil, nil, fmt.Errorf("Missing overrides field %q for %s %q", overrideField, overrideKind, qualifiedName)
 		}
-
-		overrideField := overridePath[len(overridePath)-1]
-		for _, overrideInterface := range rawOverrides {
-			clusterOverride := overrideInterface.(map[string]interface{})
-			rawName, ok := clusterOverride[ClusterNameField]
-			if !ok {
-				return nil, nil, fmt.Errorf("Missing cluster name field for %s %q", overrideKind, qualifiedName)
-			}
-			name := rawName.(string)
-			data, ok := clusterOverride[overrideField]
-			if !ok {
-				return nil, nil, fmt.Errorf("Missing overrides field %q for %s %q", overrideField, overrideKind, qualifiedName)
-			}
-			overrideMap[name] = data
-		}
+		overrideMap[name] = data
 	}
 
 	return overrideMap, overridePath, nil

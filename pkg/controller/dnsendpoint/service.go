@@ -34,13 +34,13 @@ func StartServiceDNSEndpointController(config *restclient.Config, targetNamespac
 	client := fedclientset.NewForConfigOrDie(config)
 
 	listFunc := func(options metav1.ListOptions) (pkgruntime.Object, error) {
-		return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).List(options)
+		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).List(options)
 	}
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
-		return client.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(targetNamespace).Watch(options)
+		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).Watch(options)
 	}
 
-	controller, err := newDNSEndpointController(client, &feddnsv1a1.MultiClusterServiceDNSRecord{}, "service",
+	controller, err := newDNSEndpointController(client, &feddnsv1a1.ServiceDNSRecord{}, "service",
 		listFunc, watchFunc, getServiceDNSEndpoints, minimizeLatency)
 	if err != nil {
 		return err
@@ -50,11 +50,11 @@ func StartServiceDNSEndpointController(config *restclient.Config, targetNamespac
 	return nil
 }
 
-// getServiceDNSEndpoints returns endpoint objects for each MultiClusterServiceDNSRecord object that should be processed.
+// getServiceDNSEndpoints returns endpoint objects for each ServiceDNSRecord object that should be processed.
 func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 	var endpoints []*feddnsv1a1.Endpoint
 
-	dnsObject, ok := obj.(*feddnsv1a1.MultiClusterServiceDNSRecord)
+	dnsObject, ok := obj.(*feddnsv1a1.ServiceDNSRecord)
 	if !ok {
 		return nil, fmt.Errorf("received event for unknown object %v", obj)
 	}

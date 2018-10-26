@@ -30,17 +30,18 @@ type TTL int64
 // it is then stored in a persistent storage via serialization
 type Labels map[string]string
 
-// Endpoint is a high-level way of a connection between a service and an IP
+// Endpoint is a high-level association between a service and an IP.
 type Endpoint struct {
-	// The hostname of the DNS record
+	// The FQDN of the DNS record.
 	DNSName string `json:"dnsName,omitempty"`
-	// The targets the DNS record points to
+	// The targets that the DNS record points to.
 	Targets Targets `json:"targets,omitempty"`
-	// RecordType type of record, e.g. CNAME, A, SRV, TXT etc
+	// RecordType type of record, e.g. CNAME, A, SRV, TXT etc.
 	RecordType string `json:"recordType,omitempty"`
-	// TTL for the record in seconds
+	// TTL for the record in seconds.
 	RecordTTL TTL `json:"recordTTL,omitempty"`
-	// Labels stores labels defined for the Endpoint
+	// Labels stores labels defined for the Endpoint.
+	// +optional
 	Labels Labels `json:"labels,omitempty"`
 }
 
@@ -51,14 +52,20 @@ type DNSEndpointSpec struct {
 
 // DNSEndpointStatus defines the observed state of DNSEndpoint
 type DNSEndpointStatus struct {
+	// ObservedGeneration is the generation as observed by the controller consuming the DNSEndpoint.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DNSEndpoint
+// DNSEndpoint is the CRD wrapper for Endpoint which is designed to act as a
+// source of truth for external-dns.
+//
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=dnsendpoints
+// +kubebuilder:subresource:status
 type DNSEndpoint struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

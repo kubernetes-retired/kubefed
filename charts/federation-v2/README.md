@@ -21,7 +21,7 @@ First you'll need to create the reserved namespace for registering clusters with
 cluster registry:
 
 ```bash
-kubectl create ns kube-multicluster-public
+$ kubectl create ns kube-multicluster-public
 ```
 
 Install the chart with the release name `federation-v2`:
@@ -46,19 +46,19 @@ of the CR and CRDs for federation v2 release.
 Delete all federation v2 `FederatedTypeConfig`:
 
 ```bash
-kubectl -n federation-system delete FederatedTypeConfig --all
+$ kubectl -n federation-system delete FederatedTypeConfig --all
 ```
 
 Delete all federation v2 CRDs:
 
 ```bash
-kubectl delete crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+$ kubectl delete crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
 ```
 
 If you want to delete `clusters.clusterregistry.k8s.io` as well, do it as follows:
 
 ```bash
-kubectl delete crd clusters.clusterregistry.k8s.io
+$ kubectl delete crd clusters.clusterregistry.k8s.io
 ```
 
 Then you can uninstall/delete the `federation-v2` release:
@@ -73,7 +73,7 @@ and deletes the release.
 Delete the reserved namespace for registering clusters:
 
 ```bash
-kubectl delete ns kube-multicluster-public
+$ kubectl delete ns kube-multicluster-public
 ```
 
 ## Configuration
@@ -83,13 +83,17 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| controllermanager.replicaCount | Number of replica for federation v2 controller manager | 1 |
-| controllermanager.repository | Repo of the federation v2 image | quay.io/kubernetes-multicluster |
-| controllermanager.image | Name of the federation v2 image | federation-v2 |
-| controllermanager.tag | Tag of the federation v2 image | latest |
-| controllermanager.pullPolicy | Image pull policy | IfNotPresent |
-| clusterregistry.enabled | Specifies whether to enable the clusterregistry in federation v2 | true |
-| federatedtypes.enabled | Specifies whether to install the `FederatedTypeConfig` in federation v2 | true |
+| controllermanager.enabled | Specifies whether to enable the controller manager in federation v2. | true |
+| controllermanager.replicaCount | Number of replica for federation v2 controller manager. | 1 |
+| controllermanager.repository | Repo of the federation v2 image. | quay.io/kubernetes-multicluster |
+| controllermanager.image | Name of the federation v2 image. | federation-v2 |
+| controllermanager.tag | Tag of the federation v2 image. | latest |
+| controllermanager.pullPolicy | Image pull policy. | IfNotPresent |
+| controllermanager.featureGates | Feature gates are a set of `key=value` pairs that describe alpha or experimental features. An administrator can use the `--feature-gates` command line flag on each component to turn a feature on or off. | PushReconciler=true,SchedulerPreferences=true,CrossClusterServiceDiscovery=true,FederatedIngress=true |
+| controllermanager.federationNamespace | The namespace the federation control plane is deployed in. | federation-system |
+| controllermanager.registryNamespace | The cluster registry namespace. | kube-multicluster-public |
+| controllermanager.limitedScope | Whether the federation namespace will be the only target for federation. If set to true, the value set for `controllermanager.registryNamespace` and `controllermanager.registryNamespace` will be ignored. | false |
+| clusterregistry.enabled | Specifies whether to enable the clusterregistry in federation v2. | true |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.
@@ -98,5 +102,5 @@ Alternatively, a YAML file that specifies the values for the parameters can be
 provided while installing the chart. For example:
 
 ```bash
-$ helm install . --name federation-v2 --namespace federation-system --values values.yaml
+$ helm install charts/federation-v2 --name federation-v2 --namespace federation-system --values values.yaml
 ```

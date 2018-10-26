@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
@@ -37,7 +36,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("MultiClusterServiceDNS", func() {
+var _ = Describe("ServiceDNS", func() {
 	f := framework.NewFederationFramework("multicluster-service-dns")
 	tl := framework.NewE2ELogger()
 
@@ -47,17 +46,17 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 	var fedClient fedclientset.Interface
 	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
 	var namespace string
-	var dnsClient dnsv1a1client.MultiClusterServiceDNSRecordInterface
+	var dnsClient dnsv1a1client.ServiceDNSRecordInterface
 
 	objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-		dnsClient := fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace)
+		dnsClient := fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace)
 		return dnsClient.Get(name, metav1.GetOptions{})
 	}
 
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
 		namespace = f.TestNamespaceName()
-		dnsClient = fedClient.MulticlusterdnsV1alpha1().MultiClusterServiceDNSRecords(namespace)
+		dnsClient = fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace)
 
 		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters(f.FederationSystemNamespace()).List(metav1.ListOptions{})
 		framework.ExpectNoError(err, "Error listing federated clusters")
@@ -75,9 +74,9 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 		By("Creating the ServiceDNS object")
 		serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
 		serviceDNS, err := dnsClient.Create(serviceDNSObj)
-		framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object: %v", serviceDNS)
+		framework.ExpectNoError(err, "Error creating ServiceDNS object: %v", serviceDNS)
 
-		serviceDNSStatus := dnsv1a1.MultiClusterServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
+		serviceDNSStatus := dnsv1a1.ServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
 		for _, clusterName := range f.ClusterNames(userAgent) {
 			serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
 				Cluster: clusterName,
@@ -109,10 +108,10 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 			serviceDNSObj.Spec.DNSSuffix = dnsZone
 			serviceDNSObj.Spec.RecordTTL = RecordTTL
 			serviceDNS, err := dnsClient.Create(serviceDNSObj)
-			framework.ExpectNoError(err, "Error creating MultiClusterServiceDNS object %v", serviceDNS)
+			framework.ExpectNoError(err, "Error creating ServiceDNS object %v", serviceDNS)
 			name := serviceDNS.Name
 
-			serviceDNSStatus := &dnsv1a1.MultiClusterServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
+			serviceDNSStatus := &dnsv1a1.ServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
 
 			By("Creating corresponding service and endpoint for the ServiceDNS object in member clusters")
 			serviceDNSStatus = createClusterServiceAndEndpoints(f, name, namespace, serviceDNSStatus)
@@ -161,7 +160,7 @@ var _ = Describe("MultiClusterServiceDNS", func() {
 	})
 })
 
-func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, serviceDNSStatus *dnsv1a1.MultiClusterServiceDNSRecordStatus) *dnsv1a1.MultiClusterServiceDNSRecordStatus {
+func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, serviceDNSStatus *dnsv1a1.ServiceDNSRecordStatus) *dnsv1a1.ServiceDNSRecordStatus {
 	const userAgent = "test-service-dns"
 
 	service := common.NewServiceObject(name, namespace)
@@ -175,19 +174,8 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 		loadbalancerStatus := apiv1.LoadBalancerStatus{Ingress: []apiv1.LoadBalancerIngress{{IP: clusterLb}}}
 		serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{Cluster: clusterName, LoadBalancer: loadbalancerStatus})
 
-		// Ensure the test namespace exists in the target cluster if
-		// not running namespaced.  When namespaced, join will ensure
-		// that the namespace exists.
-		if !framework.TestContext.LimitedScope {
-			_, err := client.CoreV1().Namespaces().Create(&apiv1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespace,
-				},
-			})
-			if !errors.IsAlreadyExists(err) {
-				framework.ExpectNoError(err, "Error creating namespace in cluster %q", clusterName)
-			}
-		}
+		common.WaitForNamespaceOrDie(framework.NewE2ELogger(), client, clusterName, namespace,
+			framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 		createdService, err := client.CoreV1().Services(namespace).Create(service)
 		framework.ExpectNoError(err, "Error creating service in cluster %q", clusterName)

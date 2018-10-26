@@ -34,30 +34,30 @@ func TestGetEndpointsForIngressDNSObject(t *testing.T) {
 	netWrapper = netmock
 
 	testCases := map[string]struct {
-		dnsObject       feddnsv1a1.MultiClusterIngressDNSRecord
+		dnsObject       feddnsv1a1.IngressDNSRecord
 		expectEndpoints []*feddnsv1a1.Endpoint
 		expectError     bool
 	}{
 		"NoClusters": {
-			dnsObject: feddnsv1a1.MultiClusterIngressDNSRecord{
-				Spec: feddnsv1a1.MultiClusterIngressDNSRecordSpec{
+			dnsObject: feddnsv1a1.IngressDNSRecord{
+				Spec: feddnsv1a1.IngressDNSRecordSpec{
 					Hosts: []string{"foo.bar.test"},
 				},
-				Status: feddnsv1a1.MultiClusterIngressDNSRecordStatus{},
+				Status: feddnsv1a1.IngressDNSRecordStatus{},
 			},
 			expectEndpoints: nil,
 			expectError:     false,
 		},
 		"SingleLBInSingleCluster": {
-			dnsObject: feddnsv1a1.MultiClusterIngressDNSRecord{
+			dnsObject: feddnsv1a1.IngressDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterIngressDNSRecordSpec{
+				Spec: feddnsv1a1.IngressDNSRecordSpec{
 					Hosts: []string{"foo.bar.test"},
 				},
-				Status: feddnsv1a1.MultiClusterIngressDNSRecordStatus{
+				Status: feddnsv1a1.IngressDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterIngressDNS{
 						{
 							Cluster:      c1,
@@ -72,15 +72,15 @@ func TestGetEndpointsForIngressDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"LBsInBothClusters": {
-			dnsObject: feddnsv1a1.MultiClusterIngressDNSRecord{
+			dnsObject: feddnsv1a1.IngressDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterIngressDNSRecordSpec{
+				Spec: feddnsv1a1.IngressDNSRecordSpec{
 					Hosts: []string{"foo.bar.test"},
 				},
-				Status: feddnsv1a1.MultiClusterIngressDNSRecordStatus{
+				Status: feddnsv1a1.IngressDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterIngressDNS{
 						{
 							Cluster:      c1,
@@ -99,15 +99,15 @@ func TestGetEndpointsForIngressDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"HostnameInLB": {
-			dnsObject: feddnsv1a1.MultiClusterIngressDNSRecord{
+			dnsObject: feddnsv1a1.IngressDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterIngressDNSRecordSpec{
+				Spec: feddnsv1a1.IngressDNSRecordSpec{
 					Hosts: []string{"foo.bar.test"},
 				},
-				Status: feddnsv1a1.MultiClusterIngressDNSRecordStatus{
+				Status: feddnsv1a1.IngressDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterIngressDNS{
 						{
 							Cluster:      c1,
@@ -126,15 +126,15 @@ func TestGetEndpointsForIngressDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"MultipleHosts": {
-			dnsObject: feddnsv1a1.MultiClusterIngressDNSRecord{
+			dnsObject: feddnsv1a1.IngressDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterIngressDNSRecordSpec{
+				Spec: feddnsv1a1.IngressDNSRecordSpec{
 					Hosts: []string{"foo.bar.test", "jane.goodall.test"},
 				},
-				Status: feddnsv1a1.MultiClusterIngressDNSRecordStatus{
+				Status: feddnsv1a1.IngressDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterIngressDNS{
 						{
 							Cluster:      c1,
@@ -154,16 +154,16 @@ func TestGetEndpointsForIngressDNSObject(t *testing.T) {
 			expectError: false,
 		},
 		"UserConfiguredDNSRecordTTL": {
-			dnsObject: feddnsv1a1.MultiClusterIngressDNSRecord{
+			dnsObject: feddnsv1a1.IngressDNSRecord{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
 				},
-				Spec: feddnsv1a1.MultiClusterIngressDNSRecordSpec{
+				Spec: feddnsv1a1.IngressDNSRecordSpec{
 					Hosts:     []string{"foo.bar.test"},
 					RecordTTL: userConfiguredTTL,
 				},
-				Status: feddnsv1a1.MultiClusterIngressDNSRecordStatus{
+				Status: feddnsv1a1.IngressDNSRecordStatus{
 					DNS: []feddnsv1a1.ClusterIngressDNS{
 						{
 							Cluster:      c1,

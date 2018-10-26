@@ -62,7 +62,7 @@ func (c *FakeFederatedDeploymentOverrides) List(opts v1.ListOptions) (result *v1
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.FederatedDeploymentOverrideList{}
+	list := &v1alpha1.FederatedDeploymentOverrideList{ListMeta: obj.(*v1alpha1.FederatedDeploymentOverrideList).ListMeta}
 	for _, item := range obj.(*v1alpha1.FederatedDeploymentOverrideList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
