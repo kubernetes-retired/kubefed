@@ -1570,12 +1570,22 @@ var (
 									Required: []string{
 										"kind",
 									}},
-								"overridePath": v1beta1.JSONSchemaProps{
+								"overridePaths": v1beta1.JSONSchemaProps{
 									Type: "array",
 									Items: &v1beta1.JSONSchemaPropsOrArray{
 										Schema: &v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"name": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"path": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+											},
+											Required: []string{
+												"path",
+											}},
 									},
 								},
 								"placement": v1beta1.JSONSchemaProps{
