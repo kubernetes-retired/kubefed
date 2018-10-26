@@ -17,5 +17,5 @@ spec:
     kind: FederatedConfigMapPlacement
   override:
     kind: FederatedConfigMapOverride
-  overridePath:
-    - data
+  overridePaths:
+    - path: data
