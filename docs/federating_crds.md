@@ -33,8 +33,9 @@ spec:
         metadata:
           type: object
         spec:
-          data:
-            type: string
+          properties:
+            data:
+              type: string
         status:
           type: object
   names:
@@ -48,10 +49,10 @@ spec:
 Make sure to install target CRDs on all member clusters otherwise this example will not work as expected.
 
 ```shell
-$ kubectl --validate=false apply -f ./example/crd/bar_crd.yaml --context=cluster1
+$ kubectl apply -f ./example/crd/bar_crd.yaml --context=cluster1
 customresourcedefinition.apiextensions.k8s.io/bars.example.io created
 
-$ kubectl --validate=false apply -f ./example/crd/bar_crd.yaml --context=cluster2
+$ kubectl apply -f ./example/crd/bar_crd.yaml --context=cluster2
 customresourcedefinition.apiextensions.k8s.io/bars.example.io created
 ```
 
@@ -88,16 +89,12 @@ spec:
         metadata:
           type: object
         spec:
-          data:
-            type: string
+          properties:
+            data:
+              type: string
         status:
           type: object
   version: v1alpha1
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
 ---
 # placement type
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -129,11 +126,6 @@ spec:
         status:
           type: object
   version: v1alpha1
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
 ---
 # override type
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -158,29 +150,22 @@ spec:
         spec:
           properties:
             overrides:
+              type: array
               items:
                 properties:
                   clusterName:
                     type: string
                   data:
                     type: string
-                type: object
-              type: array
-          type: object
         status:
           type: object
   version: v1alpha1
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
 ```
 
 The federation APIs must be created in the cluster that hosts federation.
 
 ```shell
-$ kubectl --validate=false apply -f ./example/crd/federatedbar_crd.yaml --context=cluster1
+$ kubectl apply -f ./example/crd/federatedbar_crd.yaml --context=cluster1
 customresourcedefinition.apiextensions.k8s.io/federatedbars.federation.example.io created
 customresourcedefinition.apiextensions.k8s.io/federatedbarplacements.federation.example.io created
 customresourcedefinition.apiextensions.k8s.io/federatedbaroverrides.federation.example.io created
@@ -224,7 +209,7 @@ spec:
 Deploy it to the federated host cluster
 
 ```shell
-$ kubectl apply --validate=false -f ./example/crd/federatedBar.yaml --context=cluster1
+$ kubectl -f ./example/crd/federatedBar.yaml --context=cluster1
 federatedtypeconfig.core.federation.k8s.io/bars.example.io created
 ``` 
 
@@ -268,7 +253,7 @@ spec:
 ```
 Deploy it to the cluster that hosts federation
 ```shell
-$ kubectl --validate=false apply -f example/crd/federatedbar_test.yaml --context=cluster1
+$ kubectl apply -f example/crd/federatedbar_test.yaml --context=cluster1
 federatedbar.federation.example.io/test-crd created
 federatedbaroverride.federation.example.io/test-crd created
 federatedbarplacement.federation.example.io/test-crd created
