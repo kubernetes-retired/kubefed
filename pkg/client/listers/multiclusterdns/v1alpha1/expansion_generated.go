@@ -26,6 +26,14 @@ type DNSEndpointListerExpansion interface{}
 // DNSEndpointNamespaceLister.
 type DNSEndpointNamespaceListerExpansion interface{}
 
+// DomainListerExpansion allows custom methods to be added to
+// DomainLister.
+type DomainListerExpansion interface{}
+
+// DomainNamespaceListerExpansion allows custom methods to be added to
+// DomainNamespaceLister.
+type DomainNamespaceListerExpansion interface{}
+
 // IngressDNSRecordListerExpansion allows custom methods to be added to
 // IngressDNSRecordLister.
 type IngressDNSRecordListerExpansion interface{}

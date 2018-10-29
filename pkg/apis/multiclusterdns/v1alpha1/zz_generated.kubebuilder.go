@@ -45,6 +45,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&DNSEndpoint{},
 		&DNSEndpointList{},
+		&Domain{},
+		&DomainList{},
 		&IngressDNSRecord{},
 		&IngressDNSRecordList{},
 		&ServiceDNSRecord{},
@@ -60,6 +62,14 @@ type DNSEndpointList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []DNSEndpoint `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type DomainList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Domain `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -167,6 +177,44 @@ var (
 		},
 	}
 	// Define CRDs for resources
+	DomainCRD = v1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "domains.multiclusterdns.federation.k8s.io",
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "multiclusterdns.federation.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Kind:   "Domain",
+				Plural: "domains",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type:       "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type:       "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{},
+						},
+					},
+				},
+			},
+		},
+	}
+	// Define CRDs for resources
 	IngressDNSRecordCRD = v1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "ingressdnsrecords.multiclusterdns.federation.k8s.io",
@@ -266,7 +314,10 @@ var (
 						"spec": v1beta1.JSONSchemaProps{
 							Type: "object",
 							Properties: map[string]v1beta1.JSONSchemaProps{
-								"dnsSuffix": v1beta1.JSONSchemaProps{
+								"allowServiceWithoutEndpoints": v1beta1.JSONSchemaProps{
+									Type: "boolean",
+								},
+								"dnsPrefix": v1beta1.JSONSchemaProps{
 									Type: "string",
 								},
 								"federationName": v1beta1.JSONSchemaProps{
@@ -303,6 +354,9 @@ var (
 											},
 										},
 									},
+								},
+								"domain": v1beta1.JSONSchemaProps{
+									Type: "string",
 								},
 							},
 						},

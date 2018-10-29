@@ -32,6 +32,10 @@ func (c *FakeMulticlusterdnsV1alpha1) DNSEndpoints(namespace string) v1alpha1.DN
 	return &FakeDNSEndpoints{c, namespace}
 }
 
+func (c *FakeMulticlusterdnsV1alpha1) Domains(namespace string) v1alpha1.DomainInterface {
+	return &FakeDomains{c, namespace}
+}
+
 func (c *FakeMulticlusterdnsV1alpha1) IngressDNSRecords(namespace string) v1alpha1.IngressDNSRecordInterface {
 	return &FakeIngressDNSRecords{c, namespace}
 }
