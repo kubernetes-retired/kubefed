@@ -37,7 +37,6 @@ type DomainsGetter interface {
 type DomainInterface interface {
 	Create(*v1alpha1.Domain) (*v1alpha1.Domain, error)
 	Update(*v1alpha1.Domain) (*v1alpha1.Domain, error)
-	UpdateStatus(*v1alpha1.Domain) (*v1alpha1.Domain, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.Domain, error)
@@ -115,22 +114,6 @@ func (c *domains) Update(domain *v1alpha1.Domain) (result *v1alpha1.Domain, err 
 		Namespace(c.ns).
 		Resource("domains").
 		Name(domain.Name).
-		Body(domain).
-		Do().
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *domains) UpdateStatus(domain *v1alpha1.Domain) (result *v1alpha1.Domain, err error) {
-	result = &v1alpha1.Domain{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("domains").
-		Name(domain.Name).
-		SubResource("status").
 		Body(domain).
 		Do().
 		Into(result)

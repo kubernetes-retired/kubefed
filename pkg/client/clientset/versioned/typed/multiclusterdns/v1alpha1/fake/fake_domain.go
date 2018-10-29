@@ -100,18 +100,6 @@ func (c *FakeDomains) Update(domain *v1alpha1.Domain) (result *v1alpha1.Domain, 
 	return obj.(*v1alpha1.Domain), err
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeDomains) UpdateStatus(domain *v1alpha1.Domain) (*v1alpha1.Domain, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(domainsResource, "status", c.ns, domain), &v1alpha1.Domain{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.Domain), err
-}
-
 // Delete takes name of the domain and deletes it. Returns an error if one occurs.
 func (c *FakeDomains) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.

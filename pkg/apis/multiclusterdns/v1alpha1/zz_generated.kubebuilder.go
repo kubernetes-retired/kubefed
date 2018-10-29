@@ -195,22 +195,19 @@ var (
 						"apiVersion": v1beta1.JSONSchemaProps{
 							Type: "string",
 						},
+						"domain": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
 						"kind": v1beta1.JSONSchemaProps{
 							Type: "string",
 						},
 						"metadata": v1beta1.JSONSchemaProps{
 							Type: "object",
 						},
-						"spec": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
-						},
-						"status": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
-						},
 					},
-				},
+					Required: []string{
+						"domain",
+					}},
 			},
 		},
 	}
@@ -320,7 +317,7 @@ var (
 								"dnsPrefix": v1beta1.JSONSchemaProps{
 									Type: "string",
 								},
-								"federationName": v1beta1.JSONSchemaProps{
+								"domainRef": v1beta1.JSONSchemaProps{
 									Type: "string",
 								},
 								"recordTTL": v1beta1.JSONSchemaProps{
@@ -328,7 +325,9 @@ var (
 									Format: "int64",
 								},
 							},
-						},
+							Required: []string{
+								"domainRef",
+							}},
 						"status": v1beta1.JSONSchemaProps{
 							Type: "object",
 							Properties: map[string]v1beta1.JSONSchemaProps{
