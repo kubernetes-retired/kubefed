@@ -78,9 +78,12 @@ var _ = Describe("Federated CRD resources", func() {
 func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, namespaced bool) {
 	tl := framework.NewE2ELogger()
 
+	group := "example.com"
+	version := "v1alpha1"
+
 	targetAPIResource := metav1.APIResource{
-		Group:      "example.com",
-		Version:    "v1alpha1",
+		Group:      group,
+		Version:    version,
 		Kind:       targetCrdKind,
 		Name:       fedv1a1.PluralName(targetCrdKind),
 		Namespaced: namespaced,
@@ -105,10 +108,11 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 
 	hostConfig := f.KubeConfig()
+	overridePaths := []string{"spec.bar"}
 	typeConfig, err := kubefed2.EnableFederation(
 		hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
 		targetAPIResource.Group, targetAPIResource.Version,
-		apicommon.ResourceVersionField, nil, false, false,
+		apicommon.ResourceVersionField, overridePaths, false, false,
 	)
 	if err != nil {
 		tl.Fatalf("Error enabling federation of target type %q: %v", targetAPIResource.Kind, err)
@@ -138,7 +142,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
 		templateYaml := `
-apiVersion: %s
+apiVersion: %s/%s
 kind: %s
 metadata:
   generateName: "test-crd-"
@@ -147,8 +151,8 @@ spec:
     spec:
       bar: baz
 `
-		data := fmt.Sprintf(templateYaml, "example.com/v1alpha1", typeConfig.GetTemplate().Kind)
-		template, err = common.ReaderToObj(strings.NewReader(data))
+		templateData := fmt.Sprintf(templateYaml, group, version, typeConfig.GetTemplate().Kind)
+		template, err = common.ReaderToObj(strings.NewReader(templateData))
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("Error reading test template: %v", err)
 		}
@@ -161,7 +165,24 @@ spec:
 			return nil, nil, nil, fmt.Errorf("Error reading test placement: %v", err)
 		}
 
-		return template, placement, nil, nil
+		overrideYaml := `
+apiVersion: %s/%s
+kind: %s
+metadata:
+  name: placeholder
+spec:
+  overrides:
+  - clusterName: placeholder
+    bar: foo
+`
+		overrideData := fmt.Sprintf(overrideYaml, group, version, typeConfig.GetOverride().Kind)
+		override, err = common.ReaderToObj(strings.NewReader(overrideData))
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("Error reading test override: %v", err)
+		}
+		common.UpdateOverrideObject(typeConfig, namespace, clusterNames, override)
+
+		return template, placement, override, nil
 	}
 
 	validateCrud(f, tl, typeConfig, testObjectFunc)

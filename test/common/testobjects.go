@@ -57,24 +57,9 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		if typeConfig.GetNamespaced() {
-			override.SetNamespace(namespace)
-		}
-		overridesSlice, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+		err = UpdateOverrideObject(typeConfig, namespace, clusterNames, override)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Error retrieving overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
-		}
-		var targetOverrides map[string]interface{}
-		if ok {
-			targetOverrides = overridesSlice[0].(map[string]interface{})
-		} else {
-			targetOverrides = map[string]interface{}{}
-		}
-		targetOverrides[util.ClusterNameField] = clusterNames[0]
-		overridesSlice[0] = targetOverrides
-		err = unstructured.SetNestedSlice(override.Object, overridesSlice, "spec", "overrides")
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Error setting overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
+			return nil, nil, nil, err
 		}
 	}
 
@@ -130,4 +115,29 @@ func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, c
 		return nil, err
 	}
 	return placement, nil
+}
+
+// UpdateOverrideObject sets the namespace and applies the given
+// cluster names to the override resource provided.
+func UpdateOverrideObject(typeConfig typeconfig.Interface, namespace string, clusterNames []string, override *unstructured.Unstructured) error {
+	if typeConfig.GetNamespaced() {
+		override.SetNamespace(namespace)
+	}
+	overridesSlice, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	if err != nil {
+		return fmt.Errorf("Error retrieving overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
+	}
+	var targetOverrides map[string]interface{}
+	if ok {
+		targetOverrides = overridesSlice[0].(map[string]interface{})
+	} else {
+		targetOverrides = map[string]interface{}{}
+	}
+	targetOverrides[util.ClusterNameField] = clusterNames[0]
+	overridesSlice[0] = targetOverrides
+	err = unstructured.SetNestedSlice(override.Object, overridesSlice, "spec", "overrides")
+	if err != nil {
+		return fmt.Errorf("Error setting overrides for %q: %v", typeConfig.GetTemplate().Kind, err)
+	}
+	return nil
 }
