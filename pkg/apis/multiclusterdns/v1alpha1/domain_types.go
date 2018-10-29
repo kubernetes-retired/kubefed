@@ -20,23 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the Domain resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// DomainSpec defines the desired state of Domain
-type DomainSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
-}
-
-// DomainStatus defines the observed state of Domain
-type DomainStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -47,6 +30,8 @@ type Domain struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DomainSpec   `json:"spec,omitempty"`
-	Status DomainStatus `json:"status,omitempty"`
+	// Domain is the DNS zone associated with the federation
+	Domain string `json:"domain"`
+	// NameServer is the authoritative DNS name server for the federation domain
+	NameServer string `json:nameServer,omitempty"`
 }
