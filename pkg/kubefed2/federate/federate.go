@@ -54,6 +54,7 @@ func NewCmdFederate(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdFederateEnable(cmdOut, config))
+	cmd.AddCommand(NewCmdFederateDisable(cmdOut, config))
 
 	return cmd
 }

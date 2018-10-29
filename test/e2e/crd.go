@@ -33,7 +33,7 @@ import (
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -88,7 +88,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Name:       fedv1a1.PluralName(targetCrdKind),
 		Namespaced: namespaced,
 	}
-	targetCrd := kubefed2.CrdForAPIResource(targetAPIResource)
+	targetCrd := federate.CrdForAPIResource(targetAPIResource)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 
@@ -109,7 +109,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	hostConfig := f.KubeConfig()
 	overridePaths := []string{"spec.bar"}
-	typeConfig, err := kubefed2.EnableFederation(
+	typeConfig, err := federate.EnableFederation(
 		hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
 		targetAPIResource.Group, targetAPIResource.Version,
 		apicommon.ResourceVersionField, overridePaths, false, false,
@@ -124,7 +124,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: objectMeta.Namespace, Name: objectMeta.Name}
-		err := kubefed2.DisableFederation(hostConfig, qualifiedName, delete, dryRun)
+		err := federate.DisableFederation(hostConfig, qualifiedName, delete, dryRun)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}
