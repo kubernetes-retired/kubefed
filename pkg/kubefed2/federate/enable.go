@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubefed2
+package federate
 
 import (
 	"fmt"
@@ -42,30 +42,27 @@ import (
 )
 
 var (
-	federate_long = `
-	Federate enables a Kubernetes API type (including a CRD) to be
-	propagated to members of a federation.  Federation primitives will be
-	generated as CRDs and a FederatedTypeConfig will be created to
-	configure a sync controller.
+	enable_long = `
+		Enables a Kubernetes API type (including a CRD) to be propagated
+		to members of a federation.  Federation primitives will be
+		generated as CRDs and a FederatedTypeConfig will be created to
+		configure a sync controller.
 
-    Current context is assumed to be a Kubernetes cluster
-    hosting the federation control plane. Please use the
-    --host-cluster-context flag otherwise.`
+		Current context is assumed to be a Kubernetes cluster hosting
+		the federation control plane. Please use the
+		--host-cluster-context flag otherwise.`
 
-	federate_example = `
-	# Enable federation of a Kubernetes type by specifying the name,
-	# shortname, or kind of the target type. The context of the
-	# federation control plane's host cluster must be supplied if it
-	# is not the current context.
-	kubefed2 federate NAME --host-cluster-context=bar`
+	enable_example = `
+		# Enable federation of Services with service type overrideable
+		kubefed2 federate enable Service --override-paths=spec.type --host-cluster-context=cluster1`
 )
 
-type federateType struct {
+type enableType struct {
 	options.SubcommandOptions
-	federateTypeOptions
+	enableTypeOptions
 }
 
-type federateTypeOptions struct {
+type enableTypeOptions struct {
 	targetName         string
 	rawComparisonField string
 	comparisonField    apicommon.VersionComparisonField
@@ -78,7 +75,7 @@ type federateTypeOptions struct {
 
 // Bind adds the join specific arguments to the flagset passed in as an
 // argument.
-func (o *federateTypeOptions) Bind(flags *pflag.FlagSet) {
+func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.rawComparisonField, "comparison-field", string(apicommon.ResourceVersionField),
 		fmt.Sprintf("The field in the target type to compare for equality. Valid values are %q (default) and %q.",
 			apicommon.ResourceVersionField, apicommon.GenerationField,
@@ -90,16 +87,16 @@ func (o *federateTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.useExistingCRDs, "use-existing-crds", false, "Whether to reuse existing primitive CRDs.")
 }
 
-// NewCmdFederate defines the `federate` command that enables
-// federation of a Kubernetes API type.
-func NewCmdFederate(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
-	opts := &federateType{}
+// NewCmdFederateEnable defines the `federate enable` command that
+// enables federation of a Kubernetes API type.
+func NewCmdFederateEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
+	opts := &enableType{}
 
 	cmd := &cobra.Command{
-		Use:     "federate NAME",
-		Short:   "Enable propagation of a Kubernetes API type",
-		Long:    federate_long,
-		Example: federate_example,
+		Use:     "enable NAME",
+		Short:   "Enables propagation of a Kubernetes API type",
+		Long:    enable_long,
+		Example: enable_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -121,7 +118,7 @@ func NewCmdFederate(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 }
 
 // Complete ensures that options are valid and marshals them if necessary.
-func (j *federateType) Complete(args []string) error {
+func (j *enableType) Complete(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("NAME is required")
 	}
@@ -148,8 +145,8 @@ func (j *federateType) Complete(args []string) error {
 	return nil
 }
 
-// Run is the implementation of the `federate` command.
-func (j *federateType) Run(cmdOut io.Writer, config util.FedConfig) error {
+// Run is the implementation of the `federate enable` command.
+func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
