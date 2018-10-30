@@ -116,7 +116,7 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	apiResource, err := lookupAPIResource(hostConfig, j.targetName)
+	apiResource, err := LookupAPIResource(hostConfig, j.targetName)
 	if err != nil {
 		return err
 	}

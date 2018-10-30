@@ -164,7 +164,7 @@ func EnableFederation(config *rest.Config, federationNamespace, key, templateGro
 	templateVersion string, comparisonField apicommon.VersionComparisonField,
 	overridePaths []string, useExisting, dryRun bool) (typeconfig.Interface, error) {
 
-	apiResource, err := lookupAPIResource(config, key)
+	apiResource, err := LookupAPIResource(config, key)
 	if err != nil {
 		return nil, err
 	}

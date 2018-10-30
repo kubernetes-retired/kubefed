@@ -48,7 +48,7 @@ func CrdForAPIResource(apiResource metav1.APIResource) *apiextv1b1.CustomResourc
 	}
 }
 
-func lookupAPIResource(config *rest.Config, key string) (*metav1.APIResource, error) {
+func LookupAPIResource(config *rest.Config, key string) (*metav1.APIResource, error) {
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating discovery client: %v", err)

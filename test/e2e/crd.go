@@ -108,6 +108,19 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 
 	hostConfig := f.KubeConfig()
+
+	targetName := targetAPIResource.Name
+	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+		_, err := federate.LookupAPIResource(hostConfig, targetName)
+		if err != nil {
+			tl.Logf("An error was reported while waiting for target type %q to be published as an available resource: %v", targetName, err)
+		}
+		return (err == nil), nil
+	})
+	if err != nil {
+		tl.Fatalf("Timed out waiting for target type %q to be published as an available resource", targetName)
+	}
+
 	overridePaths := []string{"spec.bar"}
 	typeConfig, err := federate.EnableFederation(
 		hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
