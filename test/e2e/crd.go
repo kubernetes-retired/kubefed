@@ -122,13 +122,16 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 
 	overridePaths := []string{"spec.bar"}
-	typeConfig, err := federate.EnableFederation(
-		nil, hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
-		targetAPIResource.Group, targetAPIResource.Version,
-		apicommon.ResourceVersionField, overridePaths, false, false,
-	)
+	resources, err := federate.GetResources(hostConfig, targetAPIResource.Name,
+		f.FederationSystemNamespace(), targetAPIResource.Group,
+		targetAPIResource.Version, apicommon.ResourceVersionField, overridePaths)
 	if err != nil {
-		tl.Fatalf("Error enabling federation of target type %q: %v", targetAPIResource.Kind, err)
+		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
+	}
+	typeConfig := resources.TypeConfig
+	err = federate.CreateResources(hostConfig, resources)
+	if err != nil {
+		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
 	framework.AddCleanupAction(func() {
 		delete := true
