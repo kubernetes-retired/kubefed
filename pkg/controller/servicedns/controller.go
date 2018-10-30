@@ -73,7 +73,7 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing ServiceDNSRecord objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay int, minimizeLatency bool) error {
+func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
 	userAgent := "ServiceDNS"
 	restclient.AddUserAgent(config, userAgent)
 	fedClient := fedclientset.NewForConfigOrDie(config)
@@ -93,11 +93,11 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 }
 
 // newController returns a new controller to manage ServiceDNSRecord objects.
-func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay int) (*Controller, error) {
+func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
-		clusterAvailableDelay:   time.Second * time.Duration(clusterAvailableDelay),
-		clusterUnavailableDelay: time.Second * time.Duration(clusterUnavailableDelay),
+		clusterAvailableDelay:   clusterAvailableDelay,
+		clusterUnavailableDelay: clusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 	}
 

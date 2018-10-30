@@ -26,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	restclient "k8s.io/client-go/rest"
@@ -54,7 +55,7 @@ func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, 20, 60, true)
+	err := servicedns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
@@ -70,7 +71,7 @@ func NewIngressDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, 20, 60, true)
+	err := ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
 	if err != nil {
 		tl.Fatalf("Error starting ingress dns controller: %v", err)
 	}
@@ -97,7 +98,7 @@ func NewRSPControllerFixture(tl common.TestLogger, config *restclient.Config, fe
 		stopChan: make(chan struct{}),
 	}
 	kind := schedulingtypes.RSPKind
-	err := schedulingpreference.StartSchedulingPreferenceController(kind, schedulingtypes.GetSchedulerFactory(kind), config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, 20, 60, true)
+	err := schedulingpreference.StartSchedulingPreferenceController(kind, schedulingtypes.GetSchedulerFactory(kind), config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
 	if err != nil {
 		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
 	}

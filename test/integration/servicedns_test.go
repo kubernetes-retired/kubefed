@@ -32,6 +32,7 @@ import (
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 )
@@ -152,7 +153,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	f := &serviceDNSControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll, f.stopChan, 20, 60, true)
+	err := servicedns.StartController(config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
 	if err != nil {
 		tl.Fatalf("Error starting service-dns controller: %v", err)
 	}

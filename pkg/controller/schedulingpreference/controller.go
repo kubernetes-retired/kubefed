@@ -71,7 +71,7 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay int, minimizeLatency bool) error {
+func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
 	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
 	fedClient := fedclientset.NewForConfigOrDie(config)
 	kubeClient := kubeclientset.NewForConfigOrDie(config)
@@ -89,14 +89,14 @@ func StartSchedulingPreferenceController(kind string, schedulerFactory schedulin
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay int) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
 
 	s := &SchedulingPreferenceController{
-		clusterAvailableDelay:   time.Second * time.Duration(clusterAvailableDelay),
-		clusterUnavailableDelay: time.Second * time.Duration(clusterUnavailableDelay),
+		clusterAvailableDelay:   clusterAvailableDelay,
+		clusterUnavailableDelay: clusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,

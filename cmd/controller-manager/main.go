@@ -54,8 +54,8 @@ var featureGates map[string]bool
 var fedNamespace string
 var clusterNamespace string
 var limitedScope bool
-var clusterAvailableDelay int
-var clusterUnavailableDelay int
+var clusterAvailableDelay time.Duration
+var clusterUnavailableDelay time.Duration
 var installCRDs = flag.Bool("install-crds", true, "install the CRDs used by the controller as part of startup")
 
 // Controller-manager main.
@@ -66,8 +66,8 @@ func main() {
 	flag.StringVar(&fedNamespace, "federation-namespace", util.DefaultFederationSystemNamespace, "The namespace the federation control plane is deployed in.")
 	flag.StringVar(&clusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace, "The cluster registry namespace.")
 	flag.BoolVar(&limitedScope, "limited-scope", false, "Whether the federation namespace will be the only target for federation.")
-	flag.IntVar(&clusterAvailableDelay, "cluster-available-delay", util.DefaultClusterAvailableDelay, "Time in seconds to wait before reconciling on a healthy cluster.")
-	flag.IntVar(&clusterUnavailableDelay, "cluster-unavailable-delay", util.DefaultClusterUnavailableDelay, "Time in seconds to wait before giving up on an unhealthy cluster.")
+	flag.DurationVar(&clusterAvailableDelay, "cluster-available-delay", util.DefaultClusterAvailableDelay, "Time to wait before reconciling on a healthy cluster.")
+	flag.DurationVar(&clusterUnavailableDelay, "cluster-unavailable-delay", util.DefaultClusterUnavailableDelay, "Time to wait before giving up on an unhealthy cluster.")
 
 	flag.Parse()
 	if *verFlag {
@@ -98,8 +98,8 @@ func main() {
 
 	glog.Infof("Federation namespace: %s", fedNamespace)
 	glog.Infof("Cluster registry namespace: %s", clusterNamespace)
-	glog.Infof("Cluster available delay: %d", clusterAvailableDelay)
-	glog.Infof("Cluster unavailable delay: %d", clusterUnavailableDelay)
+	glog.Infof("Cluster available delay: %v", clusterAvailableDelay)
+	glog.Infof("Cluster unavailable delay: %v", clusterUnavailableDelay)
 
 	targetNamespace := metav1.NamespaceAll
 	if limitedScope {
