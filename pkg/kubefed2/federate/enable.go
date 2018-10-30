@@ -22,12 +22,17 @@ import (
 	"io"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
@@ -66,6 +71,8 @@ type enableTypeOptions struct {
 	overridePaths      []string
 	primitiveVersion   string
 	primitiveGroup     string
+	output             string
+	outputYAML         bool
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
@@ -79,6 +86,7 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.rawOverridePaths, "override-paths", "", "A comma-separated list of dot-separated paths (e.g. spec.completions,spec.parallelism).")
 	flags.StringVar(&o.primitiveGroup, "primitive-group", "primitives.federation.k8s.io", "The name of the API group to use for generated federation primitives.")
 	flags.StringVar(&o.primitiveVersion, "primitive-version", "v1alpha1", "The API version to use for generated federation primitives.")
+	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that will be created in the API will be output to stdout in the provided format.  Valid values are ['yaml'].")
 }
 
 // NewCmdFederateEnable defines the `federate enable` command that
@@ -135,6 +143,11 @@ func (j *enableType) Complete(args []string) error {
 	if len(j.primitiveVersion) == 0 {
 		return errors.New("--primitive-version is a mandatory parameter")
 	}
+	if j.output == "yaml" {
+		j.outputYAML = true
+	} else if len(j.output) > 0 {
+		return fmt.Errorf("Invalid value for --output: %s", j.output)
+	}
 
 	return nil
 }
@@ -146,8 +159,9 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	_, err = EnableFederation(hostConfig, j.FederationNamespace, j.targetName, j.primitiveGroup,
-		j.primitiveVersion, j.comparisonField, j.overridePaths, j.DryRun)
+	_, err = EnableFederation(cmdOut, hostConfig, j.FederationNamespace,
+		j.targetName, j.primitiveGroup, j.primitiveVersion, j.comparisonField,
+		j.overridePaths, j.outputYAML, j.DryRun)
 	if err != nil {
 		return err
 	}
@@ -158,9 +172,9 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 // TODO(marun) Allow updates to the configuration for a type that has
 // already been enabled for federation.  This would likely involve
 // updating the version of the target type and the validation of the schema.
-func EnableFederation(config *rest.Config, federationNamespace, key, primitiveGroup,
+func EnableFederation(cmdOut io.Writer, config *rest.Config, federationNamespace, key, primitiveGroup,
 	primitiveVersion string, comparisonField apicommon.VersionComparisonField,
-	overridePaths []string, dryRun bool) (typeconfig.Interface, error) {
+	overridePaths []string, outputYAML, dryRun bool) (typeconfig.Interface, error) {
 
 	apiResource, err := LookupAPIResource(config, key)
 	if err != nil {
@@ -169,6 +183,22 @@ func EnableFederation(config *rest.Config, federationNamespace, key, primitiveGr
 	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
 
 	typeConfig := typeConfigForTarget(*apiResource, comparisonField, overridePaths, primitiveGroup, primitiveVersion)
+	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
+
+	// TODO(marun) Retrieve the validation schema of the target and
+	// use it in constructing the schema for the template.
+	crds := primitiveCRDs(typeConfig)
+
+	if outputYAML {
+		objects := []pkgruntime.Object{concreteTypeConfig}
+		for _, crd := range crds {
+			objects = append(objects, crd)
+		}
+		err := writeObjectsToYAML(objects, cmdOut)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to write objects to YAML: %v", err)
+		}
+	}
 
 	if dryRun {
 		// Avoid mutating the API
@@ -181,7 +211,7 @@ func EnableFederation(config *rest.Config, federationNamespace, key, primitiveGr
 	}
 	// TODO(marun) Retrieve the validation schema of the target and
 	// use it in constructing the schema for the template.
-	err = createPrimitives(crdClient, typeConfig)
+	err = createPrimitives(crdClient, crds)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +220,6 @@ func EnableFederation(config *rest.Config, federationNamespace, key, primitiveGr
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get federation clientset: %v", err)
 	}
-	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
 	createdTypeConfig, err := fedClient.CoreV1alpha1().FederatedTypeConfigs(federationNamespace).Create(concreteTypeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
@@ -202,6 +231,12 @@ func EnableFederation(config *rest.Config, federationNamespace, key, primitiveGr
 func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicommon.VersionComparisonField, overridePaths []string, primitiveGroup, primitiveVersion string) typeconfig.Interface {
 	kind := apiResource.Kind
 	typeConfig := &fedv1a1.FederatedTypeConfig{
+		// Explicitly including TypeMeta will ensure it will be
+		// serialized properly to yaml.
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "FederatedTypeConfig",
+			APIVersion: "core.federation.k8s.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: groupQualifiedName(apiResource),
 		},
@@ -238,28 +273,66 @@ func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicomm
 	return typeConfig
 }
 
-func createPrimitives(client *apiextv1b1client.ApiextensionsV1beta1Client, typeConfig typeconfig.Interface) error {
-	err := createCrdFromResource(client, typeConfig.GetTemplate())
-	if err != nil {
-		return err
-	}
-	err = createCrdFromResource(client, typeConfig.GetPlacement())
-	if err != nil {
-		return err
+func primitiveCRDs(typeConfig typeconfig.Interface) []*apiextv1b1.CustomResourceDefinition {
+	crds := []*apiextv1b1.CustomResourceDefinition{
+		CrdForAPIResource(typeConfig.GetTemplate()),
+		CrdForAPIResource(typeConfig.GetPlacement()),
 	}
 	overrideAPIResource := typeConfig.GetOverride()
-	if overrideAPIResource == nil {
-		return nil
+	if overrideAPIResource != nil {
+		crds = append(crds, CrdForAPIResource(*overrideAPIResource))
 	}
-	return createCrdFromResource(client, *overrideAPIResource)
+	return crds
 }
 
-func createCrdFromResource(client *apiextv1b1client.ApiextensionsV1beta1Client, apiResource metav1.APIResource) error {
-	crd := CrdForAPIResource(apiResource)
-	_, err := client.CustomResourceDefinitions().Create(crd)
-	// TODO(marun) Update the crd to ensure the validation schema can be updated to the latest target type
-	if err == nil {
-		return nil
+func createPrimitives(client *apiextv1b1client.ApiextensionsV1beta1Client, crds []*apiextv1b1.CustomResourceDefinition) error {
+	for _, crd := range crds {
+		_, err := client.CustomResourceDefinitions().Create(crd)
+		// TODO(marun) Ensure the validation schema can be updated to the latest target type
+		if err == nil {
+			continue
+		}
+		return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
 	}
-	return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
+	return nil
+}
+
+func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
+	for _, obj := range objects {
+		w.Write([]byte("---\n"))
+		err := writeObjectToYAML(obj, w)
+		if err != nil {
+			return fmt.Errorf("Error encoding resource to yaml: %v ", err)
+		}
+	}
+	return nil
+}
+
+func writeObjectToYAML(obj pkgruntime.Object, w io.Writer) error {
+	json, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(obj)
+	if err != nil {
+		return err
+	}
+
+	// Convert to unstructured to filter status out of the output.  If
+	// status is included in the yaml, attempting to create it in a
+	// kube API will cause an error.
+	unstructuredObj := &unstructured.Unstructured{}
+	unstructured.UnstructuredJSONScheme.Decode(json, nil, unstructuredObj)
+	delete(unstructuredObj.Object, "status")
+	// Also remove unnecessary field
+	metadataMap := unstructuredObj.Object["metadata"].(map[string]interface{})
+	delete(metadataMap, "creationTimestamp")
+
+	updatedJSON, err := unstructuredObj.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	data, err := yaml.JSONToYAML(updatedJSON)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(data)
+	return err
 }
