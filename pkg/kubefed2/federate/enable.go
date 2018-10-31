@@ -208,9 +208,18 @@ func GetResources(config *rest.Config, key, namespace, primitiveGroup,
 	typeConfig := typeConfigForTarget(*apiResource, namespace, primitiveGroup,
 		primitiveVersion, comparisonField, overridePaths)
 
+	accessor, err := newSchemaAccessor(config, *apiResource)
+	if err != nil {
+		return nil, fmt.Errorf("Error initializing validation schema accessor: %v", err)
+	}
+	crds, err := primitiveCRDs(typeConfig, accessor)
+	if err != nil {
+		return nil, err
+	}
+
 	return &typeResources{
 		TypeConfig: typeConfig,
-		CRDs:       primitiveCRDs(typeConfig),
+		CRDs:       crds,
 	}, nil
 }
 
@@ -292,16 +301,27 @@ func typeConfigForTarget(apiResource metav1.APIResource, namespace,
 	return typeConfig
 }
 
-func primitiveCRDs(typeConfig typeconfig.Interface) []*apiextv1b1.CustomResourceDefinition {
-	crds := []*apiextv1b1.CustomResourceDefinition{
-		CrdForAPIResource(typeConfig.GetTemplate()),
-		CrdForAPIResource(typeConfig.GetPlacement()),
+func primitiveCRDs(typeConfig typeconfig.Interface, accessor schemaAccessor) ([]*apiextv1b1.CustomResourceDefinition, error) {
+	crds := []*apiextv1b1.CustomResourceDefinition{}
+
+	templateSchema, err := templateValidationSchema(accessor)
+	if err != nil {
+		return nil, err
 	}
+	crds = append(crds, CrdForAPIResource(typeConfig.GetTemplate(), templateSchema))
+
+	placementSchema := placementValidationSchema()
+	crds = append(crds, CrdForAPIResource(typeConfig.GetPlacement(), placementSchema))
+
 	overrideAPIResource := typeConfig.GetOverride()
 	if overrideAPIResource != nil {
-		crds = append(crds, CrdForAPIResource(*overrideAPIResource))
+		overrideSchema, err := overrideValidationSchema(accessor, typeConfig.GetOverridePaths())
+		if err != nil {
+			return nil, err
+		}
+		crds = append(crds, CrdForAPIResource(*overrideAPIResource, overrideSchema))
 	}
-	return crds
+	return crds, nil
 }
 
 func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {

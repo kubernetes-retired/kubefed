@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func CrdForAPIResource(apiResource metav1.APIResource) *apiextv1b1.CustomResourceDefinition {
+func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.CustomResourceValidation) *apiextv1b1.CustomResourceDefinition {
 	scope := apiextv1b1.ClusterScoped
 	if apiResource.Namespaced {
 		scope = apiextv1b1.NamespaceScoped
@@ -50,6 +50,7 @@ func CrdForAPIResource(apiResource metav1.APIResource) *apiextv1b1.CustomResourc
 				Plural: apiResource.Name,
 				Kind:   apiResource.Kind,
 			},
+			Validation: validation,
 		},
 	}
 }
