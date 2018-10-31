@@ -17,6 +17,7 @@ limitations under the License.
 package federate
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -26,7 +27,6 @@ import (
 	"github.com/spf13/pflag"
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
@@ -64,9 +64,8 @@ type enableTypeOptions struct {
 	comparisonField    apicommon.VersionComparisonField
 	rawOverridePaths   string
 	overridePaths      []string
-	templateVersion    string
-	templateGroup      string
-	useExistingCRDs    bool
+	primitiveVersion   string
+	primitiveGroup     string
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
@@ -77,10 +76,9 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 			apicommon.ResourceVersionField, apicommon.GenerationField,
 		),
 	)
-	flags.StringVar(&o.rawOverridePaths, "override-paths", "", "A common-separated list of dot-separated paths (e.g. spec.completions,spec.parallelism).")
-	flags.StringVar(&o.templateGroup, "template-group", "generated.federation.k8s.io", "The name of the API group of the target API type.")
-	flags.StringVar(&o.templateVersion, "template-version", "v1alpha1", "The API version of the target API type.")
-	flags.BoolVar(&o.useExistingCRDs, "use-existing-crds", false, "Whether to reuse existing primitive CRDs.")
+	flags.StringVar(&o.rawOverridePaths, "override-paths", "", "A comma-separated list of dot-separated paths (e.g. spec.completions,spec.parallelism).")
+	flags.StringVar(&o.primitiveGroup, "primitive-group", "primitives.federation.k8s.io", "The name of the API group to use for generated federation primitives.")
+	flags.StringVar(&o.primitiveVersion, "primitive-version", "v1alpha1", "The API version to use for generated federation primitives.")
 }
 
 // NewCmdFederateEnable defines the `federate enable` command that
@@ -116,7 +114,7 @@ func NewCmdFederateEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Comman
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *enableType) Complete(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("NAME is required")
+		return errors.New("NAME is required")
 	}
 	j.targetName = args[0]
 
@@ -131,11 +129,11 @@ func (j *enableType) Complete(args []string) error {
 	if len(j.rawOverridePaths) > 0 {
 		j.overridePaths = strings.Split(j.rawOverridePaths, ",")
 	}
-	if len(j.templateGroup) == 0 {
-		return fmt.Errorf("--template-group is a mandatory parameter ")
+	if len(j.primitiveGroup) == 0 {
+		return errors.New("--primitive-group is a mandatory parameter")
 	}
-	if len(j.templateVersion) == 0 {
-		return fmt.Errorf("--template-version is a mandatory parameter")
+	if len(j.primitiveVersion) == 0 {
+		return errors.New("--primitive-version is a mandatory parameter")
 	}
 
 	return nil
@@ -148,8 +146,8 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	_, err = EnableFederation(hostConfig, j.FederationNamespace, j.targetName, j.templateGroup,
-		j.templateVersion, j.comparisonField, j.overridePaths, j.useExistingCRDs, j.DryRun)
+	_, err = EnableFederation(hostConfig, j.FederationNamespace, j.targetName, j.primitiveGroup,
+		j.primitiveVersion, j.comparisonField, j.overridePaths, j.DryRun)
 	if err != nil {
 		return err
 	}
@@ -160,9 +158,9 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 // TODO(marun) Allow updates to the configuration for a type that has
 // already been enabled for federation.  This would likely involve
 // updating the version of the target type and the validation of the schema.
-func EnableFederation(config *rest.Config, federationNamespace, key, templateGroup,
-	templateVersion string, comparisonField apicommon.VersionComparisonField,
-	overridePaths []string, useExisting, dryRun bool) (typeconfig.Interface, error) {
+func EnableFederation(config *rest.Config, federationNamespace, key, primitiveGroup,
+	primitiveVersion string, comparisonField apicommon.VersionComparisonField,
+	overridePaths []string, dryRun bool) (typeconfig.Interface, error) {
 
 	apiResource, err := LookupAPIResource(config, key)
 	if err != nil {
@@ -170,7 +168,7 @@ func EnableFederation(config *rest.Config, federationNamespace, key, templateGro
 	}
 	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
 
-	typeConfig := typeConfigForTarget(*apiResource, comparisonField, overridePaths, templateGroup, templateVersion)
+	typeConfig := typeConfigForTarget(*apiResource, comparisonField, overridePaths, primitiveGroup, primitiveVersion)
 
 	if dryRun {
 		// Avoid mutating the API
@@ -183,7 +181,7 @@ func EnableFederation(config *rest.Config, federationNamespace, key, templateGro
 	}
 	// TODO(marun) Retrieve the validation schema of the target and
 	// use it in constructing the schema for the template.
-	err = createPrimitives(crdClient, typeConfig, useExisting)
+	err = createPrimitives(crdClient, typeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +199,7 @@ func EnableFederation(config *rest.Config, federationNamespace, key, templateGro
 	return createdTypeConfig, nil
 }
 
-func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicommon.VersionComparisonField, overridePaths []string, templateGroup, templateVersion string) typeconfig.Interface {
+func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicommon.VersionComparisonField, overridePaths []string, primitiveGroup, primitiveVersion string) typeconfig.Interface {
 	kind := apiResource.Kind
 	typeConfig := &fedv1a1.FederatedTypeConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -216,8 +214,8 @@ func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicomm
 			ComparisonField:    comparisonField,
 			PropagationEnabled: true,
 			Template: fedv1a1.APIResource{
-				Group:   templateGroup,
-				Version: templateVersion,
+				Group:   primitiveGroup,
+				Version: primitiveVersion,
 				Kind:    fmt.Sprintf("Federated%s", kind),
 			},
 			Placement: fedv1a1.APIResource{
@@ -240,12 +238,12 @@ func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicomm
 	return typeConfig
 }
 
-func createPrimitives(client *apiextv1b1client.ApiextensionsV1beta1Client, typeConfig typeconfig.Interface, useExisting bool) error {
-	err := createCrdFromResource(client, typeConfig.GetTemplate(), useExisting)
+func createPrimitives(client *apiextv1b1client.ApiextensionsV1beta1Client, typeConfig typeconfig.Interface) error {
+	err := createCrdFromResource(client, typeConfig.GetTemplate())
 	if err != nil {
 		return err
 	}
-	err = createCrdFromResource(client, typeConfig.GetPlacement(), useExisting)
+	err = createCrdFromResource(client, typeConfig.GetPlacement())
 	if err != nil {
 		return err
 	}
@@ -253,14 +251,14 @@ func createPrimitives(client *apiextv1b1client.ApiextensionsV1beta1Client, typeC
 	if overrideAPIResource == nil {
 		return nil
 	}
-	return createCrdFromResource(client, *overrideAPIResource, useExisting)
+	return createCrdFromResource(client, *overrideAPIResource)
 }
 
-func createCrdFromResource(client *apiextv1b1client.ApiextensionsV1beta1Client, apiResource metav1.APIResource, useExisting bool) error {
+func createCrdFromResource(client *apiextv1b1client.ApiextensionsV1beta1Client, apiResource metav1.APIResource) error {
 	crd := CrdForAPIResource(apiResource)
 	_, err := client.CustomResourceDefinitions().Create(crd)
 	// TODO(marun) Update the crd to ensure the validation schema can be updated to the latest target type
-	if err == nil || useExisting && errors.IsAlreadyExists(err) {
+	if err == nil {
 		return nil
 	}
 	return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
