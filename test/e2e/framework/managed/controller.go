@@ -110,7 +110,6 @@ func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig
 	}
 
 	for _, typeConfig := range typeConfigs {
-		apiResource := typeConfig.GetTarget()
 		resourceKind := typeConfig.GetTemplate().Kind
 
 		schedulingKind, ok := schedulingmanager.SchedulingRegistry[resourceKind]
@@ -118,7 +117,7 @@ func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig
 			continue
 		}
 
-		err := scheduler.StartPlugin(resourceKind, &apiResource, f.stopChan)
+		err := scheduler.StartPlugin(typeConfig, f.stopChan)
 		if err != nil {
 			tl.Fatalf("Error starting plugin for %q : %v", resourceKind, err)
 		}

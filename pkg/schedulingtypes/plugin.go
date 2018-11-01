@@ -18,18 +18,25 @@ package schedulingtypes
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/golang/glog"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes/adapters"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	kubeclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+)
+
+const (
+	replicasField = "replicas"
+	replicasPath  = "spec.replicas"
 )
 
 type Plugin struct {
@@ -43,74 +50,61 @@ type Plugin struct {
 	overrideStore cache.Store
 	// Informer controller for override directives of the federated type
 	overrideController cache.Controller
+	// Dynamic client for override type
+	overrideClient util.ResourceClient
 
 	// Store for the placements of the federated type
 	placementStore cache.Store
 	// Informer controller for placements of the federated type
 	placementController cache.Controller
+	// Dynamic client for placement type
+	placementClient util.ResourceClient
 
-	adapter adapters.Adapter
+	typeConfig typeconfig.Interface
 }
 
-func NewPlugin(adapter adapters.Adapter, apiResource *metav1.APIResource, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces util.FederationNamespaces, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *util.ClusterLifecycleHandlerFuncs) *Plugin {
+func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface) (*Plugin, error) {
+	targetAPIResource := typeConfig.GetTarget()
+	fedClient, kubeClient, crClient := controllerConfig.AllClients(fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind)))
 	p := &Plugin{
 		targetInformer: util.NewFederatedInformer(
 			fedClient,
 			kubeClient,
 			crClient,
-			namespaces,
-			apiResource,
-			clusterEventHandler,
-			handlers,
+			controllerConfig.FederationNamespaces,
+			&targetAPIResource,
+			eventHandlers.ClusterEventHandler,
+			eventHandlers.ClusterLifecycleHandlers,
 		),
-		adapter: adapter,
+		typeConfig: typeConfig,
 	}
 
-	targetNamespace := namespaces.TargetNamespace
+	pool := dynamic.NewDynamicClientPool(controllerConfig.KubeConfig)
 
-	p.templateStore, p.templateController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.TemplateList(targetNamespace, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.TemplateWatch(targetNamespace, options)
-			},
-		},
-		adapter.TemplateObject(),
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(federationEventHandler),
-	)
+	targetNamespace := controllerConfig.TargetNamespace
+	federationEventHandler := eventHandlers.FederationEventHandler
 
-	p.overrideStore, p.overrideController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.OverrideList(targetNamespace, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.OverrideWatch(targetNamespace, options)
-			},
-		},
-		adapter.OverrideObject(),
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(federationEventHandler),
-	)
+	templateAPIResource := typeConfig.GetTemplate()
+	templateClient, err := util.NewResourceClient(pool, &templateAPIResource)
+	if err != nil {
+		return nil, err
+	}
+	p.templateStore, p.templateController = util.NewResourceInformer(templateClient, targetNamespace, federationEventHandler)
 
-	p.placementStore, p.placementController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return adapter.PlacementList(targetNamespace, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return adapter.PlacementWatch(targetNamespace, options)
-			},
-		},
-		adapter.PlacementObject(),
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(federationEventHandler),
-	)
+	placementAPIResource := typeConfig.GetPlacement()
+	p.placementClient, err = util.NewResourceClient(pool, &placementAPIResource)
+	if err != nil {
+		return nil, err
+	}
+	p.placementStore, p.placementController = util.NewResourceInformer(p.placementClient, targetNamespace, federationEventHandler)
 
-	return p
+	p.overrideClient, err = util.NewResourceClient(pool, typeConfig.GetOverride())
+	if err != nil {
+		return nil, err
+	}
+	p.overrideStore, p.overrideController = util.NewResourceInformer(p.overrideClient, targetNamespace, federationEventHandler)
+
+	return p, nil
 }
 
 func (p *Plugin) Start(stopChan <-chan struct{}) {
@@ -129,13 +123,28 @@ func (p *Plugin) HasSynced() bool {
 		glog.V(2).Infof("Cluster list not synced")
 		return false
 	}
+
+	if !p.templateController.HasSynced() {
+		return false
+	}
+	if !p.placementController.HasSynced() {
+		return false
+	}
+	if !p.overrideController.HasSynced() {
+		return false
+	}
+
 	clusters, err := p.targetInformer.GetReadyClusters()
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
 		return false
 	}
 
-	return p.targetInformer.GetTargetStore().ClustersSynced(clusters)
+	if !p.targetInformer.GetTargetStore().ClustersSynced(clusters) {
+		return false
+	}
+
+	return true
 }
 
 func (p *Plugin) TemplateExists(key string) bool {
@@ -147,4 +156,122 @@ func (p *Plugin) TemplateExists(key string) bool {
 		return false
 	}
 	return exist
+}
+
+func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newClusterNames []string) error {
+	placement, err := p.placementClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		newPlacement := newUnstructured(p.typeConfig.GetPlacement(), qualifiedName)
+		setPlacementSpec(newPlacement, newClusterNames)
+		_, err := p.placementClient.Resources(qualifiedName.Namespace).Create(newPlacement)
+		return err
+	}
+
+	clusterNames, err := util.GetClusterNames(placement)
+	if err != nil {
+		return err
+	}
+	if PlacementUpdateNeeded(clusterNames, newClusterNames) {
+		setPlacementSpec(placement, newClusterNames)
+		_, err := p.placementClient.Resources(qualifiedName.Namespace).Update(placement)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[string]int64) error {
+	override, err := p.overrideClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		apiResource := p.typeConfig.GetOverride()
+		newOverride := newUnstructured(*apiResource, qualifiedName)
+		setOverrideSpec(newOverride, result)
+		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
+		return err
+	}
+
+	if OverrideUpdateNeeded(p.typeConfig, override, result) {
+		setOverrideSpec(override, result)
+		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func newUnstructured(apiResource metav1.APIResource, qualifiedName util.QualifiedName) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetKind(apiResource.Kind)
+	gv := schema.GroupVersion{Group: apiResource.Group, Version: apiResource.Version}
+	obj.SetAPIVersion(gv.String())
+	obj.SetName(qualifiedName.Name)
+	obj.SetNamespace(qualifiedName.Namespace)
+	return obj
+}
+
+func setPlacementSpec(obj *unstructured.Unstructured, clusterNames []string) {
+	obj.Object[util.SpecField] = map[string]interface{}{
+		util.ClusterNamesField: clusterNames,
+	}
+}
+
+// These assume that there would be no duplicate clusternames
+func PlacementUpdateNeeded(names, newNames []string) bool {
+	sort.Strings(names)
+	sort.Strings(newNames)
+	return !reflect.DeepEqual(names, newNames)
+}
+
+func setOverrideSpec(obj *unstructured.Unstructured, result map[string]int64) {
+	overrides := []interface{}{}
+	for clusterName, replicas := range result {
+		overridesMap := map[string]interface{}{
+			util.ClusterNameField: clusterName,
+			replicasField:         replicas,
+		}
+		overrides = append(overrides, overridesMap)
+	}
+	obj.Object[util.SpecField] = map[string]interface{}{
+		util.OverridesField: overrides,
+	}
+}
+
+func OverrideUpdateNeeded(typeConfig typeconfig.Interface, obj *unstructured.Unstructured, result map[string]int64) bool {
+	kind := typeConfig.GetOverride().Kind
+	qualifiedName := util.NewQualifiedName(obj)
+
+	overrides, err := util.GetClusterOverrides(typeConfig, obj)
+	if err != nil {
+		wrappedErr := fmt.Errorf("Error reading cluster overrides for %s %q: %v", kind, qualifiedName, err)
+		runtime.HandleError(wrappedErr)
+		// Updating the overrides should hopefully fix the above problem
+		return true
+	}
+
+	resultLen := len(result)
+	checkLen := 0
+	for clusterName, clusterOverrides := range overrides {
+		for _, override := range clusterOverrides {
+			if strings.Join(override.Path, ".") == replicasPath {
+				value, ok := override.FieldValue.(int64)
+				replicas, ok := result[clusterName]
+				if !ok || value != int64(replicas) {
+					return true
+				}
+				checkLen += 1
+			}
+		}
+	}
+
+	return checkLen != resultLen
 }

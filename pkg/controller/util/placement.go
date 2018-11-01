@@ -21,10 +21,10 @@ import (
 )
 
 func GetClusterNames(placement *unstructured.Unstructured) ([]string, error) {
-	clusterNames, _, err := unstructured.NestedStringSlice(placement.Object, "spec", ClusterNamesField)
+	clusterNames, _, err := unstructured.NestedStringSlice(placement.Object, SpecField, ClusterNamesField)
 	return clusterNames, err
 }
 
 func SetClusterNames(placement *unstructured.Unstructured, clusterNames []string) error {
-	return unstructured.SetNestedStringSlice(placement.Object, clusterNames, "spec", ClusterNamesField)
+	return unstructured.SetNestedStringSlice(placement.Object, clusterNames, SpecField, ClusterNamesField)
 }

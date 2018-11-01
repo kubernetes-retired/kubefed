@@ -17,13 +17,11 @@ limitations under the License.
 package schedulingtypes
 
 import (
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	kubeclientset "k8s.io/client-go/kubernetes"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 type Scheduler interface {
@@ -37,7 +35,13 @@ type Scheduler interface {
 	Stop()
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
 
-	StartPlugin(kind string, apiResource *metav1.APIResource, stopChan <-chan struct{}) error
+	StartPlugin(typeConfig typeconfig.Interface, stopChan <-chan struct{}) error
 }
 
-type SchedulerFactory func(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces FederationNamespaces, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler
+type SchedulerEventHandlers struct {
+	FederationEventHandler   func(pkgruntime.Object)
+	ClusterEventHandler      func(pkgruntime.Object)
+	ClusterLifecycleHandlers *ClusterLifecycleHandlerFuncs
+}
+
+type SchedulerFactory func(controllerConfig *ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error)

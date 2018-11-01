@@ -142,7 +142,6 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 	// set name and group for the type config target
 	corev1a1.SetFederatedTypeConfigDefaults(typeConfig)
-	apiResource := typeConfig.GetTarget()
 	templateKind := typeConfig.GetTemplate().Kind
 
 	kind, ok := SchedulingRegistry[templateKind]
@@ -164,7 +163,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 	}
 
 	glog.Infof("Start plugin with kind %s for scheduling type %s", templateKind, kind)
-	err = c.scheduler[kind].StartPlugin(templateKind, &apiResource, c.stopChan)
+	err = c.scheduler[kind].StartPlugin(typeConfig, c.stopChan)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Error starting plugin for %q : %v", templateKind, err))
 		return util.StatusError
