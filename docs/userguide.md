@@ -3,6 +3,8 @@
 If you are looking to use federation v2, you've come to the right place. Below
 is a walkthrough tutorial for how to deploy the federation v2 control plane.
 
+Please refer to [Federation V2 Concepts](./concepts.md) first before you go through this user guide.
+
 ## Prerequisites
 
 The federation v2 deployment requires kubernetes version >= 1.11. The following
