@@ -16,8 +16,9 @@ spec:
         metadata:
           type: object
         spec:
-          data:
-            type: string
+          properties:
+            data:
+              type: string
         status:
           type: object
   names:
