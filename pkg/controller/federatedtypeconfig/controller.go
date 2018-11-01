@@ -19,6 +19,7 @@ package federatedtypeconfig
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -67,15 +68,19 @@ type Controller struct {
 	controller cache.Controller
 
 	worker util.ReconcileWorker
+
+	// Availability delays to be passed to sync controller
+	clusterAvailableDelay   time.Duration
+	clusterUnavailableDelay time.Duration
 }
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}) error {
+func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration) error {
 	userAgent := "FederatedTypeConfig"
 	restclient.AddUserAgent(config, userAgent)
 	client := fedclientset.NewForConfigOrDie(config).CoreV1alpha1()
 
-	controller, err := newController(client, config, fedNamespace, clusterNamespace, targetNamespace)
+	controller, err := newController(client, config, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
 	if err != nil {
 		return err
 	}
@@ -85,14 +90,16 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 }
 
 // newController returns a new controller to manage FederatedTypeConfig objects.
-func newController(client corev1alpha1client.CoreV1alpha1Interface, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) (*Controller, error) {
+func newController(client corev1alpha1client.CoreV1alpha1Interface, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*Controller, error) {
 	c := &Controller{
-		client:           client,
-		config:           config,
-		fedNamespace:     fedNamespace,
-		clusterNamespace: clusterNamespace,
-		targetNamespace:  targetNamespace,
-		stopChannels:     make(map[string]chan struct{}),
+		client:                  client,
+		config:                  config,
+		fedNamespace:            fedNamespace,
+		clusterNamespace:        clusterNamespace,
+		targetNamespace:         targetNamespace,
+		stopChannels:            make(map[string]chan struct{}),
+		clusterAvailableDelay:   clusterAvailableDelay,
+		clusterUnavailableDelay: clusterUnavailableDelay,
 	}
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
@@ -219,7 +226,7 @@ func (c *Controller) startController(tc *corev1a1.FederatedTypeConfig) error {
 	corev1a1.SetFederatedTypeConfigDefaults(tc)
 
 	stopChan := make(chan struct{})
-	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, c.targetNamespace, stopChan, false)
+	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, c.targetNamespace, stopChan, c.clusterAvailableDelay, c.clusterUnavailableDelay, false)
 	if err != nil {
 		close(stopChan)
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)

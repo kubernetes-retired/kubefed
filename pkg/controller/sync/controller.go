@@ -102,8 +102,8 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace, targetNamespace)
+func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
+	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) (*FederationSyncController, error) {
+func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 	// Initialize non-dynamic clients first to avoid polluting config
@@ -137,8 +137,8 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: userAgent})
 
 	s := &FederationSyncController{
-		clusterAvailableDelay:   time.Second * 20,
-		clusterUnavailableDelay: time.Second * 60,
+		clusterAvailableDelay:   clusterAvailableDelay,
+		clusterUnavailableDelay: clusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
