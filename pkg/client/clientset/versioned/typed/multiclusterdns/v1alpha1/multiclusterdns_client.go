@@ -28,6 +28,7 @@ import (
 type MulticlusterdnsV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	DNSEndpointsGetter
+	DomainsGetter
 	IngressDNSRecordsGetter
 	ServiceDNSRecordsGetter
 }
@@ -39,6 +40,10 @@ type MulticlusterdnsV1alpha1Client struct {
 
 func (c *MulticlusterdnsV1alpha1Client) DNSEndpoints(namespace string) DNSEndpointInterface {
 	return newDNSEndpoints(c, namespace)
+}
+
+func (c *MulticlusterdnsV1alpha1Client) Domains(namespace string) DomainInterface {
+	return newDomains(c, namespace)
 }
 
 func (c *MulticlusterdnsV1alpha1Client) IngressDNSRecords(namespace string) IngressDNSRecordInterface {

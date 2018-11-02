@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	dnsZone    = "dzone.io"
+	dnsZone    = "example.com"
 	federation = "galactic"
 
 	c1Region = "us"
@@ -59,10 +59,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 		"NoClusters": {
 			dnsObject: feddnsv1a1.ServiceDNSRecord{
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
+					DomainRef: federation,
 				},
-				Status: feddnsv1a1.ServiceDNSRecordStatus{},
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
+				},
 			},
 			expectEndpoints: nil,
 			expectError:     false,
@@ -74,10 +75,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Namespace: namespace,
 				},
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
+					DomainRef: federation,
 				},
 				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -100,10 +101,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Namespace: namespace,
 				},
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
+					DomainRef: federation,
 				},
 				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -132,10 +133,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Namespace: namespace,
 				},
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
+					DomainRef: federation,
 				},
 				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -163,10 +164,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Namespace: namespace,
 				},
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
+					DomainRef: federation,
 				},
 				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -192,10 +193,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Namespace: namespace,
 				},
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
+					DomainRef: federation,
 				},
 				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -224,11 +225,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Namespace: namespace,
 				},
 				Spec: feddnsv1a1.ServiceDNSRecordSpec{
-					FederationName: federation,
-					DNSSuffix:      dnsZone,
-					RecordTTL:      userConfiguredTTL,
+					DomainRef: federation,
+					RecordTTL: userConfiguredTTL,
 				},
 				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
 							Cluster: c1, Zone: c1Zone, Region: c1Region,
@@ -241,6 +242,40 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				{DNSName: globalDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: userConfiguredTTL},
 				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: userConfiguredTTL},
 				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: userConfiguredTTL},
+			},
+			expectError: false,
+		},
+		"UserConfiguredDNSPrefix": {
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
+					DomainRef: federation,
+					DNSPrefix: "foo",
+				},
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
+					DNS: []feddnsv1a1.ClusterDNS{
+						{
+							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
+						},
+						{
+							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
+						},
+					},
+				},
+			},
+			expectEndpoints: []*feddnsv1a1.Endpoint{
+				{DNSName: globalDNSName, Targets: []string{lb1, lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: "foo" + "." + dnsZone, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},

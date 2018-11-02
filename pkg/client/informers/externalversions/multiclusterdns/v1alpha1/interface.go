@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// DNSEndpoints returns a DNSEndpointInformer.
 	DNSEndpoints() DNSEndpointInformer
+	// Domains returns a DomainInformer.
+	Domains() DomainInformer
 	// IngressDNSRecords returns a IngressDNSRecordInformer.
 	IngressDNSRecords() IngressDNSRecordInformer
 	// ServiceDNSRecords returns a ServiceDNSRecordInformer.
@@ -46,6 +48,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // DNSEndpoints returns a DNSEndpointInformer.
 func (v *version) DNSEndpoints() DNSEndpointInformer {
 	return &dNSEndpointInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// Domains returns a DomainInformer.
+func (v *version) Domains() DomainInformer {
+	return &domainInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // IngressDNSRecords returns a IngressDNSRecordInformer.

@@ -42,10 +42,13 @@ var _ = Describe("ServiceDNS", func() {
 
 	const userAgent = "test-service-dns"
 	const baseName = "test-service-dns-"
+	const federation = "galactic"
+	const Domain = "example.com"
 
 	var fedClient fedclientset.Interface
 	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
 	var namespace string
+	var domainClient dnsv1a1client.DomainInterface
 	var dnsClient dnsv1a1client.ServiceDNSRecordInterface
 
 	objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
@@ -56,6 +59,7 @@ var _ = Describe("ServiceDNS", func() {
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
 		namespace = f.TestNamespaceName()
+		domainClient = fedClient.MulticlusterdnsV1alpha1().Domains(f.FederationSystemNamespace())
 		dnsClient = fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace)
 
 		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters(f.FederationSystemNamespace()).List(metav1.ListOptions{})
@@ -68,15 +72,23 @@ var _ = Describe("ServiceDNS", func() {
 			}
 		}
 		f.SetUpServiceDNSControllerFixture()
+		domainObj := common.NewDomainObject(federation, Domain)
+		_, err = domainClient.Create(domainObj)
+		framework.ExpectNoError(err, "Error creating Domain object")
+	})
+
+	AfterEach(func() {
+		domainClient.Delete(federation, &metav1.DeleteOptions{})
 	})
 
 	It("ServiceDNS object status should be updated correctly when there are no service and/or endpoint in member clusters", func() {
 		By("Creating the ServiceDNS object")
 		serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
+		serviceDNSObj.Spec.DomainRef = federation
 		serviceDNS, err := dnsClient.Create(serviceDNSObj)
 		framework.ExpectNoError(err, "Error creating ServiceDNS object: %v", serviceDNS)
 
-		serviceDNSStatus := dnsv1a1.ServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
+		serviceDNSStatus := dnsv1a1.ServiceDNSRecordStatus{Domain: Domain, DNS: []dnsv1a1.ClusterDNS{}}
 		for _, clusterName := range f.ClusterNames(userAgent) {
 			serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
 				Cluster: clusterName,
@@ -98,20 +110,17 @@ var _ = Describe("ServiceDNS", func() {
 			RecordTypeA = "A"
 			RecordTTL   = 300
 		)
-		federation := "galactic"
-		dnsZone := "dzone.io"
 
 		It("DNSEndpoint object should be created with correct status when ServiceDNS object is created", func() {
 			By("Creating the ServiceDNS object")
 			serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
-			serviceDNSObj.Spec.FederationName = federation
-			serviceDNSObj.Spec.DNSSuffix = dnsZone
+			serviceDNSObj.Spec.DomainRef = federation
 			serviceDNSObj.Spec.RecordTTL = RecordTTL
 			serviceDNS, err := dnsClient.Create(serviceDNSObj)
 			framework.ExpectNoError(err, "Error creating ServiceDNS object %v", serviceDNS)
 			name := serviceDNS.Name
 
-			serviceDNSStatus := &dnsv1a1.ServiceDNSRecordStatus{DNS: []dnsv1a1.ClusterDNS{}}
+			serviceDNSStatus := &dnsv1a1.ServiceDNSRecordStatus{Domain: Domain, DNS: []dnsv1a1.ClusterDNS{}}
 
 			By("Creating corresponding service and endpoint for the ServiceDNS object in member clusters")
 			serviceDNSStatus = createClusterServiceAndEndpoints(f, name, namespace, serviceDNSStatus)
@@ -133,15 +142,15 @@ var _ = Describe("ServiceDNS", func() {
 				lbs := dnsendpoint.ExtractLoadBalancerTargets(cluster.LoadBalancer)
 
 				endpoint := common.NewDNSEndpoint(
-					strings.Join([]string{name, namespace, federation, "svc", zone, region, dnsZone}, "."),
+					strings.Join([]string{name, namespace, federation, "svc", zone, region, Domain}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 				endpoint = common.NewDNSEndpoint(
-					strings.Join([]string{name, namespace, federation, "svc", region, dnsZone}, "."),
+					strings.Join([]string{name, namespace, federation, "svc", region, Domain}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 				endpoint = common.NewDNSEndpoint(
-					strings.Join([]string{name, namespace, federation, "svc", dnsZone}, "."),
+					strings.Join([]string{name, namespace, federation, "svc", Domain}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 			}

@@ -34,6 +34,9 @@ func init() {
 	Inject = append(Inject, func(arguments args.InjectArgs) error {
 		Injector.ControllerManager = arguments.ControllerManager
 
+		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.ClusterPropagatedVersion{}, arguments.Informers.Core().V1alpha1().ClusterPropagatedVersions()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedCluster{}, arguments.Informers.Core().V1alpha1().FederatedClusters()); err != nil {
 			return err
 		}
@@ -112,6 +115,9 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.DNSEndpoint{}, arguments.Informers.Multiclusterdns().V1alpha1().DNSEndpoints()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.Domain{}, arguments.Informers.Multiclusterdns().V1alpha1().Domains()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.IngressDNSRecord{}, arguments.Informers.Multiclusterdns().V1alpha1().IngressDNSRecords()); err != nil {
 			return err
 		}
@@ -155,6 +161,7 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.DNSEndpointCRD)
+	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.DomainCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.IngressDNSRecordCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.ServiceDNSRecordCRD)
 	Injector.CRDs = append(Injector.CRDs, &schedulingv1alpha1.ReplicaSchedulingPreferenceCRD)

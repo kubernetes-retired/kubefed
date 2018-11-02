@@ -32,6 +32,15 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
+func NewDomainObject(federation, domain string) *dnsv1a1.Domain {
+	return &dnsv1a1.Domain{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: federation,
+		},
+		Domain: domain,
+	}
+}
+
 func NewServiceDNSObject(baseName, namespace string) *dnsv1a1.ServiceDNSRecord {
 	return &dnsv1a1.ServiceDNSRecord{
 		ObjectMeta: metav1.ObjectMeta{

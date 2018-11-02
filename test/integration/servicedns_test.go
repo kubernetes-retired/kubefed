@@ -69,6 +69,9 @@ var TestServiceDNS = func(t *testing.T) {
 		},
 	}
 
+	const federation = "galactic"
+	const Domain = "example.com"
+
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
 			tl := framework.NewIntegrationLogger(t)
@@ -79,14 +82,23 @@ var TestServiceDNS = func(t *testing.T) {
 				return fixture.client.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace).Get(name, metav1.GetOptions{})
 			}
 
+			domain := common.NewDomainObject(federation, Domain)
+			tl.Logf("Create Domain Object: %s", federation)
+			_, err := fixture.client.MulticlusterdnsV1alpha1().Domains(FedFixture.SystemNamespace).Create(domain)
+			if err != nil {
+				tl.Fatalf("Error creating Domain object %q: %v", federation, err)
+			}
+			tl.Logf("Create Domain object success: %s", federation)
+
 			serviceDNS := common.NewServiceDNSObject(tc.name, namespace)
+			serviceDNS.Spec.DomainRef = federation
 			tl.Logf("Create serviceDNSObj: %s", key)
 			serviceDNSObj, err := fixture.client.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace).Create(serviceDNS)
-			name := serviceDNSObj.Name
 			if err != nil {
 				tl.Fatalf("Error creating ServiceDNS object %q: %v", key, err)
 			}
 			tl.Logf("Create ServiceDNS object success: %s", key)
+			name := serviceDNSObj.Name
 
 			for clusterName, clusterClient := range fixture.clusterClients {
 				if tc.createService {
@@ -117,10 +129,16 @@ var TestServiceDNS = func(t *testing.T) {
 			}
 
 			serviceDNSObj.Status.DNS = tc.desiredDNSStatus
+			serviceDNSObj.Status.Domain = Domain
 
 			tl.Logf("Wait for ServiceDNS object status update")
 			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNSObj, framework.DefaultWaitInterval, wait.ForeverTestTimeout)
 			tl.Logf("ServiceDNS object status is updated successfully: %s", key)
+
+			err = fixture.client.MulticlusterdnsV1alpha1().Domains(FedFixture.SystemNamespace).Delete(federation, &metav1.DeleteOptions{})
+			if err != nil {
+				tl.Fatalf("Error deleting Domain object %q: %v", federation, err)
+			}
 		})
 	}
 }
