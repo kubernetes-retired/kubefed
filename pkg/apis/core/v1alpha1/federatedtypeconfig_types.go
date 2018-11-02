@@ -164,6 +164,10 @@ func PluralName(kind string) string {
 	return fmt.Sprintf("%ss", lowerKind)
 }
 
+func (f *FederatedTypeConfig) GetObjectMeta() metav1.ObjectMeta {
+	return f.ObjectMeta
+}
+
 func (f *FederatedTypeConfig) GetTarget() metav1.APIResource {
 	return apiResourceToMeta(f.Spec.Target, f.Spec.Namespaced)
 }

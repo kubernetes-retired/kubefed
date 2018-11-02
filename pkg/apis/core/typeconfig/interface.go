@@ -23,6 +23,7 @@ import (
 
 // Interface defines how to interact with a FederatedTypeConfig
 type Interface interface {
+	GetObjectMeta() metav1.ObjectMeta
 	GetTarget() metav1.APIResource
 	GetNamespaced() bool
 	GetComparisonField() common.VersionComparisonField
