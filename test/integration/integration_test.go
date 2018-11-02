@@ -23,7 +23,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var FedFixture *framework.FederationFixture
@@ -58,8 +57,8 @@ func TestIntegration(t *testing.T) {
 	if namespaceTypeConfig == nil {
 		t.Fatal("Unable to find namespace type config")
 	}
-	kubeConfig := FedFixture.KubeApi.NewConfig(tl)
-	namespaceSyncFixture := framework.NewSyncControllerFixture(tl, namespaceTypeConfig, kubeConfig, FedFixture.SystemNamespace, FedFixture.SystemNamespace, metav1.NamespaceAll)
+	controllerConfig := FedFixture.ControllerConfig(tl)
+	namespaceSyncFixture := framework.NewSyncControllerFixture(tl, controllerConfig, namespaceTypeConfig)
 	defer namespaceSyncFixture.TearDown(tl)
 
 	t.Run("Parallel-Integration-Test-Group", func(t *testing.T) {

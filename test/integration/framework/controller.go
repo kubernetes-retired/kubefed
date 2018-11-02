@@ -29,7 +29,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
-	restclient "k8s.io/client-go/rest"
 )
 
 // ControllerFixture manages a federation controller for testing.
@@ -38,12 +37,11 @@ type ControllerFixture struct {
 }
 
 // NewSyncControllerFixture initializes a new sync controller fixture.
-
-func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) *ControllerFixture {
+func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := sync.StartFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
+	err := sync.StartFederationSyncController(controllerConfig, f.stopChan, typeConfig)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
@@ -51,15 +49,15 @@ func NewSyncControllerFixture(tl common.TestLogger, typeConfig typeconfig.Interf
 }
 
 // NewServiceDNSControllerFixture initializes a new service-dns controller fixture.
-func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) *ControllerFixture {
+func NewServiceDNSControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := servicedns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
+	err := servicedns.StartController(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting service dns controller: %v", err)
 	}
-	err = dnsendpoint.StartServiceDNSEndpointController(config, targetNamespace, f.stopChan, true)
+	err = dnsendpoint.StartServiceDNSEndpointController(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting service dns endpoint controller: %v", err)
 	}
@@ -67,15 +65,15 @@ func NewServiceDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 }
 
 // NewIngressDNSControllerFixture initializes a new ingress-dns controller fixture.
-func NewIngressDNSControllerFixture(tl common.TestLogger, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) *ControllerFixture {
+func NewIngressDNSControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
+	err := ingressdns.StartController(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting ingress dns controller: %v", err)
 	}
-	err = dnsendpoint.StartIngressDNSEndpointController(config, targetNamespace, f.stopChan, true)
+	err = dnsendpoint.StartIngressDNSEndpointController(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 	}
@@ -83,22 +81,22 @@ func NewIngressDNSControllerFixture(tl common.TestLogger, config *restclient.Con
 }
 
 // NewClusterControllerFixture initializes a new cluster controller fixture.
-func NewClusterControllerFixture(config *restclient.Config, fedNamespace, clusterNamespace string) *ControllerFixture {
+func NewClusterControllerFixture(config *util.ControllerConfig) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 	monitorPeriod := 1 * time.Second
-	federatedcluster.StartClusterController(config, fedNamespace, clusterNamespace, f.stopChan, monitorPeriod)
+	federatedcluster.StartClusterController(config, f.stopChan, monitorPeriod)
 	return f
 }
 
 // NewRSPControllerFixture initializes a new RSP controller fixture.
-func NewRSPControllerFixture(tl common.TestLogger, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string) *ControllerFixture {
+func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 	kind := schedulingtypes.RSPKind
-	err := schedulingpreference.StartSchedulingPreferenceController(kind, schedulingtypes.GetSchedulerFactory(kind), config, fedNamespace, clusterNamespace, targetNamespace, f.stopChan, util.DefaultClusterAvailableDelay, util.DefaultClusterUnavailableDelay, true)
+	err := schedulingpreference.StartSchedulingPreferenceController(config, f.stopChan, kind, schedulingtypes.GetSchedulerFactory(kind))
 	if err != nil {
 		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
 	}

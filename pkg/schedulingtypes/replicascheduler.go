@@ -55,11 +55,11 @@ type ReplicaScheduler struct {
 	targetNamespace string
 }
 
-func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
+func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces FederationNamespaces, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
 	scheduler := &ReplicaScheduler{
 		plugins:         make(map[string]*Plugin),
 		fedClient:       fedClient,
-		targetNamespace: targetNamespace,
+		targetNamespace: namespaces.TargetNamespace,
 	}
 
 	for name, apiResource := range ReplicaSechedulingResources {
@@ -76,9 +76,7 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 			fedClient,
 			kubeClient,
 			crClient,
-			fedNamespace,
-			clusterNamespace,
-			targetNamespace,
+			namespaces,
 			federationEventHandler,
 			clusterEventHandler,
 			handlers,
@@ -93,9 +91,7 @@ func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclient
 		fedClient,
 		kubeClient,
 		crClient,
-		fedNamespace,
-		clusterNamespace,
-		targetNamespace,
+		namespaces,
 		PodResource,
 		func(pkgruntime.Object) {},
 		handlers,

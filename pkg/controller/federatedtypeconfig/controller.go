@@ -19,7 +19,6 @@ package federatedtypeconfig
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
 
@@ -29,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
@@ -44,19 +42,10 @@ const finalizer string = "core.federation.k8s.io/federated-type-config"
 
 // Controller manages the FederatedTypeConfig objects in federation.
 type Controller struct {
+	// Arguments to use when starting new controllers
+	controllerConfig *util.ControllerConfig
+
 	client corev1alpha1client.CoreV1alpha1Interface
-
-	// Reference to config used to start new controllers
-	config *rest.Config
-
-	// The name of the federation system namespace
-	fedNamespace string
-
-	// The cluster registry namespace
-	clusterNamespace string
-
-	// The namespace to target
-	targetNamespace string
 
 	// Map of running sync controllers keyed by qualified target type
 	stopChannels map[string]chan struct{}
@@ -68,19 +57,16 @@ type Controller struct {
 	controller cache.Controller
 
 	worker util.ReconcileWorker
-
-	// Availability delays to be passed to sync controller
-	clusterAvailableDelay   time.Duration
-	clusterUnavailableDelay time.Duration
 }
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration) error {
+func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
 	userAgent := "FederatedTypeConfig"
-	restclient.AddUserAgent(config, userAgent)
-	client := fedclientset.NewForConfigOrDie(config).CoreV1alpha1()
+	kubeConfig := config.KubeConfig
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	client := fedclientset.NewForConfigOrDie(kubeConfig).CoreV1alpha1()
 
-	controller, err := newController(client, config, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
+	controller, err := newController(config, client)
 	if err != nil {
 		return err
 	}
@@ -90,16 +76,11 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 }
 
 // newController returns a new controller to manage FederatedTypeConfig objects.
-func newController(client corev1alpha1client.CoreV1alpha1Interface, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*Controller, error) {
+func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) (*Controller, error) {
 	c := &Controller{
-		client:                  client,
-		config:                  config,
-		fedNamespace:            fedNamespace,
-		clusterNamespace:        clusterNamespace,
-		targetNamespace:         targetNamespace,
-		stopChannels:            make(map[string]chan struct{}),
-		clusterAvailableDelay:   clusterAvailableDelay,
-		clusterUnavailableDelay: clusterUnavailableDelay,
+		controllerConfig: config,
+		client:           client,
+		stopChannels:     make(map[string]chan struct{}),
 	}
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
@@ -110,10 +91,10 @@ func newController(client corev1alpha1client.CoreV1alpha1Interface, config *rest
 			// restrictive authz can be applied to a namespaced
 			// control plane.
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return client.FederatedTypeConfigs(fedNamespace).List(options)
+				return client.FederatedTypeConfigs(config.FederationNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return client.FederatedTypeConfigs(fedNamespace).Watch(options)
+				return client.FederatedTypeConfigs(config.FederationNamespace).Watch(options)
 			},
 		},
 		&corev1a1.FederatedTypeConfig{},
@@ -160,7 +141,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	enabled := typeConfig.Spec.PropagationEnabled
 
-	limitedScope := c.targetNamespace != metav1.NamespaceAll
+	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && enabled && !typeConfig.GetNamespaced() {
 		glog.Infof("Skipping start of sync controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetTemplate().Kind)
 		return util.StatusAllOK
@@ -226,7 +207,7 @@ func (c *Controller) startController(tc *corev1a1.FederatedTypeConfig) error {
 	corev1a1.SetFederatedTypeConfigDefaults(tc)
 
 	stopChan := make(chan struct{})
-	err := synccontroller.StartFederationSyncController(tc, c.config, c.fedNamespace, c.clusterNamespace, c.targetNamespace, stopChan, c.clusterAvailableDelay, c.clusterUnavailableDelay, false)
+	err := synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc)
 	if err != nil {
 		close(stopChan)
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)

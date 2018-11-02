@@ -37,13 +37,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -102,12 +99,12 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
-	controller, err := newFederationSyncController(typeConfig, kubeConfig, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
+func StartFederationSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface) error {
+	controller, err := newFederationSyncController(controllerConfig, typeConfig)
 	if err != nil {
 		return err
 	}
-	if minimizeLatency {
+	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
 	glog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetTemplate().Kind))
@@ -116,16 +113,14 @@ func StartFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*FederationSyncController, error) {
+func newFederationSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
-	// Initialize non-dynamic clients first to avoid polluting config
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(kubeConfig)
-	kubeClient := kubeclientset.NewForConfigOrDie(kubeConfig)
-	crClient := crclientset.NewForConfigOrDie(kubeConfig)
 
-	pool := dynamic.NewDynamicClientPool(kubeConfig)
+	// Initialize non-dynamic clients first to avoid polluting config
+	fedClient, kubeClient, crClient := controllerConfig.AllClients(userAgent)
+
+	pool := dynamic.NewDynamicClientPool(controllerConfig.KubeConfig)
 
 	templateClient, err := util.NewResourceClient(pool, &templateAPIResource)
 	if err != nil {
@@ -137,15 +132,15 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: userAgent})
 
 	s := &FederationSyncController{
-		clusterAvailableDelay:   clusterAvailableDelay,
-		clusterUnavailableDelay: clusterUnavailableDelay,
+		clusterAvailableDelay:   controllerConfig.ClusterAvailableDelay,
+		clusterUnavailableDelay: controllerConfig.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
 		typeConfig:              typeConfig,
 		fedClient:               fedClient,
 		templateClient:          templateClient,
-		fedNamespace:            fedNamespace,
+		fedNamespace:            controllerConfig.FederationNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -157,6 +152,8 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 
 	// Start informers on the resources for the federated type
 	enqueueObj := s.worker.EnqueueObject
+
+	targetNamespace := controllerConfig.TargetNamespace
 
 	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, targetNamespace, enqueueObj)
 
@@ -208,9 +205,7 @@ func newFederationSyncController(typeConfig typeconfig.Interface, kubeConfig *re
 		fedClient,
 		kubeClient,
 		crClient,
-		fedNamespace,
-		clusterNamespace,
-		targetNamespace,
+		controllerConfig.FederationNamespaces,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)

@@ -25,7 +25,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 )
@@ -64,10 +63,11 @@ var TestCrud = func(t *testing.T) {
 // initCrudTest initializes common elements of a crud test
 func initCrudTest(tl common.TestLogger, fedFixture *framework.FederationFixture, typeConfig typeconfig.Interface, templateKind string) (
 	*framework.ControllerFixture, *common.FederatedTypeCrudTester) {
-	kubeConfig := fedFixture.KubeApi.NewConfig(tl)
-	fixture := framework.NewSyncControllerFixture(tl, typeConfig, kubeConfig, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
+	controllerConfig := fedFixture.ControllerConfig(tl)
+	fixture := framework.NewSyncControllerFixture(tl, controllerConfig, typeConfig)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
+	kubeConfig := controllerConfig.KubeConfig
 	rest.AddUserAgent(kubeConfig, userAgent)
 	targetAPIResource := typeConfig.GetTarget()
 	clusterClients := fedFixture.ClusterDynamicClients(tl, &targetAPIResource, userAgent)

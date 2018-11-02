@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -137,19 +138,28 @@ func (f *ManagedFramework) TestNamespaceName() string {
 
 func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
 	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
-	kubeConfig := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, kubeConfig, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
+	fixture := framework.NewSyncControllerFixture(f.logger, f.controllerConfig(), typeConfig)
 	f.fixtures = append(f.fixtures, fixture)
 }
 
 func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
-	config := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewServiceDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
+	fixture := framework.NewServiceDNSControllerFixture(f.logger, f.controllerConfig())
 	f.fixtures = append(f.fixtures, fixture)
 }
 
 func (f *ManagedFramework) SetUpIngressDNSControllerFixture() {
-	config := fedFixture.KubeApi.NewConfig(f.logger)
-	fixture := framework.NewIngressDNSControllerFixture(f.logger, config, fedFixture.SystemNamespace, fedFixture.SystemNamespace, metav1.NamespaceAll)
+	fixture := framework.NewIngressDNSControllerFixture(f.logger, f.controllerConfig())
 	f.fixtures = append(f.fixtures, fixture)
+}
+
+func (f *ManagedFramework) controllerConfig() *util.ControllerConfig {
+	return &util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: fedFixture.SystemNamespace,
+			ClusterNamespace:    fedFixture.SystemNamespace,
+			TargetNamespace:     metav1.NamespaceAll,
+		},
+		KubeConfig:      fedFixture.KubeApi.NewConfig(f.logger),
+		MinimizeLatency: true,
+	}
 }

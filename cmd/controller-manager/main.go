@@ -88,10 +88,10 @@ func main() {
 
 	stopChan := signals.SetupSignalHandler()
 
-	config := configlib.GetConfigOrDie()
+	kubeConfig := configlib.GetConfigOrDie()
 
 	if *installCRDs {
-		if err := install.NewInstaller(config).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
+		if err := install.NewInstaller(kubeConfig).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
 			glog.Fatalf("Could not create CRDs: %v", err)
 		}
 	}
@@ -109,13 +109,24 @@ func main() {
 		glog.Info("Federation will target all namespaces")
 	}
 
+	controllerConfig := &util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: fedNamespace,
+			ClusterNamespace:    clusterNamespace,
+			TargetNamespace:     targetNamespace,
+		},
+		KubeConfig:              kubeConfig,
+		ClusterAvailableDelay:   clusterAvailableDelay,
+		ClusterUnavailableDelay: clusterUnavailableDelay,
+	}
+
 	// TODO(marun) Make the monitor period configurable
 	clusterMonitorPeriod := time.Second * 40
-	federatedcluster.StartClusterController(config, fedNamespace, clusterNamespace, stopChan, clusterMonitorPeriod)
+	federatedcluster.StartClusterController(controllerConfig, stopChan, clusterMonitorPeriod)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		for kind, schedulingType := range schedulingtypes.SchedulingTypes() {
-			err = schedulingpreference.StartSchedulingPreferenceController(kind, schedulingType.SchedulerFactory, config, fedNamespace, clusterNamespace, targetNamespace, stopChan, clusterAvailableDelay, clusterUnavailableDelay, false)
+			err = schedulingpreference.StartSchedulingPreferenceController(controllerConfig, stopChan, kind, schedulingType.SchedulerFactory)
 			if err != nil {
 				glog.Fatalf("Error starting schedulingpreference controller for %q : %v", kind, err)
 			}
@@ -123,31 +134,31 @@ func main() {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		err = servicedns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, clusterAvailableDelay, clusterUnavailableDelay, false)
+		err = servicedns.StartController(controllerConfig, stopChan)
 		if err != nil {
 			glog.Fatalf("Error starting dns controller: %v", err)
 		}
 
-		err = dnsendpoint.StartServiceDNSEndpointController(config, targetNamespace, stopChan, false)
+		err = dnsendpoint.StartServiceDNSEndpointController(controllerConfig, stopChan)
 		if err != nil {
 			glog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
-		err = ingressdns.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, clusterAvailableDelay, clusterUnavailableDelay, false)
+		err = ingressdns.StartController(controllerConfig, stopChan)
 		if err != nil {
 			glog.Fatalf("Error starting ingress dns controller: %v", err)
 		}
 
-		err = dnsendpoint.StartIngressDNSEndpointController(config, targetNamespace, stopChan, false)
+		err = dnsendpoint.StartIngressDNSEndpointController(controllerConfig, stopChan)
 		if err != nil {
 			glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		err = federatedtypeconfig.StartController(config, fedNamespace, clusterNamespace, targetNamespace, stopChan, clusterAvailableDelay, clusterUnavailableDelay)
+		err = federatedtypeconfig.StartController(controllerConfig, stopChan)
 		if err != nil {
 			glog.Fatalf("Error starting federated type config controller: %v", err)
 		}

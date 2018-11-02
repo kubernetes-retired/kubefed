@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
@@ -80,18 +79,13 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing ServiceDNSRecord objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
-	userAgent := "ServiceDNS"
-	restclient.AddUserAgent(config, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(config)
-	kubeClient := kubeclientset.NewForConfigOrDie(config)
-	crClient := crclientset.NewForConfigOrDie(config)
-
-	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
+func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+	fedClient, kubeClient, crClient := config.AllClients("ServiceDNS")
+	controller, err := newController(config, fedClient, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
-	if minimizeLatency {
+	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
 	glog.Infof("Starting ServiceDNS controller")
@@ -100,13 +94,13 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 }
 
 // newController returns a new controller to manage ServiceDNSRecord objects.
-func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*Controller, error) {
+func newController(config *util.ControllerConfig, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
-		clusterAvailableDelay:   clusterAvailableDelay,
-		clusterUnavailableDelay: clusterUnavailableDelay,
+		clusterAvailableDelay:   config.ClusterAvailableDelay,
+		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
-		fedNamespace:            fedNamespace,
+		fedNamespace:            config.FederationNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -120,10 +114,10 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 	s.serviceDNSStore, s.serviceDNSController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).List(options)
+				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).Watch(options)
+				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).Watch(options)
 			},
 		},
 		&dnsv1a1.ServiceDNSRecord{},
@@ -135,10 +129,10 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 	s.domainStore, s.domainController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().Domains(fedNamespace).List(options)
+				return fedClient.MulticlusterdnsV1alpha1().Domains(s.fedNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().Domains(fedNamespace).Watch(options)
+				return fedClient.MulticlusterdnsV1alpha1().Domains(s.fedNamespace).Watch(options)
 			},
 		},
 		&dnsv1a1.Domain{},
@@ -153,9 +147,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		fedClient,
 		kubeClient,
 		crClient,
-		fedNamespace,
-		clusterNamespace,
-		targetNamespace,
+		config.FederationNamespaces,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",
@@ -182,9 +174,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		fedClient,
 		kubeClient,
 		crClient,
-		fedNamespace,
-		clusterNamespace,
-		targetNamespace,
+		config.FederationNamespaces,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",

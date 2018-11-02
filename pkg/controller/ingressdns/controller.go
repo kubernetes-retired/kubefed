@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
@@ -71,18 +70,13 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing IngressDNSRecord objects.
-func StartController(config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
-	userAgent := "IngressDNS"
-	restclient.AddUserAgent(config, userAgent)
-	fedClient := fedclientset.NewForConfigOrDie(config)
-	kubeClient := kubeclientset.NewForConfigOrDie(config)
-	crClient := crclientset.NewForConfigOrDie(config)
-
-	controller, err := newController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
+func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+	fedClient, kubeClient, crClient := config.AllClients("IngressDNS")
+	controller, err := newController(config, fedClient, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
-	if minimizeLatency {
+	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
 	glog.Infof("Starting IngressDNS controller")
@@ -91,11 +85,11 @@ func StartController(config *restclient.Config, fedNamespace, clusterNamespace, 
 }
 
 // newController returns a new controller to manage IngressDNSRecord objects.
-func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*Controller, error) {
+func newController(config *util.ControllerConfig, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*Controller, error) {
 	s := &Controller{
 		fedClient:               fedClient,
-		clusterAvailableDelay:   clusterAvailableDelay,
-		clusterUnavailableDelay: clusterUnavailableDelay,
+		clusterAvailableDelay:   config.ClusterAvailableDelay,
+		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 	}
 
@@ -110,10 +104,10 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 	s.ingressDNSStore, s.ingressDNSController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).List(options)
+				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(config.TargetNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).Watch(options)
+				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(config.TargetNamespace).Watch(options)
 			},
 		},
 		&dnsv1a1.IngressDNSRecord{},
@@ -128,9 +122,7 @@ func newController(fedClient fedclientset.Interface, kubeClient kubeclientset.In
 		fedClient,
 		kubeClient,
 		crClient,
-		fedNamespace,
-		clusterNamespace,
-		targetNamespace,
+		config.FederationNamespaces,
 		&metav1.APIResource{
 			Group:        "extensions",
 			Version:      "v1beta1",

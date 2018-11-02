@@ -26,21 +26,22 @@ import (
 
 	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-func StartIngressDNSEndpointController(config *restclient.Config, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	restclient.AddUserAgent(config, "Ingress DNSEndpoint")
-	client := fedclientset.NewForConfigOrDie(config)
+func StartIngressDNSEndpointController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+	restclient.AddUserAgent(config.KubeConfig, "Ingress DNSEndpoint")
+	client := fedclientset.NewForConfigOrDie(config.KubeConfig)
 
 	listFunc := func(options metav1.ListOptions) (pkgruntime.Object, error) {
-		return client.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).List(options)
+		return client.MulticlusterdnsV1alpha1().IngressDNSRecords(config.TargetNamespace).List(options)
 	}
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
-		return client.MulticlusterdnsV1alpha1().IngressDNSRecords(targetNamespace).Watch(options)
+		return client.MulticlusterdnsV1alpha1().IngressDNSRecords(config.TargetNamespace).Watch(options)
 	}
 
 	controller, err := newDNSEndpointController(client, &feddnsv1a1.IngressDNSRecord{}, "ingress",
-		listFunc, watchFunc, getIngressDNSEndpoints, minimizeLatency)
+		listFunc, watchFunc, getIngressDNSEndpoints, config.MinimizeLatency)
 	if err != nil {
 		return err
 	}

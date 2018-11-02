@@ -139,21 +139,19 @@ func NewFederatedInformer(
 	fedClient fedclientset.Interface,
 	kubeClient kubeclientset.Interface,
 	crClient crclientset.Interface,
-	fedNamespace,
-	clusterNamespace string,
-	targetNamespace string,
+	namespaces FederationNamespaces,
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) FederatedInformer {
 
 	targetInformerFactory := func(cluster *fedv1a1.FederatedCluster, client ResourceClient) (cache.Store, cache.Controller) {
-		return NewResourceInformer(client, targetNamespace, triggerFunc)
+		return NewResourceInformer(client, namespaces.TargetNamespace, triggerFunc)
 	}
 
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, kubeClient, crClient, fedNamespace, clusterNamespace)
+			config, err := BuildClusterConfig(cluster, kubeClient, crClient, namespaces.FederationNamespace, namespaces.ClusterNamespace)
 			if err != nil {
 				return nil, err
 			}
@@ -165,7 +163,7 @@ func NewFederatedInformer(
 			return NewResourceClientFromConfig(config, apiResource)
 		},
 		targetInformers: make(map[string]informer),
-		fedNamespace:    fedNamespace,
+		fedNamespace:    namespaces.FederationNamespace,
 	}
 
 	getClusterData := func(name string) []interface{} {
@@ -180,10 +178,10 @@ func NewFederatedInformer(
 	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).List(options)
+				return fedClient.CoreV1alpha1().FederatedClusters(namespaces.FederationNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).Watch(options)
+				return fedClient.CoreV1alpha1().FederatedClusters(namespaces.FederationNamespace).Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},
