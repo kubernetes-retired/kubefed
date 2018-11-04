@@ -43,7 +43,7 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// SchedulingPreferenceController syncronises the template, override
+// SchedulingPreferenceController synchronises the template, override
 // and placement for a target template with its spec (user preference).
 type SchedulingPreferenceController struct {
 	// For triggering reconciliation of all resources (only in
