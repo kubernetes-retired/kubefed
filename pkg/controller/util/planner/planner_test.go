@@ -240,7 +240,7 @@ func TestWithExistingAndCapacity(t *testing.T) {
 		map[string]int64{"A": 10, "B": 10, "C": 0},
 		map[string]int64{"A": 20, "B": 20})
 
-	// desired A:10 B:50 although A:50 B:10 is fuly acceptable because rebalance = false
+	// desired A:10 B:50 although A:50 B:10 is fully acceptable because rebalance = false
 	doCheckWithExistingAndCapacity(t, false, map[string]fedschedulingv1a1.ClusterPreferences{
 		"A": {Weight: 1},
 		"B": {Weight: 5}},
