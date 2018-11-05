@@ -26,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -44,6 +45,12 @@ func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.Contr
 	err := sync.StartFederationSyncController(controllerConfig, f.stopChan, typeConfig)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
+	}
+	if typeConfig.GetEnableStatus() {
+		err := status.StartFederationStatusController(controllerConfig, f.stopChan, typeConfig)
+		if err != nil {
+			tl.Fatalf("Error starting status controller: %v", err)
+		}
 	}
 	return f
 }
