@@ -527,6 +527,7 @@ spec:
       weight: 1
     "C":
       maxReplicas: 20
+      weight: 1
 ```
 Possible scenarios
 
