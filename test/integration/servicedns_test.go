@@ -181,7 +181,7 @@ func newServiceDNSTestFixture(tl common.TestLogger, fedFixture *framework.Federa
 	f.clusterClients = FedFixture.ClusterKubeClients(tl, userAgent)
 	f.clusterLbs = map[string]string{}
 	f.clusterRegionZones = map[string]fedv1a1.FederatedClusterStatus{}
-	for clusterName, _ := range FedFixture.Clusters {
+	for clusterName := range FedFixture.Clusters {
 		f.clusterLbs[clusterName] = fmt.Sprintf("10.20.30.%d", lbsuffix)
 		lbsuffix++
 		suffix := strings.TrimPrefix(clusterName, "test-cluster-")
