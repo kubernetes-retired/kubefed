@@ -82,16 +82,12 @@ type UnmanagedFramework struct {
 	BaseName string
 
 	logger common.TestLogger
-
-	// Fixtures to cleanup after each test
-	fixtures []framework.TestFixture
 }
 
-func NewUnmanagedFramework(baseName string) FederationFramework {
+func NewUnmanagedFramework(baseName string) FederationFrameworkImpl {
 	f := &UnmanagedFramework{
 		BaseName: baseName,
 		logger:   NewE2ELogger(),
-		fixtures: []framework.TestFixture{},
 	}
 	return f
 }
@@ -137,18 +133,6 @@ func (f *UnmanagedFramework) AfterEach() {
 			client := f.KubeClient(userAgent)
 			deleteNamespace(client, namespaceName)
 		}
-
-		// TODO(font): Delete the namespace finalizer manually rather than
-		// relying on the federated namespace sync controller. This would
-		// remove the dependency of namespace removal on fixture teardown,
-		// which allows the teardown to be moved outside the defer, but before
-		// the DumpEventsInNamespace that may contain assertions that could
-		// exit the function.
-		for len(f.fixtures) > 0 {
-			fixture := f.fixtures[0]
-			fixture.TearDown(f.logger)
-			f.fixtures = f.fixtures[1:]
-		}
 	}()
 
 	// Print events if the test failed and ran in a namespace.
@@ -158,6 +142,22 @@ func (f *UnmanagedFramework) AfterEach() {
 			return kubeClient.Core().Events(ns).List(opts)
 		}, f.testNamespaceName)
 	}
+}
+
+func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
+	return &util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: TestContext.FederationSystemNamespace,
+			ClusterNamespace:    TestContext.ClusterNamespace,
+			TargetNamespace:     f.inMemoryTargetNamespace(),
+		},
+		KubeConfig:      f.Config,
+		MinimizeLatency: true,
+	}
+}
+
+func (f *UnmanagedFramework) Logger() common.TestLogger {
+	return f.logger
 }
 
 func (f *UnmanagedFramework) KubeConfig() *restclient.Config {
@@ -273,45 +273,19 @@ func (f *UnmanagedFramework) inMemoryTargetNamespace() string {
 	return metav1.NamespaceAll
 }
 
-func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
+func (f *UnmanagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture {
 	// Hybrid setup where just the sync controller is run and we do not rely on
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		controllerConfig := f.controllerConfig()
+		controllerConfig := f.ControllerConfig()
 		// Namespaces are cluster scoped so all namespaces must be targeted
 		if typeConfig.GetTarget().Kind == util.NamespaceKind {
 			controllerConfig.TargetNamespace = metav1.NamespaceAll
 		}
-		fixture := framework.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig)
-		f.fixtures = append(f.fixtures, fixture)
+		return framework.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig)
 	}
-}
-
-func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
-	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.controllerConfig())
-		f.fixtures = append(f.fixtures, fixture)
-	}
-}
-
-func (f *UnmanagedFramework) SetUpIngressDNSControllerFixture() {
-	if TestContext.InMemoryControllers {
-		fixture := framework.NewIngressDNSControllerFixture(f.logger, f.controllerConfig())
-		f.fixtures = append(f.fixtures, fixture)
-	}
-}
-
-func (f *UnmanagedFramework) controllerConfig() *util.ControllerConfig {
-	return &util.ControllerConfig{
-		FederationNamespaces: util.FederationNamespaces{
-			FederationNamespace: TestContext.FederationSystemNamespace,
-			ClusterNamespace:    TestContext.ClusterNamespace,
-			TargetNamespace:     f.inMemoryTargetNamespace(),
-		},
-		KubeConfig:      f.Config,
-		MinimizeLatency: true,
-	}
+	return nil
 }
 
 func deleteNamespace(client kubeclientset.Interface, namespaceName string) {

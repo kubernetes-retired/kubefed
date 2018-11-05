@@ -76,7 +76,12 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	override *unstructured.Unstructured) {
 
 	// Initialize in-memory controllers if configuration requires
-	f.SetUpControllerFixture(typeConfig)
+	fixture := f.SetUpSyncControllerFixture(typeConfig)
+	f.RegisterFixture(fixture)
+	// Avoid running more than one sync controller for namespaces
+	if typeConfig.GetTarget().Kind != util.NamespaceKind {
+		f.SetUpNamespaceSyncControllerFixture()
+	}
 
 	templateKind := typeConfig.GetTemplate().Kind
 
