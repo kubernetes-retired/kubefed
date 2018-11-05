@@ -60,23 +60,19 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
-func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) {
 	userAgent := "FederatedTypeConfig"
 	kubeConfig := config.KubeConfig
 	restclient.AddUserAgent(kubeConfig, userAgent)
 	client := fedclientset.NewForConfigOrDie(kubeConfig).CoreV1alpha1()
 
-	controller, err := newController(config, client)
-	if err != nil {
-		return err
-	}
+	controller := newController(config, client)
 	glog.Infof("Starting FederatedTypeConfig controller")
 	controller.Run(stopChan)
-	return nil
 }
 
 // newController returns a new controller to manage FederatedTypeConfig objects.
-func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) (*Controller, error) {
+func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) *Controller {
 	c := &Controller{
 		controllerConfig: config,
 		client:           client,
@@ -102,7 +98,7 @@ func newController(config *util.ControllerConfig, client corev1alpha1client.Core
 		util.NewTriggerOnAllChanges(c.worker.EnqueueObject),
 	)
 
-	return c, nil
+	return c
 }
 
 // Run runs the Controller.
