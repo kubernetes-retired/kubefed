@@ -17,6 +17,5 @@ spec:
     kind: FederatedDeploymentPlacement
   override:
     kind: FederatedDeploymentOverride
-  overridePath:
-    - spec
-    - replicas
+  overridePaths:
+    - path: spec.replicas
