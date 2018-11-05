@@ -305,6 +305,27 @@ To cleanup the example simply delete the namespace:
 kubectl delete ns test-namespace
 ```
 
+### Troubleshooting
+
+If federated resources are not propagated as expected to the member clusters, you can
+use the following command to view `Events` which may aid in diagnosing the problem.
+
+```bash
+kubectl describe <federated CRD> <CR name> -n test-namespace
+```
+
+An example for CRD of `federatedserviceaccounts` is as follows:
+
+```bash
+kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
+```
+
+It may also be useful to inspect the federation controller log as follows:
+
+```bash
+kubectl logs -f federation-controller-manager-0 -n federation-system
+```
+
 ## Cleanup
 
 ### Deployment Cleanup
