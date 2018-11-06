@@ -27,21 +27,22 @@ import (
 
 	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-func StartServiceDNSEndpointController(config *restclient.Config, targetNamespace string, stopChan <-chan struct{}, minimizeLatency bool) error {
-	restclient.AddUserAgent(config, "Service DNSEndpoint")
-	client := fedclientset.NewForConfigOrDie(config)
+func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+	restclient.AddUserAgent(config.KubeConfig, "Service DNSEndpoint")
+	client := fedclientset.NewForConfigOrDie(config.KubeConfig)
 
 	listFunc := func(options metav1.ListOptions) (pkgruntime.Object, error) {
-		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).List(options)
+		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).List(options)
 	}
 	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
-		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(targetNamespace).Watch(options)
+		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).Watch(options)
 	}
 
 	controller, err := newDNSEndpointController(client, &feddnsv1a1.ServiceDNSRecord{}, "service",
-		listFunc, watchFunc, getServiceDNSEndpoints, minimizeLatency)
+		listFunc, watchFunc, getServiceDNSEndpoints, config.MinimizeLatency)
 	if err != nil {
 		return err
 	}

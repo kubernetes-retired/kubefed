@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
@@ -79,19 +78,15 @@ type ClusterController struct {
 }
 
 // StartClusterController starts a new cluster controller.
-func StartClusterController(config *restclient.Config, fedNamespace, clusterNamespace string, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
-	restclient.AddUserAgent(config, "cluster-controller")
-	fedClient := fedclientset.NewForConfigOrDie(config)
-	kubeClient := kubeclientset.NewForConfigOrDie(config)
-	crClient := crclientset.NewForConfigOrDie(config)
-
-	controller := newClusterController(fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, clusterMonitorPeriod)
+func StartClusterController(config *util.ControllerConfig, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) {
+	fedClient, kubeClient, crClient := config.AllClients("cluster-controller")
+	controller := newClusterController(fedClient, kubeClient, crClient, config.FederationNamespaces, clusterMonitorPeriod)
 	glog.Infof("Starting cluster controller")
 	controller.Run(stopChan)
 }
 
 // newClusterController returns a new cluster controller
-func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string, clusterMonitorPeriod time.Duration) *ClusterController {
+func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces util.FederationNamespaces, clusterMonitorPeriod time.Duration) *ClusterController {
 	cc := &ClusterController{
 		knownClusterSet:      make(sets.String),
 		fedClient:            fedClient,
@@ -100,16 +95,16 @@ func newClusterController(fedClient fedclientset.Interface, kubeClient kubeclien
 		clusterMonitorPeriod: clusterMonitorPeriod,
 		clusterStatusMap:     make(map[string]fedv1a1.FederatedClusterStatus),
 		clusterKubeClientMap: make(map[string]ClusterClient),
-		fedNamespace:         fedNamespace,
-		clusterNamespace:     clusterNamespace,
+		fedNamespace:         namespaces.FederationNamespace,
+		clusterNamespace:     namespaces.ClusterNamespace,
 	}
 	_, cc.clusterController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return cc.fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).List(options)
+				return cc.fedClient.CoreV1alpha1().FederatedClusters(cc.fedNamespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return cc.fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).Watch(options)
+				return cc.fedClient.CoreV1alpha1().FederatedClusters(cc.fedNamespace).Watch(options)
 			},
 		},
 		&fedv1a1.FederatedCluster{},

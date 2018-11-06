@@ -84,14 +84,13 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 		tl.Logf("Added cluster %s to the federation", clusterName)
 	}
 
-	config := f.KubeApi.NewConfig(tl)
-
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	tl.Logf("Starting cluster controller")
-	f.ClusterController = NewClusterControllerFixture(config, f.SystemNamespace, f.SystemNamespace)
+	f.ClusterController = NewClusterControllerFixture(f.ControllerConfig(tl))
 	tl.Log("Federation started.")
 
+	config := f.KubeApi.NewConfig(tl)
 	client := fedclientset.NewForConfigOrDie(config)
 	WaitForClusterReadiness(tl, client, f.SystemNamespace, DefaultWaitInterval, wait.ForeverTestTimeout)
 }
@@ -281,6 +280,20 @@ func (f *FederationFixture) ClusterNames() []string {
 		clusterNames = append(clusterNames, name)
 	}
 	return clusterNames
+}
+
+func (f *FederationFixture) ControllerConfig(tl common.TestLogger) *util.ControllerConfig {
+	return &util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: f.SystemNamespace,
+			ClusterNamespace:    f.SystemNamespace,
+			TargetNamespace:     metav1.NamespaceAll,
+		},
+		KubeConfig:              f.KubeApi.NewConfig(tl),
+		ClusterAvailableDelay:   util.DefaultClusterAvailableDelay,
+		ClusterUnavailableDelay: util.DefaultClusterUnavailableDelay,
+		MinimizeLatency:         true,
+	}
 }
 
 func (f *FederationFixture) installCrds(tl common.TestLogger) {

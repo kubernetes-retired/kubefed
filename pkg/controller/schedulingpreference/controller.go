@@ -33,7 +33,6 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
@@ -71,16 +70,14 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, config *restclient.Config, fedNamespace, clusterNamespace, targetNamespace string, stopChan <-chan struct{}, clusterAvailableDelay, clusterUnavailableDelay time.Duration, minimizeLatency bool) error {
-	restclient.AddUserAgent(config, fmt.Sprintf("%s-controller", kind))
-	fedClient := fedclientset.NewForConfigOrDie(config)
-	kubeClient := kubeclientset.NewForConfigOrDie(config)
-	crClient := crclientset.NewForConfigOrDie(config)
-	controller, err := newSchedulingPreferenceController(kind, schedulerFactory, fedClient, kubeClient, crClient, fedNamespace, clusterNamespace, targetNamespace, clusterAvailableDelay, clusterUnavailableDelay)
+func StartSchedulingPreferenceController(config *util.ControllerConfig, stopChan <-chan struct{}, kind string, schedulerFactory schedulingtypes.SchedulerFactory) error {
+	userAgent := fmt.Sprintf("%s-controller", kind)
+	fedClient, kubeClient, crClient := config.AllClients(userAgent)
+	controller, err := newSchedulingPreferenceController(config, kind, schedulerFactory, fedClient, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
-	if minimizeLatency {
+	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
 	glog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
@@ -89,14 +86,14 @@ func StartSchedulingPreferenceController(kind string, schedulerFactory schedulin
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, clusterAvailableDelay, clusterUnavailableDelay time.Duration) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(config *util.ControllerConfig, kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
 
 	s := &SchedulingPreferenceController{
-		clusterAvailableDelay:   clusterAvailableDelay,
-		clusterUnavailableDelay: clusterUnavailableDelay,
+		clusterAvailableDelay:   config.ClusterAvailableDelay,
+		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
@@ -109,9 +106,7 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 	s.scheduler = schedulerFactory(fedClient,
 		kubeClient,
 		crClient,
-		fedNamespace,
-		clusterNamespace,
-		targetNamespace,
+		config.FederationNamespaces,
 		s.worker.EnqueueObject,
 		func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
@@ -134,10 +129,10 @@ func newSchedulingPreferenceController(kind string, schedulerFactory schedulingt
 	s.store, s.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return s.scheduler.FedList(targetNamespace, options)
+				return s.scheduler.FedList(config.TargetNamespace, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return s.scheduler.FedWatch(targetNamespace, options)
+				return s.scheduler.FedWatch(config.TargetNamespace, options)
 			},
 		},
 		s.scheduler.ObjectType(),

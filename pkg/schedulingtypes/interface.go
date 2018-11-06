@@ -38,4 +38,4 @@ type Scheduler interface {
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
 }
 
-type SchedulerFactory func(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace, targetNamespace string, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler
+type SchedulerFactory func(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces FederationNamespaces, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler

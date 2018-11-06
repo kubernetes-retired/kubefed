@@ -41,6 +41,7 @@ import (
 
 var (
 	clusterControllerFixture *framework.ControllerFixture
+	args                     util.ControllerConfig
 )
 
 func SetUpUnmanagedFederation() {
@@ -51,7 +52,13 @@ func SetUpUnmanagedFederation() {
 	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 	Expect(err).NotTo(HaveOccurred())
 
-	clusterControllerFixture = framework.NewClusterControllerFixture(config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
+	clusterControllerFixture = framework.NewClusterControllerFixture(&util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: TestContext.FederationSystemNamespace,
+			ClusterNamespace:    TestContext.ClusterNamespace,
+		},
+		KubeConfig: config,
+	})
 }
 
 func TearDownUnmanagedFederation() {
@@ -271,27 +278,39 @@ func (f *UnmanagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interf
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
 	if TestContext.InMemoryControllers {
-		namespace := f.inMemoryTargetNamespace()
+		controllerConfig := f.controllerConfig()
 		// Namespaces are cluster scoped so all namespaces must be targeted
 		if typeConfig.GetTarget().Kind == util.NamespaceKind {
-			namespace = metav1.NamespaceAll
+			controllerConfig.TargetNamespace = metav1.NamespaceAll
 		}
-		fixture := framework.NewSyncControllerFixture(f.logger, typeConfig, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, namespace)
+		fixture := framework.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig)
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpServiceDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, f.inMemoryTargetNamespace())
+		fixture := framework.NewServiceDNSControllerFixture(f.logger, f.controllerConfig())
 		f.fixtures = append(f.fixtures, fixture)
 	}
 }
 
 func (f *UnmanagedFramework) SetUpIngressDNSControllerFixture() {
 	if TestContext.InMemoryControllers {
-		fixture := framework.NewIngressDNSControllerFixture(f.logger, f.Config, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace, f.inMemoryTargetNamespace())
+		fixture := framework.NewIngressDNSControllerFixture(f.logger, f.controllerConfig())
 		f.fixtures = append(f.fixtures, fixture)
+	}
+}
+
+func (f *UnmanagedFramework) controllerConfig() *util.ControllerConfig {
+	return &util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: TestContext.FederationSystemNamespace,
+			ClusterNamespace:    TestContext.ClusterNamespace,
+			TargetNamespace:     f.inMemoryTargetNamespace(),
+		},
+		KubeConfig:      f.Config,
+		MinimizeLatency: true,
 	}
 }
 
