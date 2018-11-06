@@ -117,7 +117,7 @@ kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin \
 
 Now you're ready to deploy federation v2 using the existing YAML config. This
 config creates the `federation-system` namespace, RBAC resources, all the CRDs
-supported, along with the service and statefulset for the
+supported, along with the service and deployment for the
 federation-controller-manager.
 
 ```bash

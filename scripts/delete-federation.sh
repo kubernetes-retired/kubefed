@@ -28,7 +28,7 @@ NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
 NAMESPACED="${NAMESPACED:-}"
 
-IMAGE_NAME=`kubectl get sts -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
+IMAGE_NAME=`kubectl get deploy -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
 LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
