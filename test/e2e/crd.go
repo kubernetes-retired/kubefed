@@ -47,7 +47,7 @@ var _ = Describe("Federated CRD resources", func() {
 		true,
 		false,
 	}
-	for i, _ := range namespaceScoped {
+	for i := range namespaceScoped {
 		namespaced := namespaceScoped[i]
 		Describe(fmt.Sprintf("with namespaced=%v", namespaced), func() {
 			It("should be created, read, updated and deleted successfully", func() {

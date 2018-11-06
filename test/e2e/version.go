@@ -195,7 +195,7 @@ var _ = Describe("VersionManager", func() {
 		{"ClusterVersionManager", false},
 	}
 
-	for i, _ := range versionTests {
+	for i := range versionTests {
 		versionTest := versionTests[i]
 		namespaced := versionTest.namespaced
 
