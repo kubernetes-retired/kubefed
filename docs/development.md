@@ -76,41 +76,15 @@ Before running tests, make sure your environment is setup.
     export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
     ```
 
-### Integration
-
-The integration tests will spin up a federation consisting of kube
-api + cluster registry api + federation api + 2 member clusters and
-run [CRUD (create-read-update-delete)
-checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/integration/crud_test.go)
-for federated types against that federation.  To run:
-
-```bash
-cd test/integration && go test -v
-```
-
-To run tests for a single type:
-
-```bash
-cd test/integration &&
-go test -v -run ^TestIntegration/Parallel-Integration-Test-Group/TestCrud/FederatedSecret$
-```
-
-It may be helpful to use the [delve
-debugger](https://github.com/derekparker/delve) to gain insight into
-the components involved in the test:
-
-```bash
-cd test/integration && dlv test -- -test.run ^TestIntegration/Parallel-Integration-Test-Group/TestCrud$
-```
-
 ### E2E
 
 The federation-v2 E2E tests can run in an *unmanaged*, *managed*, or *hybrid*
 modes. For both unmanaged and hybrid modes, you will need to bring your own
-clusters. The managed mode runs similarly to integration as it uses the same
-test fixture setup. All of these modes run CRUD operations. CRUD here means
-that the tests will run through each of the requested federated types and
-verify that:
+clusters. The managed mode will spin up a test-managed federation consisting
+of a kube API server (hosting the federation and cluster registry APIs) and 2
+member clusters. All of these modes run CRUD operations. CRUD here means that
+the tests will run through each of the requested federated types and verify
+that:
 
 1. the objects are created in the target clusters.
 1. an annotation update is reflected in the objects stored in the target
@@ -340,5 +314,3 @@ In order to test the latest stable released version (tagged as `latest`) on
 your kubernetes cluster, follow the
 [automated](userguide.md#automated-deployment) or
 [manual](userguide.md#manual-deployment) instructions from the user guide.
-
-
