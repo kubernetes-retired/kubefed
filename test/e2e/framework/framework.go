@@ -23,7 +23,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -62,7 +62,7 @@ type FederationFrameworkImpl interface {
 	// Setup a sync controller if necessary and return the fixture.
 	// This is implemented commonly to support running a sync
 	// controller for namespaces for tests that require it.
-	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture
+	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture
 }
 
 // FederationFramework provides an interface to a test federation so
@@ -72,7 +72,7 @@ type FederationFramework interface {
 
 	// Registering a fixture ensures it will be torn down after the
 	// current test has executed.
-	RegisterFixture(fixture framework.TestFixture)
+	RegisterFixture(fixture managed.TestFixture)
 
 	// Start a namespace sync controller fixture
 	SetUpNamespaceSyncControllerFixture()
@@ -88,13 +88,13 @@ type frameworkWrapper struct {
 	baseName string
 
 	// Fixtures to cleanup after each test
-	fixtures []framework.TestFixture
+	fixtures []managed.TestFixture
 }
 
 func NewFederationFramework(baseName string) FederationFramework {
 	f := &frameworkWrapper{
 		baseName: baseName,
-		fixtures: []framework.TestFixture{},
+		fixtures: []managed.TestFixture{},
 	}
 	AfterEach(f.AfterEach)
 	BeforeEach(f.BeforeEach)
@@ -181,11 +181,11 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 	return f.framework().TestNamespaceName()
 }
 
-func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture {
+func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
 	return f.framework().SetUpSyncControllerFixture(typeConfig)
 }
 
-func (f *frameworkWrapper) RegisterFixture(fixture framework.TestFixture) {
+func (f *frameworkWrapper) RegisterFixture(fixture managed.TestFixture) {
 	if fixture != nil {
 		f.fixtures = append(f.fixtures, fixture)
 	}

@@ -24,7 +24,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	clusterControllerFixture *framework.ControllerFixture
+	clusterControllerFixture *managed.ControllerFixture
 	args                     util.ControllerConfig
 )
 
@@ -52,7 +52,7 @@ func SetUpUnmanagedFederation() {
 	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 	Expect(err).NotTo(HaveOccurred())
 
-	clusterControllerFixture = framework.NewClusterControllerFixture(&util.ControllerConfig{
+	clusterControllerFixture = managed.NewClusterControllerFixture(&util.ControllerConfig{
 		FederationNamespaces: util.FederationNamespaces{
 			FederationNamespace: TestContext.FederationSystemNamespace,
 			ClusterNamespace:    TestContext.ClusterNamespace,
@@ -229,7 +229,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 
 	By("Obtaining a list of federated clusters")
 	fedClient := f.FedClient(userAgent)
-	clusterList := framework.ListFederatedClusters(NewE2ELogger(), fedClient, TestContext.FederationSystemNamespace)
+	clusterList := managed.ListFederatedClusters(NewE2ELogger(), fedClient, TestContext.FederationSystemNamespace)
 
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
@@ -273,7 +273,7 @@ func (f *UnmanagedFramework) inMemoryTargetNamespace() string {
 	return metav1.NamespaceAll
 }
 
-func (f *UnmanagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture {
+func (f *UnmanagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
 	// Hybrid setup where just the sync controller is run and we do not rely on
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
@@ -283,7 +283,7 @@ func (f *UnmanagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.In
 		if typeConfig.GetTarget().Kind == util.NamespaceKind {
 			controllerConfig.TargetNamespace = metav1.NamespaceAll
 		}
-		return framework.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig)
+		return managed.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig)
 	}
 	return nil
 }
@@ -379,5 +379,5 @@ func WaitForUnmanagedClusterReadiness() {
 	Expect(err).NotTo(HaveOccurred())
 	restclient.AddUserAgent(config, "readiness-check")
 	client := fedclientset.NewForConfigOrDie(config)
-	framework.WaitForClusterReadiness(NewE2ELogger(), client, TestContext.FederationSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
+	managed.WaitForClusterReadiness(NewE2ELogger(), client, TestContext.FederationSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
 }

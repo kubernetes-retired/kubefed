@@ -32,7 +32,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	intframework "github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -57,7 +57,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 	BeforeEach(func() {
 		clusterNames = f.ClusterNames(userAgent)
 		if framework.TestContext.RunControllers() {
-			fixture := intframework.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
+			fixture := managed.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
 			f.RegisterFixture(fixture)
 		}
 		fedClient = f.FedClient(userAgent)
