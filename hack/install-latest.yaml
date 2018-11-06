@@ -608,24 +608,6 @@ status:
     plural: ""
   conditions: null
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  creationTimestamp: null
-  labels:
-    api: federation
-    control-plane: controller-manager
-    kubebuilder.k8s.io: 1.0.4
-  name: federation-controller-manager-service
-spec:
-  clusterIP: None
-  selector:
-    api: federation
-    control-plane: controller-manager
-    kubebuilder.k8s.io: 1.0.4
-status:
-  loadBalancer: {}
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -642,7 +624,7 @@ spec:
       api: federation
       control-plane: controller-manager
       kubebuilder.k8s.io: 1.0.4
-  serviceName: federation-controller-manager-service
+  strategy: {}
   template:
     metadata:
       creationTimestamp: null
@@ -667,6 +649,4 @@ spec:
             cpu: 100m
             memory: 64Mi
       terminationGracePeriodSeconds: 10
-  updateStrategy: {}
-status:
-  replicas: 0
+status: {}
