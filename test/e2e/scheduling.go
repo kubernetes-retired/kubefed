@@ -14,23 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package integration
+package e2e
 
 import (
+	"fmt"
 	"reflect"
-	"testing"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	restclient "k8s.io/client-go/rest"
+
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
+	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	intframework "github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+
+	. "github.com/onsi/ginkgo"
 )
 
 const (
@@ -38,85 +42,109 @@ const (
 	federatedReplicaSet = "FederatedReplicaSet"
 )
 
-// TestReplicaSchedulingPreference validates basic replica scheduling preference calculations.
-var TestReplicaSchedulingPreference = func(t *testing.T) {
-	t.Parallel()
-	tl := framework.NewIntegrationLogger(t)
+var _ = Describe("ReplicaSchedulingPreferences", func() {
+	f := framework.NewFederationFramework("scheduling")
+	tl := framework.NewE2ELogger()
 
-	controllerFixture, fedClient := initRSPTest(tl, FedFixture)
-	defer controllerFixture.TearDown(tl)
+	userAgent := "rsp-test"
 
-	clusters := getClusterNames(fedClient, FedFixture.SystemNamespace)
-	if len(clusters) != 2 {
-		tl.Fatalf("Expected two clusters to be part of Federation Fixture setup")
-	}
+	typeConfigs := common.TypeConfigsOrDie(tl)
 
-	kubeClient := FedFixture.KubeApi.NewClient(tl, "rsp")
-	testNamespace := framework.CreateTestNamespace(tl, kubeClient, "rsp-")
+	var fedClient fedclientset.Interface
+	var namespace string
+	var clusterNames []string
+
+	BeforeEach(func() {
+		clusterNames = f.ClusterNames(userAgent)
+		if framework.TestContext.RunControllers() {
+			fixture := intframework.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
+			f.RegisterFixture(fixture)
+		}
+		fedClient = f.FedClient(userAgent)
+		namespace = f.TestNamespaceName()
+	})
 
 	targetKinds := []string{
 		federatedDeployment,
 		federatedReplicaSet,
 	}
 
-	for _, targetKind := range targetKinds {
-		testCases := map[string]struct {
-			rspSpec  fedschedulingv1a1.ReplicaSchedulingPreferenceSpec
-			expected map[string]int32
-		}{
-			"Replicas spread equally in clusters, with no explicit per cluster preferences": {
-				rspSpec: rspSpecWithoutClusterList(int32(4), targetKind),
-				expected: map[string]int32{
-					clusters[0]: int32(2),
-					clusters[1]: int32(2),
-				},
-			},
-			"Replicas spread in proportion of weights when explicit preferences with weights specified": {
-				rspSpec: rspSpecWithClusterList(int32(6), int64(2), int64(1), int64(0), int64(0), clusters, targetKind),
-				expected: map[string]int32{
-					clusters[0]: int32(4),
-					clusters[1]: int32(2),
-				},
-			},
-			"Replicas spread considering min replicas when both minreplica and weights specified": {
-				rspSpec: rspSpecWithClusterList(int32(6), int64(2), int64(1), int64(3), int64(3), clusters, targetKind),
-				expected: map[string]int32{
-					clusters[0]: int32(3),
-					clusters[1]: int32(3),
-				},
-			},
-		}
-
-		for testName, testCase := range testCases {
-			t.Run(testName, func(t *testing.T) {
-				name, err := createTestObjs(testCase.rspSpec, testNamespace, targetKind, fedClient)
-				if err != nil {
-					tl.Fatalf("Creation of test objects failed in federation")
-				}
-
-				err = waitForMatchingPlacement(fedClient, name, testNamespace, targetKind, testCase.expected)
-				if err != nil {
-					tl.Fatalf("Failed waiting for matching placements")
-				}
-
-				err = waitForMatchingOverride(fedClient, name, testNamespace, targetKind, testCase.expected)
-				if err != nil {
-					tl.Fatalf("Failed waiting for matching overrides")
-				}
-			})
-		}
+	testCases := map[string]struct {
+		total         int32
+		weight1       int64
+		weight2       int64
+		min1          int64
+		min2          int64
+		cluster1      int32
+		cluster2      int32
+		noPreferences bool
+	}{
+		"replicas spread equally in clusters with no explicit per cluster preferences": {
+			total:         int32(4),
+			cluster1:      int32(2),
+			cluster2:      int32(2),
+			noPreferences: true,
+		},
+		"replicas spread in proportion of weights when explicit preferences with weights specified": {
+			total:    int32(6),
+			weight1:  int64(2),
+			weight2:  int64(1),
+			min1:     int64(0),
+			min2:     int64(0),
+			cluster1: int32(4),
+			cluster2: int32(2),
+		},
+		"replicas spread considering min replicas when both minreplica and weights specified": {
+			total:    int32(6),
+			weight1:  int64(2),
+			weight2:  int64(1),
+			min1:     int64(3),
+			min2:     int64(3),
+			cluster1: int32(3),
+			cluster2: int32(3),
+		},
 	}
-}
 
-func initRSPTest(tl common.TestLogger, fedFixture *framework.FederationFixture) (*framework.ControllerFixture, clientset.Interface) {
-	controllerConfig := fedFixture.ControllerConfig(tl)
-	fixture := framework.NewRSPControllerFixture(tl, controllerConfig, TypeConfigs)
-	kubeConfig := controllerConfig.KubeConfig
-	restclient.AddUserAgent(kubeConfig, "rsp-test")
-	client := clientset.NewForConfigOrDie(kubeConfig)
+	for _, targetKind := range targetKinds {
+		Describe(fmt.Sprintf("Replica scheduling for %s", targetKind), func() {
+			for testName, tc := range testCases {
+				It(fmt.Sprintf("should result in %s", testName), func() {
+					clusterCount := len(clusterNames)
+					if clusterCount != 2 {
+						framework.Skipf("Tests of ReplicaSchedulingPreferences requires 2 clusters but got: %d", clusterCount)
+					}
 
-	return fixture, client
-}
+					var rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec
+					if tc.noPreferences {
+						rspSpec = rspSpecWithoutClusterList(tc.total, targetKind)
+					} else {
+						rspSpec = rspSpecWithClusterList(tc.total, tc.weight1, tc.weight2, tc.min1, tc.min2, clusterNames, targetKind)
+					}
+
+					expected := map[string]int32{
+						clusterNames[0]: tc.cluster1,
+						clusterNames[1]: tc.cluster2,
+					}
+
+					name, err := createTestObjs(rspSpec, namespace, targetKind, fedClient)
+					if err != nil {
+						tl.Fatalf("Creation of test objects failed in federation")
+					}
+
+					err = waitForMatchingPlacement(fedClient, name, namespace, targetKind, expected)
+					if err != nil {
+						tl.Fatalf("Failed waiting for matching placements")
+					}
+
+					err = waitForMatchingOverride(fedClient, name, namespace, targetKind, expected)
+					if err != nil {
+						tl.Fatalf("Failed waiting for matching overrides")
+					}
+				})
+			}
+		})
+	}
+})
 
 func rspSpecWithoutClusterList(total int32, targetKind string) fedschedulingv1a1.ReplicaSchedulingPreferenceSpec {
 	return fedschedulingv1a1.ReplicaSchedulingPreferenceSpec{
@@ -178,7 +206,7 @@ func createTestObjs(rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, n
 }
 
 func waitForMatchingPlacement(fedClient clientset.Interface, name, namespace, targetKind string, expected map[string]int32) error {
-	err := wait.Poll(framework.DefaultWaitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		var wrapErr error
 		clusterNames := []string{}
 		switch targetKind {
@@ -217,7 +245,7 @@ func waitForMatchingPlacement(fedClient clientset.Interface, name, namespace, ta
 }
 
 func waitForMatchingOverride(fedClient clientset.Interface, name, namespace, targetKind string, expected map[string]int32) error {
-	err := wait.Poll(framework.DefaultWaitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		var override pkgruntime.Object
 		var wrapErr error
 		switch targetKind {
@@ -261,20 +289,6 @@ func waitForMatchingOverride(fedClient clientset.Interface, name, namespace, tar
 	})
 
 	return err
-}
-
-func getClusterNames(fedClient clientset.Interface, fedNamespace string) []string {
-	clusters := []string{}
-
-	clusterList, err := fedClient.CoreV1alpha1().FederatedClusters(fedNamespace).List(metav1.ListOptions{})
-	if err != nil || clusterList == nil {
-		return clusters
-	}
-	for _, cluster := range clusterList.Items {
-		clusters = append(clusters, cluster.Name)
-	}
-
-	return clusters
 }
 
 func getFederatedDeploymentTemplate(namespace string, replicas int32) pkgruntime.Object {
