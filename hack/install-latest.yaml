@@ -627,7 +627,7 @@ status:
   loadBalancer: {}
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   creationTimestamp: null
   labels:

@@ -203,20 +203,20 @@ executable to aid in debugging, we need to kill the existing
 `federation-controller-manager` pod so that they will not step on each other. Follow
 these steps:
 
-1. Reduce the `federation-controller-manager` statefulset replicas to 0. This way
+1. Reduce the `federation-controller-manager` deployment replicas to 0. This way
    we can launch the necessary federation-v2 controllers ourselves via the test
    binary.
 
    ```bash
-   kubectl -n federation-system patch statefulsets.apps \
+   kubectl -n federation-system patch deployment.apps \
        federation-controller-manager -p '{"spec":{"replicas": 0}}'
    ```
 
    Once you've reduced the replicas to 0, you should see the
-   `federation-controller-manager` statefulset update to show 0 pods running:
+   `federation-controller-manager` deployment update to show 0 pods running:
 
    ```bash
-   kubectl -n federation-system get statefulsets.apps federation-controller-manager
+   kubectl -n federation-system get deployment.apps federation-controller-manager
    NAME                            DESIRED   CURRENT   AGE
    federation-controller-manager   0         0         14s
    ```
