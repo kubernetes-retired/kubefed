@@ -14,24 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package typeconfig
+package util
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Interface defines how to interact with a FederatedTypeConfig
-type Interface interface {
-	GetObjectMeta() metav1.ObjectMeta
-	GetTarget() metav1.APIResource
-	GetNamespaced() bool
-	GetComparisonField() common.VersionComparisonField
-	GetPropagationEnabled() bool
-	GetTemplate() metav1.APIResource
-	GetPlacement() metav1.APIResource
-	GetOverride() *metav1.APIResource
-	GetOverridePaths() map[string][]string
-	GetStatus() *metav1.APIResource
-	GetEnableStatus() bool
+// FederatedResource is a generic representation of a federated type
+type FederatedResource struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	ClusterStatus []ResourceClusterStatus `json:"clusterStatus,omitempty"`
+}
+
+// ResourceClusterStatus defines the status of federated resource within a cluster
+type ResourceClusterStatus struct {
+	ClusterName string                 `json:"clusterName,omitempty"`
+	Status      map[string]interface{} `json:"status,omitempty"`
 }

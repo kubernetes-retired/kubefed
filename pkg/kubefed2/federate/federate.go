@@ -40,10 +40,10 @@ var (
 func NewCmdFederate(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 	cmd := &cobra.Command{
-		Use: "federate SUBCOMMAND",
+		Use:                   "federate SUBCOMMAND",
 		DisableFlagsInUseLine: true,
-		Short: "Enable/disable propagation of Kubernetes types to multiple clusters",
-		Long:  federate_long,
+		Short:                 "Enable/disable propagation of Kubernetes types to multiple clusters",
+		Long:                  federate_long,
 		Run: func(_ *cobra.Command, args []string) {
 			if len(args) < 1 {
 				glog.Fatalf("missing subcommand; \"federate\" is not meant to be run on its own")

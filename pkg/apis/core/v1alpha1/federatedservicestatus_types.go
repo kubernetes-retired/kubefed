@@ -21,21 +21,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// FederatedServiceSpec defines the desired state of FederatedService
-type FederatedServiceSpec struct {
-	// Template to derive per-cluster service from
-	Template corev1.Service `json:"template,omitempty"`
+// FederatedServiceClusterStatus is the observed status of the resource for a named cluster
+type FederatedServiceClusterStatus struct {
+	ClusterName string               `json:"clusterName,omitempty"`
+	Status      corev1.ServiceStatus `json:"status,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedService
+// FederatedServiceStatus
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=federatedservices
-type FederatedService struct {
+// +kubebuilder:resource:path=federatedservicestatuses
+type FederatedServiceStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec FederatedServiceSpec `json:"spec,omitempty"`
+	ClusterStatus []FederatedServiceClusterStatus `json:"clusterStatus,omitempty"`
 }

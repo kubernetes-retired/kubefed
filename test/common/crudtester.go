@@ -89,6 +89,8 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) {
 	template, placement, override := c.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
 
+	c.CheckStatusCreated(util.NewQualifiedName(template))
+
 	// TOOD(marun) Make sure these next steps work!!
 	c.CheckUpdate(template, placement, override)
 	c.CheckPlacementChange(template, placement, override)
@@ -552,4 +554,28 @@ func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedV
 		}
 	}
 	return ""
+}
+
+func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.QualifiedName) {
+	if c.typeConfig.GetEnableStatus() == false {
+		return
+	}
+
+	statusAPIResource := c.typeConfig.GetStatus()
+	statusKind := statusAPIResource.Kind
+
+	c.tl.Logf("Checking creation of %s %q", statusKind, qualifiedName)
+
+	client := c.fedResourceClient(*statusAPIResource)
+	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			c.tl.Errorf("An unexpected error occurred while polling for desired status: %v", err)
+		}
+		return (err == nil), nil
+	})
+
+	if err != nil {
+		c.tl.Fatalf("Timed out waiting for %s %q", statusKind, qualifiedName)
+	}
 }

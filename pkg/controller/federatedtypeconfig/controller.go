@@ -34,6 +34,7 @@ import (
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	corev1alpha1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	statuscontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
 	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
@@ -135,20 +136,29 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	}
 	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 
-	enabled := typeConfig.Spec.PropagationEnabled
+	// TODO(marun) Perform this defaulting in a webhook
+	corev1a1.SetFederatedTypeConfigDefaults(typeConfig)
+
+	syncEnabled := typeConfig.Spec.PropagationEnabled
+	statusEnabled := typeConfig.Spec.EnableStatus
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
-	if limitedScope && enabled && !typeConfig.GetNamespaced() {
-		glog.Infof("Skipping start of sync controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetTemplate().Kind)
+	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {
+		glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetTemplate().Kind)
 		return util.StatusAllOK
 	}
 
-	stopChan, running := c.getStopChannel(typeConfig.Name)
+	statusKey := typeConfig.Name + "/status"
+	syncStopChan, syncRunning := c.getStopChannel(typeConfig.Name)
+	statusStopChan, statusRunning := c.getStopChannel(statusKey)
 
 	deleted := typeConfig.DeletionTimestamp != nil
 	if deleted {
-		if running {
-			c.stopController(typeConfig.Name, stopChan)
+		if syncRunning {
+			c.stopController(typeConfig.Name, syncStopChan)
+		}
+		if statusRunning {
+			c.stopController(statusKey, statusStopChan)
 		}
 		err := c.removeFinalizer(typeConfig)
 		if err != nil {
@@ -164,15 +174,26 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return util.StatusError
 	}
 
-	startNewController := !running && enabled
-	stopController := running && !enabled
-	if startNewController {
-		if err := c.startController(typeConfig); err != nil {
+	startNewSyncController := !syncRunning && syncEnabled
+	stopSyncController := syncRunning && !syncEnabled
+	if startNewSyncController {
+		if err := c.startSyncController(typeConfig); err != nil {
 			runtime.HandleError(err)
 			return util.StatusError
 		}
-	} else if stopController {
-		c.stopController(typeConfig.Name, stopChan)
+	} else if stopSyncController {
+		c.stopController(typeConfig.Name, syncStopChan)
+	}
+
+	startNewStatusController := !statusRunning && statusEnabled
+	stopStatusController := statusRunning && !statusEnabled
+	if startNewStatusController {
+		if err := c.startStatusController(statusKey, typeConfig); err != nil {
+			runtime.HandleError(err)
+			return util.StatusError
+		}
+	} else if stopStatusController {
+		c.stopController(statusKey, statusStopChan)
 	}
 
 	return util.StatusAllOK
@@ -182,7 +203,7 @@ func (c *Controller) shutDown() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	// Stop all sync controllers
+	// Stop all sync and status controllers
 	for key, stopChannel := range c.stopChannels {
 		close(stopChannel)
 		delete(c.stopChannels, key)
@@ -196,12 +217,8 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 	return stopChan, ok
 }
 
-func (c *Controller) startController(tc *corev1a1.FederatedTypeConfig) error {
+func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error {
 	kind := tc.Spec.Template.Kind
-
-	// TODO(marun) Perform this defaulting in a webhook
-	corev1a1.SetFederatedTypeConfigDefaults(tc)
-
 	stopChan := make(chan struct{})
 	err := synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc)
 	if err != nil {
@@ -215,8 +232,23 @@ func (c *Controller) startController(tc *corev1a1.FederatedTypeConfig) error {
 	return nil
 }
 
+func (c *Controller) startStatusController(statusKey string, tc *corev1a1.FederatedTypeConfig) error {
+	kind := tc.Spec.Template.Kind
+	stopChan := make(chan struct{})
+	err := statuscontroller.StartFederationStatusController(c.controllerConfig, stopChan, tc)
+	if err != nil {
+		close(stopChan)
+		return fmt.Errorf("Error starting status controller for %q: %v", kind, err)
+	}
+	glog.Infof("Started status controller for %q", kind)
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.stopChannels[statusKey] = stopChan
+	return nil
+}
+
 func (c *Controller) stopController(key string, stopChan chan struct{}) {
-	glog.Infof("Stopping sync controller for %q", key)
+	glog.Infof("Stopping controller for %q", key)
 	close(stopChan)
 	c.lock.Lock()
 	defer c.lock.Unlock()

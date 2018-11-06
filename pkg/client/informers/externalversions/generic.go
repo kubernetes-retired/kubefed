@@ -103,6 +103,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceAccountPlacements().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceplacements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServicePlacements().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("federatedservicestatuses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceStatuses().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedtypeconfigs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedTypeConfigs().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("propagatedversions"):

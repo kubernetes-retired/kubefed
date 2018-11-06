@@ -72,6 +72,8 @@ type Interface interface {
 	FederatedServiceAccountPlacements() FederatedServiceAccountPlacementInformer
 	// FederatedServicePlacements returns a FederatedServicePlacementInformer.
 	FederatedServicePlacements() FederatedServicePlacementInformer
+	// FederatedServiceStatuses returns a FederatedServiceStatusInformer.
+	FederatedServiceStatuses() FederatedServiceStatusInformer
 	// FederatedTypeConfigs returns a FederatedTypeConfigInformer.
 	FederatedTypeConfigs() FederatedTypeConfigInformer
 	// PropagatedVersions returns a PropagatedVersionInformer.
@@ -207,6 +209,11 @@ func (v *version) FederatedServiceAccountPlacements() FederatedServiceAccountPla
 // FederatedServicePlacements returns a FederatedServicePlacementInformer.
 func (v *version) FederatedServicePlacements() FederatedServicePlacementInformer {
 	return &federatedServicePlacementInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedServiceStatuses returns a FederatedServiceStatusInformer.
+func (v *version) FederatedServiceStatuses() FederatedServiceStatusInformer {
+	return &federatedServiceStatusInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // FederatedTypeConfigs returns a FederatedTypeConfigInformer.

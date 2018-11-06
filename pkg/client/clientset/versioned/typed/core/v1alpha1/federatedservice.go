@@ -37,7 +37,6 @@ type FederatedServicesGetter interface {
 type FederatedServiceInterface interface {
 	Create(*v1alpha1.FederatedService) (*v1alpha1.FederatedService, error)
 	Update(*v1alpha1.FederatedService) (*v1alpha1.FederatedService, error)
-	UpdateStatus(*v1alpha1.FederatedService) (*v1alpha1.FederatedService, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.FederatedService, error)
@@ -115,22 +114,6 @@ func (c *federatedServices) Update(federatedService *v1alpha1.FederatedService) 
 		Namespace(c.ns).
 		Resource("federatedservices").
 		Name(federatedService.Name).
-		Body(federatedService).
-		Do().
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedServices) UpdateStatus(federatedService *v1alpha1.FederatedService) (result *v1alpha1.FederatedService, err error) {
-	result = &v1alpha1.FederatedService{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("federatedservices").
-		Name(federatedService.Name).
-		SubResource("status").
 		Body(federatedService).
 		Do().
 		Into(result)

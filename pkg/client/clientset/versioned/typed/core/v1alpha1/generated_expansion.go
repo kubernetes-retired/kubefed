@@ -66,6 +66,8 @@ type FederatedServiceAccountPlacementExpansion interface{}
 
 type FederatedServicePlacementExpansion interface{}
 
+type FederatedServiceStatusExpansion interface{}
+
 type FederatedTypeConfigExpansion interface{}
 
 type PropagatedVersionExpansion interface{}
