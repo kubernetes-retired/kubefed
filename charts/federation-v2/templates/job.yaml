@@ -17,6 +17,5 @@ spec:
     kind: FederatedJobPlacement
   override:
     kind: FederatedJobOverride
-  overridePath:
-    - spec
-    - parallelism
+  overridePaths:
+    - path: spec.parallelism

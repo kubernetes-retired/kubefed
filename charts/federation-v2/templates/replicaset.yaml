@@ -17,6 +17,5 @@ spec:
     kind: FederatedReplicaSetPlacement
   override:
     kind: FederatedReplicaSetOverride
-  overridePath:
-    - spec
-    - replicas
+  overridePaths:
+    - path: spec.replicas
