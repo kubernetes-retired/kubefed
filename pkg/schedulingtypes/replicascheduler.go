@@ -43,7 +43,12 @@ const (
 )
 
 func init() {
-	RegisterSchedulingType(RSPKind, NewReplicaScheduler)
+	schedulingType := SchedulingType{
+		Kind:             RSPKind,
+		SchedulerFactory: NewReplicaScheduler,
+	}
+	RegisterSchedulingType("deployments.apps", schedulingType)
+	RegisterSchedulingType("replicasets.apps", schedulingType)
 }
 
 type ReplicaScheduler struct {

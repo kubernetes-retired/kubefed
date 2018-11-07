@@ -25,17 +25,16 @@ type SchedulingType struct {
 	SchedulerFactory SchedulerFactory
 }
 
+// Mapping of qualified target name (e.g. deployment.apps) targeted
+// for scheduling with scheduling type
 var typeRegistry = make(map[string]SchedulingType)
 
-func RegisterSchedulingType(kind string, factory SchedulerFactory) {
-	_, ok := typeRegistry[kind]
+func RegisterSchedulingType(kind string, schedulingType SchedulingType) {
+	existing, ok := typeRegistry[kind]
 	if ok {
-		panic(fmt.Sprintf("Scheduler type %q has already been registered", kind))
+		panic(fmt.Sprintf("Kind %q is already registered for scheduling with %q", kind, existing.Kind))
 	}
-	typeRegistry[kind] = SchedulingType{
-		Kind:             kind,
-		SchedulerFactory: factory,
-	}
+	typeRegistry[kind] = schedulingType
 }
 
 func SchedulingTypes() map[string]SchedulingType {
@@ -46,6 +45,10 @@ func SchedulingTypes() map[string]SchedulingType {
 	return result
 }
 
-func GetSchedulerFactory(typ string) SchedulerFactory {
-	return typeRegistry[typ].SchedulerFactory
+func GetSchedulingType(kind string) *SchedulingType {
+	schedulingType, ok := typeRegistry[kind]
+	if ok {
+		return &schedulingType
+	}
+	return nil
 }

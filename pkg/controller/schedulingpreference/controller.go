@@ -70,10 +70,10 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(config *util.ControllerConfig, stopChan <-chan struct{}, kind string, schedulerFactory schedulingtypes.SchedulerFactory) (schedulingtypes.Scheduler, error) {
-	userAgent := fmt.Sprintf("%s-controller", kind)
+func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType, stopChan <-chan struct{}) (schedulingtypes.Scheduler, error) {
+	userAgent := fmt.Sprintf("%s-controller", schedulingType.Kind)
 	fedClient, kubeClient, crClient := config.AllClients(userAgent)
-	controller, err := newSchedulingPreferenceController(config, schedulerFactory, fedClient, kubeClient, crClient)
+	controller, err := newSchedulingPreferenceController(config, schedulingType.SchedulerFactory, fedClient, kubeClient, crClient)
 	if err != nil {
 		return nil, err
 	}
