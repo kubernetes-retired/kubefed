@@ -31,20 +31,10 @@ import (
 )
 
 func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-	path := fixturePath()
-
-	filenameTemplate := filepath.Join(path, fmt.Sprintf("%s-%%s.yaml", strings.ToLower(typeConfig.GetTarget().Kind)))
-
-	templateFilename := fmt.Sprintf(filenameTemplate, "template")
-	template, err = fileToObj(templateFilename)
+	template, err = NewTestTemplate(typeConfig, namespace)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if typeConfig.GetNamespaced() {
-		template.SetNamespace(namespace)
-	}
-	template.SetName("")
-	template.SetGenerateName("test-crud-")
 
 	placement, err = GetPlacementTestObject(typeConfig, namespace, clusterNames)
 	if err != nil {
@@ -52,6 +42,7 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 	}
 
 	if typeConfig.GetOverride() != nil {
+		filenameTemplate := fixtureFilenameTemplate(typeConfig)
 		overrideFilename := fmt.Sprintf(filenameTemplate, "override")
 		override, err = fileToObj(overrideFilename)
 		if err != nil {
@@ -64,6 +55,28 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 	}
 
 	return template, placement, override, nil
+}
+
+func NewTestTemplate(typeConfig typeconfig.Interface, namespace string) (*unstructured.Unstructured, error) {
+	filenameTemplate := fixtureFilenameTemplate(typeConfig)
+
+	templateFilename := fmt.Sprintf(filenameTemplate, "template")
+	template, err := fileToObj(templateFilename)
+	if err != nil {
+		return nil, err
+	}
+	if typeConfig.GetNamespaced() {
+		template.SetNamespace(namespace)
+	}
+	template.SetName("")
+	template.SetGenerateName("test-crud-")
+
+	return template, nil
+}
+
+func fixtureFilenameTemplate(typeConfig typeconfig.Interface) string {
+	path := fixturePath()
+	return filepath.Join(path, fmt.Sprintf("%s-%%s.yaml", strings.ToLower(typeConfig.GetTarget().Kind)))
 }
 
 func fixturePath() string {
