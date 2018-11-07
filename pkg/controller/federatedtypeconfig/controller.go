@@ -145,6 +145,15 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {
 		glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetTemplate().Kind)
+
+		typeConfig.Status.ObservedGeneration = typeConfig.Generation
+		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
+		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
+		_, err = c.client.FederatedTypeConfigs(typeConfig.Namespace).UpdateStatus(typeConfig)
+		if err != nil {
+			runtime.HandleError(fmt.Errorf("Could not update status fields of the CRD: %q: %v", key, err))
+			return util.StatusError
+		}
 		return util.StatusAllOK
 	}
 
@@ -160,6 +169,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		if statusRunning {
 			c.stopController(statusKey, statusStopChan)
 		}
+
 		err := c.removeFinalizer(typeConfig)
 		if err != nil {
 			runtime.HandleError(fmt.Errorf("Failed to remove finalizer from FederatedTypeConfig %q: %v", key, err))
@@ -196,6 +206,22 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		c.stopController(statusKey, statusStopChan)
 	}
 
+	typeConfig.Status.ObservedGeneration = typeConfig.Generation
+	if syncRunning {
+		typeConfig.Status.PropagationController = corev1a1.ControllerStatusRunning
+	} else {
+		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
+	}
+	if statusRunning {
+		typeConfig.Status.StatusController = corev1a1.ControllerStatusRunning
+	} else {
+		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
+	}
+	_, err = c.client.FederatedTypeConfigs(typeConfig.Namespace).UpdateStatus(typeConfig)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Could not update status fields of the CRD: %q: %v", key, err))
+		return util.StatusError
+	}
 	return util.StatusAllOK
 }
 
@@ -266,7 +292,6 @@ func (c *Controller) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Insert(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	_, err = c.client.FederatedTypeConfigs(tc.Namespace).Update(tc)
 	return err
 }
 
@@ -281,6 +306,6 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Delete(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	_, err = c.client.FederatedTypeConfigs(tc.Namespace).Update(tc)
+	_, err = c.client.FederatedTypeConfigs(tc.Namespace).UpdateStatus(tc)
 	return err
 }

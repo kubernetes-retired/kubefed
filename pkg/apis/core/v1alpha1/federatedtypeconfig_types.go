@@ -95,11 +95,27 @@ type OverridePath struct {
 	Path string `json:"path"`
 }
 
+// ControllerStatus defines the current state of the controller
+type ControllerStatus string
+
+const (
+	// ControllerStatusRunning means controller is in "running" state
+	ControllerStatusRunning ControllerStatus = "Running"
+	// ControllerStatusNotRunning means controller is in "notrunning" state
+	ControllerStatusNotRunning ControllerStatus = "NotRunning"
+)
+
 // FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig
 type FederatedTypeConfigStatus struct {
 	// ObservedGeneration is the generation as observed by the controller consuming the FederatedTypeConfig.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// PropagationController tracks the status of the sync controller.
+	// +optional
+	PropagationController ControllerStatus `json:"propagationController,omitempty"`
+	// StatusController tracks the status of the status controller.
+	// +optional
+	StatusController ControllerStatus `json:"statusController,omitempty"`
 }
 
 // +genclient
