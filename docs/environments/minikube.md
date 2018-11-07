@@ -3,14 +3,10 @@
 [Minikube](https://kubernetes.io/docs/getting-started-guides/minikube/) provides the quickest way to set-up clusters for
 use with the Federation v2 control plane.
 
-**NOTE:** You will need to use a minikube version that supports deploying a
-kubernetes cluster >= 1.11. Currently there is no released version of minikube
-that supports kube v1.11 with profiles so you'll need to either:
-
-- Build minikube from master by following these
-   [instructions](https://github.com/kubernetes/minikube/blob/master/docs/contributors/build_guide.md).
-- Or use a recent CI build such as [this one from PR
-   2943](http://storage.googleapis.com/minikube-builds/2943/minikube-linux-amd64).
+**NOTE:** You will need to use a minikube version that supports
+deploying a kubernetes cluster >= 1.11. [Recently
+released](https://github.com/kubernetes/minikube/releases/latest)
+versions of minikube (>= `0.30.0`) will satisfy this requirement.
 
 Once you have minikube installed run:
 
