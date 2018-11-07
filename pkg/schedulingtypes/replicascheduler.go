@@ -48,8 +48,19 @@ func init() {
 	RegisterSchedulingType(RSPKind, NewReplicaScheduler)
 }
 
+type pluginArgs struct {
+	FederationNamespaces
+	kubeClient             kubeclientset.Interface
+	crClient               crclientset.Interface
+	federationEventHandler func(pkgruntime.Object)
+	clusterEventHandler    func(pkgruntime.Object)
+	handlers               *ClusterLifecycleHandlerFuncs
+}
+
 type ReplicaScheduler struct {
-	plugins         map[string]*Plugin
+	plugins map[string]*Plugin
+	pluginArgs
+
 	fedClient       fedclientset.Interface
 	podInformer     FederatedInformer
 	targetNamespace string
@@ -57,30 +68,17 @@ type ReplicaScheduler struct {
 
 func NewReplicaScheduler(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface, namespaces FederationNamespaces, federationEventHandler, clusterEventHandler func(pkgruntime.Object), handlers *ClusterLifecycleHandlerFuncs) Scheduler {
 	scheduler := &ReplicaScheduler{
-		plugins:         make(map[string]*Plugin),
+		plugins: make(map[string]*Plugin),
+		pluginArgs: pluginArgs{
+			kubeClient:             kubeClient,
+			crClient:               crClient,
+			FederationNamespaces:   namespaces,
+			federationEventHandler: federationEventHandler,
+			clusterEventHandler:    clusterEventHandler,
+			handlers:               handlers,
+		},
 		fedClient:       fedClient,
 		targetNamespace: namespaces.TargetNamespace,
-	}
-
-	for name, apiResource := range ReplicaSechedulingResources {
-		var adapter adapters.Adapter
-		switch name {
-		case FederatedDeployment:
-			adapter = adapters.NewFederatedDeploymentAdapter(fedClient)
-		case FederatedReplicaSet:
-			adapter = adapters.NewFederatedReplicaSetAdapter(fedClient)
-		}
-		scheduler.plugins[name] = NewPlugin(
-			adapter,
-			&apiResource,
-			fedClient,
-			kubeClient,
-			crClient,
-			namespaces,
-			federationEventHandler,
-			clusterEventHandler,
-			handlers,
-		)
 	}
 
 	// TODO: Update this to use a typed client from single target informer.
@@ -104,6 +102,38 @@ func (s *ReplicaScheduler) Kind() string {
 	return RSPKind
 }
 
+func (s *ReplicaScheduler) StartPlugin(kind string, apiResource *metav1.APIResource, stopChan <-chan struct{}) error {
+	var adapter adapters.Adapter
+	switch kind {
+	case FederatedDeployment:
+		adapter = adapters.NewFederatedDeploymentAdapter(s.fedClient)
+	case FederatedReplicaSet:
+		adapter = adapters.NewFederatedReplicaSetAdapter(s.fedClient)
+	default:
+		return fmt.Errorf("Kind %s is not supported to register as plugin", kind)
+	}
+
+	if _, ok := s.plugins[kind]; ok {
+		return nil
+	}
+
+	glog.Infof("Kind %s is registered to the scheduler plugin", kind)
+	s.plugins[kind] = NewPlugin(
+		adapter,
+		apiResource,
+		s.fedClient,
+		s.pluginArgs.kubeClient,
+		s.pluginArgs.crClient,
+		s.pluginArgs.FederationNamespaces,
+		s.pluginArgs.federationEventHandler,
+		s.pluginArgs.clusterEventHandler,
+		s.pluginArgs.handlers,
+	)
+	s.plugins[kind].Start(stopChan)
+
+	return nil
+}
+
 func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
 	return &fedschedulingv1a1.ReplicaSchedulingPreference{}
 }
@@ -117,10 +147,6 @@ func (s *ReplicaScheduler) FedWatch(namespace string, options metav1.ListOptions
 }
 
 func (s *ReplicaScheduler) Start(stopChan <-chan struct{}) {
-	for _, plugin := range s.plugins {
-		plugin.Start(stopChan)
-	}
-
 	s.podInformer.Start()
 }
 
@@ -174,7 +200,12 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName Qualif
 		return StatusNeedsRecheck
 	}
 
-	if !s.plugins[kind].TemplateExists(qualifiedName.String()) {
+	plugin, ok := s.plugins[kind]
+	if !ok {
+		return StatusAllOK
+	}
+
+	if !plugin.TemplateExists(qualifiedName.String()) {
 		// target FederatedTemplate does not exist, nothing to do
 		return StatusAllOK
 	}
