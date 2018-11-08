@@ -11,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 const loadbalancerActiveTimeoutSeconds = 300
@@ -43,6 +44,8 @@ func CreateListener(t *testing.T, client *gophercloud.ServiceClient, lb *loadbal
 		return listener, fmt.Errorf("Timed out waiting for loadbalancer to become active")
 	}
 
+	th.AssertEquals(t, listener.ProtocolPort, listenerPort)
+
 	return listener, nil
 }
 
@@ -73,6 +76,8 @@ func CreateLoadBalancer(t *testing.T, client *gophercloud.ServiceClient, subnetI
 
 	t.Logf("LoadBalancer %s is active", lbName)
 
+	th.AssertEquals(t, lb.Name, lbName)
+
 	return lb, nil
 }
 
@@ -92,7 +97,7 @@ func CreateMember(t *testing.T, client *gophercloud.ServiceClient, lb *loadbalan
 	createOpts := pools.CreateMemberOpts{
 		Name:         memberName,
 		ProtocolPort: memberPort,
-		Weight:       memberWeight,
+		Weight:       &memberWeight,
 		Address:      memberAddress,
 		SubnetID:     subnetID,
 	}
@@ -109,6 +114,8 @@ func CreateMember(t *testing.T, client *gophercloud.ServiceClient, lb *loadbalan
 	if err := WaitForLoadBalancerState(client, lb.ID, "ACTIVE", loadbalancerActiveTimeoutSeconds); err != nil {
 		return member, fmt.Errorf("Timed out waiting for loadbalancer to become active")
 	}
+
+	th.AssertEquals(t, member.Name, memberName)
 
 	return member, nil
 }
@@ -140,6 +147,8 @@ func CreateMonitor(t *testing.T, client *gophercloud.ServiceClient, lb *loadbala
 		return monitor, fmt.Errorf("Timed out waiting for loadbalancer to become active")
 	}
 
+	th.AssertEquals(t, monitor.Name, monitorName)
+
 	return monitor, nil
 }
 
@@ -168,6 +177,8 @@ func CreatePool(t *testing.T, client *gophercloud.ServiceClient, lb *loadbalance
 	if err := WaitForLoadBalancerState(client, lb.ID, "ACTIVE", loadbalancerActiveTimeoutSeconds); err != nil {
 		return pool, fmt.Errorf("Timed out waiting for loadbalancer to become active")
 	}
+
+	th.AssertEquals(t, pool.Name, poolName)
 
 	return pool, nil
 }

@@ -96,11 +96,24 @@ def sha1sum(name, src, visibility = None):
         visibility = visibility,
     )
 
+# Computes the sha512sum of the provided src file, saving it in a file named 'name'.
+def sha512sum(name, src, visibility = None):
+    native.genrule(
+        name = name + "_gensha512sum",
+        srcs = [src],
+        outs = [name],
+        # Currently each go_binary target has two outputs (the binary and the library),
+        # so we hash both but only save the hash for the binary.
+        cmd = "command -v sha512sum >/dev/null && cmd=sha512sum || cmd='shasum -a512'; for f in $(SRCS); do $$cmd $$f | awk '{print $$1}' > $@; done",
+        message = "Computing sha512sum",
+        visibility = visibility,
+    )
+
 # Creates 3+N rules based on the provided targets:
 # * A filegroup with just the provided targets (named 'name')
-# * A filegroup containing all of the md5 and sha1 hash files ('name-hashes')
+# * A filegroup containing all of the md5, sha1 and sha512 hash files ('name-hashes')
 # * A filegroup containing both of the above ('name-and-hashes')
-# * All of the necessary md5sum and sha1sum rules
+# * All of the necessary md5sum, sha1sum and sha512sum rules
 def release_filegroup(name, srcs, visibility = None):
     hashes = []
     for src in srcs:
@@ -114,6 +127,8 @@ def release_filegroup(name, srcs, visibility = None):
         hashes.append(basename + ".md5")
         sha1sum(name = basename + ".sha1", src = src, visibility = visibility)
         hashes.append(basename + ".sha1")
+        sha512sum(name = basename + ".sha512", src = src, visibility = visibility)
+        hashes.append(basename + ".sha512")
 
     native.filegroup(
         name = name,

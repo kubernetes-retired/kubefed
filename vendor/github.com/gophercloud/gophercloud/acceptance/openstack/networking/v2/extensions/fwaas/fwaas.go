@@ -11,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/routerinsertion"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateFirewall will create a Firewaill with a random name and a specified
@@ -38,6 +39,8 @@ func CreateFirewall(t *testing.T, client *gophercloud.ServiceClient, policyID st
 	}
 
 	t.Logf("Successfully created firewall %s", firewallName)
+
+	th.AssertEquals(t, firewall.Name, firewallName)
 
 	return firewall, nil
 }
@@ -72,6 +75,8 @@ func CreateFirewallOnRouter(t *testing.T, client *gophercloud.ServiceClient, pol
 
 	t.Logf("Successfully created firewall %s", firewallName)
 
+	th.AssertEquals(t, firewall.Name, firewallName)
+
 	return firewall, nil
 }
 
@@ -95,6 +100,9 @@ func CreatePolicy(t *testing.T, client *gophercloud.ServiceClient, ruleID string
 	}
 
 	t.Logf("Successfully created policy %s", policyName)
+
+	th.AssertEquals(t, policy.Name, policyName)
+	th.AssertEquals(t, len(policy.Rules), 1)
 
 	return policy, nil
 }
@@ -128,6 +136,13 @@ func CreateRule(t *testing.T, client *gophercloud.ServiceClient) (*rules.Rule, e
 	}
 
 	t.Logf("Rule %s successfully created", ruleName)
+
+	th.AssertEquals(t, rule.Name, ruleName)
+	th.AssertEquals(t, rule.Protocol, rules.ProtocolTCP)
+	th.AssertEquals(t, rule.SourceIPAddress, sourceAddress)
+	th.AssertEquals(t, rule.SourcePort, sourcePort)
+	th.AssertEquals(t, rule.DestinationIPAddress, destinationAddress)
+	th.AssertEquals(t, rule.DestinationPort, destinationPort)
 
 	return rule, nil
 }

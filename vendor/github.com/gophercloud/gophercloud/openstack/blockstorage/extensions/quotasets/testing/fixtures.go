@@ -150,3 +150,13 @@ func HandleSuccessfulRequest(t *testing.T, httpMethod, uriPath, jsonOutput strin
 		fmt.Fprintf(w, jsonOutput)
 	})
 }
+
+// HandleDeleteSuccessfully tests quotaset deletion.
+func HandleDeleteSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/os-quota-sets/"+FirstTenantID, func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "DELETE")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+
+		w.WriteHeader(http.StatusOK)
+	})
+}

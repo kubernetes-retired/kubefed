@@ -59,5 +59,13 @@ Example to Delete a Listener
 	if err != nil {
 		panic(err)
 	}
+
+Example to Get the Statistics of a Listener
+
+	listenerID := "d67d56a6-4a86-4688-a282-f46444705c64"
+	stats, err := listeners.GetStats(networkClient, listenerID).Extract()
+	if err != nil {
+		panic(err)
+	}
 */
 package listeners

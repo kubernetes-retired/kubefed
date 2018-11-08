@@ -7,29 +7,33 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// ListOptsBuilder Builder.
+// ListOptsBuilder allows extensions to add additional parameters to the
+// List request.
 type ListOptsBuilder interface {
 	ToPolicyListQuery() (string, error)
 }
 
-// ListOpts params
+// ListOpts represents options used to list policies.
 type ListOpts struct {
 	// Limit limits the number of Policies to return.
 	Limit int `q:"limit"`
 
-	// Marker and Limit control paging. Marker instructs List where to start listing from.
+	// Marker and Limit control paging. Marker instructs List where to start
+	// listing from.
 	Marker string `q:"marker"`
 
-	// Sorts the response by one or more attribute and optional sort direction combinations.
+	// Sorts the response by one or more attribute and optional sort direction
+	// combinations.
 	Sort string `q:"sort"`
 
-	// GlobalProject indicates whether to include resources for all projects or resources for the current project
+	// GlobalProject indicates whether to include resources for all projects or
+	// resources for the current project.
 	GlobalProject *bool `q:"global_project"`
 
-	// Name to filter the response by the specified name property of the object
+	// Name to filter the response by the specified name property of the object.
 	Name string `q:"name"`
 
-	// Filter the response by the specified type property of the object
+	// Filter the response by the specified type property of the object.
 	Type string `q:"type"`
 }
 
@@ -57,13 +61,19 @@ func List(client *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pa
 	})
 }
 
-// CreateOpts params
+// CreateOptsBuilder allows extensions to add additional parameters to the
+// Create request.
+type CreateOptsBuilder interface {
+	ToPolicyCreateMap() (map[string]interface{}, error)
+}
+
+// CreateOpts represents options used to create a policy.
 type CreateOpts struct {
 	Name string `json:"name"`
 	Spec Spec   `json:"spec"`
 }
 
-// ToPolicyCreateMap formats a CreateOpts into a body map.
+// ToPolicyCreateMap constructs a request body from CreateOpts.
 func (opts CreateOpts) ToPolicyCreateMap() (map[string]interface{}, error) {
 	b, err := gophercloud.BuildRequestBody(opts, "")
 	if err != nil {
@@ -74,7 +84,7 @@ func (opts CreateOpts) ToPolicyCreateMap() (map[string]interface{}, error) {
 }
 
 // Create makes a request against the API to create a policy
-func Create(client *gophercloud.ServiceClient, opts CreateOpts) (r CreateResult) {
+func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r CreateResult) {
 	b, err := opts.ToPolicyCreateMap()
 	if err != nil {
 		r.Err = err
@@ -90,7 +100,7 @@ func Create(client *gophercloud.ServiceClient, opts CreateOpts) (r CreateResult)
 	return
 }
 
-// Delete makes a request against the API to delete a policy
+// Delete makes a request against the API to delete a policy.
 func Delete(client *gophercloud.ServiceClient, policyID string) (r DeleteResult) {
 	var result *http.Response
 	result, r.Err = client.Delete(policyDeleteURL(client, policyID), &gophercloud.RequestOpts{
@@ -102,32 +112,30 @@ func Delete(client *gophercloud.ServiceClient, policyID string) (r DeleteResult)
 	return
 }
 
-// UpdateOptsBuilder builder
+// UpdateOptsBuilder allows extensions to add additional parameters to the
+// Update request.
 type UpdateOptsBuilder interface {
 	ToPolicyUpdateMap() (map[string]interface{}, error)
 }
 
-// UpdateOpts params
+// UpdateOpts represents options to update a policy.
 type UpdateOpts struct {
 	Name string `json:"name,omitempty"`
 }
 
-// ToPolicyUpdateMap formats a UpdateOpts into a body map.
+// ToPolicyUpdateMap constructs a request body from UpdateOpts.
 func (opts UpdateOpts) ToPolicyUpdateMap() (map[string]interface{}, error) {
-	b, err := gophercloud.BuildRequestBody(opts, "policy")
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+	return gophercloud.BuildRequestBody(opts, "policy")
 }
 
-// Update implements profile updated request.
+// Update updates a specified policy.
 func Update(client *gophercloud.ServiceClient, id string, opts UpdateOptsBuilder) (r UpdateResult) {
 	b, err := opts.ToPolicyUpdateMap()
 	if err != nil {
 		r.Err = err
-		return r
+		return
 	}
+
 	var result *http.Response
 	result, r.Err = client.Patch(updateURL(client, id), b, &r.Body, &gophercloud.RequestOpts{
 		OkCodes: []int{200},
@@ -135,22 +143,29 @@ func Update(client *gophercloud.ServiceClient, id string, opts UpdateOptsBuilder
 	if r.Err == nil {
 		r.Header = result.Header
 	}
+
 	return
 }
 
-// ValidateOpts params
+// ValidateOptsBuilder allows extensions to add additional parameters to the
+// Validate request.
+type ValidateOptsBuilder interface {
+	ToPolicyValidateMap() (map[string]interface{}, error)
+}
+
+// ValidateOpts represents options used to validate a policy.
 type ValidateOpts struct {
 	Spec Spec `json:"spec"`
 }
 
-// ToValidatePolicyMap formats a CreateOpts into a body map.
-func (opts ValidateOpts) ToValidatePolicyMap() (map[string]interface{}, error) {
+// ToPolicyValidateMap formats a CreateOpts into a body map.
+func (opts ValidateOpts) ToPolicyValidateMap() (map[string]interface{}, error) {
 	return gophercloud.BuildRequestBody(opts, "policy")
 }
 
-// Validate policy.
-func Validate(client *gophercloud.ServiceClient, opts ValidateOpts) (r ValidateResult) {
-	b, err := opts.ToValidatePolicyMap()
+// Validate policy will validate a specified policy.
+func Validate(client *gophercloud.ServiceClient, opts ValidateOptsBuilder) (r ValidateResult) {
+	b, err := opts.ToPolicyValidateMap()
 	if err != nil {
 		r.Err = err
 		return
@@ -163,5 +178,16 @@ func Validate(client *gophercloud.ServiceClient, opts ValidateOpts) (r ValidateR
 	if r.Err == nil {
 		r.Header = result.Header
 	}
+	return
+}
+
+// Get makes a request against the API to get details for a policy.
+func Get(client *gophercloud.ServiceClient, policyTypeName string) (r GetResult) {
+	url := policyGetURL(client, policyTypeName)
+
+	_, r.Err = client.Get(url, &r.Body, &gophercloud.RequestOpts{
+		OkCodes: []int{200},
+	})
+
 	return
 }

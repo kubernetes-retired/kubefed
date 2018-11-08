@@ -2,30 +2,13 @@ package actions
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// commonResult is the response of a base result.
-type commonResult struct {
-	gophercloud.Result
-}
-
-// GetResult is the response of a Get operations.
-type GetResult struct {
-	commonResult
-}
-
-// ActionPage contains a single page of all actions from a ListDetails call.
-type ActionPage struct {
-	pagination.LinkedPageBase
-}
-
-// Action represents a Detailed Action
+// Action represents a detailed Action.
 type Action struct {
 	Action       string                 `json:"action"`
 	Cause        string                 `json:"cause"`
@@ -50,6 +33,44 @@ type Action struct {
 	User         string                 `json:"user"`
 }
 
+func (r *Action) UnmarshalJSON(b []byte) error {
+	type tmp Action
+	var s struct {
+		tmp
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+	}
+
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+
+	*r = Action(s.tmp)
+
+	if s.CreatedAt != "" {
+		r.CreatedAt, err = time.Parse(time.RFC3339, s.CreatedAt)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.UpdatedAt != "" {
+		r.UpdatedAt, err = time.Parse(time.RFC3339, s.UpdatedAt)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// commonResult is the response of a base result.
+type commonResult struct {
+	gophercloud.Result
+}
+
+// Extract interprets any commonResult-based result as an Action.
 func (r commonResult) Extract() (*Action, error) {
 	var s struct {
 		Action *Action `json:"action"`
@@ -58,13 +79,15 @@ func (r commonResult) Extract() (*Action, error) {
 	return s.Action, err
 }
 
-// ExtractActions provides access to the list of actions in a page acquired from the List operation.
-func ExtractActions(r pagination.Page) ([]Action, error) {
-	var s struct {
-		Actions []Action `json:"actions"`
-	}
-	err := (r.(ActionPage)).ExtractInto(&s)
-	return s.Actions, err
+// GetResult is the response of a Get operations. Call its Extract method to
+// interpret it as an Action.
+type GetResult struct {
+	commonResult
+}
+
+// ActionPage contains a single page of all actions from a List call.
+type ActionPage struct {
+	pagination.LinkedPageBase
 }
 
 // IsEmpty determines if a ActionPage contains any results.
@@ -73,47 +96,11 @@ func (r ActionPage) IsEmpty() (bool, error) {
 	return len(actions) == 0, err
 }
 
-func (r *Action) UnmarshalJSON(b []byte) error {
-	type tmp Action
+// ExtractActions returns a slice of Actions from the List operation.
+func ExtractActions(r pagination.Page) ([]Action, error) {
 	var s struct {
-		tmp
-		CreatedAt interface{} `json:"created_at"`
-		UpdatedAt interface{} `json:"updated_at"`
+		Actions []Action `json:"actions"`
 	}
-
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return err
-	}
-	*r = Action(s.tmp)
-
-	switch t := s.CreatedAt.(type) {
-	case string:
-		if t != "" {
-			r.CreatedAt, err = time.Parse(gophercloud.RFC3339Milli, t)
-			if err != nil {
-				return err
-			}
-		}
-	case nil:
-		r.CreatedAt = time.Time{}
-	default:
-		return fmt.Errorf("Invalid type for time. type=%v", reflect.TypeOf(s.CreatedAt))
-	}
-
-	switch t := s.UpdatedAt.(type) {
-	case string:
-		if t != "" {
-			r.UpdatedAt, err = time.Parse(gophercloud.RFC3339Milli, t)
-			if err != nil {
-				return err
-			}
-		}
-	case nil:
-		r.UpdatedAt = time.Time{}
-	default:
-		return fmt.Errorf("Invalid type for time. type=%v", reflect.TypeOf(s.UpdatedAt))
-	}
-
-	return nil
+	err := (r.(ActionPage)).ExtractInto(&s)
+	return s.Actions, err
 }

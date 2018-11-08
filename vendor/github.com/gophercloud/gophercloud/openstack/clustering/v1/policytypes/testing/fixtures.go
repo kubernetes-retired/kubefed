@@ -110,97 +110,103 @@ const PolicyTypeDetailBody = `
 }
 `
 
-var (
-	ExpectedPolicyTypes = []policytypes.PolicyType{
-		{
-			Name:    "senlin.policy.affinity",
-			Version: "1.0",
-			SupportStatus: map[string][]policytypes.SupportStatusType{
-				"1.0": {
-					{
-						Status: "SUPPORTED",
-						Since:  "2016.10",
-					},
-				},
+var ExpectedPolicyType1 = policytypes.PolicyType{
+	Name:    "senlin.policy.affinity",
+	Version: "1.0",
+	SupportStatus: map[string][]policytypes.SupportStatusType{
+		"1.0": {
+			{
+				Status: "SUPPORTED",
+				Since:  "2016.10",
 			},
 		},
-		{
-			Name:    "senlin.policy.health",
-			Version: "1.0",
-			SupportStatus: map[string][]policytypes.SupportStatusType{
-				"1.0": {
-					{
-						Status: "EXPERIMENTAL",
-						Since:  "2016.10",
-					},
-				},
-			},
-		},
-		{
-			Name:    "senlin.policy.scaling",
-			Version: "1.0",
-			SupportStatus: map[string][]policytypes.SupportStatusType{
-				"1.0": {
-					{
-						Status: "SUPPORTED",
-						Since:  "2016.04",
-					},
-				},
-			},
-		},
-		{
-			Name:    "senlin.policy.region_placement",
-			Version: "1.0",
-			SupportStatus: map[string][]policytypes.SupportStatusType{
-				"1.0": {
-					{
-						Status: "EXPERIMENTAL",
-						Since:  "2016.04",
-					},
-					{
-						Status: "SUPPORTED",
-						Since:  "2016.10",
-					},
-				},
-			},
-		},
-	}
+	},
+}
 
-	ExpectedPolicyTypeDetail = &policytypes.PolicyTypeDetail{
-		Name: "senlin.policy.batch-1.0",
-		Schema: map[string]interface{}{
-			"max_batch_size": map[string]interface{}{
-				"default":     float64(-1),
-				"description": "Maximum number of nodes that will be updated in parallel.",
-				"required":    false,
-				"type":        "Integer",
-				"updatable":   false,
-			},
-			"min_in_service": map[string]interface{}{
-				"default":     float64(1),
-				"description": "Minimum number of nodes in service when performing updates.",
-				"required":    false,
-				"type":        "Integer",
-				"updatable":   false,
-			},
-			"pause_time": map[string]interface{}{
-				"default":     float64(60),
-				"description": "Interval in seconds between update batches if any.",
-				"required":    false,
-				"type":        "Integer",
-				"updatable":   false,
+var ExpectedPolicyType2 = policytypes.PolicyType{
+	Name:    "senlin.policy.health",
+	Version: "1.0",
+	SupportStatus: map[string][]policytypes.SupportStatusType{
+		"1.0": {
+			{
+				Status: "EXPERIMENTAL",
+				Since:  "2016.10",
 			},
 		},
-		SupportStatus: map[string][]policytypes.SupportStatusType{
-			"1.0": []policytypes.SupportStatusType{
-				{
-					Status: "EXPERIMENTAL",
-					Since:  "2017.02",
-				},
+	},
+}
+
+var ExpectedPolicyType3 = policytypes.PolicyType{
+	Name:    "senlin.policy.scaling",
+	Version: "1.0",
+	SupportStatus: map[string][]policytypes.SupportStatusType{
+		"1.0": {
+			{
+				Status: "SUPPORTED",
+				Since:  "2016.04",
 			},
 		},
-	}
-)
+	},
+}
+
+var ExpectedPolicyType4 = policytypes.PolicyType{
+	Name:    "senlin.policy.region_placement",
+	Version: "1.0",
+	SupportStatus: map[string][]policytypes.SupportStatusType{
+		"1.0": {
+			{
+				Status: "EXPERIMENTAL",
+				Since:  "2016.04",
+			},
+			{
+				Status: "SUPPORTED",
+				Since:  "2016.10",
+			},
+		},
+	},
+}
+
+var ExpectedPolicyTypes = []policytypes.PolicyType{
+	ExpectedPolicyType1,
+	ExpectedPolicyType2,
+	ExpectedPolicyType3,
+	ExpectedPolicyType4,
+}
+
+var ExpectedPolicyTypeDetail = &policytypes.PolicyTypeDetail{
+	Name: "senlin.policy.batch-1.0",
+	Schema: map[string]interface{}{
+		"max_batch_size": map[string]interface{}{
+			"default":     float64(-1),
+			"description": "Maximum number of nodes that will be updated in parallel.",
+			"required":    false,
+			"type":        "Integer",
+			"updatable":   false,
+		},
+		"min_in_service": map[string]interface{}{
+			"default":     float64(1),
+			"description": "Minimum number of nodes in service when performing updates.",
+			"required":    false,
+			"type":        "Integer",
+			"updatable":   false,
+		},
+		"pause_time": map[string]interface{}{
+			"default":     float64(60),
+			"description": "Interval in seconds between update batches if any.",
+			"required":    false,
+			"type":        "Integer",
+			"updatable":   false,
+		},
+	},
+	SupportStatus: map[string][]policytypes.SupportStatusType{
+		"1.0": []policytypes.SupportStatusType{
+			{
+				Status: "EXPERIMENTAL",
+				Since:  "2017.02",
+			},
+		},
+	},
+}
 
 func HandlePolicyTypeList(t *testing.T) {
 	th.Mux.HandleFunc("/v1/policy-types",

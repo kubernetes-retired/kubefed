@@ -106,6 +106,9 @@ type Subnet struct {
 
 	// SubnetPoolID is the id of the subnet pool associated with the subnet.
 	SubnetPoolID string `json:"subnetpool_id"`
+
+	// Tags optionally set via extensions/attributestags
+	Tags []string `json:"tags"`
 }
 
 // SubnetPage is the page returned by a pager when traversing over a collection

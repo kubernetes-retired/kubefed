@@ -9,7 +9,7 @@ required = [
 
 [[constraint]]
   branch = "master"
-  name = "github.com/golang/glog"
+  name = "k8s.io/klog"
 
 [[constraint]]
   branch = "master"
@@ -21,7 +21,7 @@ required = [
 
 [[constraint]]
   name = "github.com/bazelbuild/bazel-gazelle"
-  version = "0.10.1"
+  version = "0.12.0"
 
 [[constraint]]
   name = "github.com/bazelbuild/buildtools"

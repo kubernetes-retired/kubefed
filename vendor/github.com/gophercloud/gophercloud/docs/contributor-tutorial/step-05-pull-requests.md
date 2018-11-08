@@ -58,6 +58,12 @@ The following Pull Requests are good examples of how to do this:
 * https://github.com/gophercloud/gophercloud/pull/587
 * https://github.com/gophercloud/gophercloud/pull/594
 
+You can also use the provided [template](/docs/contributor-tutorial/.template)
+as it contains a lot of the repeated boiler plate code seen in each resource.
+However, please make sure to thoroughly review and edit it as needed.
+Leaving templated portions in-place might be interpreted as rushing through
+the work and will require further rounds of review to fix.
+
 ### Adding an Entire OpenStack Project
 
 To add an entire OpenStack project, you must break each set of API calls into

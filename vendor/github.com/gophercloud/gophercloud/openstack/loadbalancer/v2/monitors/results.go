@@ -70,6 +70,10 @@ type Monitor struct {
 
 	// List of pools that are associated with the health monitor.
 	Pools []PoolID `json:"pools"`
+
+	// The provisioning status of the Monitor.
+	// This value is ACTIVE, PENDING_* or ERROR.
+	ProvisioningStatus string `json:"provisioning_status"`
 }
 
 // MonitorPage is the page returned by a pager when traversing over a

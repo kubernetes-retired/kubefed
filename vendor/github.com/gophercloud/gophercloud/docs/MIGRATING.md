@@ -16,7 +16,7 @@
 * `servers.Reboot` now requires a `servers.RebootOpts` struct:
 
   ```golang
-  rebootOpts := &servers.RebootOpts{
+  rebootOpts := servers.RebootOpts{
           Type: servers.SoftReboot,
   }
   res := servers.Reboot(client, server.ID, rebootOpts)

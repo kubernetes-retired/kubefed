@@ -7,6 +7,7 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // PortWithBindingExt represents a port with the binding fields
@@ -43,6 +44,8 @@ func CreatePortsbinding(t *testing.T, client *gophercloud.ServiceClient, network
 	}
 
 	t.Logf("Successfully created port: %s", portName)
+
+	th.AssertEquals(t, s.Name, portName)
 
 	return s, nil
 }

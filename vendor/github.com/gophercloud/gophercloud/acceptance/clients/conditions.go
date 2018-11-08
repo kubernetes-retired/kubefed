@@ -12,6 +12,13 @@ func RequireAdmin(t *testing.T) {
 	}
 }
 
+// RequireNonAdmin will restrict a test to only be run by non-admin users.
+func RequireNonAdmin(t *testing.T) {
+	if os.Getenv("OS_USERNAME") == "admin" {
+		t.Skip("must be a non-admin to run this test")
+	}
+}
+
 // RequireDNS will restrict a test to only be run in environments
 // that support DNSaaS.
 func RequireDNS(t *testing.T) {
@@ -56,5 +63,13 @@ func RequireLong(t *testing.T) {
 func RequireNovaNetwork(t *testing.T) {
 	if os.Getenv("OS_NOVANET") == "" {
 		t.Skip("this test requires nova-network and to set OS_NOVANET to 1")
+	}
+}
+
+// SkipRelease will have the test be skipped on a certain
+// release. Releases are named such as 'stable/mitaka', master, etc.
+func SkipRelease(t *testing.T, release string) {
+	if os.Getenv("OS_BRANCH") == release {
+		t.Skipf("this is not supported in %s", release)
 	}
 }

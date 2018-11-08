@@ -25,9 +25,9 @@ type GetResult struct {
 }
 
 // CreateResult is the response from a Create operation. Call its Extract
-// method to interpret it as a Server.
+// method to interpret it as a Capsule.
 type CreateResult struct {
-	gophercloud.ErrResult
+	commonResult
 }
 
 // DeleteResult represents the result of a delete operation.
@@ -39,13 +39,10 @@ type CapsulePage struct {
 	pagination.LinkedPageBase
 }
 
-// Represents a Container Orchestration Engine Bay, i.e. a cluster
+// Represents a Capsule
 type Capsule struct {
 	// UUID for the capsule
 	UUID string `json:"uuid"`
-
-	// ID for the capsule
-	ID int `json:"id"`
 
 	// User ID for the capsule
 	UserID string `json:"user_id"`
@@ -75,7 +72,7 @@ type Capsule struct {
 	UpdatedAt time.Time `json:"-"`
 
 	// Links includes HTTP references to the itself, useful for passing along to
-	// other APIs that might want a server reference.
+	// other APIs that might want a capsule reference.
 	Links []interface{} `json:"links"`
 
 	// The capsule version
@@ -110,9 +107,6 @@ type Container struct {
 	// UUID for the container
 	UUID string `json:"uuid"`
 
-	// ID for the container
-	ID int `json:"id"`
-
 	// User ID for the container
 	UserID string `json:"user_id"`
 
@@ -137,21 +131,15 @@ type Container struct {
 	// The updated time of the container
 	UpdatedAt time.Time `json:"-"`
 
+	// The started time of the container
+	StartedAt time.Time `json:"-"`
+
 	// Name for the container
 	Name string `json:"name"`
 
 	// Links includes HTTP references to the itself, useful for passing along to
-	// other APIs that might want a server reference.
+	// other APIs that might want a capsule reference.
 	Links []interface{} `json:"links"`
-
-	// Container ID for the container
-	ContainerID string `json:"container_id"`
-
-	// Websocket url for the container
-	WebsocketUrl string `json:"websocket_url"`
-
-	// Websocket token for the container
-	WebsocketToken string `json:"websocket_token"`
 
 	// auto remove flag token for the container
 	AutoRemove bool `json:"auto_remove"`
@@ -193,10 +181,7 @@ type Container struct {
 	ImageDriver string `json:"image_driver"`
 
 	// Command for the container
-	Command string `json:"command"`
-
-	// Capsule ID for the container
-	CapsuleID int `json:"capsule_id"`
+	Command []string `json:"command"`
 
 	// Image for the container
 	Runtime string `json:"runtime"`
@@ -209,9 +194,6 @@ type Container struct {
 
 	// Ports information for the container
 	Ports []int `json:"ports"`
-
-	// Meta for the container
-	Meta map[string]string `json:"meta"`
 
 	// Security groups for the container
 	SecurityGroups []string `json:"security_groups"`
@@ -258,38 +240,84 @@ func ExtractCapsules(r pagination.Page) ([]Capsule, error) {
 
 func (r *Capsule) UnmarshalJSON(b []byte) error {
 	type tmp Capsule
-	var s struct {
+
+	// Support for "older" zun time formats.
+	var s1 struct {
 		tmp
 		CreatedAt gophercloud.JSONRFC3339ZNoT `json:"created_at"`
 		UpdatedAt gophercloud.JSONRFC3339ZNoT `json:"updated_at"`
 	}
-	err := json.Unmarshal(b, &s)
+
+	err := json.Unmarshal(b, &s1)
+	if err == nil {
+		*r = Capsule(s1.tmp)
+
+		r.CreatedAt = time.Time(s1.CreatedAt)
+		r.UpdatedAt = time.Time(s1.UpdatedAt)
+
+		return nil
+	}
+
+	// Support for "new" zun time formats.
+	var s2 struct {
+		tmp
+		CreatedAt gophercloud.JSONRFC3339ZNoTNoZ `json:"created_at"`
+		UpdatedAt gophercloud.JSONRFC3339ZNoTNoZ `json:"updated_at"`
+	}
+
+	err = json.Unmarshal(b, &s2)
 	if err != nil {
 		return err
 	}
-	*r = Capsule(s.tmp)
 
-	r.CreatedAt = time.Time(s.CreatedAt)
-	r.UpdatedAt = time.Time(s.UpdatedAt)
+	*r = Capsule(s2.tmp)
+
+	r.CreatedAt = time.Time(s2.CreatedAt)
+	r.UpdatedAt = time.Time(s2.UpdatedAt)
 
 	return nil
 }
 
 func (r *Container) UnmarshalJSON(b []byte) error {
 	type tmp Container
-	var s struct {
+
+	// Support for "older" zun time formats.
+	var s1 struct {
 		tmp
 		CreatedAt gophercloud.JSONRFC3339ZNoT `json:"created_at"`
 		UpdatedAt gophercloud.JSONRFC3339ZNoT `json:"updated_at"`
+		StartedAt gophercloud.JSONRFC3339ZNoT `json:"started_at"`
 	}
-	err := json.Unmarshal(b, &s)
+
+	err := json.Unmarshal(b, &s1)
+	if err == nil {
+		*r = Container(s1.tmp)
+
+		r.CreatedAt = time.Time(s1.CreatedAt)
+		r.UpdatedAt = time.Time(s1.UpdatedAt)
+		r.StartedAt = time.Time(s1.StartedAt)
+
+		return nil
+	}
+
+	// Support for "new" zun time formats.
+	var s2 struct {
+		tmp
+		CreatedAt gophercloud.JSONRFC3339ZNoTNoZ `json:"created_at"`
+		UpdatedAt gophercloud.JSONRFC3339ZNoTNoZ `json:"updated_at"`
+		StartedAt gophercloud.JSONRFC3339ZNoTNoZ `json:"started_at"`
+	}
+
+	err = json.Unmarshal(b, &s2)
 	if err != nil {
 		return err
 	}
-	*r = Container(s.tmp)
 
-	r.CreatedAt = time.Time(s.CreatedAt)
-	r.UpdatedAt = time.Time(s.UpdatedAt)
+	*r = Container(s2.tmp)
+
+	r.CreatedAt = time.Time(s2.CreatedAt)
+	r.UpdatedAt = time.Time(s2.UpdatedAt)
+	r.StartedAt = time.Time(s2.StartedAt)
 
 	return nil
 }

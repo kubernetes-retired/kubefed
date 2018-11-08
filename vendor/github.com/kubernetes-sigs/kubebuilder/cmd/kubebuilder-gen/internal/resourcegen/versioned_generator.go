@@ -127,6 +127,13 @@ var (
                 {{ if .ShortName -}}
                 ShortNames: []string{"{{.ShortName}}"},
                 {{ end -}}
+                {{ if .Categories -}}
+                Categories: []string{
+                {{ range .Categories -}}
+                    "{{ . }}",
+                {{ end -}}
+                },
+                {{ end -}}
             },
             {{ if .NonNamespaced -}}
             Scope: "Cluster",
@@ -136,6 +143,11 @@ var (
             Validation: &v1beta1.CustomResourceValidation{
                 OpenAPIV3Schema: &{{.Validation}},
             },
+            {{ if .HasStatusSubresource -}}
+            Subresources: &v1beta1.CustomResourceSubresources{
+                Status: &v1beta1.CustomResourceSubresourceStatus{},
+            },
+            {{ end -}}
         },
     }
     {{ end -}}

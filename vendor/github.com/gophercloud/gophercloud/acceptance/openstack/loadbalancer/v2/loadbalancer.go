@@ -93,7 +93,7 @@ func CreateMember(t *testing.T, client *gophercloud.ServiceClient, lb *loadbalan
 	createOpts := pools.CreateMemberOpts{
 		Name:         memberName,
 		ProtocolPort: memberPort,
-		Weight:       memberWeight,
+		Weight:       &memberWeight,
 		Address:      memberAddress,
 		SubnetID:     subnetID,
 	}

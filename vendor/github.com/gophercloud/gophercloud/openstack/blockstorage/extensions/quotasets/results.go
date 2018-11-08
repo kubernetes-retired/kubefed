@@ -157,3 +157,9 @@ func (r quotaUsageResult) Extract() (QuotaUsageSet, error) {
 	err := r.ExtractInto(&s)
 	return s.QuotaUsageSet, err
 }
+
+// DeleteResult is the response from a Delete operation. Call its ExtractErr
+// method to determine if the request succeeded or failed.
+type DeleteResult struct {
+	gophercloud.ErrResult
+}

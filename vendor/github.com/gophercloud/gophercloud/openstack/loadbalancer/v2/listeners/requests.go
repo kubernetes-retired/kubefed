@@ -11,6 +11,7 @@ type Protocol string
 // Supported attributes for create/update operations.
 const (
 	ProtocolTCP   Protocol = "TCP"
+	ProtocolUDP   Protocol = "UDP"
 	ProtocolHTTP  Protocol = "HTTP"
 	ProtocolHTTPS Protocol = "HTTPS"
 )
@@ -190,5 +191,11 @@ func Update(c *gophercloud.ServiceClient, id string, opts UpdateOpts) (r UpdateR
 // Delete will permanently delete a particular Listeners based on its unique ID.
 func Delete(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
 	_, r.Err = c.Delete(resourceURL(c, id), nil)
+	return
+}
+
+// GetStats will return the shows the current statistics of a particular Listeners.
+func GetStats(c *gophercloud.ServiceClient, id string) (r StatsResult) {
+	_, r.Err = c.Get(statisticsRootURL(c, id), &r.Body, nil)
 	return
 }
