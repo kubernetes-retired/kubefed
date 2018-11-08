@@ -1,21 +1,14 @@
 # Google Kubernetes Engine (GKE) Deployment Guide
 
-Federation v2 can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters. Since
-Federation v2 requires Kubernetes v1.11 or greater, you must create
-[Alpha Clusters](https://cloud.google.com/kubernetes-engine/docs/concepts/alpha-clusters) and manually specify
-the `cluster-version`. Alpha clusters will no longer be needed once GKE supports Kubernetes `v1.11` or greater. You can
-use the `$ gcloud container get-server-config` command to view the GKE cluster versions available to you.
-The following example deploys two GKE alpha clusters named `cluster1` and `cluster2` using Kubernetes version
-`1.11.2-gke.9`.
+Federation v2 can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters running
+Kubernetes v1.11 or greater. The following example deploys two GKE clusters named `cluster1` and `cluster2` using
+Kubernetes version `1.11.2-gke.9`.
 
 ```bash
 export ZONE=$(gcloud config get-value compute/zone)
-gcloud container clusters create cluster1 --zone $ZONE --enable-kubernetes-alpha --cluster-version 1.11.2-gke.9 \
-  --no-enable-autorepair --no-enable-autoupgrade
-gcloud container clusters create cluster2 --zone $ZONE --enable-kubernetes-alpha --cluster-version 1.11.2-gke.9 \
-  --no-enable-autorepair --no-enable-autoupgrade
+gcloud container clusters create cluster1 --zone $ZONE --cluster-version 1.11.2-gke.9
+gcloud container clusters create cluster2 --zone $ZONE --cluster-version 1.11.2-gke.9
 ```
-**NOTE:** GKE alpha clusters expire after 30 days.
 
 If you are following along with the Federation v2 [User Guide](../userguide.md), change the cluster context names:
 ```bash
