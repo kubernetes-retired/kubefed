@@ -6,7 +6,59 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
+  name: clusterpropagatedversions.core.federation.k8s.io
+spec:
+  group: core.federation.k8s.io
+  names:
+    kind: ClusterPropagatedVersion
+    plural: clusterpropagatedversions
+  scope: Cluster
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+        status:
+          properties:
+            clusterVersions:
+              items:
+                properties:
+                  clusterName:
+                    type: string
+                  version:
+                    type: string
+                type: object
+              type: array
+            overridesVersion:
+              type: string
+            templateVersion:
+              type: string
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    "helm.sh/hook": crd-install
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 1.0.4
   name: federatedclusters.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -76,7 +128,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedconfigmaps.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -115,7 +167,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedconfigmapoverrides.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -161,7 +213,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedconfigmapplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -202,7 +254,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federateddeployments.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -241,7 +293,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federateddeploymentoverrides.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -288,7 +340,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federateddeploymentplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -329,7 +381,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedingresses.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -368,7 +420,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedingressplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -409,7 +461,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedjobs.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -448,7 +500,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedjoboverrides.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -495,7 +547,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedjobplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -536,7 +588,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatednamespaceplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -577,7 +629,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedreplicasets.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -616,7 +668,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedreplicasetoverrides.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -663,7 +715,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedreplicasetplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -704,7 +756,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedsecrets.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -743,7 +795,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedsecretoverrides.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -789,7 +841,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedsecretplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -830,7 +882,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedservices.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -852,8 +904,6 @@ spec:
             template:
               type: object
           type: object
-        status:
-          type: object
   version: v1alpha1
 status:
   acceptedNames:
@@ -869,7 +919,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedserviceaccounts.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -908,7 +958,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedserviceaccountplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -949,7 +999,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federatedserviceplacements.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -990,7 +1040,48 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
+  name: federatedservicestatuses.core.federation.k8s.io
+spec:
+  group: core.federation.k8s.io
+  names:
+    kind: FederatedServiceStatus
+    plural: federatedservicestatuses
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        clusterStatus:
+          items:
+            properties:
+              clusterName:
+                type: string
+              status:
+                type: object
+            type: object
+          type: array
+        kind:
+          type: string
+        metadata:
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    "helm.sh/hook": crd-install
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 1.0.4
   name: federatedtypeconfigs.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -998,6 +1089,8 @@ spec:
     kind: FederatedTypeConfig
     plural: federatedtypeconfigs
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -1011,6 +1104,8 @@ spec:
           properties:
             comparisonField:
               type: string
+            enableStatus:
+              type: boolean
             namespaced:
               type: boolean
             override:
@@ -1026,9 +1121,16 @@ spec:
               required:
               - kind
               type: object
-            overridePath:
+            overridePaths:
               items:
-                type: string
+                properties:
+                  name:
+                    type: string
+                  path:
+                    type: string
+                required:
+                - path
+                type: object
               type: array
             placement:
               properties:
@@ -1045,6 +1147,19 @@ spec:
               type: object
             propagationEnabled:
               type: boolean
+            status:
+              properties:
+                group:
+                  type: string
+                kind:
+                  type: string
+                pluralName:
+                  type: string
+                version:
+                  type: string
+              required:
+              - kind
+              type: object
             target:
               properties:
                 group:
@@ -1080,6 +1195,10 @@ spec:
           - placement
           type: object
         status:
+          properties:
+            observedGeneration:
+              format: int64
+              type: integer
           type: object
   version: v1alpha1
 status:
@@ -1096,7 +1215,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: propagatedversions.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -1148,7 +1267,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: dnsendpoints.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -1156,6 +1275,8 @@ spec:
     kind: DNSEndpoint
     plural: dnsendpoints
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -1187,6 +1308,10 @@ spec:
               type: array
           type: object
         status:
+          properties:
+            observedGeneration:
+              format: int64
+              type: integer
           type: object
   version: v1alpha1
 status:
@@ -1203,7 +1328,43 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
+  name: domains.multiclusterdns.federation.k8s.io
+spec:
+  group: multiclusterdns.federation.k8s.io
+  names:
+    kind: Domain
+    plural: domains
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        domain:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+      required:
+      - domain
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    "helm.sh/hook": crd-install
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 1.0.4
   name: ingressdnsrecords.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -1259,7 +1420,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: servicednsrecords.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -1280,13 +1441,17 @@ spec:
           type: object
         spec:
           properties:
-            dnsSuffix:
+            allowServiceWithoutEndpoints:
+              type: boolean
+            dnsPrefix:
               type: string
-            federationName:
+            domainRef:
               type: string
             recordTTL:
               format: int64
               type: integer
+          required:
+          - domainRef
           type: object
         status:
           properties:
@@ -1303,6 +1468,8 @@ spec:
                     type: string
                 type: object
               type: array
+            domain:
+              type: string
           type: object
   version: v1alpha1
 status:
@@ -1319,7 +1486,7 @@ metadata:
   creationTimestamp: null
   labels:
     api: federation
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: replicaschedulingpreferences.scheduling.federation.k8s.io
 spec:
   group: scheduling.federation.k8s.io
