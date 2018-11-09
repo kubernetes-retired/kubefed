@@ -17,4 +17,4 @@ spec:
     kind: FederatedServicePlacement
   status:
     kind: FederatedServiceStatus
-  enableStatus: false
+  enableStatus: true
