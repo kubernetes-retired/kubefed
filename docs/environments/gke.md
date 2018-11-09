@@ -1,13 +1,13 @@
 # Google Kubernetes Engine (GKE) Deployment Guide
 
 Federation v2 can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters running
-Kubernetes v1.11 or greater. The following example deploys two GKE clusters named `cluster1` and `cluster2` using
-Kubernetes version `1.11.2-gke.9`.
+Kubernetes v1.11 or greater. The following example deploys two GKE clusters named `cluster1` and `cluster2`.
 
 ```bash
+export GKE_VERSION=1.11.2-gke.15
 export ZONE=$(gcloud config get-value compute/zone)
-gcloud container clusters create cluster1 --zone $ZONE --cluster-version 1.11.2-gke.9
-gcloud container clusters create cluster2 --zone $ZONE --cluster-version 1.11.2-gke.9
+gcloud container clusters create cluster1 --zone $ZONE --cluster-version $GKE_VERSION
+gcloud container clusters create cluster2 --zone $ZONE --cluster-version $GKE_VERSION
 ```
 
 If you are following along with the Federation v2 [User Guide](../userguide.md), change the cluster context names:
