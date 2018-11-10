@@ -33,6 +33,12 @@ func CrdForAPIResource(apiResource metav1.APIResource) *apiextv1b1.CustomResourc
 		scope = apiextv1b1.NamespaceScoped
 	}
 	return &apiextv1b1.CustomResourceDefinition{
+		// Explicitly including TypeMeta will ensure it will be
+		// serialized properly to yaml.
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CustomResourceDefinition",
+			APIVersion: "apiextensions.k8s.io/v1beta1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: groupQualifiedName(apiResource),
 		},

@@ -123,9 +123,9 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	overridePaths := []string{"spec.bar"}
 	typeConfig, err := federate.EnableFederation(
-		hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
+		nil, hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
 		targetAPIResource.Group, targetAPIResource.Version,
-		apicommon.ResourceVersionField, overridePaths, false,
+		apicommon.ResourceVersionField, overridePaths, false, false,
 	)
 	if err != nil {
 		tl.Fatalf("Error enabling federation of target type %q: %v", targetAPIResource.Kind, err)
