@@ -195,9 +195,9 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 	kind := s.scheduler.Kind()
 	key := qualifiedName.String()
 
-	glog.V(4).Infof("Starting to reconcile %s controller triggerred key named %v", kind, key)
+	glog.V(4).Infof("Starting to reconcile %s controller triggered key named %v", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %s controller triggerred key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
+	defer glog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
 
 	obj, err := s.objFromCache(s.store, kind, key)
 	if err != nil {
@@ -214,7 +214,7 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 func (s *SchedulingPreferenceController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
-		wrappedErr := fmt.Errorf("Failed to query store while reconciling RSP controller, triggerred by %s named %q: %v", kind, key, err)
+		wrappedErr := fmt.Errorf("Failed to query store while reconciling RSP controller, triggered by %s named %q: %v", kind, key, err)
 		runtime.HandleError(wrappedErr)
 		return nil, err
 	}
