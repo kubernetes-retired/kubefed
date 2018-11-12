@@ -23,19 +23,21 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 MAKE_CMD="make -C ${ROOT_DIR}"
-E2E_TEST_CMD="go test -v ./test/e2e -args -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+MANAGED_E2E_TEST_CMD="go test -v ./test/e2e -args -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+# Specifying a kube config allows the tests to target deployed (unmanaged) fixture
+UNMANAGED_E2E_TEST_CMD="${MANAGED_E2E_TEST_CMD} -kubeconfig=${HOME}/.kube/config"
 
 function build-binaries() {
   ${MAKE_CMD} controller
   ${MAKE_CMD} kubefed2
 }
 
-function run-integration-tests() {
+function run-e2e-tests-with-managed-fixture() {
   # Ensure the test binaries are in the path.
   export TEST_ASSET_PATH="${base_dir}/bin"
   export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
   export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
-  go test -v ./test/integration
+  ${MANAGED_E2E_TEST_CMD}
 }
 
 function launch-minikube-cluster() {
@@ -51,12 +53,12 @@ function launch-minikube-cluster() {
   sudo chgrp -R $USER $HOME/.minikube
 }
 
-function run-e2e-tests() {
-  ${E2E_TEST_CMD}
+function run-e2e-tests-with-unmanaged-fixture() {
+  ${UNMANAGED_E2E_TEST_CMD}
 }
 
-function run-namespaced-e2e-tests() {
-  local namespaced_e2e_test_cmd="${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true"
+function run-namespaced-e2e-tests-with-unmanaged-fixture() {
+  local namespaced_e2e_test_cmd="${UNMANAGED_E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true"
   # Run the placement test separately to avoid crud failures if
   # teardown doesn't remove namespace placement.
   ${namespaced_e2e_test_cmd} --ginkgo.skip=Placement
@@ -118,8 +120,8 @@ check-install-yaml
 echo "Building federation binaries"
 build-binaries
 
-echo "Running go integration tests"
-run-integration-tests
+echo "Running go e2e tests with managed fixture"
+run-e2e-tests-with-managed-fixture
 
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
@@ -135,8 +137,8 @@ util::wait-for-condition 'ok' 'kubectl get --raw=/healthz' 120
 echo "Deploying federation-v2"
 DOCKER_PUSH=false ./scripts/deploy-federation.sh quay.io/kubernetes-multicluster/federation-v2:e2e
 
-echo "Running go e2e tests"
-run-e2e-tests
+echo "Running go e2e tests with unmanaged fixture"
+run-e2e-tests-with-unmanaged-fixture
 
 echo "Deleting federation-v2"
 ./scripts/delete-federation.sh
@@ -144,5 +146,5 @@ echo "Deleting federation-v2"
 echo "Deploying namespaced federation-v2"
 FEDERATION_NAMESPACE=foo NAMESPACED=y DOCKER_PUSH=false ./scripts/deploy-federation.sh quay.io/kubernetes-multicluster/federation-v2:e2e
 
-echo "Running go e2e tests"
-run-namespaced-e2e-tests
+echo "Running go e2e tests with unmanaged fixture"
+run-namespaced-e2e-tests-with-unmanaged-fixture

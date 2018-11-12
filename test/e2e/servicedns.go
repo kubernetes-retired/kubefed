@@ -32,7 +32,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	intframework "github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -73,7 +73,7 @@ var _ = Describe("ServiceDNS", func() {
 			}
 		}
 		if framework.TestContext.RunControllers() {
-			fixture := intframework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
+			fixture := managed.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 			f.SetUpNamespaceSyncControllerFixture()
 		}

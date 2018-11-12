@@ -31,7 +31,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	intframework "github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -55,7 +55,7 @@ var _ = Describe("IngressDNS", func() {
 	BeforeEach(func() {
 		fedClient = f.FedClient(userAgent)
 		if framework.TestContext.RunControllers() {
-			fixture := intframework.NewIngressDNSControllerFixture(tl, f.ControllerConfig())
+			fixture := managed.NewIngressDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 			f.SetUpNamespaceSyncControllerFixture()
 		}

@@ -23,7 +23,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
+	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -31,14 +31,14 @@ import (
 )
 
 var (
-	fedFixture *framework.FederationFixture
+	fedFixture *managed.FederationFixture
 )
 
 func SetUpManagedFederation() {
 	if fedFixture != nil {
 		return
 	}
-	fedFixture = framework.SetUpFederationFixture(NewE2ELogger(), 2)
+	fedFixture = managed.SetUpFederationFixture(NewE2ELogger(), 2)
 }
 
 func TearDownManagedFederation() {
@@ -143,6 +143,6 @@ func (f *ManagedFramework) TestNamespaceName() string {
 	return f.testNamespaceName
 }
 
-func (f *ManagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture {
-	return framework.NewSyncControllerFixture(f.logger, f.ControllerConfig(), typeConfig)
+func (f *ManagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
+	return managed.NewSyncControllerFixture(f.logger, f.ControllerConfig(), typeConfig)
 }
