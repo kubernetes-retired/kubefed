@@ -106,10 +106,8 @@ echo "Downloading test dependencies"
 echo "Checking initial state of working tree"
 check-git-state
 
-# TODO(marun) Figure out why PRs are tripping over fmt violations in
-# files they haven't modified.
-#echo "Verifying Gofmt"
-#./hack/go-tools/verify-gofmt.sh
+echo "Verifying Gofmt"
+./hack/go-tools/verify-gofmt.sh
 
 echo "Checking that 'kubebuilder generate' is up-to-date"
 check-kubebuilder-output
