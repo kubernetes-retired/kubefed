@@ -1,7 +1,8 @@
 /*
-Package actions provides listing and retrieving of senlin actions for the OpenStack Clustering Service.
+Package actions provides listing and retrieving of senlin actions for the
+OpenStack Clustering Service.
 
-Example to list actions
+Example to List Actions
 
 	opts := actions.ListOpts{
 		Limit: 5,
@@ -19,13 +20,14 @@ Example to list actions
 		return true, nil
 	})
 
-Example to get an action
+Example to Get an Action
 
-	action, err := actions.Get(serviceClient, "edce3528-864f-41fb-8759-f4707925cc09").Extract()
+	actionID := "edce3528-864f-41fb-8759-f4707925cc09"
+	action, err := actions.Get(serviceClient, actionID).Extract()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Action %+v: ", action)
 
+	fmt.Printf("Action %+v: ", action)
 */
 package actions

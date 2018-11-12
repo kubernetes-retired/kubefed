@@ -27,14 +27,29 @@ func GetUsage(client *gophercloud.ServiceClient, projectID string) (r GetUsageRe
 
 // Updates the quotas for the given projectID and returns the new QuotaSet.
 func Update(client *gophercloud.ServiceClient, projectID string, opts UpdateOptsBuilder) (r UpdateResult) {
-	reqBody, err := opts.ToBlockStorageQuotaUpdateMap()
+	b, err := opts.ToBlockStorageQuotaUpdateMap()
 	if err != nil {
 		r.Err = err
 		return
 	}
 
-	_, r.Err = client.Put(updateURL(client, projectID), reqBody, &r.Body, &gophercloud.RequestOpts{OkCodes: []int{200}})
+	_, r.Err = client.Put(updateURL(client, projectID), b, &r.Body, &gophercloud.RequestOpts{
+		OkCodes: []int{200},
+	})
 	return r
+}
+
+// UpdateOptsBuilder enables extensins to add parameters to the update request.
+type UpdateOptsBuilder interface {
+	// Extra specific name to prevent collisions with interfaces for other quotas
+	// (e.g. neutron)
+	ToBlockStorageQuotaUpdateMap() (map[string]interface{}, error)
+}
+
+// ToBlockStorageQuotaUpdateMap builds the update options into a serializable
+// format.
+func (opts UpdateOpts) ToBlockStorageQuotaUpdateMap() (map[string]interface{}, error) {
+	return gophercloud.BuildRequestBody(opts, "quota_set")
 }
 
 // Options for Updating the quotas of a Tenant.
@@ -70,15 +85,10 @@ type UpdateOpts struct {
 	Force bool `json:"force,omitempty"`
 }
 
-// UpdateOptsBuilder enables extensins to add parameters to the update request.
-type UpdateOptsBuilder interface {
-	// Extra specific name to prevent collisions with interfaces for other quotas
-	// (e.g. neutron)
-	ToBlockStorageQuotaUpdateMap() (map[string]interface{}, error)
-}
-
-// ToBlockStorageQuotaUpdateMap builds the update options into a serializable
-// format.
-func (opts UpdateOpts) ToBlockStorageQuotaUpdateMap() (map[string]interface{}, error) {
-	return gophercloud.BuildRequestBody(opts, "quota_set")
+// Resets the quotas for the given tenant to their default values.
+func Delete(client *gophercloud.ServiceClient, projectID string) (r DeleteResult) {
+	_, r.Err = client.Delete(updateURL(client, projectID), &gophercloud.RequestOpts{
+		OkCodes: []int{200},
+	})
+	return
 }

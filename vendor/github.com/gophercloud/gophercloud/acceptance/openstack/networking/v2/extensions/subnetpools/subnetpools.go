@@ -6,6 +6,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/subnetpools"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateSubnetPool will create a subnetpool. An error will be returned if the
@@ -28,6 +29,9 @@ func CreateSubnetPool(t *testing.T, client *gophercloud.ServiceClient) (*subnetp
 	}
 
 	t.Logf("Successfully created the subnetpool.")
+
+	th.AssertEquals(t, subnetPool.Name, subnetPoolName)
+
 	return subnetPool, nil
 }
 

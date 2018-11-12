@@ -33,6 +33,10 @@ type ListOpts struct {
 	Marker          string `q:"marker"`
 	SortKey         string `q:"sort_key"`
 	SortDir         string `q:"sort_dir"`
+	Tags            string `q:"tags"`
+	TagsAny         string `q:"tags-any"`
+	NotTags         string `q:"not-tags"`
+	NotTagsAny      string `q:"not-tags-any"`
 }
 
 // ToSubnetListQuery formats a ListOpts into a query string.
@@ -221,7 +225,12 @@ func Delete(c *gophercloud.ServiceClient, id string) (r DeleteResult) {
 func IDFromName(client *gophercloud.ServiceClient, name string) (string, error) {
 	count := 0
 	id := ""
-	pages, err := List(client, nil).AllPages()
+
+	listOpts := ListOpts{
+		Name: name,
+	}
+
+	pages, err := List(client, listOpts).AllPages()
 	if err != nil {
 		return "", err
 	}

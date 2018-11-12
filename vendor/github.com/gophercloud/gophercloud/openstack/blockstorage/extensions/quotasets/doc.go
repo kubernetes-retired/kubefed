@@ -31,5 +31,12 @@ Example to Update a Quota Set
 	}
 
 	fmt.Printf("%+v\n", quotaset)
+
+Example to Delete a Quota Set
+
+	err := quotasets.Delete(blockStorageClient, "project-id").ExtractErr()
+	if err != nil {
+		panic(err)
+	}
 */
 package quotasets

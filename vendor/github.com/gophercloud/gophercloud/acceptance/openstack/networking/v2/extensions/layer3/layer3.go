@@ -9,6 +9,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateFloatingIP creates a floating IP on a given network and port. An error
@@ -69,6 +70,8 @@ func CreateExternalRouter(t *testing.T, client *gophercloud.ServiceClient) (*rou
 
 	t.Logf("Created router: %s", routerName)
 
+	th.AssertEquals(t, router.Name, routerName)
+
 	return router, nil
 }
 
@@ -80,14 +83,9 @@ func CreateRouter(t *testing.T, client *gophercloud.ServiceClient, networkID str
 	t.Logf("Attempting to create router: %s", routerName)
 
 	adminStateUp := true
-	gatewayInfo := routers.GatewayInfo{
-		NetworkID: networkID,
-	}
-
 	createOpts := routers.CreateOpts{
 		Name:         routerName,
 		AdminStateUp: &adminStateUp,
-		GatewayInfo:  &gatewayInfo,
 	}
 
 	router, err := routers.Create(client, createOpts).Extract()
@@ -100,6 +98,8 @@ func CreateRouter(t *testing.T, client *gophercloud.ServiceClient, networkID str
 	}
 
 	t.Logf("Created router: %s", routerName)
+
+	th.AssertEquals(t, router.Name, routerName)
 
 	return router, nil
 }

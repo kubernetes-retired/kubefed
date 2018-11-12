@@ -10,54 +10,13 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/snapshots"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumetypes"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
-
-// CreateVolume will create a volume with a random name and size of 1GB. An
-// error will be returned if the volume was unable to be created.
-func CreateVolume(t *testing.T, client *gophercloud.ServiceClient) (*volumes.Volume, error) {
-	if testing.Short() {
-		t.Skip("Skipping test that requires volume creation in short mode.")
-	}
-
-	volumeName := tools.RandomString("ACPTTEST", 16)
-	t.Logf("Attempting to create volume: %s", volumeName)
-
-	createOpts := volumes.CreateOpts{
-		Size: 1,
-		Name: volumeName,
-	}
-
-	volume, err := volumes.Create(client, createOpts).Extract()
-	if err != nil {
-		return volume, err
-	}
-
-	err = volumes.WaitForStatus(client, volume.ID, "available", 60)
-	if err != nil {
-		return volume, err
-	}
-
-	return volume, nil
-}
-
-// DeleteVolume will delete a volume. A fatal error will occur if the volume
-// failed to be deleted. This works best when used as a deferred function.
-func DeleteVolume(t *testing.T, client *gophercloud.ServiceClient, volume *volumes.Volume) {
-	err := volumes.Delete(client, volume.ID).ExtractErr()
-	if err != nil {
-		t.Fatalf("Unable to delete volume %s: %v", volume.ID, err)
-	}
-
-	t.Logf("Deleted volume: %s", volume.ID)
-}
 
 // CreateSnapshot will create a snapshot of the specified volume.
 // Snapshot will be assigned a random name and description.
 func CreateSnapshot(t *testing.T, client *gophercloud.ServiceClient, volume *volumes.Volume) (*snapshots.Snapshot, error) {
-	if testing.Short() {
-		t.Skip("Skipping test that requires snapshot creation in short mode.")
-	}
-
 	snapshotName := tools.RandomString("ACPTTEST", 16)
 	snapshotDescription := tools.RandomString("ACPTTEST", 16)
 	t.Logf("Attempting to create snapshot: %s", snapshotName)
@@ -78,7 +37,67 @@ func CreateSnapshot(t *testing.T, client *gophercloud.ServiceClient, volume *vol
 		return snapshot, err
 	}
 
+	th.AssertEquals(t, snapshot.Name, snapshotName)
+	th.AssertEquals(t, snapshot.VolumeID, volume.ID)
+	tools.PrintResource(t, snapshot)
+
+	t.Logf("Successfully created snapshot: %s", snapshot.ID)
+
 	return snapshot, nil
+}
+
+// CreateVolume will create a volume with a random name and size of 1GB. An
+// error will be returned if the volume was unable to be created.
+func CreateVolume(t *testing.T, client *gophercloud.ServiceClient) (*volumes.Volume, error) {
+	volumeName := tools.RandomString("ACPTTEST", 16)
+	t.Logf("Attempting to create volume: %s", volumeName)
+
+	createOpts := volumes.CreateOpts{
+		Size: 1,
+		Name: volumeName,
+	}
+
+	volume, err := volumes.Create(client, createOpts).Extract()
+	if err != nil {
+		return volume, err
+	}
+
+	err = volumes.WaitForStatus(client, volume.ID, "available", 60)
+	if err != nil {
+		return volume, err
+	}
+
+	th.AssertEquals(t, volume.Name, volumeName)
+	tools.PrintResource(t, volume)
+
+	t.Logf("Successfully created volume: %s", volume.ID)
+
+	return volume, nil
+}
+
+// CreateVolumeType will create a volume type with a random name. An
+// error will be returned if the volume was unable to be created.
+func CreateVolumeType(t *testing.T, client *gophercloud.ServiceClient) (*volumetypes.VolumeType, error) {
+	name := tools.RandomString("ACPTTEST", 16)
+	t.Logf("Attempting to create volume type: %s", name)
+
+	createOpts := volumetypes.CreateOpts{
+		Name:        name,
+		ExtraSpecs:  map[string]string{"volume_backend_name": "fake_backend_name"},
+		Description: "create_from_gophercloud",
+	}
+
+	vt, err := volumetypes.Create(client, createOpts).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	th.AssertEquals(t, vt.IsPublic, true)
+	tools.PrintResource(t, vt)
+
+	t.Logf("Successfully created volume type: %s", vt.ID)
+
+	return vt, nil
 }
 
 // DeleteSnapshot will delete a snapshot. A fatal error will occur if the
@@ -104,4 +123,31 @@ func DeleteSnapshot(t *testing.T, client *gophercloud.ServiceClient, snapshot *s
 	}
 
 	t.Logf("Deleted snapshot: %s", snapshot.ID)
+}
+
+// DeleteVolume will delete a volume. A fatal error will occur if the volume
+// failed to be deleted. This works best when used as a deferred function.
+func DeleteVolume(t *testing.T, client *gophercloud.ServiceClient, volume *volumes.Volume) {
+	t.Logf("Attempting to delete volume: %s", volume.ID)
+
+	err := volumes.Delete(client, volume.ID, volumes.DeleteOpts{}).ExtractErr()
+	if err != nil {
+		t.Fatalf("Unable to delete volume %s: %v", volume.ID, err)
+	}
+
+	t.Logf("Successfully deleted volume: %s", volume.ID)
+}
+
+// DeleteVolumeType will delete a volume type. A fatal error will occur if the
+// volume type failed to be deleted. This works best when used as a deferred
+// function.
+func DeleteVolumeType(t *testing.T, client *gophercloud.ServiceClient, vt *volumetypes.VolumeType) {
+	t.Logf("Attempting to delete volume type: %s", vt.ID)
+
+	err := volumetypes.Delete(client, vt.ID).ExtractErr()
+	if err != nil {
+		t.Fatalf("Unable to delete volume %s: %v", vt.ID, err)
+	}
+
+	t.Logf("Successfully deleted volume type: %s", vt.ID)
 }

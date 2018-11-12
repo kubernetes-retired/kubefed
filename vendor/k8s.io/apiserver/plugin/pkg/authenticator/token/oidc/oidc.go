@@ -44,8 +44,10 @@ import (
 
 	oidc "github.com/coreos/go-oidc"
 	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	certutil "k8s.io/client-go/util/cert"
 )
@@ -87,7 +89,7 @@ type Options struct {
 	UsernamePrefix string
 
 	// GroupsClaim, if specified, causes the OIDCAuthenticator to try to populate the user's
-	// groups with an ID Token field. If the GrouppClaim field is present in an ID Token the value
+	// groups with an ID Token field. If the GroupsClaim field is present in an ID Token the value
 	// must be a string or list of strings.
 	GroupsClaim string
 
@@ -342,6 +344,12 @@ func untrustedIssuer(token string) (string, error) {
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return "", fmt.Errorf("while unmarshaling token: %v", err)
 	}
+	// Coalesce the legacy GoogleIss with the new one.
+	//
+	// http://openid.net/specs/openid-connect-core-1_0.html#GoogleIss
+	if claims.Issuer == "accounts.google.com" {
+		return "https://accounts.google.com", nil
+	}
 	return claims.Issuer, nil
 }
 
@@ -523,7 +531,7 @@ func (r *claimResolver) resolve(endpoint endpoint, allClaims claims) error {
 	return nil
 }
 
-func (a *Authenticator) AuthenticateToken(token string) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
 	if !hasCorrectIssuer(a.issuerURL, token) {
 		return nil, false, nil
 	}
@@ -533,7 +541,6 @@ func (a *Authenticator) AuthenticateToken(token string) (user.Info, bool, error)
 		return nil, false, fmt.Errorf("oidc: authenticator not initialized")
 	}
 
-	ctx := context.Background()
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
 		return nil, false, fmt.Errorf("oidc: verify token: %v", err)
@@ -611,7 +618,7 @@ func (a *Authenticator) AuthenticateToken(token string) (user.Info, bool, error)
 		}
 	}
 
-	return info, true, nil
+	return &authenticator.Response{User: info}, true, nil
 }
 
 // getClaimJWT gets a distributed claim JWT from url, using the supplied access

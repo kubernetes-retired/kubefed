@@ -2,29 +2,13 @@ package clusters
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
-// commonResult is the response of a base result.
-type commonResult struct {
-	gophercloud.Result
-}
-
-// CreateResult is the response of a Create operations.
-type CreateResult struct {
-	commonResult
-}
-
-// GetResult is the response of a Get operations.
-type GetResult struct {
-	commonResult
-}
-
+// Cluster represents an OpenStack Clustering cluster.
 type Cluster struct {
 	Config          map[string]interface{} `json:"config"`
 	CreatedAt       time.Time              `json:"-"`
@@ -50,44 +34,13 @@ type Cluster struct {
 	User            string                 `json:"user"`
 }
 
-func (r commonResult) Extract() (*Cluster, error) {
-	var s struct {
-		Cluster *Cluster `json:"cluster"`
-	}
-	err := r.ExtractInto(&s)
-	if err != nil {
-		return s.Cluster, err
-	}
-
-	return s.Cluster, nil
-}
-
-// ClusterPage contains a single page of all clusters from a List call.
-type ClusterPage struct {
-	pagination.LinkedPageBase
-}
-
-func (page ClusterPage) IsEmpty() (bool, error) {
-	clusters, err := ExtractClusters(page)
-	return len(clusters) == 0, err
-}
-
-// ExtractCluster provides access to the list of clusters in a page acquired from the List operation.
-func ExtractClusters(r pagination.Page) ([]Cluster, error) {
-	var s struct {
-		Clusters []Cluster `json:"clusters"`
-	}
-	err := (r.(ClusterPage)).ExtractInto(&s)
-	return s.Clusters, err
-}
-
 func (r *Cluster) UnmarshalJSON(b []byte) error {
 	type tmp Cluster
 	var s struct {
 		tmp
-		CreatedAt interface{} `json:"created_at"`
-		InitAt    interface{} `json:"init_at"`
-		UpdatedAt interface{} `json:"updated_at"`
+		CreatedAt string `json:"created_at"`
+		InitAt    string `json:"init_at"`
+		UpdatedAt string `json:"updated_at"`
 	}
 
 	err := json.Unmarshal(b, &s)
@@ -96,47 +49,153 @@ func (r *Cluster) UnmarshalJSON(b []byte) error {
 	}
 	*r = Cluster(s.tmp)
 
-	switch t := s.CreatedAt.(type) {
-	case string:
-		if t != "" {
-			r.CreatedAt, err = time.Parse(gophercloud.RFC3339Milli, t)
-			if err != nil {
-				return err
-			}
+	if s.CreatedAt != "" {
+		r.CreatedAt, err = time.Parse(gophercloud.RFC3339Milli, s.CreatedAt)
+		if err != nil {
+			return err
 		}
-	case nil:
-		r.CreatedAt = time.Time{}
-	default:
-		return fmt.Errorf("Invalid type for time. type=%v", reflect.TypeOf(s.CreatedAt))
 	}
 
-	switch t := s.InitAt.(type) {
-	case string:
-		if t != "" {
-			r.InitAt, err = time.Parse(gophercloud.RFC3339Milli, t)
-			if err != nil {
-				return err
-			}
+	if s.InitAt != "" {
+		r.InitAt, err = time.Parse(gophercloud.RFC3339Milli, s.InitAt)
+		if err != nil {
+			return err
 		}
-	case nil:
-		r.InitAt = time.Time{}
-	default:
-		return fmt.Errorf("Invalid type for time. type=%v", reflect.TypeOf(s.InitAt))
 	}
 
-	switch t := s.UpdatedAt.(type) {
-	case string:
-		if t != "" {
-			r.UpdatedAt, err = time.Parse(gophercloud.RFC3339Milli, t)
-			if err != nil {
-				return err
-			}
+	if s.UpdatedAt != "" {
+		r.UpdatedAt, err = time.Parse(gophercloud.RFC3339Milli, s.UpdatedAt)
+		if err != nil {
+			return err
 		}
-	case nil:
-		r.UpdatedAt = time.Time{}
-	default:
-		return fmt.Errorf("Invalid type for time. type=%v", reflect.TypeOf(s.UpdatedAt))
 	}
 
 	return nil
+}
+
+// ClusterPolicy represents and OpenStack Clustering cluster policy.
+type ClusterPolicy struct {
+	ClusterID   string `json:"cluster_id"`
+	ClusterName string `json:"cluster_name"`
+	Enabled     bool   `json:"enabled"`
+	ID          string `json:"id"`
+	PolicyID    string `json:"policy_id"`
+	PolicyName  string `json:"policy_name"`
+	PolicyType  string `json:"policy_type"`
+}
+
+// Action represents an OpenStack Clustering action.
+type Action struct {
+	Action string `json:"action"`
+}
+
+// commonResult is the response of a base result.
+type commonResult struct {
+	gophercloud.Result
+}
+
+// Extract interprets any commonResult-based result as a Cluster.
+func (r commonResult) Extract() (*Cluster, error) {
+	var s struct {
+		Cluster *Cluster `json:"cluster"`
+	}
+
+	err := r.ExtractInto(&s)
+	return s.Cluster, err
+}
+
+// CreateResult is the response of a Create operations. Call its Extract method
+// to interpret it as a Cluster.
+type CreateResult struct {
+	commonResult
+}
+
+// GetResult is the response of a Get operations. Call its Extract method to
+// interpret it as a Cluster.
+type GetResult struct {
+	commonResult
+}
+
+// UpdateResult is the response of a Update operations. Call its Extract method
+// to interpret it as a Cluster.
+type UpdateResult struct {
+	commonResult
+}
+
+// GetPolicyResult is the response of a Get operations. Call its Extract method
+// to interpret it as a ClusterPolicy.
+type GetPolicyResult struct {
+	gophercloud.Result
+}
+
+// Extract interprets a GetPolicyResult as a ClusterPolicy.
+func (r GetPolicyResult) Extract() (*ClusterPolicy, error) {
+	var s struct {
+		ClusterPolicy *ClusterPolicy `json:"cluster_policy"`
+	}
+	err := r.ExtractInto(&s)
+	return s.ClusterPolicy, err
+}
+
+// DeleteResult is the result from a Delete operation. Call its ExtractErr
+// method to determine if the call succeeded or failed.
+type DeleteResult struct {
+	gophercloud.ErrResult
+}
+
+// ClusterPage contains a single page of all clusters from a List call.
+type ClusterPage struct {
+	pagination.LinkedPageBase
+}
+
+// IsEmpty determines whether or not a page of Clusters contains any results.
+func (page ClusterPage) IsEmpty() (bool, error) {
+	clusters, err := ExtractClusters(page)
+	return len(clusters) == 0, err
+}
+
+// ClusterPolicyPage contains a single page of all policies from a List call
+type ClusterPolicyPage struct {
+	pagination.SinglePageBase
+}
+
+// IsEmpty determines whether or not a page of ClusterPolicies contains any
+// results.
+func (page ClusterPolicyPage) IsEmpty() (bool, error) {
+	clusterPolicies, err := ExtractClusterPolicies(page)
+	return len(clusterPolicies) == 0, err
+}
+
+// ActionResult is the response of Senlin actions. Call its Extract method to
+// obtain the Action ID of the action.
+type ActionResult struct {
+	gophercloud.Result
+}
+
+// Extract interprets any Action result as an Action.
+func (r ActionResult) Extract() (string, error) {
+	var s struct {
+		Action string `json:"action"`
+	}
+	err := r.ExtractInto(&s)
+	return s.Action, err
+}
+
+// ExtractClusters returns a slice of Clusters from the List operation.
+func ExtractClusters(r pagination.Page) ([]Cluster, error) {
+	var s struct {
+		Clusters []Cluster `json:"clusters"`
+	}
+	err := (r.(ClusterPage)).ExtractInto(&s)
+	return s.Clusters, err
+}
+
+// ExtractClusterPolicies returns a slice of ClusterPolicies from the
+// ListClusterPolicies operation.
+func ExtractClusterPolicies(r pagination.Page) ([]ClusterPolicy, error) {
+	var s struct {
+		ClusterPolicies []ClusterPolicy `json:"cluster_policies"`
+	}
+	err := (r.(ClusterPolicyPage)).ExtractInto(&s)
+	return s.ClusterPolicies, err
 }

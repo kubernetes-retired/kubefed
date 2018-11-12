@@ -1,8 +1,8 @@
 /*
-Package policytypes lists all policy types and shows details for a policy type from the OpenStack
-Clustering Service.
+Package policytypes lists all policy types and shows details for a policy type
+from the OpenStack Clustering Service.
 
-Example to list policy types
+Example to List Policy Types
 
     allPages, err := policytypes.List(clusteringClient).AllPages()
     if err != nil {
@@ -18,13 +18,14 @@ Example to list policy types
         fmt.Printf("%+v\n", policyType)
     }
 
-Example of get policy type details
+Example to Get a Policy Type
 
     policyTypeName := "senlin.policy.affinity-1.0"
     policyTypeDetail, err := policyTypes.Get(clusteringClient, policyTypeName).Extract()
     if err != nil {
         panic(err)
     }
+
     fmt.Printf("%+v\n", policyTypeDetail)
 */
 package policytypes

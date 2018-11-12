@@ -203,3 +203,17 @@ func GetStatuses(c *gophercloud.ServiceClient, id string) (r GetStatusesResult) 
 	_, r.Err = c.Get(statusRootURL(c, id), &r.Body, nil)
 	return
 }
+
+// GetStats will return the shows the current statistics of a particular LoadBalancer.
+func GetStats(c *gophercloud.ServiceClient, id string) (r StatsResult) {
+	_, r.Err = c.Get(statisticsRootURL(c, id), &r.Body, nil)
+	return
+}
+
+// Failover performs a failover of a load balancer.
+func Failover(c *gophercloud.ServiceClient, id string) (r FailoverResult) {
+	_, r.Err = c.Put(failoverRootURL(c, id), nil, nil, &gophercloud.RequestOpts{
+		OkCodes: []int{202},
+	})
+	return
+}

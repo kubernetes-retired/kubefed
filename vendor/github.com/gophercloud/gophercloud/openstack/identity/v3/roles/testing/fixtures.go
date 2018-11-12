@@ -371,7 +371,7 @@ var RoleOnResource = roles.Role{
 // from ListAssignmentsOnResourceOutput.
 var ExpectedRolesOnResourceSlice = []roles.Role{RoleOnResource}
 
-func HandleListAssignmentsOnResourceSuccessfully(t *testing.T) {
+func HandleListAssignmentsOnResourceSuccessfully_ProjectsUsers(t *testing.T) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		th.TestMethod(t, r, "GET")
 		th.TestHeader(t, r, "Accept", "application/json")
@@ -383,7 +383,46 @@ func HandleListAssignmentsOnResourceSuccessfully(t *testing.T) {
 	}
 
 	th.Mux.HandleFunc("/projects/{project_id}/users/{user_id}/roles", fn)
+}
+
+func HandleListAssignmentsOnResourceSuccessfully_ProjectsGroups(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
 	th.Mux.HandleFunc("/projects/{project_id}/groups/{group_id}/roles", fn)
+}
+
+func HandleListAssignmentsOnResourceSuccessfully_DomainsUsers(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
 	th.Mux.HandleFunc("/domains/{domain_id}/users/{user_id}/roles", fn)
+}
+
+func HandleListAssignmentsOnResourceSuccessfully_DomainsGroups(t *testing.T) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, ListAssignmentsOnResourceOutput)
+	}
+
 	th.Mux.HandleFunc("/domains/{domain_id}/groups/{group_id}/roles", fn)
 }

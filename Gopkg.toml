@@ -3,6 +3,10 @@
 
 required = ["github.com/kubernetes/repo-infra/verify/boilerplate/test"]
 
+[[override]]
+name = "gopkg.in/fsnotify.v1"
+source = "gopkg.in/fsnotify/fsnotify.v1"
+
 [prune]
   go-tests = true
   #unused-packages = true
@@ -183,5 +187,3 @@ revision="f53464b8b84b4507805a0b033a8377b225163fea"
 [[override]]
 name = "github.com/kubernetes-sigs/kubebuilder"
 version="0.1.11"
-
-

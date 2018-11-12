@@ -10,6 +10,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 // CreateExternalNetwork will create an external network. An error will be
@@ -39,6 +40,8 @@ func CreateExternalNetwork(t *testing.T, client *gophercloud.ServiceClient) (*ne
 
 	t.Logf("Created external network: %s", networkName)
 
+	th.AssertEquals(t, network.Name, networkName)
+
 	return network, nil
 }
 
@@ -65,6 +68,9 @@ func CreatePortWithSecurityGroup(t *testing.T, client *gophercloud.ServiceClient
 
 	t.Logf("Successfully created port: %s", portName)
 
+	th.AssertEquals(t, port.Name, portName)
+	th.AssertEquals(t, port.NetworkID, networkID)
+
 	return port, nil
 }
 
@@ -85,6 +91,8 @@ func CreateSecurityGroup(t *testing.T, client *gophercloud.ServiceClient) (*grou
 	}
 
 	t.Logf("Created security group: %s", secGroup.ID)
+
+	th.AssertEquals(t, secGroup.Name, secGroupName)
 
 	return secGroup, nil
 }
@@ -113,6 +121,8 @@ func CreateSecurityGroupRule(t *testing.T, client *gophercloud.ServiceClient, se
 	}
 
 	t.Logf("Created security group rule: %s", rule.ID)
+
+	th.AssertEquals(t, rule.SecGroupID, secGroupID)
 
 	return rule, nil
 }

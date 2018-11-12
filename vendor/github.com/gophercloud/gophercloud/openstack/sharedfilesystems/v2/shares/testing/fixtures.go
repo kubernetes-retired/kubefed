@@ -142,6 +142,73 @@ func MockGetResponse(t *testing.T) {
 	})
 }
 
+var listDetailResponse = `{
+		"shares": [
+			{
+		        "links": [
+		            {
+		                "href": "http://172.18.198.54:8786/v2/16e1ab15c35a457e9c2b2aa189f544e1/shares/011d21e2-fbc3-4e4a-9993-9ea223f73264",
+		                "rel": "self"
+		            },
+		            {
+		                "href": "http://172.18.198.54:8786/16e1ab15c35a457e9c2b2aa189f544e1/shares/011d21e2-fbc3-4e4a-9993-9ea223f73264",
+		                "rel": "bookmark"
+		            }
+		        ],
+		        "availability_zone": "nova",
+		        "share_network_id": "713df749-aac0-4a54-af52-10f6c991e80c",
+		        "share_server_id": "e268f4aa-d571-43dd-9ab3-f49ad06ffaef",
+		        "snapshot_id": null,
+		        "id": "011d21e2-fbc3-4e4a-9993-9ea223f73264",
+		        "size": 1,
+		        "share_type": "25747776-08e5-494f-ab40-a64b9d20d8f7",
+		        "share_type_name": "default",
+		        "consistency_group_id": "9397c191-8427-4661-a2e8-b23820dc01d4",
+		        "project_id": "16e1ab15c35a457e9c2b2aa189f544e1",
+		        "metadata": {
+		            "project": "my_app",
+		            "aim": "doc"
+		        },
+		        "status": "available",
+		        "description": "My custom share London",
+		        "host": "manila2@generic1#GENERIC1",
+		        "has_replicas": false,
+		        "replication_type": null,
+		        "task_state": null,
+		        "is_public": true,
+		        "snapshot_support": true,
+		        "name": "my_test_share",
+		        "created_at": "2015-09-18T10:25:24.000000",
+		        "share_proto": "NFS",
+		        "volume_type": "default",
+		        "source_cgsnapshot_member_id": null
+		    }
+		]
+	}`
+
+var listDetailEmptyResponse = `{"shares": []}`
+
+// MockListDetailResponse creates a mock detailed-list response
+func MockListDetailResponse(t *testing.T) {
+	th.Mux.HandleFunc(shareEndpoint+"/detail", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		r.ParseForm()
+		marker := r.Form.Get("offset")
+
+		switch marker {
+		case "":
+			fmt.Fprint(w, listDetailResponse)
+		default:
+			fmt.Fprint(w, listDetailEmptyResponse)
+		}
+	})
+}
+
 var getExportLocationsResponse = `{
     "export_locations": [
         {
@@ -159,6 +226,7 @@ func MockGetExportLocationsResponse(t *testing.T) {
 	th.Mux.HandleFunc(shareEndpoint+"/"+shareID+"/export_locations", func(w http.ResponseWriter, r *http.Request) {
 		th.TestMethod(t, r, "GET")
 		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, getExportLocationsResponse)
 	})
@@ -198,6 +266,25 @@ func MockGrantAccessResponse(t *testing.T) {
 	})
 }
 
+var revokeAccessRequest = `{
+	"deny_access": {
+		"access_id": "a2f226a5-cee8-430b-8a03-78a59bd84ee8"
+	}
+}`
+
+// MockRevokeAccessResponse creates a mock revoke access response
+func MockRevokeAccessResponse(t *testing.T) {
+	th.Mux.HandleFunc(shareEndpoint+"/"+shareID+"/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, revokeAccessRequest)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+	})
+}
+
 var listAccessRightsRequest = `{
 		"access_list": null
 	}`
@@ -227,5 +314,43 @@ func MockListAccessRightsResponse(t *testing.T) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, listAccessRightsResponse)
+	})
+}
+
+var extendRequest = `{
+		"extend": {
+			"new_size": 2
+		}
+	}`
+
+// MockExtendResponse creates a mock extend share response
+func MockExtendResponse(t *testing.T) {
+	th.Mux.HandleFunc(shareEndpoint+"/"+shareID+"/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, extendRequest)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+	})
+}
+
+var shrinkRequest = `{
+		"shrink": {
+			"new_size": 1
+		}
+	}`
+
+// MockShrinkResponse creates a mock shrink share response
+func MockShrinkResponse(t *testing.T) {
+	th.Mux.HandleFunc(shareEndpoint+"/"+shareID+"/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		th.TestHeader(t, r, "Content-Type", "application/json")
+		th.TestHeader(t, r, "Accept", "application/json")
+		th.TestJSONRequest(t, r, shrinkRequest)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
 	})
 }
