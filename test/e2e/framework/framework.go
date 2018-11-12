@@ -23,6 +23,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -34,11 +35,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// FederationFramework provides an interface to a test federation so
-// that the implementation can vary without affecting tests.
-type FederationFramework interface {
+type FederationFrameworkImpl interface {
 	BeforeEach()
 	AfterEach()
+
+	ControllerConfig() *util.ControllerConfig
+
+	Logger() common.TestLogger
 
 	KubeConfig() *restclient.Config
 
@@ -56,11 +59,23 @@ type FederationFramework interface {
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
 
-	// Initialize and cleanup in-memory controller (useful for debugging)
-	SetUpControllerFixture(typeConfig typeconfig.Interface)
+	// Setup a sync controller if necessary and return the fixture.
+	// This is implemented commonly to support running a sync
+	// controller for namespaces for tests that require it.
+	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture
+}
 
-	SetUpServiceDNSControllerFixture()
-	SetUpIngressDNSControllerFixture()
+// FederationFramework provides an interface to a test federation so
+// that the implementation can vary without affecting tests.
+type FederationFramework interface {
+	FederationFrameworkImpl
+
+	// Registering a fixture ensures it will be torn down after the
+	// current test has executed.
+	RegisterFixture(fixture framework.TestFixture)
+
+	// Start a namespace sync controller fixture
+	SetUpNamespaceSyncControllerFixture()
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -69,20 +84,24 @@ type FederationFramework interface {
 // The workaround is using a wrapper that performs late-binding on the
 // framework flavor.
 type frameworkWrapper struct {
-	impl     FederationFramework
+	impl     FederationFrameworkImpl
 	baseName string
+
+	// Fixtures to cleanup after each test
+	fixtures []framework.TestFixture
 }
 
 func NewFederationFramework(baseName string) FederationFramework {
 	f := &frameworkWrapper{
 		baseName: baseName,
+		fixtures: []framework.TestFixture{},
 	}
 	AfterEach(f.AfterEach)
 	BeforeEach(f.BeforeEach)
 	return f
 }
 
-func (f *frameworkWrapper) framework() FederationFramework {
+func (f *frameworkWrapper) framework() FederationFrameworkImpl {
 	if f.impl == nil {
 		if TestContext.TestManagedFederation {
 			f.impl = NewManagedFramework(f.baseName)
@@ -99,6 +118,27 @@ func (f *frameworkWrapper) BeforeEach() {
 
 func (f *frameworkWrapper) AfterEach() {
 	f.framework().AfterEach()
+
+	// TODO(font): Delete the namespace finalizer manually rather than
+	// relying on the federated namespace sync controller. This would
+	// remove the dependency of namespace removal on fixture teardown,
+	// which allows the teardown to be moved outside the defer, but before
+	// the DumpEventsInNamespace that may contain assertions that could
+	// exit the function.
+	logger := f.framework().Logger()
+	for len(f.fixtures) > 0 {
+		fixture := f.fixtures[0]
+		fixture.TearDown(logger)
+		f.fixtures = f.fixtures[1:]
+	}
+}
+
+func (f *frameworkWrapper) ControllerConfig() *util.ControllerConfig {
+	return f.framework().ControllerConfig()
+}
+
+func (f *frameworkWrapper) Logger() common.TestLogger {
+	return f.framework().Logger()
 }
 
 func (f *frameworkWrapper) KubeConfig() *restclient.Config {
@@ -137,16 +177,31 @@ func (f *frameworkWrapper) FederationSystemNamespace() string {
 	return f.framework().FederationSystemNamespace()
 }
 
-func (f *frameworkWrapper) SetUpControllerFixture(typeConfig typeconfig.Interface) {
-	// Avoid running more than one sync controller for namespaces
-	if typeConfig.GetTarget().Kind != util.NamespaceKind {
-		f.framework().SetUpControllerFixture(typeConfig)
-	}
-	f.setUpNamespaceControllerFixture()
-}
-
 func (f *frameworkWrapper) TestNamespaceName() string {
 	return f.framework().TestNamespaceName()
+}
+
+func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture {
+	return f.framework().SetUpSyncControllerFixture(typeConfig)
+}
+
+func (f *frameworkWrapper) RegisterFixture(fixture framework.TestFixture) {
+	if fixture != nil {
+		f.fixtures = append(f.fixtures, fixture)
+	}
+}
+
+func (f *frameworkWrapper) SetUpNamespaceSyncControllerFixture() {
+	// When targeting a single namespace the namespace controller is not required.
+	if TestContext.LimitedScope {
+		return
+	}
+	// The namespace controller is required to ensure namespaces
+	// are created as needed in member clusters in advance of
+	// propagation of other namespaced types.
+	namespaceTypeConfig := common.NamespaceTypeConfigOrDie(f.Logger())
+	fixture := f.framework().SetUpSyncControllerFixture(namespaceTypeConfig)
+	f.RegisterFixture(fixture)
 }
 
 func createTestNamespace(client kubeclientset.Interface, baseName string) string {
@@ -178,25 +233,4 @@ func createNamespace(client kubeclientset.Interface, baseName string) (string, e
 		return "", err
 	}
 	return namespaceName, nil
-}
-
-func (f *frameworkWrapper) SetUpServiceDNSControllerFixture() {
-	f.framework().SetUpServiceDNSControllerFixture()
-	f.setUpNamespaceControllerFixture()
-}
-
-func (f *frameworkWrapper) SetUpIngressDNSControllerFixture() {
-	f.framework().SetUpIngressDNSControllerFixture()
-	f.setUpNamespaceControllerFixture()
-}
-
-func (f *frameworkWrapper) setUpNamespaceControllerFixture() {
-	// When targeting a single namespace the namespace controller is not required.
-	if TestContext.LimitedScope {
-		return
-	}
-	// The namespace controller is required to ensure namespaces
-	// are created as needed in member clusters in advance of
-	// propagation of other namespaced types.
-	f.framework().SetUpControllerFixture(common.NamespaceTypeConfigOrDie(NewE2ELogger()))
 }

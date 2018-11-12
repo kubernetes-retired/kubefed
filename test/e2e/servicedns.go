@@ -32,6 +32,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	intframework "github.com/kubernetes-sigs/federation-v2/test/integration/framework"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -71,7 +72,11 @@ var _ = Describe("ServiceDNS", func() {
 				Zone:   cluster.Status.Zone,
 			}
 		}
-		f.SetUpServiceDNSControllerFixture()
+		if framework.TestContext.RunControllers() {
+			fixture := intframework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
+			f.RegisterFixture(fixture)
+			f.SetUpNamespaceSyncControllerFixture()
+		}
 		domainObj := common.NewDomainObject(federation, Domain)
 		_, err = domainClient.Create(domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")

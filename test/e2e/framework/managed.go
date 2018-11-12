@@ -56,18 +56,14 @@ type ManagedFramework struct {
 
 	logger common.TestLogger
 
-	// Fixtures to cleanup after each test
-	fixtures []framework.TestFixture
-
 	baseName string
 
 	testNamespaceName string
 }
 
-func NewManagedFramework(baseName string) FederationFramework {
+func NewManagedFramework(baseName string) FederationFrameworkImpl {
 	f := &ManagedFramework{
 		logger:   NewE2ELogger(),
-		fixtures: []framework.TestFixture{},
 		baseName: baseName,
 	}
 	return f
@@ -81,11 +77,22 @@ func (f *ManagedFramework) BeforeEach() {
 
 func (f *ManagedFramework) AfterEach() {
 	RemoveCleanupAction(f.cleanupHandle)
-	for len(f.fixtures) > 0 {
-		fixture := f.fixtures[0]
-		fixture.TearDown(f.logger)
-		f.fixtures = f.fixtures[1:]
+}
+
+func (f *ManagedFramework) ControllerConfig() *util.ControllerConfig {
+	return &util.ControllerConfig{
+		FederationNamespaces: util.FederationNamespaces{
+			FederationNamespace: fedFixture.SystemNamespace,
+			ClusterNamespace:    fedFixture.SystemNamespace,
+			TargetNamespace:     metav1.NamespaceAll,
+		},
+		KubeConfig:      fedFixture.KubeApi.NewConfig(f.logger),
+		MinimizeLatency: true,
 	}
+}
+
+func (f *ManagedFramework) Logger() common.TestLogger {
+	return f.logger
 }
 
 func (f *ManagedFramework) KubeConfig() *restclient.Config {
@@ -136,30 +143,6 @@ func (f *ManagedFramework) TestNamespaceName() string {
 	return f.testNamespaceName
 }
 
-func (f *ManagedFramework) SetUpControllerFixture(typeConfig typeconfig.Interface) {
-	// TODO(marun) check TestContext.InMemoryControllers before setting up controller fixture
-	fixture := framework.NewSyncControllerFixture(f.logger, f.controllerConfig(), typeConfig)
-	f.fixtures = append(f.fixtures, fixture)
-}
-
-func (f *ManagedFramework) SetUpServiceDNSControllerFixture() {
-	fixture := framework.NewServiceDNSControllerFixture(f.logger, f.controllerConfig())
-	f.fixtures = append(f.fixtures, fixture)
-}
-
-func (f *ManagedFramework) SetUpIngressDNSControllerFixture() {
-	fixture := framework.NewIngressDNSControllerFixture(f.logger, f.controllerConfig())
-	f.fixtures = append(f.fixtures, fixture)
-}
-
-func (f *ManagedFramework) controllerConfig() *util.ControllerConfig {
-	return &util.ControllerConfig{
-		FederationNamespaces: util.FederationNamespaces{
-			FederationNamespace: fedFixture.SystemNamespace,
-			ClusterNamespace:    fedFixture.SystemNamespace,
-			TargetNamespace:     metav1.NamespaceAll,
-		},
-		KubeConfig:      fedFixture.KubeApi.NewConfig(f.logger),
-		MinimizeLatency: true,
-	}
+func (f *ManagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) framework.TestFixture {
+	return framework.NewSyncControllerFixture(f.logger, f.ControllerConfig(), typeConfig)
 }

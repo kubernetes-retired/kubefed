@@ -39,7 +39,11 @@ type TestContextType struct {
 	LimitedScopeInMemoryControllers bool
 }
 
-var TestContext TestContextType
+func (t *TestContextType) RunControllers() bool {
+	return t.TestManagedFederation || t.InMemoryControllers
+}
+
+var TestContext *TestContextType = &TestContextType{}
 
 func registerFlags(t *TestContextType) {
 	flag.BoolVar(&t.TestManagedFederation, "test-managed-federation",
@@ -75,7 +79,7 @@ func validateFlags(t *TestContextType) {
 }
 
 func ParseFlags() {
-	registerFlags(&TestContext)
+	registerFlags(TestContext)
 	flag.Parse()
-	validateFlags(&TestContext)
+	validateFlags(TestContext)
 }
