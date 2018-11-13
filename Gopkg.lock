@@ -960,6 +960,14 @@
   revision = "f08db293d3ef80052d6513ece19792642a289fea"
 
 [[projects]]
+  branch = "master"
+  digest = "1:11a65fb8471038e0b9a0f16310850e08c0c3c329de8a1a08fbe7fec38cb0ceef"
+  name = "k8s.io/kubectl"
+  packages = ["pkg/framework/openapi"]
+  pruneopts = "NUT"
+  revision = "a45bc6067dfdd3d84ec6d0993c141170c04f7f37"
+
+[[projects]]
   digest = "1:873ba447c3808a29ddf32e8e069631073e28daa486dde311ee654bf6d948fcd2"
   name = "sigs.k8s.io/testing_frameworks"
   packages = [
@@ -1035,6 +1043,8 @@
     "k8s.io/client-go/util/workqueue",
     "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1",
     "k8s.io/cluster-registry/pkg/client/clientset/versioned",
+    "k8s.io/kube-openapi/pkg/util/proto",
+    "k8s.io/kubectl/pkg/framework/openapi",
     "sigs.k8s.io/testing_frameworks/integration",
   ]
   solver-name = "gps-cdcl"
