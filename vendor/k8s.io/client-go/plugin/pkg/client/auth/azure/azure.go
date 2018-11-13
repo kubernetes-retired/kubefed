@@ -17,7 +17,6 @@ limitations under the License.
 package azure
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -244,9 +243,9 @@ func (ts *azureTokenSource) retrieveTokenFromCfg() (*azureToken, error) {
 		token: adal.Token{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
-			ExpiresIn:    json.Number(expiresIn),
-			ExpiresOn:    json.Number(expiresOn),
-			NotBefore:    json.Number(expiresOn),
+			ExpiresIn:    expiresIn,
+			ExpiresOn:    expiresOn,
+			NotBefore:    expiresOn,
 			Resource:     fmt.Sprintf("spn:%s", apiserverID),
 			Type:         tokenType,
 		},
@@ -263,8 +262,8 @@ func (ts *azureTokenSource) storeTokenInCfg(token *azureToken) error {
 	newCfg[cfgClientID] = token.clientID
 	newCfg[cfgTenantID] = token.tenantID
 	newCfg[cfgApiserverID] = token.apiserverID
-	newCfg[cfgExpiresIn] = string(token.token.ExpiresIn)
-	newCfg[cfgExpiresOn] = string(token.token.ExpiresOn)
+	newCfg[cfgExpiresIn] = token.token.ExpiresIn
+	newCfg[cfgExpiresOn] = token.token.ExpiresOn
 
 	err := ts.persister.Persist(newCfg)
 	if err != nil {
@@ -298,7 +297,7 @@ func (ts *azureTokenSource) refreshToken(token *azureToken) (*azureToken, error)
 	}
 
 	return &azureToken{
-		token:       spt.Token(),
+		token:       spt.Token,
 		clientID:    token.clientID,
 		tenantID:    token.tenantID,
 		apiserverID: token.apiserverID,
