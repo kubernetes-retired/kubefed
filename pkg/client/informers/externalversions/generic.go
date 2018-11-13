@@ -59,50 +59,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().ClusterPropagatedVersions().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedClusters().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmaps"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedConfigMaps().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapoverrides"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedConfigMapOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedconfigmapplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedConfigMapPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federateddeployments"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedDeployments().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federateddeploymentoverrides"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedDeploymentOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federateddeploymentplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedDeploymentPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedingresses"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedIngresses().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedingressplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedIngressPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedjobs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedJobs().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedjoboverrides"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedJobOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedjobplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedJobPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatednamespaceplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedNamespacePlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasets"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedReplicaSets().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetoverrides"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedReplicaSetOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedreplicasetplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedReplicaSetPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecrets"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedSecrets().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecretoverrides"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedSecretOverrides().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedsecretplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedSecretPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedservices"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServices().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceaccounts"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceAccounts().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceaccountplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceAccountPlacements().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("federatedserviceplacements"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServicePlacements().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedservicestatuses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1alpha1().FederatedServiceStatuses().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("federatedtypeconfigs"):

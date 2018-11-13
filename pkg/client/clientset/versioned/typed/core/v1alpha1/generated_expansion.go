@@ -22,50 +22,6 @@ type ClusterPropagatedVersionExpansion interface{}
 
 type FederatedClusterExpansion interface{}
 
-type FederatedConfigMapExpansion interface{}
-
-type FederatedConfigMapOverrideExpansion interface{}
-
-type FederatedConfigMapPlacementExpansion interface{}
-
-type FederatedDeploymentExpansion interface{}
-
-type FederatedDeploymentOverrideExpansion interface{}
-
-type FederatedDeploymentPlacementExpansion interface{}
-
-type FederatedIngressExpansion interface{}
-
-type FederatedIngressPlacementExpansion interface{}
-
-type FederatedJobExpansion interface{}
-
-type FederatedJobOverrideExpansion interface{}
-
-type FederatedJobPlacementExpansion interface{}
-
-type FederatedNamespacePlacementExpansion interface{}
-
-type FederatedReplicaSetExpansion interface{}
-
-type FederatedReplicaSetOverrideExpansion interface{}
-
-type FederatedReplicaSetPlacementExpansion interface{}
-
-type FederatedSecretExpansion interface{}
-
-type FederatedSecretOverrideExpansion interface{}
-
-type FederatedSecretPlacementExpansion interface{}
-
-type FederatedServiceExpansion interface{}
-
-type FederatedServiceAccountExpansion interface{}
-
-type FederatedServiceAccountPlacementExpansion interface{}
-
-type FederatedServicePlacementExpansion interface{}
-
 type FederatedServiceStatusExpansion interface{}
 
 type FederatedTypeConfigExpansion interface{}
