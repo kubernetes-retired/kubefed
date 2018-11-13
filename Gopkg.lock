@@ -968,6 +968,17 @@
   revision = "a45bc6067dfdd3d84ec6d0993c141170c04f7f37"
 
 [[projects]]
+  digest = "1:fa80fa28e164e6d7ff550ca665d3b676372b25c310e3123a1f63f3ea432373cf"
+  name = "sigs.k8s.io/controller-runtime"
+  packages = [
+    "pkg/client",
+    "pkg/client/apiutil",
+  ]
+  pruneopts = "NUT"
+  revision = "67e28744a963c78a34108c3b52aadbc5e02f4384"
+  version = "v0.1.1"
+
+[[projects]]
   digest = "1:873ba447c3808a29ddf32e8e069631073e28daa486dde311ee654bf6d948fcd2"
   name = "sigs.k8s.io/testing_frameworks"
   packages = [
@@ -999,8 +1010,6 @@
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
-    "k8s.io/api/apps/v1",
-    "k8s.io/api/batch/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/extensions/v1beta1",
     "k8s.io/api/rbac/v1",
@@ -1044,6 +1053,7 @@
     "k8s.io/cluster-registry/pkg/client/clientset/versioned",
     "k8s.io/kube-openapi/pkg/util/proto",
     "k8s.io/kubectl/pkg/framework/openapi",
+    "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/testing_frameworks/integration",
   ]
   solver-name = "gps-cdcl"
