@@ -140,7 +140,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 	typeConfig := resources.TypeConfig
 
-	err = federate.CreateResources(hostConfig, resources)
+	err = federate.CreateResources(nil, hostConfig, resources)
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
@@ -151,7 +151,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: objectMeta.Namespace, Name: objectMeta.Name}
-		err := federate.DisableFederation(hostConfig, qualifiedName, delete, dryRun)
+		err := federate.DisableFederation(nil, hostConfig, qualifiedName, delete, dryRun)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}
