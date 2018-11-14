@@ -343,7 +343,7 @@ func schedule(planner *planner.Planner, key string, clusterNames []string, curre
 	return result
 }
 
-// clusterReplicaState returns information about the scheduling state of the pods running in the federated clusters.
+// clustersReplicaState returns information about the scheduling state of the pods running in the federated clusters.
 func clustersReplicaState(
 	clusterNames []string,
 	key string,
