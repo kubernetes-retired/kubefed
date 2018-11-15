@@ -55,14 +55,11 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 	}
 }
 
-func LookupAPIResource(config *rest.Config, key string) (*metav1.APIResource, error) {
+func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.APIResource, error) {
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating discovery client: %v", err)
 	}
-
-	// TODO(marun) Allow the targeting of a specific group
-	// TODO(marun) Allow the targeting of a specific version
 
 	resourceLists, err := client.ServerPreferredResources()
 	if err != nil {
@@ -73,10 +70,19 @@ func LookupAPIResource(config *rest.Config, key string) (*metav1.APIResource, er
 	lowerKey := strings.ToLower(key)
 	var targetResource *metav1.APIResource
 	for _, resourceList := range resourceLists {
+		// The list holds the GroupVersion for its list of APIResources
+		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing GroupVersion: %v", err)
+		}
+		if len(targetVersion) > 0 && gv.Version != targetVersion {
+			continue
+		}
 		for _, resource := range resourceList.APIResources {
 			if lowerKey == resource.Name ||
 				lowerKey == resource.SingularName ||
-				lowerKey == strings.ToLower(resource.Kind) {
+				lowerKey == strings.ToLower(resource.Kind) ||
+				lowerKey == fmt.Sprintf("%s.%s", resource.Name, gv.Group) {
 
 				targetResource = &resource
 				break
@@ -92,11 +98,6 @@ func LookupAPIResource(config *rest.Config, key string) (*metav1.APIResource, er
 			}
 		}
 		if targetResource != nil {
-			// The list holds the GroupVersion for its list of APIResources
-			gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
-			if err != nil {
-				return nil, fmt.Errorf("Error parsing GroupVersion: %v", err)
-			}
 			targetResource.Group = gv.Group
 			targetResource.Version = gv.Version
 			break

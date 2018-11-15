@@ -122,7 +122,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	targetName := targetAPIResource.Name
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		_, err := federate.LookupAPIResource(hostConfig, targetName)
+		_, err := federate.LookupAPIResource(hostConfig, targetName, targetAPIResource.Version)
 		if err != nil {
 			tl.Logf("An error was reported while waiting for target type %q to be published as an available resource: %v", targetName, err)
 		}
@@ -133,7 +133,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 
 	resources, err := federate.GetResources(hostConfig, targetAPIResource.Name,
-		f.FederationSystemNamespace(), targetAPIResource.Group,
+		targetAPIResource.Version, f.FederationSystemNamespace(), targetAPIResource.Group,
 		targetAPIResource.Version, apicommon.ResourceVersionField, overridePaths)
 	if err != nil {
 		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)

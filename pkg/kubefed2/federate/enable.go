@@ -66,6 +66,7 @@ type enableType struct {
 
 type enableTypeOptions struct {
 	targetName         string
+	targetVersion      string
 	rawComparisonField string
 	comparisonField    apicommon.VersionComparisonField
 	rawOverridePaths   string
@@ -79,6 +80,7 @@ type enableTypeOptions struct {
 // Bind adds the join specific arguments to the flagset passed in as an
 // argument.
 func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
+	flags.StringVar(&o.targetVersion, "version", "", "Optional, the API version of the target type.")
 	flags.StringVar(&o.rawComparisonField, "comparison-field", string(apicommon.ResourceVersionField),
 		fmt.Sprintf("The field in the target type to compare for equality. Valid values are %q (default) and %q.",
 			apicommon.ResourceVersionField, apicommon.GenerationField,
@@ -160,8 +162,9 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	resources, err := GetResources(hostConfig, j.targetName, j.FederationNamespace,
-		j.primitiveGroup, j.primitiveVersion, j.comparisonField, j.overridePaths)
+	resources, err := GetResources(hostConfig, j.targetName,
+		j.targetVersion, j.FederationNamespace, j.primitiveGroup,
+		j.primitiveVersion, j.comparisonField, j.overridePaths)
 	if err != nil {
 		return err
 	}
@@ -196,11 +199,12 @@ type typeResources struct {
 	CRDs       []*apiextv1b1.CustomResourceDefinition
 }
 
-func GetResources(config *rest.Config, key, namespace, primitiveGroup,
-	primitiveVersion string, comparisonField apicommon.VersionComparisonField,
+func GetResources(config *rest.Config, key, targetVersion,
+	namespace, primitiveGroup, primitiveVersion string,
+	comparisonField apicommon.VersionComparisonField,
 	overridePaths []string) (*typeResources, error) {
 
-	apiResource, err := LookupAPIResource(config, key)
+	apiResource, err := LookupAPIResource(config, key, targetVersion)
 	if err != nil {
 		return nil, err
 	}
