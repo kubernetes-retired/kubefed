@@ -495,6 +495,10 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 		version = adapter.GetStatus(versionObj)
 		return true, nil
 	})
+	if err != nil {
+		c.tl.Errorf("Timed out waiting for %s %q", adapter.TypeName(), versionName)
+		return "", false
+	}
 
 	// The template version may have been updated if the
 	// controller added the deletion finalizer.
