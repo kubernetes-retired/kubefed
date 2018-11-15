@@ -17,13 +17,16 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -43,17 +46,44 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 
 	userAgent := "rsp-test"
 
-	typeConfigs := common.TypeConfigsOrDie(tl)
-
-	schedulingKind := schedulingtypes.RSPKind
+	schedulingTypes := make(map[string]schedulingtypes.SchedulerFactory)
+	for typeConfigName, schedulingType := range schedulingtypes.SchedulingTypes() {
+		if schedulingType.Kind != schedulingtypes.RSPKind {
+			continue
+		}
+		schedulingTypes[typeConfigName] = schedulingType.SchedulerFactory
+	}
+	if len(schedulingTypes) == 0 {
+		tl.Fatalf("No target types found for scheduling type %q", schedulingtypes.RSPKind)
+	}
 
 	var kubeConfig *restclient.Config
 	var fedClient fedclientset.Interface
 	var namespace string
 	var clusterNames []string
+	typeConfigs := make(map[string]typeconfig.Interface)
 
 	BeforeEach(func() {
+		// TODO(marun) Test setup is shared - init only once
 		clusterNames = f.ClusterNames(userAgent)
+		if len(typeConfigs) == 0 {
+			dynClient, err := client.New(f.KubeConfig(), client.Options{})
+			if err != nil {
+				tl.Fatalf("Error initializing dynamic client: %v", err)
+			}
+			for targetTypeName := range schedulingTypes {
+				typeConfig := &fedv1a1.FederatedTypeConfig{}
+				key := client.ObjectKey{
+					Namespace: f.FederationSystemNamespace(),
+					Name:      targetTypeName,
+				}
+				err = dynClient.Get(context.Background(), key, typeConfig)
+				if err != nil {
+					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
+				}
+				typeConfigs[targetTypeName] = typeConfig
+			}
+		}
 		if framework.TestContext.TestManagedFederation {
 			fixture := managed.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
 			f.RegisterFixture(fixture)
@@ -102,20 +132,19 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 		},
 	}
 
-	for i := range typeConfigs {
-		typeConfig := typeConfigs[i]
+	for key := range schedulingTypes {
+		typeConfigName := key
 
-		schedulingType := schedulingtypes.GetSchedulingType(typeConfig.GetObjectMeta().Name)
-		if schedulingType == nil || schedulingType.Kind != schedulingKind {
-			continue
-		}
-
-		// TODO(marun) Rename RSP field s/TargetKind/TemplateKind/
-		templateKind := typeConfig.GetTemplate().Kind
-
-		Describe(fmt.Sprintf("scheduling for %s", templateKind), func() {
+		Describe(fmt.Sprintf("scheduling for federated %s", typeConfigName), func() {
 			for testName, tc := range testCases {
 				It(fmt.Sprintf("should result in %s", testName), func() {
+
+					typeConfig, ok := typeConfigs[typeConfigName]
+					if !ok {
+						tl.Fatalf("Unable to find type config for %q", typeConfigName)
+					}
+					templateKind := typeConfig.GetTemplate().Kind
+
 					clusterCount := len(clusterNames)
 					if clusterCount != 2 {
 						framework.Skipf("Tests of ReplicaSchedulingPreferences requires 2 clusters but got: %d", clusterCount)
@@ -184,7 +213,17 @@ func createTestObjs(fedClient clientset.Interface, typeConfig typeconfig.Interfa
 	if err != nil {
 		return "", err
 	}
-	template, err := common.NewTestTemplate(typeConfig, namespace)
+	// TODO(marun) retrieve fixture centrally
+	typeConfigFixtures, err := common.TypeConfigFixtures()
+	if err != nil {
+		return "", fmt.Errorf("Error loading type config fixture: %v", err)
+	}
+	typeConfigName := typeConfig.GetObjectMeta().Name
+	fixture, ok := typeConfigFixtures[typeConfigName]
+	if !ok {
+		return "", fmt.Errorf("Unable to find fixture for %q", typeConfigName)
+	}
+	template, err := common.NewTestTemplate(typeConfig.GetTemplate(), namespace, fixture)
 	if err != nil {
 		return "", err
 	}

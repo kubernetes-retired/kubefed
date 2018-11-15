@@ -183,51 +183,20 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	// controller has started.
 
 	testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-		templateYaml := `
-apiVersion: %s/%s
-kind: %s
-metadata:
-  generateName: "test-crd-"
-spec:
-  template:
-    spec:
-      bar: baz
+		fixtureYAML := `
+kind: fixture
+template:
+  spec:
+    bar: baz
+overrides:
+  - bar: foo
 `
-
-		templateData := fmt.Sprintf(templateYaml, group, version, typeConfig.GetTemplate().Kind)
-		template = &unstructured.Unstructured{}
-		err = federate.DecodeYAML(strings.NewReader(templateData), template)
+		fixture := &unstructured.Unstructured{}
+		err = federate.DecodeYAML(strings.NewReader(fixtureYAML), fixture)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Error reading test template: %v", err)
+			return nil, nil, nil, fmt.Errorf("Error reading test fixture: %v", err)
 		}
-		if namespaced {
-			template.SetNamespace(namespace)
-		}
-
-		placement, err = common.GetPlacementTestObject(typeConfig, namespace, clusterNames)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Error reading test placement: %v", err)
-		}
-
-		overrideYaml := `
-apiVersion: %s/%s
-kind: %s
-metadata:
-  name: placeholder
-spec:
-  overrides:
-  - clusterName: placeholder
-    bar: foo
-`
-		overrideData := fmt.Sprintf(overrideYaml, group, version, typeConfig.GetOverride().Kind)
-		override = &unstructured.Unstructured{}
-		err = federate.DecodeYAML(strings.NewReader(overrideData), override)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Error reading test override: %v", err)
-		}
-		common.UpdateOverrideObject(typeConfig, namespace, clusterNames, override)
-
-		return template, placement, override, nil
+		return common.NewTestObjects(typeConfig, namespace, clusterNames, fixture)
 	}
 
 	validateCrud(f, tl, typeConfig, testObjectFunc)

@@ -1,9 +1,0 @@
-kind: FederatedReplicaSetOverride
-apiVersion: core.federation.k8s.io/v1alpha1
-metadata:
-  name: placeholder
-  namespace: placeholder
-spec:
-  overrides:
-    - clusterName: placeholder
-      replicas: 2

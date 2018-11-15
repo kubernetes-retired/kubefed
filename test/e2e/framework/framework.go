@@ -17,9 +17,11 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -30,6 +32,7 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -199,9 +202,28 @@ func (f *frameworkWrapper) SetUpNamespaceSyncControllerFixture() {
 	// The namespace controller is required to ensure namespaces
 	// are created as needed in member clusters in advance of
 	// propagation of other namespaced types.
-	namespaceTypeConfig := common.NamespaceTypeConfigOrDie(f.Logger())
+	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
 	fixture := f.framework().SetUpSyncControllerFixture(namespaceTypeConfig)
 	f.RegisterFixture(fixture)
+}
+
+// TODO(marun) Load this only once
+func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
+	tl := f.Logger()
+	dynClient, err := client.New(f.KubeConfig(), client.Options{})
+	if err != nil {
+		tl.Fatalf("Error initializing dynamic client: %v", err)
+	}
+	key := client.ObjectKey{
+		Namespace: f.FederationSystemNamespace(),
+		Name:      "namespaces",
+	}
+	typeConfig := &fedv1a1.FederatedTypeConfig{}
+	err = dynClient.Get(context.Background(), key, typeConfig)
+	if err != nil {
+		tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", key.Name, err)
+	}
+	return typeConfig
 }
 
 func createTestNamespace(client kubeclientset.Interface, baseName string) string {

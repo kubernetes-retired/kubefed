@@ -99,18 +99,16 @@ func NewClusterControllerFixture(config *util.ControllerConfig) *ControllerFixtu
 }
 
 // NewRSPControllerFixture initializes a new RSP controller fixture.
-func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig, typeConfigs []typeconfig.Interface) *ControllerFixture {
+func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig, typeConfigs map[string]typeconfig.Interface) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 
-	schedulingKind := schedulingtypes.RSPKind
 	var scheduler schedulingtypes.Scheduler
 	for _, typeConfig := range typeConfigs {
-		schedulingType := schedulingtypes.GetSchedulingType(typeConfig.GetObjectMeta().Name)
-		if schedulingType == nil || schedulingType.Kind != schedulingKind {
-			continue
-		}
+
+		typeConfigName := typeConfig.GetObjectMeta().Name
+		schedulingType := schedulingtypes.GetSchedulingType(typeConfigName)
 
 		if scheduler == nil {
 			var err error

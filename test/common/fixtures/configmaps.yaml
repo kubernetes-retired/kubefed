@@ -1,0 +1,7 @@
+kind: fixture
+template:
+  data:
+    foo: bar
+overrides:
+  - data:
+      foo: baz

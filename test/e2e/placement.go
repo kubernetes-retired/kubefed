@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -39,7 +40,11 @@ var _ = Describe("Placement", func() {
 
 	tl := framework.NewE2ELogger()
 
-	typeConfigs := common.TypeConfigsOrDie(tl)
+	// TODO(marun) only load this once for the test suite
+	typeConfigFixtures, err := common.TypeConfigFixtures()
+	if err != nil {
+		tl.Fatalf("Error loading type config fixture: %v", err)
+	}
 
 	// TODO(marun) Since this test only targets namespaced federation,
 	// concurrent test isolation against unmanaged fixture is
@@ -51,11 +56,27 @@ var _ = Describe("Placement", func() {
 			framework.Skipf("Considering namespace placement when determining resource placement is not supported for cluster-scoped federation.")
 		}
 
+		dynClient, err := client.New(f.KubeConfig(), client.Options{})
+		if err != nil {
+			tl.Fatalf("Error initializing dynamic client: %v", err)
+		}
+
 		// Select the first non-namespace type config
 		var selectedTypeConfig typeconfig.Interface
-		for _, typeConfig := range typeConfigs {
-			if typeConfig.GetTemplate().Kind != util.NamespaceKind {
+		var fixture *unstructured.Unstructured
+		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
+			if typeConfigName != util.NamespaceName {
+				typeConfig := &fedv1a1.FederatedTypeConfig{}
+				key := client.ObjectKey{Name: typeConfigName}
+				err = dynClient.Get(context.Background(), key, typeConfig)
+				if errors.IsNotFound(err) {
+					continue
+				}
+				if err != nil {
+					tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
+				}
 				selectedTypeConfig = typeConfig
+				fixture = typeConfigFixture
 				break
 			}
 		}
@@ -65,7 +86,7 @@ var _ = Describe("Placement", func() {
 
 		// Propagate a resource to member clusters
 		testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-			return common.NewTestObjects(selectedTypeConfig, namespace, clusterNames)
+			return common.NewTestObjects(selectedTypeConfig, namespace, clusterNames, fixture)
 		}
 		crudTester, desiredTemplate, desiredPlacement, desiredOverride := initCrudTest(f, tl, selectedTypeConfig, testObjectFunc)
 		template, _, _ := crudTester.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
