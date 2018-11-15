@@ -21,17 +21,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
 	"k8s.io/apiserver/pkg/util/logs"
-	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, etc
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
 )
 
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	err := kubefed2.NewKubeFed2Command(os.Stdout).Execute()
-	if err != nil {
+	if err := kubefed2.NewKubeFed2Command(os.Stdout).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

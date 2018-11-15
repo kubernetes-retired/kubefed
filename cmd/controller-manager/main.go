@@ -17,153 +17,22 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
-	// Import auth/gcp to connect to GKE clusters remotely
 	"k8s.io/apiserver/pkg/util/logs"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
-	"github.com/golang/glog"
-	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
-	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
-	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
-	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/features"
-	"github.com/kubernetes-sigs/federation-v2/pkg/version"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	flagutil "k8s.io/apiserver/pkg/util/flag"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
+	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app"
 )
-
-var featureGates map[string]bool
-var fedNamespace string
-var clusterNamespace string
-var limitedScope bool
-var clusterAvailableDelay time.Duration
-var clusterUnavailableDelay time.Duration
-var installCRDs = flag.Bool("install-crds", true, "install the CRDs used by the controller as part of startup")
 
 // Controller-manager main.
 func main() {
-	verFlag := flag.Bool("version", false, "Prints the version info of controller-manager")
-	flag.Var(flagutil.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
-		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
-	flag.StringVar(&fedNamespace, "federation-namespace", util.DefaultFederationSystemNamespace, "The namespace the federation control plane is deployed in.")
-	flag.StringVar(&clusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace, "The cluster registry namespace.")
-	flag.BoolVar(&limitedScope, "limited-scope", false, "Whether the federation namespace will be the only target for federation.")
-	flag.DurationVar(&clusterAvailableDelay, "cluster-available-delay", util.DefaultClusterAvailableDelay, "Time to wait before reconciling on a healthy cluster.")
-	flag.DurationVar(&clusterUnavailableDelay, "cluster-unavailable-delay", util.DefaultClusterUnavailableDelay, "Time to wait before giving up on an unhealthy cluster.")
-
-	flag.Parse()
-	if *verFlag {
-		fmt.Fprintf(os.Stdout, "Federation v2 controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
-		os.Exit(0)
-	}
-
-	// To help debugging, immediately log version.
-	glog.Infof("Version: %+v", version.Get())
-
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	err := utilfeature.DefaultFeatureGate.SetFromMap(featureGates)
-	if err != nil {
-		glog.Fatalf("Invalid Feature Gate: %v", err)
+	if err := app.NewControllerManagerCommand().Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
-
-	stopChan := signals.SetupSignalHandler()
-
-	kubeConfig := configlib.GetConfigOrDie()
-
-	if *installCRDs {
-		if err := install.NewInstaller(kubeConfig).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
-			glog.Fatalf("Could not create CRDs: %v", err)
-		}
-	}
-
-	glog.Infof("Federation namespace: %s", fedNamespace)
-	glog.Infof("Cluster registry namespace: %s", clusterNamespace)
-	glog.Infof("Cluster available delay: %v", clusterAvailableDelay)
-	glog.Infof("Cluster unavailable delay: %v", clusterUnavailableDelay)
-
-	targetNamespace := metav1.NamespaceAll
-	if limitedScope {
-		targetNamespace = fedNamespace
-		glog.Infof("Federation will be limited to the %q namespace", fedNamespace)
-	} else {
-		glog.Info("Federation will target all namespaces")
-	}
-
-	controllerConfig := &util.ControllerConfig{
-		FederationNamespaces: util.FederationNamespaces{
-			FederationNamespace: fedNamespace,
-			ClusterNamespace:    clusterNamespace,
-			TargetNamespace:     targetNamespace,
-		},
-		KubeConfig:              kubeConfig,
-		ClusterAvailableDelay:   clusterAvailableDelay,
-		ClusterUnavailableDelay: clusterUnavailableDelay,
-	}
-
-	// TODO(marun) Make the monitor period configurable
-	clusterMonitorPeriod := time.Second * 40
-	federatedcluster.StartClusterController(controllerConfig, stopChan, clusterMonitorPeriod)
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		schedulingmanager.StartSchedulerController(controllerConfig, stopChan)
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		err = servicedns.StartController(controllerConfig, stopChan)
-		if err != nil {
-			glog.Fatalf("Error starting dns controller: %v", err)
-		}
-
-		err = dnsendpoint.StartServiceDNSEndpointController(controllerConfig, stopChan)
-		if err != nil {
-			glog.Fatalf("Error starting dns endpoint controller: %v", err)
-		}
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
-		err = ingressdns.StartController(controllerConfig, stopChan)
-		if err != nil {
-			glog.Fatalf("Error starting ingress dns controller: %v", err)
-		}
-
-		err = dnsendpoint.StartIngressDNSEndpointController(controllerConfig, stopChan)
-		if err != nil {
-			glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
-		}
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		federatedtypeconfig.StartController(controllerConfig, stopChan)
-	}
-
-	// Blockforever
-	select {}
-}
-
-type InstallStrategy struct {
-	install.EmptyInstallStrategy
-	crds []*extensionsv1beta1.CustomResourceDefinition
-}
-
-func (s *InstallStrategy) GetCRDs() []*extensionsv1beta1.CustomResourceDefinition {
-	return s.crds
 }
