@@ -1739,6 +1739,12 @@ var (
 									Type:   "integer",
 									Format: "int64",
 								},
+								"propagationController": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"statusController": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
 							},
 						},
 					},
