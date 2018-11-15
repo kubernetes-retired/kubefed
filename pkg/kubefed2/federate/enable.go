@@ -311,15 +311,21 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 			Namespaced:         apiResource.Namespaced,
 			ComparisonField:    spec.ComparisonField,
 			PropagationEnabled: true,
-			Template: fedv1a1.APIResource{
-				Group:   spec.PrimitiveGroup,
-				Version: spec.PrimitiveVersion,
-				Kind:    fmt.Sprintf("Federated%s", kind),
-			},
 			Placement: fedv1a1.APIResource{
 				Kind: fmt.Sprintf("Federated%sPlacement", kind),
 			},
 		},
+	}
+	if typeConfig.Name == ctlutil.NamespaceName {
+		typeConfig.Spec.Template = typeConfig.Spec.Target
+		typeConfig.Spec.Placement.Group = spec.PrimitiveGroup
+		typeConfig.Spec.Placement.Version = spec.PrimitiveVersion
+	} else {
+		typeConfig.Spec.Template = fedv1a1.APIResource{
+			Group:   spec.PrimitiveGroup,
+			Version: spec.PrimitiveVersion,
+			Kind:    fmt.Sprintf("Federated%s", kind),
+		}
 	}
 	if len(spec.OverridePaths) > 0 {
 		typeConfig.Spec.Override = &fedv1a1.APIResource{
