@@ -206,6 +206,12 @@ Create all the test resources by running:
 ```bash
 kubectl apply -R -f example/sample1
 ```
+**NOTE:** If you get the following error while creating a test resource i.e.
+```
+unable to recognize "example/sample1/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1", 
+
+```
+then it indicates that a given type may need to be federated by `kubefed2 federate enable <type>`
 
 ### Check Status of Resources
 
