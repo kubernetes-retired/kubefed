@@ -116,15 +116,9 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	apiResource, err := LookupAPIResource(hostConfig, j.targetName)
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
-
 	typeConfigName := ctlutil.QualifiedName{
 		Namespace: j.FederationNamespace,
-		Name:      groupQualifiedName(*apiResource),
+		Name:      j.targetName,
 	}
 
 	err = DisableFederation(hostConfig, typeConfigName, j.delete, j.DryRun)
