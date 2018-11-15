@@ -107,6 +107,8 @@ func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, c
 	if typeConfig.GetNamespaced() || typeConfig.GetTemplate().Kind == util.NamespaceKind {
 		placement.SetNamespace(namespace)
 	}
+	placement.SetName("")
+	placement.SetGenerateName("test-crud-")
 	placementAPIResource := typeConfig.GetPlacement()
 	placement.SetKind(placementAPIResource.Kind)
 	placement.SetAPIVersion(fmt.Sprintf("%s/%s", placementAPIResource.Group, placementAPIResource.Version))
