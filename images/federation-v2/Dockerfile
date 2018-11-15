@@ -15,7 +15,11 @@
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
+
 WORKDIR /root/
-COPY /controller-manager .
+COPY /hyperfed .
+RUN ln -s hyperfed controller-manager \
+ && ln -s hyperfed kubefed2
+
 ENTRYPOINT ["./controller-manager"]
 CMD ["--install-crds=false"]
