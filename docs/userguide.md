@@ -121,7 +121,7 @@ supported, along with the service and statefulset for the
 federation-controller-manager.
 
 ```bash
-kubectl apply --validate=false -f hack/install-latest.yaml
+kubectl -n federation-system apply --validate=false -f hack/install-latest.yaml
 ```
 
 **NOTE:** The validation fails for harmless reasons on kube >= 1.11 so ignore validation
