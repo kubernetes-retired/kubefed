@@ -40,8 +40,8 @@ import (
 	corev1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
-	testcommon "github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -228,8 +228,8 @@ var _ = Describe("VersionManager", func() {
 				// sync controllers add a deletion finalizer to the
 				// created template that would complicate validating
 				// garbage collection.
-				var err error
-				template, err = testcommon.ReaderToObj(strings.NewReader(adapter.TemplateYAML()))
+				template = &unstructured.Unstructured{}
+				err := federate.DecodeYAML(strings.NewReader(adapter.TemplateYAML()), template)
 				if err != nil {
 					tl.Fatalf("Failed to parse template yaml: %v", err)
 				}
