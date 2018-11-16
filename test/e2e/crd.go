@@ -88,7 +88,18 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Name:       fedv1a1.PluralName(targetCrdKind),
 		Namespaced: namespaced,
 	}
-	targetCrd := federate.CrdForAPIResource(targetAPIResource)
+
+	overridePaths := []string{"spec.bar"}
+	validationSchema := federate.ValidationSchema(apiextv1b1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextv1b1.JSONSchemaProps{
+			"bar": {
+				Type: "string",
+			},
+		},
+	})
+
+	targetCrd := federate.CrdForAPIResource(targetAPIResource, validationSchema)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 
@@ -121,14 +132,17 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		tl.Fatalf("Timed out waiting for target type %q to be published as an available resource", targetName)
 	}
 
-	overridePaths := []string{"spec.bar"}
-	typeConfig, err := federate.EnableFederation(
-		nil, hostConfig, f.FederationSystemNamespace(), targetAPIResource.Name,
-		targetAPIResource.Group, targetAPIResource.Version,
-		apicommon.ResourceVersionField, overridePaths, false, false,
-	)
+	resources, err := federate.GetResources(hostConfig, targetAPIResource.Name,
+		f.FederationSystemNamespace(), targetAPIResource.Group,
+		targetAPIResource.Version, apicommon.ResourceVersionField, overridePaths)
 	if err != nil {
-		tl.Fatalf("Error enabling federation of target type %q: %v", targetAPIResource.Kind, err)
+		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
+	}
+	typeConfig := resources.TypeConfig
+
+	err = federate.CreateResources(hostConfig, resources)
+	if err != nil {
+		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
 	framework.AddCleanupAction(func() {
 		delete := true

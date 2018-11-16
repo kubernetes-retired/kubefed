@@ -159,9 +159,30 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	_, err = EnableFederation(cmdOut, hostConfig, j.FederationNamespace,
-		j.targetName, j.primitiveGroup, j.primitiveVersion, j.comparisonField,
-		j.overridePaths, j.outputYAML, j.DryRun)
+	resources, err := GetResources(hostConfig, j.targetName, j.FederationNamespace,
+		j.primitiveGroup, j.primitiveVersion, j.comparisonField, j.overridePaths)
+	if err != nil {
+		return err
+	}
+
+	if j.outputYAML {
+		concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
+		objects := []pkgruntime.Object{concreteTypeConfig}
+		for _, crd := range resources.CRDs {
+			objects = append(objects, crd)
+		}
+		err := writeObjectsToYAML(objects, cmdOut)
+		if err != nil {
+			return fmt.Errorf("Failed to write objects to YAML: %v", err)
+		}
+	}
+
+	if j.DryRun {
+		// Avoid mutating the API
+		return nil
+	}
+
+	err = CreateResources(hostConfig, resources)
 	if err != nil {
 		return err
 	}
@@ -169,12 +190,14 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	return nil
 }
 
-// TODO(marun) Allow updates to the configuration for a type that has
-// already been enabled for federation.  This would likely involve
-// updating the version of the target type and the validation of the schema.
-func EnableFederation(cmdOut io.Writer, config *rest.Config, federationNamespace, key, primitiveGroup,
+type typeResources struct {
+	TypeConfig typeconfig.Interface
+	CRDs       []*apiextv1b1.CustomResourceDefinition
+}
+
+func GetResources(config *rest.Config, key, namespace, primitiveGroup,
 	primitiveVersion string, comparisonField apicommon.VersionComparisonField,
-	overridePaths []string, outputYAML, dryRun bool) (typeconfig.Interface, error) {
+	overridePaths []string) (*typeResources, error) {
 
 	apiResource, err := LookupAPIResource(config, key)
 	if err != nil {
@@ -182,53 +205,57 @@ func EnableFederation(cmdOut io.Writer, config *rest.Config, federationNamespace
 	}
 	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
 
-	typeConfig := typeConfigForTarget(*apiResource, comparisonField, overridePaths, primitiveGroup, primitiveVersion)
-	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
+	typeConfig := typeConfigForTarget(*apiResource, namespace, primitiveGroup,
+		primitiveVersion, comparisonField, overridePaths)
 
-	// TODO(marun) Retrieve the validation schema of the target and
-	// use it in constructing the schema for the template.
-	crds := primitiveCRDs(typeConfig)
-
-	if outputYAML {
-		objects := []pkgruntime.Object{concreteTypeConfig}
-		for _, crd := range crds {
-			objects = append(objects, crd)
-		}
-		err := writeObjectsToYAML(objects, cmdOut)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to write objects to YAML: %v", err)
-		}
-	}
-
-	if dryRun {
-		// Avoid mutating the API
-		return nil, nil
-	}
-
-	crdClient, err := apiextv1b1client.NewForConfig(config)
+	accessor, err := newSchemaAccessor(config, *apiResource)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create crd clientset: %v", err)
+		return nil, fmt.Errorf("Error initializing validation schema accessor: %v", err)
 	}
-	// TODO(marun) Retrieve the validation schema of the target and
-	// use it in constructing the schema for the template.
-	err = createPrimitives(crdClient, crds)
+	crds, err := primitiveCRDs(typeConfig, accessor)
 	if err != nil {
 		return nil, err
 	}
 
-	fedClient, err := util.FedClientset(config)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get federation clientset: %v", err)
-	}
-	createdTypeConfig, err := fedClient.CoreV1alpha1().FederatedTypeConfigs(federationNamespace).Create(concreteTypeConfig)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
-	}
-
-	return createdTypeConfig, nil
+	return &typeResources{
+		TypeConfig: typeConfig,
+		CRDs:       crds,
+	}, nil
 }
 
-func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicommon.VersionComparisonField, overridePaths []string, primitiveGroup, primitiveVersion string) typeconfig.Interface {
+// TODO(marun) Allow updates to the configuration for a type that has
+// already been enabled for federation.  This would likely involve
+// updating the version of the target type and the validation of the schema.
+func CreateResources(config *rest.Config, resources *typeResources) error {
+	crdClient, err := apiextv1b1client.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("Failed to create crd clientset: %v", err)
+	}
+	for _, crd := range resources.CRDs {
+		_, err := crdClient.CustomResourceDefinitions().Create(crd)
+		if err != nil {
+			return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
+		}
+	}
+
+	fedClient, err := util.FedClientset(config)
+	if err != nil {
+		return fmt.Errorf("Failed to get federation clientset: %v", err)
+	}
+	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
+	_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(concreteTypeConfig.Namespace).Create(concreteTypeConfig)
+	if err != nil {
+		return fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
+	}
+
+	return nil
+}
+
+func typeConfigForTarget(apiResource metav1.APIResource, namespace,
+	primitiveGroup, primitiveVersion string,
+	comparisonField apicommon.VersionComparisonField,
+	overridePaths []string) typeconfig.Interface {
+
 	kind := apiResource.Kind
 	typeConfig := &fedv1a1.FederatedTypeConfig{
 		// Explicitly including TypeMeta will ensure it will be
@@ -238,7 +265,8 @@ func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicomm
 			APIVersion: "core.federation.k8s.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: groupQualifiedName(apiResource),
+			Name:      groupQualifiedName(apiResource),
+			Namespace: namespace,
 		},
 		Spec: fedv1a1.FederatedTypeConfigSpec{
 			Target: fedv1a1.APIResource{
@@ -273,28 +301,27 @@ func typeConfigForTarget(apiResource metav1.APIResource, comparisonField apicomm
 	return typeConfig
 }
 
-func primitiveCRDs(typeConfig typeconfig.Interface) []*apiextv1b1.CustomResourceDefinition {
-	crds := []*apiextv1b1.CustomResourceDefinition{
-		CrdForAPIResource(typeConfig.GetTemplate()),
-		CrdForAPIResource(typeConfig.GetPlacement()),
+func primitiveCRDs(typeConfig typeconfig.Interface, accessor schemaAccessor) ([]*apiextv1b1.CustomResourceDefinition, error) {
+	crds := []*apiextv1b1.CustomResourceDefinition{}
+
+	templateSchema, err := templateValidationSchema(accessor)
+	if err != nil {
+		return nil, err
 	}
+	crds = append(crds, CrdForAPIResource(typeConfig.GetTemplate(), templateSchema))
+
+	placementSchema := placementValidationSchema()
+	crds = append(crds, CrdForAPIResource(typeConfig.GetPlacement(), placementSchema))
+
 	overrideAPIResource := typeConfig.GetOverride()
 	if overrideAPIResource != nil {
-		crds = append(crds, CrdForAPIResource(*overrideAPIResource))
-	}
-	return crds
-}
-
-func createPrimitives(client *apiextv1b1client.ApiextensionsV1beta1Client, crds []*apiextv1b1.CustomResourceDefinition) error {
-	for _, crd := range crds {
-		_, err := client.CustomResourceDefinitions().Create(crd)
-		// TODO(marun) Ensure the validation schema can be updated to the latest target type
-		if err == nil {
-			continue
+		overrideSchema, err := overrideValidationSchema(accessor, typeConfig.GetOverridePaths())
+		if err != nil {
+			return nil, err
 		}
-		return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
+		crds = append(crds, CrdForAPIResource(*overrideAPIResource, overrideSchema))
 	}
-	return nil
+	return crds, nil
 }
 
 func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
