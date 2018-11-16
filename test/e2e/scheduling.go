@@ -64,9 +64,9 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 	typeConfigs := make(map[string]typeconfig.Interface)
 
 	BeforeEach(func() {
-		// TODO(marun) Test setup is shared - init only once
-		clusterNames = f.ClusterNames(userAgent)
-		if len(typeConfigs) == 0 {
+		// The following setup is shared across tests but must be
+		// performed at test time rather than at test collection.
+		if kubeConfig == nil {
 			dynClient, err := client.New(f.KubeConfig(), client.Options{})
 			if err != nil {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
@@ -83,17 +83,16 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 				}
 				typeConfigs[targetTypeName] = typeConfig
 			}
+
+			clusterNames = f.ClusterNames(userAgent)
+			fedClient = f.FedClient(userAgent)
+			kubeConfig = f.KubeConfig()
 		}
-		if framework.TestContext.TestManagedFederation {
-			fixture := managed.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
-			f.RegisterFixture(fixture)
-		} else if framework.TestContext.InMemoryControllers {
+		namespace = f.TestNamespaceName()
+		if framework.TestContext.RunControllers() {
 			fixture := managed.NewSchedulerControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
-		kubeConfig = f.KubeConfig()
-		fedClient = f.FedClient(userAgent)
-		namespace = f.TestNamespaceName()
 	})
 
 	testCases := map[string]struct {

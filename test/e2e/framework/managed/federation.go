@@ -18,6 +18,10 @@ package managed
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
@@ -26,6 +30,7 @@ import (
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -313,6 +318,10 @@ func (f *FederationFixture) installCrds(tl common.TestLogger) {
 		tl.Fatalf("Could not create Federation CRDs: %v", err)
 	}
 
+	tl.Logf("Federating core types")
+	primitiveCRDs := federateCoreTypes(tl, config, f.SystemNamespace)
+	crds = append(crds, primitiveCRDs...)
+
 	crds = append(crds, inject.Injector.CRDs...)
 	for _, crd := range inject.Injector.CRDs {
 		waitForCrd(tl, config, crd)
@@ -357,4 +366,53 @@ func waitForCrd(tl common.TestLogger, config *rest.Config, crd *apiextv1b1.Custo
 	if err != nil {
 		tl.Fatalf("Error waiting for crd %q to become established: %v", apiResource.Kind, err)
 	}
+}
+
+func federateCoreTypes(tl common.TestLogger, config *rest.Config, namespace string) []*apiextv1b1.CustomResourceDefinition {
+	crds := []*apiextv1b1.CustomResourceDefinition{}
+	for _, federateDirective := range loadFederateDirectives(tl) {
+		resources, err := federate.GetResources(config, federateDirective)
+		if err != nil {
+			tl.Fatalf("Error retrieving resource definitions for FederateDirective %q: %v", federateDirective.Name, err)
+		}
+		err = federate.CreateResources(nil, config, resources, namespace)
+		if err != nil {
+			tl.Fatalf("Error creating resources for FederateDirective %q: %v", federateDirective.Name, err)
+		}
+		crds = append(crds, resources.CRDs...)
+	}
+	return crds
+}
+func loadFederateDirectives(tl common.TestLogger) []*federate.FederateDirective {
+	path := federateDirectivesPath(tl)
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		tl.Fatalf("Error reading FederateDirective resources from path %q: %v", path, err)
+	}
+	federateDirectives := []*federate.FederateDirective{}
+	suffix := ".yaml"
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), suffix) {
+			continue
+		}
+		filename := filepath.Join(path, file.Name())
+		obj := federate.NewFederateDirective()
+		err := federate.DecodeYAMLFromFile(filename, obj)
+		if err != nil {
+			tl.Fatalf("Error loading FederateDirective from file %q: %v", filename, err)
+		}
+		federateDirectives = append(federateDirectives, obj)
+	}
+	return federateDirectives
+}
+
+func federateDirectivesPath(tl common.TestLogger) string {
+	// Get the directory of the current executable
+	_, filename, _, _ := runtime.Caller(0)
+	managedPath := filepath.Dir(filename)
+	path, err := filepath.Abs(fmt.Sprintf("%s/../../../../config/federatedirectives", managedPath))
+	if err != nil {
+		tl.Fatalf("Error discovering the path to FederatedType resources: %v", err)
+	}
+	return path
 }

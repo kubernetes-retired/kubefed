@@ -67,7 +67,7 @@ var _ = Describe("Placement", func() {
 		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
 			if typeConfigName != util.NamespaceName {
 				typeConfig := &fedv1a1.FederatedTypeConfig{}
-				key := client.ObjectKey{Name: typeConfigName}
+				key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
 				err = dynClient.Get(context.Background(), key, typeConfig)
 				if errors.IsNotFound(err) {
 					continue
@@ -105,7 +105,7 @@ var _ = Describe("Placement", func() {
 		namespacePlacement := &unstructured.Unstructured{}
 		// TODO(marun) Source this from the ns type config
 		namespacePlacement.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "primitives.federtion.k8s.io",
+			Group:   "primitives.federation.k8s.io",
 			Kind:    "FederatedNamespacePlacement",
 			Version: "v1alpha1",
 		})

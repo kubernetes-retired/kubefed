@@ -56,9 +56,9 @@ if [[ ! "${NAMESPACED}" ]]; then
   ${KCD} namespace ${PUBLIC_NS}
 fi
 
-# Disable available types
-for filename in ./config/federatedtypes/*.yaml; do
-  ${KCD} -f "${filename}" -n ${NS}
+# Disable federation of all types
+for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
+  ./bin/kubefed2 federate disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
 done
 
 # Remove federation CRDs, namespace, RBAC and deployment resources.

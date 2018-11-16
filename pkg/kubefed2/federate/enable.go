@@ -131,12 +131,8 @@ func NewCmdFederateEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Comman
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *enableType) Complete(args []string) error {
-	j.federateDirective = &FederateDirective{}
+	j.federateDirective = NewFederateDirective()
 	fd := j.federateDirective
-
-	fd.Spec.ComparisonField = defaultComparisonField
-	fd.Spec.PrimitiveGroup = defaultPrimitiveGroup
-	fd.Spec.PrimitiveVersion = defaultPrimitiveVersion
 
 	if j.output == "yaml" {
 		j.outputYAML = true
