@@ -20,7 +20,7 @@ install:
   -
 
 script:
-  - bash -x ./scripts/pre-commit.sh
+  - CONFIGURE_INSECURE_REGISTRY=y bash -x ./scripts/pre-commit.sh
   - vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
 
 after_success:

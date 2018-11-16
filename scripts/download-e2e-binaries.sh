@@ -21,11 +21,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# Use DEBUG=1 ./scripts/download-e2e-binaries.sh to get debug output
-[[ -z "${DEBUG:-""}" ]] || {
-  set -x
-}
-
 logEnd() {
   local msg='done.'
   [ "$1" -eq 0 ] || msg='Error downloading assets'
