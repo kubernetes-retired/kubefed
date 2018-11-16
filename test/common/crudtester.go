@@ -102,19 +102,24 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlaceme
 }
 
 func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (*unstructured.Unstructured, *unstructured.Unstructured, *unstructured.Unstructured) {
-	template := c.createFedResource(c.typeConfig.GetTemplate(), desiredTemplate)
+	// Create placement and overrides first to ensure the sync
+	// controller will propagate the complete object the first time it
+	// sees the template.
+
+	placement := c.createFedResource(c.typeConfig.GetPlacement(), desiredPlacement)
 
 	// Test objects may use GenerateName.  Use the name of the
-	// template resource for other resources.
-	name := template.GetName()
-	desiredPlacement.SetName(name)
-	placement := c.createFedResource(c.typeConfig.GetPlacement(), desiredPlacement)
+	// placement resource for the other resources.
+	name := placement.GetName()
 
 	var override *unstructured.Unstructured
 	if overrideAPIResource := c.typeConfig.GetOverride(); overrideAPIResource != nil {
 		desiredOverride.SetName(name)
 		override = c.createFedResource(*overrideAPIResource, desiredOverride)
 	}
+
+	desiredTemplate.SetName(name)
+	template := c.createFedResource(c.typeConfig.GetTemplate(), desiredTemplate)
 
 	return template, placement, override
 }
@@ -495,6 +500,10 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 		version = adapter.GetStatus(versionObj)
 		return true, nil
 	})
+	if err != nil {
+		c.tl.Errorf("Timed out waiting for %s %q", adapter.TypeName(), versionName)
+		return "", false
+	}
 
 	// The template version may have been updated if the
 	// controller added the deletion finalizer.
