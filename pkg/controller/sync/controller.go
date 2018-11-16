@@ -180,7 +180,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		namespacePlacementAPIResource := metav1.APIResource{
 			Kind:       "FederatedNamespacePlacement",
 			Name:       "federatednamespaceplacements",
-			Group:      "core.federation.k8s.io",
+			Group:      "primitives.federation.k8s.io",
 			Version:    "v1alpha1",
 			Namespaced: true,
 		}
