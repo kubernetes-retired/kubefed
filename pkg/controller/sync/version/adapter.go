@@ -45,7 +45,6 @@ type VersionAdapter interface {
 func NewVersionAdapter(client fedclientset.Interface, namespaced bool) VersionAdapter {
 	if namespaced {
 		return newNamespacedVersionAdapter(client)
-	} else {
-		return newClusterVersionAdapter(client)
 	}
+	return newClusterVersionAdapter(client)
 }
