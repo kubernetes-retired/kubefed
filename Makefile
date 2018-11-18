@@ -45,7 +45,7 @@ LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/versi
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitTreeState=$(GIT_TREESTATE) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.buildDate=$(BUILDDATE)"
-BUILDCMD_CONTROLLER = go build -o $(CONTROLLER_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
+BUILDCMD_CONTROLLER = CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(CONTROLLER_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 BUILDCMD_KUBEFED2 = go build -o $(KUBEFED2_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
 BUILD_CONTROLLER = $(BUILDCMD_CONTROLLER) cmd/controller-manager/main.go

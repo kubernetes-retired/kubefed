@@ -13,11 +13,9 @@
 # limitations under the License.
 
 
-FROM ubuntu:latest
-RUN apt-get update
-RUN apt-get install -y ca-certificates
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY /controller-manager .
 ENTRYPOINT ["./controller-manager"]
 CMD ["--install-crds=false"]
-

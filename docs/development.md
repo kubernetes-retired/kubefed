@@ -262,7 +262,7 @@ Run the following commands using the committed `images/federation-v2/Dockerfile`
 and push a container image to use for deployment:
 
 ```bash
-go build -o images/federation-v2/controller-manager cmd/controller-manager/main.go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/federation-v2/controller-manager cmd/controller-manager/main.go
 docker build images/federation-v2 -t <containerregistry>/<username>/federation-v2:test
 docker push <containerregistry>/<username>/federation-v2:test
 ```
