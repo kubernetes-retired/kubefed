@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -52,6 +53,8 @@ type SchedulerController struct {
 
 	config   *util.ControllerConfig
 	stopChan <-chan struct{}
+
+	runningPlugins sets.String
 }
 
 func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) {
@@ -69,9 +72,10 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 
 func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface, stopChan <-chan struct{}) *SchedulerController {
 	c := &SchedulerController{
-		scheduler: make(map[string]schedulingtypes.Scheduler),
-		config:    config,
-		stopChan:  stopChan,
+		scheduler:      make(map[string]schedulingtypes.Scheduler),
+		config:         config,
+		stopChan:       stopChan,
+		runningPlugins: sets.String{},
 	}
 
 	fedNamespace := config.FederationNamespace
@@ -114,6 +118,11 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 	key := qualifiedName.String()
 
 	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)
+
+	if c.runningPlugins.Has(qualifiedName.Name) {
+		// Scheduler and plugin are already running
+		return util.StatusAllOK
+	}
 
 	cachedObj, exist, err := c.store.GetByKey(key)
 	if err != nil {
@@ -160,6 +169,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 		runtime.HandleError(fmt.Errorf("Error starting plugin for %q : %v", templateKind, err))
 		return util.StatusError
 	}
+	c.runningPlugins.Insert(qualifiedName.Name)
 
 	return util.StatusAllOK
 }
