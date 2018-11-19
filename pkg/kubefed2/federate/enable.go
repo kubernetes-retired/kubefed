@@ -38,6 +38,7 @@ import (
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
@@ -182,7 +183,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	err = CreateResources(hostConfig, resources)
+	err = CreateResources(cmdOut, hostConfig, resources)
 	if err != nil {
 		return err
 	}
@@ -226,7 +227,13 @@ func GetResources(config *rest.Config, key, namespace, primitiveGroup,
 // TODO(marun) Allow updates to the configuration for a type that has
 // already been enabled for federation.  This would likely involve
 // updating the version of the target type and the validation of the schema.
-func CreateResources(config *rest.Config, resources *typeResources) error {
+func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources) error {
+	write := func(data string) {
+		if cmdOut != nil {
+			cmdOut.Write([]byte(data))
+		}
+	}
+
 	crdClient, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("Failed to create crd clientset: %v", err)
@@ -236,6 +243,7 @@ func CreateResources(config *rest.Config, resources *typeResources) error {
 		if err != nil {
 			return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
 		}
+		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", crd.Name))
 	}
 
 	fedClient, err := util.FedClientset(config)
@@ -247,6 +255,7 @@ func CreateResources(config *rest.Config, resources *typeResources) error {
 	if err != nil {
 		return fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
 	}
+	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s created in namespace %s\n", concreteTypeConfig.Name, concreteTypeConfig.Namespace))
 
 	return nil
 }
@@ -304,11 +313,14 @@ func typeConfigForTarget(apiResource metav1.APIResource, namespace,
 func primitiveCRDs(typeConfig typeconfig.Interface, accessor schemaAccessor) ([]*apiextv1b1.CustomResourceDefinition, error) {
 	crds := []*apiextv1b1.CustomResourceDefinition{}
 
-	templateSchema, err := templateValidationSchema(accessor)
-	if err != nil {
-		return nil, err
+	// Namespaces do not require a template
+	if typeConfig.GetTarget().Kind != ctlutil.NamespaceKind {
+		templateSchema, err := templateValidationSchema(accessor)
+		if err != nil {
+			return nil, err
+		}
+		crds = append(crds, CrdForAPIResource(typeConfig.GetTemplate(), templateSchema))
 	}
-	crds = append(crds, CrdForAPIResource(typeConfig.GetTemplate(), templateSchema))
 
 	placementSchema := placementValidationSchema()
 	crds = append(crds, CrdForAPIResource(typeConfig.GetPlacement(), placementSchema))
