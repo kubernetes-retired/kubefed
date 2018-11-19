@@ -38,6 +38,7 @@ endif
 BUILDMNT = /go/src/$(GOTARGET)
 BUILD_IMAGE ?= golang:1.10.3
 
+HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
 KUBEFED2_TARGET = bin/kubefed2
 
@@ -45,9 +46,11 @@ LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/versi
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitTreeState=$(GIT_TREESTATE) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.buildDate=$(BUILDDATE)"
+BUILDCMD_HYPERFED = CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(HYPERFED_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 BUILDCMD_CONTROLLER = CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(CONTROLLER_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 BUILDCMD_KUBEFED2 = go build -o $(KUBEFED2_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
+BUILD_HYPERFED = $(BUILDCMD_HYPERFED) cmd/hyperfed/main.go
 BUILD_CONTROLLER = $(BUILDCMD_CONTROLLER) cmd/controller-manager/main.go
 BUILD_KUBEFED2 = $(BUILDCMD_KUBEFED2) cmd/kubefed2/kubefed2.go
 
@@ -62,15 +65,15 @@ FMT = go fmt $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean controller kubefed2 test local-test vet fmt
+.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt
 
-all: container controller kubefed2
+all: container hyperfed controller kubefed2
 
 local-test:
 	$(TEST)
 
 # Unit tests
-test: controller kubefed2 vet
+test: hyperfed controller kubefed2 vet
 	$(DOCKER_BUILD) '$(TEST)'
 
 vet:
@@ -79,14 +82,17 @@ vet:
 fmt:
 	$(FMT)
 
-container: controller
-	cp -f bin/controller-manager images/federation-v2/
+container: hyperfed
+	cp -f bin/hyperfed images/federation-v2/
 	$(DOCKER) build images/federation-v2 \
 		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION)
-	rm -f images/federation-v2/controller-manager
+	rm -f images/federation-v2/hyperfed
 
 $(BIN_DIR):
 	mkdir $(BIN_DIR)
+
+hyperfed: $(BIN_DIR)
+	$(DOCKER_BUILD) '$(BUILD_HYPERFED)'
 
 controller: $(BIN_DIR)
 	$(DOCKER_BUILD) '$(BUILD_CONTROLLER)'
@@ -105,5 +111,5 @@ push:
 	fi
 
 clean:
-	rm -f $(KUBEFED2_TARGET) $(CONTROLLER_TARGET)
+	rm -f $(KUBEFED2_TARGET) $(CONTROLLER_TARGET) $(HYPERFED_TARGET)
 	$(DOCKER) rmi $(REGISTRY)/$(TARGET):$(GIT_VERSION) || true

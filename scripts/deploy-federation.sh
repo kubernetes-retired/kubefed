@@ -101,7 +101,7 @@ fi
 if [[ ! "${USE_LATEST}" ]]; then
   base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
   dockerfile_dir="${base_dir}/images/federation-v2"
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "${dockerfile_dir}"/controller-manager "${base_dir}"/cmd/controller-manager/main.go
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "${dockerfile_dir}"/hyperfed "${base_dir}"/cmd/hyperfed/main.go
   docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
   ${DOCKER_PUSH_CMD}
 fi
