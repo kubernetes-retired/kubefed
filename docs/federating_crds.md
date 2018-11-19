@@ -209,7 +209,7 @@ spec:
 Deploy it to the federated host cluster
 
 ```shell
-$ kubectl -f ./example/crd/federatedBar.yaml --context=cluster1
+$ kubectl apply -f ./example/crd/federatedBar.yaml --context=cluster1
 federatedtypeconfig.core.federation.k8s.io/bars.example.io created
 ``` 
 
