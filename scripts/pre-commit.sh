@@ -33,6 +33,7 @@ MANAGED_E2E_TEST_CMD="go test -v ./test/e2e -args -ginkgo.v -single-call-timeout
 UNMANAGED_E2E_TEST_CMD="${MANAGED_E2E_TEST_CMD} -kubeconfig=${HOME}/.kube/config"
 
 function build-binaries() {
+  ${MAKE_CMD} hyperfed
   ${MAKE_CMD} controller
   ${MAKE_CMD} kubefed2
 }
