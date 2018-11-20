@@ -36,11 +36,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var SchedulingRegistry = map[string]string{
-	"FederatedDeployment": schedulingtypes.RSPKind,
-	"FederatedReplicaSet": schedulingtypes.RSPKind,
-}
-
 type SchedulerController struct {
 	// Store for the FederatedTypeConfig objects
 	store cache.Store
@@ -119,6 +114,11 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)
 
+	schedulingType := schedulingtypes.GetSchedulingType(qualifiedName.Name)
+	if schedulingType == nil {
+		// No scheduler supported for this resource
+		return util.StatusAllOK
+	}
 	if c.runningPlugins.Has(qualifiedName.Name) {
 		// Scheduler and plugin are already running
 		return util.StatusAllOK
@@ -142,29 +142,23 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 	// set name and group for the type config target
 	corev1a1.SetFederatedTypeConfigDefaults(typeConfig)
-	apiResource := typeConfig.GetTarget()
-	templateKind := typeConfig.GetTemplate().Kind
-
-	kind, ok := SchedulingRegistry[templateKind]
-	if !ok {
-		// No any scheduler supported for this resource
-		return util.StatusAllOK
-	}
-	schedulingType, _ := schedulingtypes.SchedulingTypes()[kind]
 
 	// Scheduling preference controller is started on demand
-	_, ok = c.scheduler[kind]
+	schedulingKind := schedulingType.Kind
+	scheduler, ok := c.scheduler[schedulingKind]
 	if !ok {
-		scheduler, err := schedulingpreference.StartSchedulingPreferenceController(c.config, c.stopChan, kind, schedulingType.SchedulerFactory)
+		var err error
+		scheduler, err = schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType, c.stopChan)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Error starting schedulingpreference controller for %q : %v", kind, err))
+			runtime.HandleError(fmt.Errorf("Error starting schedulingpreference controller for %q : %v", schedulingKind, err))
 			return util.StatusError
 		}
-		c.scheduler[kind] = scheduler
+		c.scheduler[schedulingKind] = scheduler
 	}
 
-	glog.Infof("Start plugin with kind %s for scheduling type %s", templateKind, kind)
-	err = c.scheduler[kind].StartPlugin(templateKind, &apiResource, c.stopChan)
+	templateKind := typeConfig.GetTemplate().Kind
+	glog.Infof("Start plugin with kind %s for scheduling type %s", templateKind, schedulingKind)
+	err = scheduler.StartPlugin(typeConfig, c.stopChan)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Error starting plugin for %q : %v", templateKind, err))
 		return util.StatusError

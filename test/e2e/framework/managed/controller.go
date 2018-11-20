@@ -103,27 +103,38 @@ func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	kind := schedulingtypes.RSPKind
-	scheduler, err := schedulingpreference.StartSchedulingPreferenceController(config, f.stopChan, kind, schedulingtypes.GetSchedulerFactory(kind))
-	if err != nil {
-		tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
-	}
 
+	schedulingKind := schedulingtypes.RSPKind
+	var scheduler schedulingtypes.Scheduler
 	for _, typeConfig := range typeConfigs {
-		apiResource := typeConfig.GetTarget()
-		resourceKind := typeConfig.GetTemplate().Kind
-
-		schedulingKind, ok := schedulingmanager.SchedulingRegistry[resourceKind]
-		if !ok || schedulingKind != kind {
+		schedulingType := schedulingtypes.GetSchedulingType(typeConfig.GetObjectMeta().Name)
+		if schedulingType == nil || schedulingType.Kind != schedulingKind {
 			continue
 		}
 
-		err := scheduler.StartPlugin(resourceKind, &apiResource, f.stopChan)
+		if scheduler == nil {
+			var err error
+			scheduler, err = schedulingpreference.StartSchedulingPreferenceController(config, *schedulingType, f.stopChan)
+			if err != nil {
+				tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
+			}
+		}
+
+		err := scheduler.StartPlugin(typeConfig, f.stopChan)
 		if err != nil {
-			tl.Fatalf("Error starting plugin for %q : %v", resourceKind, err)
+			templateKind := typeConfig.GetTemplate().Kind
+			tl.Fatalf("Error starting ReplicaSchedulingPreference plugin for %q : %v", templateKind, err)
 		}
 	}
 
+	return f
+}
+
+func NewSchedulerControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
+	f := &ControllerFixture{
+		stopChan: make(chan struct{}),
+	}
+	schedulingmanager.StartSchedulerController(config, f.stopChan)
 	return f
 }
 

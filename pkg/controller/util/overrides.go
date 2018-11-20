@@ -39,7 +39,7 @@ func GetClusterOverrides(typeConfig typeconfig.Interface, override *unstructured
 	qualifiedName := NewQualifiedName(override)
 	overrideKind := typeConfig.GetOverride().Kind
 
-	rawOverrides, ok, err := unstructured.NestedSlice(override.Object, "spec", "overrides")
+	rawOverrides, ok, err := unstructured.NestedSlice(override.Object, SpecField, OverridesField)
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
 	}

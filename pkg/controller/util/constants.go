@@ -24,10 +24,21 @@ import (
 const (
 	NoResyncPeriod time.Duration = 0 * time.Second
 
-	NamespaceKind     = "Namespace"
-	ServiceKind       = "Service"
-	ClusterNameField  = "clusterName"
+	NamespaceKind = "Namespace"
+	ServiceKind   = "Service"
+
+	// The following fields are used to interact with unstructured
+	// resources.
+
+	// Common fields
+	SpecField = "spec"
+
+	// Placement fields
 	ClusterNamesField = "clusterNames"
+
+	// Override fields
+	ClusterNameField = "clusterName"
+	OverridesField   = "overrides"
 )
 
 type ReconciliationStatus int

@@ -70,10 +70,10 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(config *util.ControllerConfig, stopChan <-chan struct{}, kind string, schedulerFactory schedulingtypes.SchedulerFactory) (schedulingtypes.Scheduler, error) {
-	userAgent := fmt.Sprintf("%s-controller", kind)
+func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType, stopChan <-chan struct{}) (schedulingtypes.Scheduler, error) {
+	userAgent := fmt.Sprintf("%s-controller", schedulingType.Kind)
 	fedClient, kubeClient, crClient := config.AllClients(userAgent)
-	controller, err := newSchedulingPreferenceController(config, kind, schedulerFactory, fedClient, kubeClient, crClient)
+	controller, err := newSchedulingPreferenceController(config, schedulingType.SchedulerFactory, fedClient, kubeClient, crClient)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, stopChan
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(config *util.ControllerConfig, kind string, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(config *util.ControllerConfig, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*SchedulingPreferenceController, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
@@ -103,16 +103,13 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, kind strin
 		ClusterSyncDelay: s.clusterAvailableDelay,
 	})
 
-	s.scheduler = schedulerFactory(fedClient,
-		kubeClient,
-		crClient,
-		config.FederationNamespaces,
-		s.worker.EnqueueObject,
-		func(obj pkgruntime.Object) {
+	eventHandlers := schedulingtypes.SchedulerEventHandlers{
+		FederationEventHandler: s.worker.EnqueueObject,
+		ClusterEventHandler: func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
-		&util.ClusterLifecycleHandlerFuncs{
+		ClusterLifecycleHandlers: &util.ClusterLifecycleHandlerFuncs{
 			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
@@ -121,7 +118,13 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, kind strin
 			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
-		})
+		},
+	}
+	scheduler, err := schedulerFactory(config, eventHandlers)
+	if err != nil {
+		return nil, err
+	}
+	s.scheduler = scheduler
 
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
