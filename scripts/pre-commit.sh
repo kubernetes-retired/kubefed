@@ -25,6 +25,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 MAKE_CMD="make -C ${ROOT_DIR}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 JOIN_CLUSTERS="${JOIN_CLUSTERS:-}"
+DOWNLOAD_BINARIES="${DOWNLOAD_BINARIES:-}"
 CONFIGURE_INSECURE_REGISTRY="${CONFIGURE_INSECURE_REGISTRY:-}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 MANAGED_E2E_TEST_CMD="go test -v ./test/e2e -args -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
@@ -32,8 +33,17 @@ MANAGED_E2E_TEST_CMD="go test -v ./test/e2e -args -ginkgo.v -single-call-timeout
 UNMANAGED_E2E_TEST_CMD="${MANAGED_E2E_TEST_CMD} -kubeconfig=${HOME}/.kube/config"
 
 function build-binaries() {
+  ${MAKE_CMD} hyperfed
   ${MAKE_CMD} controller
   ${MAKE_CMD} kubefed2
+}
+
+function download-dependencies() {
+  if [[ -z "${DOWNLOAD_BINARIES}" ]]; then
+    return
+  fi
+
+  ./scripts/download-binaries.sh
 }
 
 function run-e2e-tests-with-managed-fixture() {
@@ -201,7 +211,7 @@ cd "$base_dir" || {
 }
 
 echo "Downloading test dependencies"
-./scripts/download-binaries.sh
+download-dependencies
 
 echo "Checking initial state of working tree"
 check-git-state
