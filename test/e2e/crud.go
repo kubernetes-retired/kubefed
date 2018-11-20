@@ -40,10 +40,7 @@ var _ = Describe("Federated", func() {
 
 	tl := framework.NewE2ELogger()
 
-	typeConfigFixtures, err := common.TypeConfigFixtures()
-	if err != nil {
-		tl.Fatalf("Error loading type config fixture: %v", err)
-	}
+	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 
 	for key := range typeConfigFixtures {
 		typeConfigName := key

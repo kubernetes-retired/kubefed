@@ -40,11 +40,7 @@ var _ = Describe("Placement", func() {
 
 	tl := framework.NewE2ELogger()
 
-	// TODO(marun) only load this once for the test suite
-	typeConfigFixtures, err := common.TypeConfigFixtures()
-	if err != nil {
-		tl.Fatalf("Error loading type config fixture: %v", err)
-	}
+	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 
 	// TODO(marun) Since this test only targets namespaced federation,
 	// concurrent test isolation against unmanaged fixture is

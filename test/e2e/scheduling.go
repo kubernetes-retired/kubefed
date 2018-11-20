@@ -161,7 +161,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 						clusterNames[1]: tc.cluster2,
 					}
 
-					name, err := createTestObjs(fedClient, typeConfig, kubeConfig, rspSpec, namespace)
+					name, err := createTestObjs(tl, fedClient, typeConfig, kubeConfig, rspSpec, namespace)
 					if err != nil {
 						tl.Fatalf("Creation of test objects failed in federation: %v", err)
 					}
@@ -206,17 +206,13 @@ func rspSpecWithClusterList(total int32, w1, w2, min1, min2 int64, clusters []st
 	return rspSpec
 }
 
-func createTestObjs(fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
+func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	templateClient, err := util.NewResourceClientFromConfig(kubeConfig, &templateAPIResource)
 	if err != nil {
 		return "", err
 	}
-	// TODO(marun) retrieve fixture centrally
-	typeConfigFixtures, err := common.TypeConfigFixtures()
-	if err != nil {
-		return "", fmt.Errorf("Error loading type config fixture: %v", err)
-	}
+	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 	typeConfigName := typeConfig.GetObjectMeta().Name
 	fixture, ok := typeConfigFixtures[typeConfigName]
 	if !ok {

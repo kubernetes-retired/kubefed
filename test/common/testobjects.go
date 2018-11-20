@@ -18,46 +18,15 @@ package common
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-func TypeConfigFixtures() (map[string]*unstructured.Unstructured, error) {
-	path := fixturePath()
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading fixture from path %q: %v", path, err)
-	}
-
-	fixtures := make(map[string]*unstructured.Unstructured)
-	suffix := ".yaml"
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), suffix) {
-			continue
-		}
-
-		typeConfigName := strings.TrimSuffix(file.Name(), suffix)
-
-		filename := filepath.Join(path, file.Name())
-		fixture := &unstructured.Unstructured{}
-		err := federate.DecodeYAMLFromFile(filename, fixture)
-		if err != nil {
-			return nil, fmt.Errorf("Error reading fixture for %q: %v", typeConfigName, err)
-		}
-		fixtures[typeConfigName] = fixture
-	}
-
-	return fixtures, nil
-}
 
 func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNames []string, fixture *unstructured.Unstructured) (template, placement, override *unstructured.Unstructured, err error) {
 	template, err = NewTestTemplate(typeConfig.GetTemplate(), namespace, fixture)
