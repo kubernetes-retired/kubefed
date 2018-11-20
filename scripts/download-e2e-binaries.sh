@@ -21,13 +21,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# Use DEBUG=1 ./scripts/download-e2e-binaries.sh to get debug output
-curl_args="-Ls"
-[[ -z "${DEBUG:-""}" ]] || {
-  set -x
-  curl_args="-L"
-}
-
 logEnd() {
   local msg='done.'
   [ "$1" -eq 0 ] || msg='Error downloading assets'
@@ -37,31 +30,21 @@ trap 'logEnd $?' EXIT
 
 echo "About to download some binaries. This might take a while..."
 
-root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
-dest_dir="${root_dir}/bin"
-mkdir -p "${dest_dir}"
+GOBIN="$(go env GOPATH)/bin"
 
-# Minikube
-mk_version="0.28.1"
-mk_bin="minikube-linux-amd64"
-mk_url="https://github.com/kubernetes/minikube/releases/download/v${mk_version}/${mk_bin}"
-mk_dest="${dest_dir}/minikube"
-curl "${curl_args}" "${mk_url}" --output "${mk_dest}"
-chmod 755 "${mk_dest}"
-
-# crictl
-crictl_version="1.11.1"
-crictl_tgz="crictl-v1.11.1-linux-amd64.tar.gz"
-crictl_url="https://github.com/kubernetes-incubator/cri-tools/releases/download/v${crictl_version}/${crictl_tgz}"
-curl "${curl_args}O" "${crictl_url}" \
-  && tar xzfP "${crictl_tgz}" -C "${dest_dir}" \
-  && rm "${crictl_tgz}"
+# kind
+# TODO(font): kind does not have versioning yet.
+kind_version="4d7dded365359afeb1831292cd1a3a3e15fff0b2"
+kind_bin="kind"
+kind_url="sigs.k8s.io"
+go get -d ${kind_url}/${kind_bin}
+pushd ${GOPATH}/src/${kind_url}/${kind_bin}
+git checkout ${kind_version}
+popd
+go install ${kind_url}/${kind_bin}
 
 # Pull the busybox image (used in tests of workload types)
 docker pull busybox
 
-echo    "# destination:"
-echo    "#   ${dest_dir}"
-echo    "# versions:"
-echo -n "#   minikube:           "; ${dest_dir}/minikube version | awk '{print $3}'
-echo -n "#     crictl:           "; ${dest_dir}/crictl --version | awk '{print $3}'
+echo    "# bin destination:    ${GOBIN}"
+echo    "# kind installation:  ${GOBIN}/kind"

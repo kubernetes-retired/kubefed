@@ -13,11 +13,6 @@ sudo: required
 services:
   - docker
 
-# Install dependencies for launching minikube cluster.
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y socat ebtables
-
 # Install must be set to prevent default `go get` to run.
 # The dependencies have already been vendored by `dep` so
 # we don't need to fetch them.
@@ -25,7 +20,7 @@ install:
   -
 
 script:
-  - bash -x ./scripts/pre-commit.sh
+  - CONFIGURE_INSECURE_REGISTRY=y bash -x ./scripts/pre-commit.sh
   - vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh -- rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
 
 after_success:
