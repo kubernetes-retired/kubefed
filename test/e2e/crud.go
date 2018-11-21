@@ -47,17 +47,11 @@ var _ = Describe("Federated", func() {
 		fixture := typeConfigFixtures[key]
 		Describe(fmt.Sprintf("%q", typeConfigName), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				if typeConfigName == util.NamespaceName {
-					// TODO (font): e2e tests for federated Namespace using a
-					// test managed federation does not work until k8s
-					// namespace controller is added.
-					if framework.TestContext.TestManagedFederation {
-						framework.Skipf("Federated %s not supported for test managed federation.", typeConfigName)
-					}
-					if framework.TestContext.LimitedScope {
-						// It is not possible to propagate namespaces when namespaced.
-						framework.Skipf("Federated %s federation not supported for namespaced control plane.", typeConfigName)
-					}
+				// TODO (font): e2e tests for federated Namespace using a
+				// test managed federation does not work until k8s
+				// namespace controller is added.
+				if typeConfigName == util.NamespaceName && framework.TestContext.TestManagedFederation {
+					framework.Skipf("Federated %s not supported for test managed federation.", typeConfigName)
 				}
 
 				// Lookup the type config from the api
@@ -70,6 +64,10 @@ var _ = Describe("Federated", func() {
 				err = dynClient.Get(context.Background(), key, typeConfig)
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
+				}
+
+				if framework.TestContext.LimitedScope && !typeConfig.GetNamespaced() {
+					framework.Skipf("Federation of cluster-scoped type %s is not supported by a namespaced control plane.", typeConfigName)
 				}
 
 				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {

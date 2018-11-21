@@ -57,24 +57,25 @@ var _ = Describe("Placement", func() {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
 
-		// Select the first non-namespace type config
+		// Select the first namespaced type config
 		var selectedTypeConfig typeconfig.Interface
 		var fixture *unstructured.Unstructured
 		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
-			if typeConfigName != util.NamespaceName {
-				typeConfig := &fedv1a1.FederatedTypeConfig{}
-				key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
-				err = dynClient.Get(context.Background(), key, typeConfig)
-				if errors.IsNotFound(err) {
-					continue
-				}
-				if err != nil {
-					tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
-				}
-				selectedTypeConfig = typeConfig
-				fixture = typeConfigFixture
-				break
+			typeConfig := &fedv1a1.FederatedTypeConfig{}
+			key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
+			err = dynClient.Get(context.Background(), key, typeConfig)
+			if errors.IsNotFound(err) {
+				continue
 			}
+			if err != nil {
+				tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
+			}
+			if !typeConfig.GetNamespaced() {
+				continue
+			}
+			selectedTypeConfig = typeConfig
+			fixture = typeConfigFixture
+			break
 		}
 		if selectedTypeConfig == nil {
 			tl.Fatal("Unable to find non-namespace type config")

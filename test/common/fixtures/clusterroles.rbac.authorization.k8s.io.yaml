@@ -1,0 +1,9 @@
+kind: fixture
+template:
+  rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
