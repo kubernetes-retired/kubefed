@@ -143,7 +143,7 @@ kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registr
 # TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
 
 # Enable available types
-for filename in ./config/federatedtypes/*.yaml; do
+for filename in ./charts/federation-v2/templates/*.yaml; do
   kubectl -n "${NS}" apply -f "${filename}"
 done
 

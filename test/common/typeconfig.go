@@ -89,7 +89,7 @@ func typeConfigPath() string {
 	commonPath := filepath.Dir(filename)
 	testPath := filepath.Dir(commonPath)
 	rootPath := filepath.Dir(testPath)
-	return filepath.Join(rootPath, "config", "federatedtypes")
+	return filepath.Join(rootPath, "charts", "federation-v2", "templates")
 }
 
 func typeConfigFromFile(filename string) (typeconfig.Interface, error) {

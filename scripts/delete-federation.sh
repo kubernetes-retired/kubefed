@@ -57,7 +57,7 @@ if [[ ! "${NAMESPACED}" ]]; then
 fi
 
 # Disable available types
-for filename in ./config/federatedtypes/*.yaml; do
+for filename in ./charts/federation-v2/templates/*.yaml; do
   ${KCD} -f "${filename}" -n ${NS}
 done
 

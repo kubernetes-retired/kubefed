@@ -55,7 +55,7 @@ the following steps:
 
  - Add a new type config resource to configure a propagation controller
    - Ensure the new type contains fields that should be overridable
-   - e.g. [secrets](https://github.com/kubernetes-sigs/federation-v2/blob/master/config/federatedtypes/secret.yaml)
+   - e.g. [secrets](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/templates/secret.yaml)
 
  - (optionally) Add yaml test objects for template and override to support integration and e2e testing
    - e.g. [secret-template.yaml](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/common/fixtures/secret-template.yaml)
