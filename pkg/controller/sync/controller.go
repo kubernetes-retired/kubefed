@@ -574,17 +574,17 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		if found {
 			clusterObj := clusterObj.(*unstructured.Unstructured)
 
-			// If we're a namespace kind and this is an object for the primary
-			// cluster, then skip the version comparison check as we do not
-			// track the cluster version for namespaces in the primary cluster.
-			// This avoids unnecessary updates that triggers an infinite loop
-			// of continually adding finalizers and then removing finalizers,
-			// causing PropagatedVersion to not keep up with the
-			// ResourceVersions being updated.
-			if targetKind == util.NamespaceKind {
-				if util.IsPrimaryCluster(template, clusterObj) {
-					continue
-				}
+			// This controller does not perform updates to namespaces
+			// in the host cluster.  Such operations need to be
+			// performed via the Kube API.
+			//
+			// The Namespace type is a special case because it is the
+			// only container in the Kubernetes API.  This controller
+			// presumes a separation between the template and target
+			// resources, but a namespace in the host cluster is
+			// necessarily both template and target.
+			if targetKind == util.NamespaceKind && util.IsPrimaryCluster(template, clusterObj) {
+				continue
 			}
 
 			desiredObj, err = s.objectForUpdateOp(desiredObj, clusterObj)
@@ -615,6 +615,9 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				}
 			}
 		} else {
+			// A namespace in the host cluster will never need to be
+			// added since by definition it must already exist.
+
 			operationType = util.OperationTypeAdd
 		}
 
@@ -629,16 +632,21 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 	}
 
 	for _, clusterName := range unselectedClusters {
-		clusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
+		rawClusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
 			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", targetKind, key, clusterName, err)
 			runtime.HandleError(wrappedErr)
 			return nil, wrappedErr
 		}
 		if found {
+			clusterObj := rawClusterObj.(pkgruntime.Object)
+			// This controller does not initiate deletion of namespaces in the host cluster.
+			if targetKind == util.NamespaceKind && util.IsPrimaryCluster(template, clusterObj) {
+				continue
+			}
 			operations = append(operations, util.FederatedOperation{
 				Type:        util.OperationTypeDelete,
-				Obj:         clusterObj.(pkgruntime.Object),
+				Obj:         clusterObj,
 				ClusterName: clusterName,
 				Key:         key,
 			})
