@@ -99,8 +99,8 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface) error {
-	controller, err := newFederationSyncController(controllerConfig, typeConfig)
+func StartFederationSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) error {
+	controller, err := newFederationSyncController(controllerConfig, typeConfig, namespacePlacement)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func StartFederationSyncController(controllerConfig *util.ControllerConfig, stop
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*FederationSyncController, error) {
+func newFederationSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) (*FederationSyncController, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(templateAPIResource.Kind))
 
@@ -176,15 +176,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	} else if targetNamespace == metav1.NamespaceAll {
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
 	} else {
-		// TODO(marun) Source this configuration from the API
-		namespacePlacementAPIResource := metav1.APIResource{
-			Kind:       "FederatedNamespacePlacement",
-			Name:       "federatednamespaceplacements",
-			Group:      "primitives.federation.k8s.io",
-			Version:    "v1alpha1",
-			Namespaced: true,
-		}
-		namespacePlacementClient, err := util.NewResourceClient(pool, &namespacePlacementAPIResource)
+		namespacePlacementClient, err := util.NewResourceClient(pool, namespacePlacement)
 		if err != nil {
 			return nil, err
 		}

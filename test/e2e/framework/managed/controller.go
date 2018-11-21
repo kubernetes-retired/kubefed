@@ -19,6 +19,8 @@ package managed
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
@@ -37,11 +39,11 @@ type ControllerFixture struct {
 }
 
 // NewSyncControllerFixture initializes a new sync controller fixture.
-func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) *ControllerFixture {
+func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := sync.StartFederationSyncController(controllerConfig, f.stopChan, typeConfig)
+	err := sync.StartFederationSyncController(controllerConfig, f.stopChan, typeConfig, namespacePlacement)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}

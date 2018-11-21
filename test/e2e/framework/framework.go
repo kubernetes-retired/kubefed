@@ -62,10 +62,9 @@ type FederationFrameworkImpl interface {
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
 
-	// Setup a sync controller if necessary and return the fixture.
-	// This is implemented commonly to support running a sync
-	// controller for namespaces for tests that require it.
-	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture
+	// Internal method that accepts the namespace placement api
+	// resource to support namespaced controllers.
+	setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) managed.TestFixture
 }
 
 // FederationFramework provides an interface to a test federation so
@@ -77,6 +76,13 @@ type FederationFramework interface {
 	// current test has executed.
 	RegisterFixture(fixture managed.TestFixture)
 
+	NamespaceTypeConfigOrDie() typeconfig.Interface
+
+	// Setup a sync controller if necessary and return the fixture.
+	// This is implemented commonly to support running a sync
+	// controller for tests that require it.
+	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture
+
 	// Start a namespace sync controller fixture
 	SetUpNamespaceSyncControllerFixture()
 }
@@ -87,8 +93,9 @@ type FederationFramework interface {
 // The workaround is using a wrapper that performs late-binding on the
 // framework flavor.
 type frameworkWrapper struct {
-	impl     FederationFrameworkImpl
-	baseName string
+	impl                FederationFrameworkImpl
+	baseName            string
+	namespaceTypeConfig typeconfig.Interface
 
 	// Fixtures to cleanup after each test
 	fixtures []managed.TestFixture
@@ -184,8 +191,17 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 	return f.framework().TestNamespaceName()
 }
 
+// setUpSyncControllerFixture is not intended to be called on the
+// wrapper.  It's only implemented by the concrete frameworks to avoid
+// having callers pass in the namespacePlacement arg.
+func (f *frameworkWrapper) setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) managed.TestFixture {
+	return nil
+}
+
 func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
-	return f.framework().SetUpSyncControllerFixture(typeConfig)
+	namespaceTypeConfig := f.NamespaceTypeConfigOrDie()
+	placement := namespaceTypeConfig.GetPlacement()
+	return f.framework().setUpSyncControllerFixture(typeConfig, &placement)
 }
 
 func (f *frameworkWrapper) RegisterFixture(fixture managed.TestFixture) {
@@ -202,28 +218,30 @@ func (f *frameworkWrapper) SetUpNamespaceSyncControllerFixture() {
 	// The namespace controller is required to ensure namespaces
 	// are created as needed in member clusters in advance of
 	// propagation of other namespaced types.
-	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
-	fixture := f.framework().SetUpSyncControllerFixture(namespaceTypeConfig)
+	namespaceTypeConfig := f.NamespaceTypeConfigOrDie()
+	fixture := f.framework().setUpSyncControllerFixture(namespaceTypeConfig, nil)
 	f.RegisterFixture(fixture)
 }
 
-// TODO(marun) Load this only once
-func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
-	tl := f.Logger()
-	dynClient, err := client.New(f.KubeConfig(), client.Options{})
-	if err != nil {
-		tl.Fatalf("Error initializing dynamic client: %v", err)
+func (f *frameworkWrapper) NamespaceTypeConfigOrDie() typeconfig.Interface {
+	if f.namespaceTypeConfig == nil {
+		tl := f.Logger()
+		dynClient, err := client.New(f.KubeConfig(), client.Options{})
+		if err != nil {
+			tl.Fatalf("Error initializing dynamic client: %v", err)
+		}
+		key := client.ObjectKey{
+			Namespace: f.FederationSystemNamespace(),
+			Name:      util.NamespaceName,
+		}
+		typeConfig := &fedv1a1.FederatedTypeConfig{}
+		err = dynClient.Get(context.Background(), key, typeConfig)
+		if err != nil {
+			tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", key.Name, err)
+		}
+		f.namespaceTypeConfig = typeConfig
 	}
-	key := client.ObjectKey{
-		Namespace: f.FederationSystemNamespace(),
-		Name:      "namespaces",
-	}
-	typeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = dynClient.Get(context.Background(), key, typeConfig)
-	if err != nil {
-		tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", key.Name, err)
-	}
-	return typeConfig
+	return f.namespaceTypeConfig
 }
 
 func createTestNamespace(client kubeclientset.Interface, baseName string) string {

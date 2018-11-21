@@ -100,11 +100,11 @@ var _ = Describe("Placement", func() {
 		}
 
 		namespacePlacement := &unstructured.Unstructured{}
-		// TODO(marun) Source this from the ns type config
+		placementAPIResource := f.NamespaceTypeConfigOrDie().GetPlacement()
 		namespacePlacement.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "primitives.federation.k8s.io",
-			Kind:    "FederatedNamespacePlacement",
-			Version: "v1alpha1",
+			Group:   placementAPIResource.Group,
+			Kind:    placementAPIResource.Kind,
+			Version: placementAPIResource.Version,
 		})
 		namespacePlacement.SetNamespace(namespace)
 		namespacePlacement.SetName(namespace)
