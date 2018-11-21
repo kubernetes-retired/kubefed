@@ -31,6 +31,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	corev1alpha1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
@@ -138,6 +139,13 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	// TODO(marun) Perform this defaulting in a webhook
 	corev1a1.SetFederatedTypeConfigDefaults(typeConfig)
+
+	// TODO(marun) Replace with validation webhook
+	err = typeconfig.CheckTypeConfigName(typeConfig)
+	if err != nil {
+		runtime.HandleError(err)
+		return util.StatusError
+	}
 
 	syncEnabled := typeConfig.Spec.PropagationEnabled
 	statusEnabled := typeConfig.Spec.EnableStatus
