@@ -138,8 +138,8 @@ to update the `federatednamespaceplacement` resource to move resources.
 First create the `test-namespace` for the test resources:
 
 ```bash
-kubectl apply -f example/sample1/federatednamespace-template.yaml \
-    -f example/sample1/federatednamespace-placement.yaml
+kubectl apply -f example/propagation/federatednamespace-template.yaml \
+    -f example/propagation/federatednamespace-placement.yaml
 ```
 
 ### Create Test Resources
@@ -147,11 +147,11 @@ kubectl apply -f example/sample1/federatednamespace-template.yaml \
 Create all the test resources by running:
 
 ```bash
-kubectl apply -R -f example/sample1
+kubectl apply -R -f example/propagation
 ```
 **NOTE:** If you get the following error while creating a test resource i.e.
 ```
-unable to recognize "example/sample1/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1", 
+unable to recognize "example/propagation/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1", 
 
 ```
 then it indicates that a given type may need to be federated by `kubefed2 federate enable <type>`
