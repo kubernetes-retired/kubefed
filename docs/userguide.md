@@ -56,9 +56,22 @@ Kubernetes environments that have been tested and are supported by the Federatio
 
 After completing the steps in one of the above guides, return here to continue the Federation v2 deployment.
 
+### Set Cluster Environment Variables
+
+Please set the following variables in order to continue through this guide.
+Replace the name of the clusters with the respective name of the clusters
+you're using if they differ.
+
+```bash
+HOST_CLUSTER=cluster1
+MEMBER_CLUSTER=cluster2
+CLUSTERS="${HOST_CLUSTER} ${MEMBER_CLUSTER}"
+```
+
+### Set Host Cluster Context
 **NOTE:** You must set the correct context using the command below as this guide depends on it.
 ```bash
-kubectl config use-context cluster1
+kubectl config use-context ${HOST_CLUSTER}
 ```
 
 ## Helm Chart Deployment
@@ -72,32 +85,33 @@ If you would like to have the deployment of the federation-v2 control plane
 automated, then invoke the deployment script by running:
 
 ```bash
-./scripts/deploy-federation-latest.sh cluster2
+./scripts/deploy-federation-latest.sh ${MEMBER_CLUSTER}
 ```
 
-The above script joins the host cluster to the federation control plane it deploys, by default.
-The argument(s) used is/are the list of context names of the additional clusters that needs to be
-joined to this federation control plane. Clarifying, say the `host-cluster-context` used is `cluster1`,
-then on successful completion of the script used in example, both `cluster1` and `cluster2` will be
-joined to the deployed federation control plane.
+The above script joins the host cluster to the federation control plane it
+deploys, by default.  The argument(s) used is/are the list of context names of
+the additional clusters that needs to be joined to this federation control
+plane. Clarifying, say the `host-cluster-context` used is `HOST_CLUSTER`, then
+on successful completion of the script used in example, both `HOST_CLUSTER` and
+`MEMBER_CLUSTER` will be joined to the deployed federation control plane.
 
 **NOTE:** You can list multiple joining cluster names in the above command.
 Also, please make sure the joining cluster name(s) provided matches the joining
 cluster context from your kubeconfig. This will already be the case if you used
-the minikube instructions above to create your clusters.
+the kind instructions above to create your clusters.
 
 ## Operations
 
 ### Join Clusters
 
-Next, you'll want to use the `kubefed2` tool to join all your
-clusters that you want to test against.
+If you want to join your clusters manually, you'll want to use the `kubefed2`
+tool to join all your clusters that you want to test against.
 
 ```bash
-./bin/kubefed2 join cluster1 --cluster-context cluster1 \
-    --host-cluster-context cluster1 --add-to-registry --v=2
-./bin/kubefed2 join cluster2 --cluster-context cluster2 \
-    --host-cluster-context cluster1 --add-to-registry --v=2
+for c in ${CLUSTERS}: do
+./bin/kubefed2 join ${c} --cluster-context ${c} \
+    --host-cluster-context ${HOST_CLUSTER} --add-to-registry --v=2
+done
 ```
 
 You can repeat these steps to join any additional clusters.
@@ -128,18 +142,40 @@ Status:
 
 Follow these instructions for running an example to verify your deployment is
 working. The example will create a test namespace with a
-`federatednamespaceplacement` resource as well as federated template,
-override, and placement resources for the following k8s resources: `configmap`,
-`secret`, `deployment`, `service` and `serviceaccount`. It will then show how
-to update the `federatednamespaceplacement` resource to move resources.
+`federatednamespaceplacement` resource as well as federated template, override,
+and placement resources for the below k8s resources. It will then show how to
+update the `federatednamespaceplacement` resource to move resources. So let's
+set a variable with all the resource types for convenience:
+
+```bash
+RESOURCE_TYPES="deployment ingress job secret service"
+```
 
 ### Create the Test Namespace
 
 First create the `test-namespace` for the test resources:
 
 ```bash
-kubectl apply -f example/propagation/federatednamespace-template.yaml \
-    -f example/propagation/federatednamespace-placement.yaml
+kubectl apply -f example/propagation/federatednamespace-template.yaml
+```
+
+### Create the Test Namespace Placement
+
+Now we create the `federatednamespaceplacement` resource for `test-namespace`.
+
+```bash
+kubectl apply -f example/propagation/federatednamespace-placement.yaml
+```
+
+### Update FederatedNamespacePlacement
+
+Add both clusters via a patch command or manually:
+
+```bash
+kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
+    --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\", \"${MEMBER_CLUSTER}\"]}}"
+
+kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
 
 ### Create Test Resources
@@ -147,22 +183,38 @@ kubectl apply -f example/propagation/federatednamespace-template.yaml \
 Create all the test resources by running:
 
 ```bash
-kubectl apply -R -f example/propagation
+for r in ${RESOURCE_TYPES}; do
+    for f in $(ls example/propagation/federated${r}-*.yaml); do
+        kubectl apply -f ${f}
+    done
+done
 ```
+
 **NOTE:** If you get the following error while creating a test resource i.e.
-```
-unable to recognize "example/propagation/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1", 
 
 ```
+unable to recognize "example/propagation/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1",
+```
 then it indicates that a given type may need to be federated by `kubefed2 federate enable <type>`
+
+### Update Placement for Test Resources
+
+Update the placement resource for each type to contain both clusters:
+
+```bash
+for r in ${RESOURCE_TYPES}; do
+    kubectl -n test-namespace patch federated${r}placement test-${r} \
+        --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\", \"${MEMBER_CLUSTER}\"]}}"
+done
+```
 
 ### Check Status of Resources
 
 Check the status of all the resources in each cluster by running:
 
 ```bash
-for r in configmaps secrets service deployment serviceaccount job; do
-    for c in cluster1 cluster2; do
+for r in ${RESOURCE_TYPES}; do
+    for c in ${CLUSTERS}; do
         echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
@@ -170,34 +222,39 @@ for r in configmaps secrets service deployment serviceaccount job; do
 done
 ```
 
-Now make sure `nginx` is running properly in each cluster:
+Now make sure `nginx` is running properly in each cluster. To do this you'll
+need the `NODE_IP` and `NODE_PORT` for each cluster. The command to retrieve
+the `NODE_IP` below is specific to clusters set up with `kind`. Update the
+command if you set up your clusters using some other mechanism.
 
 ```bash
-for c in cluster1 cluster2; do
+for c in ${CLUSTERS}; do
+    NODE_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+        kind-${c//[!0-9]/}-control-plane)
     NODE_PORT=$(kubectl --context=${c} -n test-namespace get service \
         test-service -o jsonpath='{.spec.ports[0].nodePort}')
-    echo; echo ------------ ${c} ------------; echo
-    curl $(echo -n $(minikube ip -p ${c})):${NODE_PORT}
+    echo; echo "------------ ${c} (${NODE_IP}:${NODE_PORT}) ------------"; echo
+    curl ${NODE_IP}:${NODE_PORT}
     echo; echo
 done
 ```
 
 ### Update FederatedNamespacePlacement
 
-Remove `cluster2` via a patch command or manually:
+Remove `MEMBER_CLUSTER` via a patch command or manually:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
-    --type=merge -p '{"spec":{"clusterNames": ["cluster1"]}}'
+    --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\"]}}"
 
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
 
-Then wait to verify all resources are removed from `cluster2`:
+Then wait to verify all resources are removed from `MEMBER_CLUSTER`:
 
 ```bash
-for r in configmaps secrets service deployment serviceaccount job; do
-    for c in cluster1 cluster2; do
+for r in ${RESOURCE_TYPES}; do
+    for c in ${CLUSTERS}; do
         echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
@@ -206,21 +263,21 @@ done
 ```
 
 We can quickly add back all the resources by simply updating the
-`FederatedNamespacePlacement` to add `cluster2` again via a patch command or
+`FederatedNamespacePlacement` to add `MEMBER_CLUSTER` again via a patch command or
 manually:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
-    --type=merge -p '{"spec":{"clusterNames": ["cluster1", "cluster2"]}}'
+    --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\", \"${MEMBER_CLUSTER}\"]}}"
 
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
 
-Then wait and verify all resources are added back to `cluster2`:
+Then wait and verify all resources are added back to `MEMBER_CLUSTER`:
 
 ```bash
-for r in configmaps secrets service deployment serviceaccount job; do
-    for c in cluster1 cluster2; do
+for r in ${RESOURCE_TYPES}; do
+    for c in ${CLUSTERS}; do
         echo; echo ------------ ${c} resource: ${r} ------------; echo
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
@@ -231,11 +288,13 @@ done
 Lastly, make sure `nginx` is running properly in each cluster:
 
 ```bash
-for c in cluster1 cluster2; do
+for c in ${CLUSTERS}; do
+    NODE_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+        kind-${c//[!0-9]/}-control-plane)
     NODE_PORT=$(kubectl --context=${c} -n test-namespace get service \
         test-service -o jsonpath='{.spec.ports[0].nodePort}')
-    echo; echo ------------ ${c} ------------; echo
-    curl $(echo -n $(minikube ip -p ${c})):${NODE_PORT}
+    echo; echo "------------ ${c} (${NODE_IP}:${NODE_PORT}) ------------"; echo
+    curl ${NODE_IP}:${NODE_PORT}
     echo; echo
 done
 ```
@@ -263,10 +322,10 @@ use the following command to view `Events` which may aid in diagnosing the probl
 kubectl describe <federated CRD> <CR name> -n test-namespace
 ```
 
-An example for CRD of `federatedserviceaccounts` is as follows:
+An example for CRD of `federateddeployments` is as follows:
 
 ```bash
-kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
+kubectl describe federateddeployments test-deployment -n test-namespace
 ```
 
 It may also be useful to inspect the federation controller log as follows:
@@ -286,9 +345,10 @@ federation deployments:
 ./scripts/delete-federation.sh
 ```
 
-The above script unjoins the all of the clusters from the federation control plane it deploys,
-by default. On successful completion of the script used in example, both `cluster1` and
-`cluster2` will be unjoined from the deployed federation control plane.
+The above script unjoins the all of the clusters from the federation control
+plane it deploys, by default. On successful completion of the script used in
+example, both `HOST_CLUSTER` and `MEMBER_CLUSTER` will be unjoined from the
+deployed federation control plane.
 
 ## Namespaced Federation
 
@@ -316,10 +376,11 @@ on both the host and member clusters.
 
 It may be useful to supply `FEDERATION_NAMESPACE=test-namespace` to
 allow the examples to work unmodified. You can run following command
-to set up the test environment with `cluster1` and `cluster2`.
+to set up the test environment with `HOST_CLUSTER` and `MEMBER_CLUSTER`.
 
 ```bash
-NAMESPACED=y FEDERATION_NAMESPACE=test-namespace scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
+NAMESPACED=y FEDERATION_NAMESPACE=test-namespace scripts/deploy-federation.sh \
+    <containerregistry>/<username>/federation-v2:test ${MEMBER_CLUSTER}
 ```
 
 ### Joining Clusters

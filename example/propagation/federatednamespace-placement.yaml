@@ -5,5 +5,4 @@ metadata:
   namespace: test-namespace
 spec:
   clusterNames:
-  - cluster1
-  - cluster2
+  - "null"
