@@ -238,7 +238,7 @@ to build an image and a deployment config.
 If you just want to have this automated, then run the following command
 specifying your own image. This assumes you've used the steps [documented
 above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane) to
-set up two minikube clusters (`cluster1` and `cluster2`):
+set up two `kind` clusters (`cluster1` and `cluster2`):
 
 ```bash
 ./scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
