@@ -48,6 +48,8 @@ custom image](development.md#test-your-changes).
 The federation v2 control plane can run on any v1.11 or greater Kubernetes clusters. The following is a list of
 Kubernetes environments that have been tested and are supported by the Federation v2 community:
 
+- [kind](./environments/kind.md)
+
 - [Minikube](./environments/minikube.md)
 
 - [Google Kubernetes Engine (GKE)](./environments/gke.md)
