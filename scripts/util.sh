@@ -37,7 +37,7 @@ function util::wait-for-condition() {
   local error_msg="[ERROR] Timeout waiting for ${msg}"
 
   local counter=0
-  while ! ${condition}; do
+  while ! eval ${condition}; do
     if [[ "${counter}" = "0" ]]; then
       echo -n "${start_msg}"
     fi

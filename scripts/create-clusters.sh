@@ -122,7 +122,7 @@ function fixup-cluster() {
 
 function check-clusters-ready() {
   for i in $(seq ${1}); do
-    util::wait-for-condition 'ok' "kubectl --context kind-${i} get --raw=/healthz" 120
+    util::wait-for-condition 'ok' "kubectl --context kind-${i} get --raw=/healthz &> /dev/null" 120
   done
 }
 
