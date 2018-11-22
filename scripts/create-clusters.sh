@@ -25,13 +25,15 @@ source "$(dirname "${BASH_SOURCE}")/util.sh"
 CONFIGURE_INSECURE_REGISTRY="${CONFIGURE_INSECURE_REGISTRY:-}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
+OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
+kubeconfig="${HOME}/.kube/config"
 
 function create-and-configure-insecure-registry() {
   # Run insecure registry as container
   docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
-  if [[ -z "${CONFIGURE_INSECURE_REGISTRY}" ]]; then
+  if [[ ! "${CONFIGURE_INSECURE_REGISTRY}" ]]; then
     return
   fi
 
@@ -41,9 +43,12 @@ CONFIGURE_INSECURE_REGISTRY=${CONFIGURE_INSECURE_REGISTRY}. This script needs \
 to add an 'insecure-registries' entry with host '${CONTAINER_REGISTRY_HOST}' to \
 ${docker_daemon_config}. Please make the necessary changes or backup and try again."
 EOF
+    docker kill registry &> /dev/null
+    docker rm registry &> /dev/null
     return 1
   fi
 
+  echo "Configuring container registry on host"
   configure-insecure-registry-and-reload "sudo bash -c" $(pgrep dockerd)
 }
 
@@ -75,20 +80,23 @@ function create-clusters() {
     kind create cluster --name ${i}
     # TODO(font): remove once all workarounds are addressed.
     fixup-cluster ${i}
+    echo
   done
-
-  # TODO(font): kind will create separate kubeconfig files for each cluster.
-  # Remove once https://github.com/kubernetes-sigs/kind/issues/113 is resolved.
-  kubectl config view --flatten > ~/.kube/config
-  unset KUBECONFIG
 
   echo "Waiting for clusters to be ready"
   check-clusters-ready ${num_clusters}
 
+  # TODO(font): kind will create separate kubeconfig files for each cluster.
+  # Remove once https://github.com/kubernetes-sigs/kind/issues/113 is resolved.
+  if [[ "${OVERWRITE_KUBECONFIG}" ]]; then
+    kubectl config view --flatten > ${kubeconfig}
+    unset KUBECONFIG
+  fi
+
   # TODO(font): Configure insecure registry on kind host cluster. Remove once
   # https://github.com/kubernetes-sigs/kind/issues/110 is resolved.
+  echo "Configuring insecure container registry on kind host cluster"
   configure-insecure-registry-on-cluster 1
-
 }
 
 function fixup-cluster() {
@@ -127,3 +135,19 @@ create-and-configure-insecure-registry
 
 echo "Creating ${NUM_CLUSTERS} clusters"
 create-clusters ${NUM_CLUSTERS}
+
+echo "Complete"
+
+if [[ ! "${OVERWRITE_KUBECONFIG}" ]]; then
+    echo <<EOF "OVERWRITE_KUBECONFIG was not set so ${kubeconfig} was not modified. \
+You can access your clusters by setting your KUBECONFIG environment variable using:
+
+export KUBECONFIG=\"${KUBECONFIG}\"
+
+Then you can overwrite ${kubeconfig} if you prefer using:
+
+kubectl config view --flatten > ${kubeconfig}
+unset KUBECONFIG
+"
+EOF
+fi

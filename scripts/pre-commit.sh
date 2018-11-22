@@ -136,7 +136,7 @@ echo "Downloading e2e test dependencies"
 
 export PATH=${TEST_ASSET_PATH}:${PATH}
 
-CONFIGURE_INSECURE_REGISTRY=y ./scripts/create-clusters.sh
+CONFIGURE_INSECURE_REGISTRY=y OVERWRITE_KUBECONFIG=y ./scripts/create-clusters.sh
 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null
