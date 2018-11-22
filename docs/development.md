@@ -141,7 +141,7 @@ Both methods require the clusters to have already been joined.
 In order to run E2E tests in an unmanaged or hybrid setup, you first need to:
 
 1. Create clusters
-    - See the [user guide for the quickest way to deploy clusters](userguide.md#create-clusters)
+    - See the [user guide for a way to deploy clusters](userguide.md#create-clusters)
       for testing federation-v2.
 1. Deploy the federation-v2 control plane
     - To deploy the latest version of the federation-v2 control plane, follow
@@ -238,7 +238,7 @@ to build an image and a deployment config.
 If you just want to have this automated, then run the following command
 specifying your own image. This assumes you've used the steps [documented
 above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane) to
-set up two minikube clusters (`cluster1` and `cluster2`):
+set up two `kind` or `minikube` clusters (`cluster1` and `cluster2`):
 
 ```bash
 ./scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
