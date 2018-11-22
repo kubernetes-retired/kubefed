@@ -1,7 +1,8 @@
 # Minikube
 
-[Minikube](https://kubernetes.io/docs/getting-started-guides/minikube/) provides the quickest way to set-up clusters for
-use with the Federation v2 control plane.
+[Minikube](https://kubernetes.io/docs/getting-started-guides/minikube/)
+provides one of the quickest way to set-up clusters for use with the Federation
+v2 control plane.
 
 **NOTE:** You will need to use a minikube version that supports
 deploying a kubernetes cluster >= 1.11. [Recently
