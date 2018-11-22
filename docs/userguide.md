@@ -328,6 +328,12 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
     --limited-scope=true
 ```
 
+### Multi-Cluster Service DNS
+
+Multi-Cluster Service DNS provides the ability to programmatically manage DNS resource records of Service objects
+through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
+[Multi-Cluster Service DNS with ExternalDNS Guide](./servicedns-with-externaldns.md) to learn more.
+
 ### Deployment Cleanup
 
 Cleanup similarly requires the use of the same environment variables
