@@ -56,7 +56,7 @@ function run-e2e-tests-with-managed-fixture() {
 function join-cluster-list() {
   if [[ -z "${JOIN_CLUSTERS}" ]]; then
     for i in $(seq 2 ${NUM_CLUSTERS}); do
-      JOIN_CLUSTERS+="kind-${i} "
+      JOIN_CLUSTERS+="cluster${i} "
     done
     export JOIN_CLUSTERS=$(echo ${JOIN_CLUSTERS} | sed 's/ $//')
   fi

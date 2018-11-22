@@ -118,7 +118,7 @@ function fixup-cluster() {
   export KUBECONFIG="${KUBECONFIG:-}:${kubeconfig_path}"
 
   # Simplify context name
-  kubectl config rename-context kubernetes-admin@kind-${i} kind-${i}
+  kubectl config rename-context kubernetes-admin@kind-${i} cluster${i}
 
   # TODO(font): Need to set container IP address in order for clusters to reach
   # kube API servers in other clusters until
@@ -134,7 +134,7 @@ function fixup-cluster() {
 
 function check-clusters-ready() {
   for i in $(seq ${1}); do
-    util::wait-for-condition 'ok' "kubectl --context kind-${i} get --raw=/healthz &> /dev/null" 120
+    util::wait-for-condition 'ok' "kubectl --context cluster${i} get --raw=/healthz &> /dev/null" 120
   done
 }
 

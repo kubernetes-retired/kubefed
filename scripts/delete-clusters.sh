@@ -33,7 +33,7 @@ function delete-clusters() {
 
   for i in $(seq ${num_clusters}); do
     # kind will delete cluster with name: kind-${i}
-    echo "Deleting cluster 'kind-${i}' ..."
+    echo "Deleting cluster ${i} ..."
     kind delete cluster --name ${i}
   done
 }
