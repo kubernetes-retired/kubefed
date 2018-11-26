@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// JobSchedulingPreferenceListerExpansion allows custom methods to be added to
+// JobSchedulingPreferenceLister.
+type JobSchedulingPreferenceListerExpansion interface{}
+
+// JobSchedulingPreferenceNamespaceListerExpansion allows custom methods to be added to
+// JobSchedulingPreferenceNamespaceLister.
+type JobSchedulingPreferenceNamespaceListerExpansion interface{}
+
 // ReplicaSchedulingPreferenceListerExpansion allows custom methods to be added to
 // ReplicaSchedulingPreferenceLister.
 type ReplicaSchedulingPreferenceListerExpansion interface{}

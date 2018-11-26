@@ -20,6 +20,7 @@ import (
 	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	schedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	rscheme "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/scheme"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/jobschedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -127,12 +128,20 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&multiclusterdnsv1alpha1.ServiceDNSRecord{}, arguments.Informers.Multiclusterdns().V1alpha1().ServiceDNSRecords()); err != nil {
 			return err
 		}
+		if err := arguments.ControllerManager.AddInformerProvider(&schedulingv1alpha1.JobSchedulingPreference{}, arguments.Informers.Scheduling().V1alpha1().JobSchedulingPreferences()); err != nil {
+			return err
+		}
 		if err := arguments.ControllerManager.AddInformerProvider(&schedulingv1alpha1.ReplicaSchedulingPreference{}, arguments.Informers.Scheduling().V1alpha1().ReplicaSchedulingPreferences()); err != nil {
 			return err
 		}
 
 		// Add Kubernetes informers
 
+		if c, err := jobschedulingpreference.ProvideController(arguments); err != nil {
+			return err
+		} else {
+			arguments.ControllerManager.AddController(c)
+		}
 		return nil
 	})
 
@@ -168,6 +177,7 @@ func init() {
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.DomainCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.IngressDNSRecordCRD)
 	Injector.CRDs = append(Injector.CRDs, &multiclusterdnsv1alpha1.ServiceDNSRecordCRD)
+	Injector.CRDs = append(Injector.CRDs, &schedulingv1alpha1.JobSchedulingPreferenceCRD)
 	Injector.CRDs = append(Injector.CRDs, &schedulingv1alpha1.ReplicaSchedulingPreferenceCRD)
 	// Inject PolicyRules
 	Injector.PolicyRules = append(Injector.PolicyRules, rbacv1.PolicyRule{

@@ -27,12 +27,17 @@ import (
 
 type SchedulingV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	JobSchedulingPreferencesGetter
 	ReplicaSchedulingPreferencesGetter
 }
 
 // SchedulingV1alpha1Client is used to interact with features provided by the scheduling.federation.k8s.io group.
 type SchedulingV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *SchedulingV1alpha1Client) JobSchedulingPreferences(namespace string) JobSchedulingPreferenceInterface {
+	return newJobSchedulingPreferences(c, namespace)
 }
 
 func (c *SchedulingV1alpha1Client) ReplicaSchedulingPreferences(namespace string) ReplicaSchedulingPreferenceInterface {

@@ -28,6 +28,10 @@ type FakeSchedulingV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeSchedulingV1alpha1) JobSchedulingPreferences(namespace string) v1alpha1.JobSchedulingPreferenceInterface {
+	return &FakeJobSchedulingPreferences{c, namespace}
+}
+
 func (c *FakeSchedulingV1alpha1) ReplicaSchedulingPreferences(namespace string) v1alpha1.ReplicaSchedulingPreferenceInterface {
 	return &FakeReplicaSchedulingPreferences{c, namespace}
 }

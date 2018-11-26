@@ -121,6 +121,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Multiclusterdns().V1alpha1().ServiceDNSRecords().Informer()}, nil
 
 		// Group=scheduling.federation.k8s.io, Version=v1alpha1
+	case scheduling_v1alpha1.SchemeGroupVersion.WithResource("jobschedulingpreferences"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Scheduling().V1alpha1().JobSchedulingPreferences().Informer()}, nil
 	case scheduling_v1alpha1.SchemeGroupVersion.WithResource("replicaschedulingpreferences"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Scheduling().V1alpha1().ReplicaSchedulingPreferences().Informer()}, nil
 
