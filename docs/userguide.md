@@ -109,6 +109,17 @@ Check the status of the joined clusters until you verify they are ready:
 kubectl -n federation-system describe federatedclusters
 ```
 
+The output of `Status.Conditions` field should include cluster ready info as follows:
+
+```yaml
+Status:
+  Conditions:
+    ...
+    Reason:                ClusterReady
+    Status:                True
+    Type:                  Ready
+```
+
 ## Example
 
 Follow these instructions for running an example to verify your deployment is
