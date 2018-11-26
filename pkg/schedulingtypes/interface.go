@@ -20,6 +20,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -36,6 +37,13 @@ type Scheduler interface {
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
 
 	StartPlugin(typeConfig typeconfig.Interface, stopChan <-chan struct{}) error
+}
+
+type ScheduleResult interface {
+	PlacementUpdateNeeded(names []string) bool
+	OverrideUpdateNeeded(typeConfig typeconfig.Interface, obj *unstructured.Unstructured) bool
+	SetPlacementSpec(obj *unstructured.Unstructured)
+	SetOverrideSpec(obj *unstructured.Unstructured)
 }
 
 type SchedulerEventHandlers struct {

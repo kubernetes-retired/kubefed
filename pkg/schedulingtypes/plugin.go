@@ -18,8 +18,6 @@ package schedulingtypes
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/golang/glog"
@@ -158,14 +156,14 @@ func (p *Plugin) TemplateExists(key string) bool {
 	return exist
 }
 
-func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newClusterNames []string) error {
+func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, result ScheduleResult) error {
 	placement, err := p.placementClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
 		newPlacement := newUnstructured(p.typeConfig.GetPlacement(), qualifiedName)
-		setPlacementSpec(newPlacement, newClusterNames)
+		result.SetPlacementSpec(newPlacement)
 		_, err := p.placementClient.Resources(qualifiedName.Namespace).Create(newPlacement)
 		return err
 	}
@@ -174,8 +172,8 @@ func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newCluster
 	if err != nil {
 		return err
 	}
-	if PlacementUpdateNeeded(clusterNames, newClusterNames) {
-		setPlacementSpec(placement, newClusterNames)
+	if result.PlacementUpdateNeeded(clusterNames) {
+		result.SetPlacementSpec(placement)
 		_, err := p.placementClient.Resources(qualifiedName.Namespace).Update(placement)
 		if err != nil {
 			return err
@@ -185,7 +183,7 @@ func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newCluster
 	return nil
 }
 
-func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[string]int64) error {
+func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result ScheduleResult) error {
 	override, err := p.overrideClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -193,13 +191,13 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		}
 		apiResource := p.typeConfig.GetOverride()
 		newOverride := newUnstructured(*apiResource, qualifiedName)
-		setOverrideSpec(newOverride, result)
+		result.SetOverrideSpec(newOverride)
 		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
 		return err
 	}
 
-	if OverrideUpdateNeeded(p.typeConfig, override, result) {
-		setOverrideSpec(override, result)
+	if result.OverrideUpdateNeeded(p.typeConfig, override) {
+		result.SetOverrideSpec(override)
 		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
 		if err != nil {
 			return err
@@ -217,61 +215,4 @@ func newUnstructured(apiResource metav1.APIResource, qualifiedName util.Qualifie
 	obj.SetName(qualifiedName.Name)
 	obj.SetNamespace(qualifiedName.Namespace)
 	return obj
-}
-
-func setPlacementSpec(obj *unstructured.Unstructured, clusterNames []string) {
-	obj.Object[util.SpecField] = map[string]interface{}{
-		util.ClusterNamesField: clusterNames,
-	}
-}
-
-// These assume that there would be no duplicate clusternames
-func PlacementUpdateNeeded(names, newNames []string) bool {
-	sort.Strings(names)
-	sort.Strings(newNames)
-	return !reflect.DeepEqual(names, newNames)
-}
-
-func setOverrideSpec(obj *unstructured.Unstructured, result map[string]int64) {
-	overrides := []interface{}{}
-	for clusterName, replicas := range result {
-		overridesMap := map[string]interface{}{
-			util.ClusterNameField: clusterName,
-			replicasField:         replicas,
-		}
-		overrides = append(overrides, overridesMap)
-	}
-	obj.Object[util.SpecField] = map[string]interface{}{
-		util.OverridesField: overrides,
-	}
-}
-
-func OverrideUpdateNeeded(typeConfig typeconfig.Interface, obj *unstructured.Unstructured, result map[string]int64) bool {
-	kind := typeConfig.GetOverride().Kind
-	qualifiedName := util.NewQualifiedName(obj)
-
-	overrides, err := util.GetClusterOverrides(typeConfig, obj)
-	if err != nil {
-		wrappedErr := fmt.Errorf("Error reading cluster overrides for %s %q: %v", kind, qualifiedName, err)
-		runtime.HandleError(wrappedErr)
-		// Updating the overrides should hopefully fix the above problem
-		return true
-	}
-
-	resultLen := len(result)
-	checkLen := 0
-	for clusterName, clusterOverrides := range overrides {
-		for _, override := range clusterOverrides {
-			if strings.Join(override.Path, ".") == replicasPath {
-				value, ok := override.FieldValue.(int64)
-				replicas, ok := result[clusterName]
-				if !ok || value != int64(replicas) {
-					return true
-				}
-				checkLen += 1
-			}
-		}
-	}
-
-	return checkLen != resultLen
 }

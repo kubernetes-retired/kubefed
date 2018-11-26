@@ -19,12 +19,15 @@ package schedulingtypes
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
@@ -212,13 +215,8 @@ func (s *ReplicaScheduler) clusterNames() ([]string, error) {
 	return clusterNames, nil
 }
 
-func (s *ReplicaScheduler) ReconcileFederationTargets(qualifiedName QualifiedName, kind string, result map[string]int64) error {
-	newClusterNames := []string{}
-	for name := range result {
-		newClusterNames = append(newClusterNames, name)
-	}
-
-	err := s.plugins[kind].ReconcilePlacement(qualifiedName, newClusterNames)
+func (s *ReplicaScheduler) ReconcileFederationTargets(qualifiedName QualifiedName, kind string, result ScheduleResult) error {
+	err := s.plugins[kind].ReconcilePlacement(qualifiedName, result)
 	if err != nil {
 		return err
 	}
@@ -231,7 +229,7 @@ func (s *ReplicaScheduler) ReconcileFederationTargets(qualifiedName QualifiedNam
 	return nil
 }
 
-func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName QualifiedName, clusterNames []string) (map[string]int64, error) {
+func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName QualifiedName, clusterNames []string) (ScheduleResult, error) {
 	key := qualifiedName.String()
 
 	objectGetter := func(clusterName, key string) (interface{}, bool, error) {
@@ -277,22 +275,99 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 	return schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity), nil
 }
 
-func schedule(planner *planner.ReplicaPlanner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) map[string]int64 {
+type ReplicaScheduleResult struct {
+	result map[string]int64
+}
+
+func NewReplicaScheduleResult(result map[string]int64) *ReplicaScheduleResult {
+	return &ReplicaScheduleResult{
+		result: result,
+	}
+}
+
+func (r *ReplicaScheduleResult) clusterNames() []string {
+	clusterNames := []string{}
+	for name := range r.result {
+		clusterNames = append(clusterNames, name)
+	}
+	return clusterNames
+}
+
+func (r *ReplicaScheduleResult) SetPlacementSpec(obj *unstructured.Unstructured) {
+	obj.Object[util.SpecField] = map[string]interface{}{
+		util.ClusterNamesField: r.clusterNames(),
+	}
+}
+
+// This assumes that there would be no duplicate clusternames
+func (r *ReplicaScheduleResult) PlacementUpdateNeeded(names []string) bool {
+	newNames := r.clusterNames()
+	sort.Strings(names)
+	sort.Strings(newNames)
+	return !reflect.DeepEqual(names, newNames)
+}
+
+func (r *ReplicaScheduleResult) SetOverrideSpec(obj *unstructured.Unstructured) {
+	overrides := []interface{}{}
+	for clusterName, replicas := range r.result {
+		overridesMap := map[string]interface{}{
+			util.ClusterNameField: clusterName,
+			replicasField:         replicas,
+		}
+		overrides = append(overrides, overridesMap)
+	}
+	obj.Object[util.SpecField] = map[string]interface{}{
+		util.OverridesField: overrides,
+	}
+}
+
+func (r *ReplicaScheduleResult) OverrideUpdateNeeded(typeConfig typeconfig.Interface, obj *unstructured.Unstructured) bool {
+	kind := typeConfig.GetOverride().Kind
+	qualifiedName := util.NewQualifiedName(obj)
+
+	overrides, err := util.GetClusterOverrides(typeConfig, obj)
+	if err != nil {
+		wrappedErr := fmt.Errorf("Error reading cluster overrides for %s %q: %v", kind, qualifiedName, err)
+		runtime.HandleError(wrappedErr)
+		// Updating the overrides should hopefully fix the above problem
+		return true
+	}
+
+	resultLen := len(r.result)
+	checkLen := 0
+	for clusterName, clusterOverrides := range overrides {
+		for _, override := range clusterOverrides {
+			if strings.Join(override.Path, ".") == replicasPath {
+				value, ok := override.FieldValue.(int64)
+				replicas, ok := r.result[clusterName]
+				if !ok || value != int64(replicas) {
+					return true
+				}
+				checkLen += 1
+			}
+		}
+	}
+
+	return checkLen != resultLen
+}
+
+func schedule(planner *planner.ReplicaPlanner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) ScheduleResult {
 
 	scheduleResult, overflow := planner.Plan(clusterNames, currentReplicasPerCluster, estimatedCapacity, key)
 
 	// TODO: Check if we really need to place the template in clusters
 	// with 0 replicas. Override replicas would be set to 0 in this case.
-	result := make(map[string]int64)
+	r := &ReplicaScheduleResult{}
+	r.result = make(map[string]int64)
 	for clusterName := range currentReplicasPerCluster {
-		result[clusterName] = 0
+		r.result[clusterName] = 0
 	}
 
 	for clusterName, replicas := range scheduleResult {
-		result[clusterName] = replicas
+		r.result[clusterName] = replicas
 	}
 	for clusterName, replicas := range overflow {
-		result[clusterName] += replicas
+		r.result[clusterName] += replicas
 	}
 
 	if glog.V(4) {
@@ -312,7 +387,7 @@ func schedule(planner *planner.ReplicaPlanner, key string, clusterNames []string
 		}
 		glog.V(4).Infof(buf.String())
 	}
-	return result
+	return r
 }
 
 // clustersReplicaState returns information about the scheduling state of the pods running in the federated clusters.

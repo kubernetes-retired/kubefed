@@ -128,10 +128,10 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 						rspSpec = rspSpecWithClusterList(tc.total, tc.weight1, tc.weight2, tc.min1, tc.min2, clusterNames, templateKind)
 					}
 
-					expected := map[string]int32{
-						clusterNames[0]: tc.cluster1,
-						clusterNames[1]: tc.cluster2,
-					}
+					expected := schedulingtypes.NewReplicaScheduleResult(map[string]int64{
+						clusterNames[0]: int64(tc.cluster1),
+						clusterNames[1]: int64(tc.cluster2),
+					})
 
 					name, err := createTestObjs(fedClient, typeConfig, kubeConfig, rspSpec, namespace)
 					if err != nil {
@@ -209,17 +209,12 @@ func createTestObjs(fedClient clientset.Interface, typeConfig typeconfig.Interfa
 	return name, nil
 }
 
-func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected map[string]int32) error {
+func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected *schedulingtypes.ReplicaScheduleResult) error {
 	placementAPIResource := typeConfig.GetPlacement()
 	placementKind := placementAPIResource.Kind
 	client, err := util.NewResourceClientFromConfig(kubeConfig, &placementAPIResource)
 	if err != nil {
 		return err
-	}
-
-	expectedClusterNames := []string{}
-	for clusterName := range expected {
-		expectedClusterNames = append(expectedClusterNames, clusterName)
 	}
 
 	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
@@ -236,19 +231,17 @@ func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interf
 			tl.Errorf("An error occurred while retrieving cluster names for override %s %s/%s: %v", placementKind, namespace, name, err)
 			return false, nil
 		}
-		return !schedulingtypes.PlacementUpdateNeeded(clusterNames, expectedClusterNames), nil
+		return !expected.PlacementUpdateNeeded(clusterNames), nil
 	})
 }
 
-func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected32 map[string]int32) error {
+func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected *schedulingtypes.ReplicaScheduleResult) error {
 	overrideAPIResource := typeConfig.GetOverride()
 	overrideKind := overrideAPIResource.Kind
 	client, err := util.NewResourceClientFromConfig(kubeConfig, overrideAPIResource)
 	if err != nil {
 		return err
 	}
-
-	expected64 := int32MapToInt64(expected32)
 
 	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		override, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
@@ -258,14 +251,6 @@ func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interfa
 			}
 			return false, nil
 		}
-		return !schedulingtypes.OverrideUpdateNeeded(typeConfig, override, expected64), nil
+		return !expected.OverrideUpdateNeeded(typeConfig, override), nil
 	})
-}
-
-func int32MapToInt64(original map[string]int32) map[string]int64 {
-	result := make(map[string]int64)
-	for k, v := range original {
-		result[k] = int64(v)
-	}
-	return result
 }
