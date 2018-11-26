@@ -30,7 +30,8 @@ trap 'logEnd $?' EXIT
 
 echo "About to download some binaries. This might take a while..."
 
-GOBIN="$(go env GOPATH)/bin"
+GOPATH=$(go env GOPATH)
+GOBIN="${GOPATH}/bin"
 
 # kind
 # TODO(font): kind does not have versioning yet.
