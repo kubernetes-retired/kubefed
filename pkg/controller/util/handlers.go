@@ -53,9 +53,8 @@ func NewTriggerOnMetaAndSpecChanges(triggerFunc func(pkgruntime.Object)) *cache.
 		val := reflect.ValueOf(obj).Elem().FieldByName(fieldName)
 		if val.IsValid() {
 			return val.Interface()
-		} else {
-			panic(fmt.Errorf("field not found: %s", fieldName))
 		}
+		panic(fmt.Errorf("field not found: %s", fieldName))
 	}
 	return &cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(old interface{}) {
@@ -86,9 +85,8 @@ func NewTriggerOnMetaAndFieldChanges(field string, triggerFunc func(pkgruntime.O
 		val := reflect.ValueOf(obj).Elem().FieldByName(fieldName)
 		if val.IsValid() {
 			return val.Interface()
-		} else {
-			panic(fmt.Errorf("field not found: %s", fieldName))
 		}
+		panic(fmt.Errorf("field not found: %s", fieldName))
 	}
 	return &cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(old interface{}) {
