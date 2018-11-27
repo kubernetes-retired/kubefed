@@ -22,6 +22,7 @@ set -o nounset
 set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
+CREATE_INSECURE_REGISTRY="${CREATE_INSECURE_REGISTRY:-}"
 CONFIGURE_INSECURE_REGISTRY="${CONFIGURE_INSECURE_REGISTRY:-}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
@@ -29,14 +30,12 @@ OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
 kubeconfig="${HOME}/.kube/config"
 
-function create-and-configure-insecure-registry() {
+function create-insecure-registry() {
   # Run insecure registry as container
   docker run -d -p 5000:5000 --restart=always --name registry registry:2
+}
 
-  if [[ ! "${CONFIGURE_INSECURE_REGISTRY}" ]]; then
-    return
-  fi
-
+function configure-insecure-registry() {
   local err=
   if sudo test -f "${docker_daemon_config}"; then
     echo <<EOF "Error: ${docker_daemon_config} exists and \
@@ -55,12 +54,13 @@ EOF
   fi
 
   if [[ "${err}" ]]; then
-    docker kill registry &> /dev/null
-    docker rm registry &> /dev/null
+    if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
+      docker kill registry &> /dev/null
+      docker rm registry &> /dev/null
+    fi
     return 1
   fi
 
-  echo "Configuring container registry on host"
   configure-insecure-registry-and-reload "sudo bash -c" $(pgrep dockerd)
 }
 
@@ -142,8 +142,15 @@ function configure-insecure-registry-on-cluster() {
   configure-insecure-registry-and-reload "docker exec kind-${1}-control-plane bash -c" '$(pgrep dockerd)'
 }
 
-echo "Creating container registry on host"
-create-and-configure-insecure-registry
+if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
+  echo "Creating container registry on host"
+  create-insecure-registry
+fi
+
+if [[ "${CONFIGURE_INSECURE_REGISTRY}" ]]; then
+  echo "Configuring container registry on host"
+  configure-insecure-registry
+fi
 
 echo "Creating ${NUM_CLUSTERS} clusters"
 create-clusters ${NUM_CLUSTERS}
