@@ -103,7 +103,7 @@ func Run(opts *options.Options) error {
 	federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		schedulingmanager.StartSchedulerController(opts.Config, stopChan)
+		schedulingmanager.StartSchedulingManager(opts.Config, stopChan)
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {

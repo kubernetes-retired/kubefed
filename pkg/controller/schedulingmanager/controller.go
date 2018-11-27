@@ -36,7 +36,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type SchedulerController struct {
+type SchedulingManager struct {
 	// Store for the FederatedTypeConfig objects
 	store cache.Store
 	// Informer for the FederatedTypeConfig objects
@@ -52,9 +52,9 @@ type SchedulerController struct {
 	runningPlugins sets.String
 }
 
-func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) {
+func StartSchedulingManager(config *util.ControllerConfig, stopChan <-chan struct{}) {
 
-	userAgent := "SchedulerController"
+	userAgent := "SchedulingManager"
 	kubeConfig := config.KubeConfig
 	restclient.AddUserAgent(kubeConfig, userAgent)
 	client := fedclientset.NewForConfigOrDie(kubeConfig).CoreV1alpha1()
@@ -65,8 +65,8 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 	controller.Run(stopChan)
 }
 
-func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface, stopChan <-chan struct{}) *SchedulerController {
-	c := &SchedulerController{
+func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface, stopChan <-chan struct{}) *SchedulingManager {
+	c := &SchedulingManager{
 		scheduler:      make(map[string]schedulingtypes.Scheduler),
 		config:         config,
 		stopChan:       stopChan,
@@ -97,7 +97,7 @@ func newController(config *util.ControllerConfig, client corev1alpha1client.Core
 }
 
 // Run runs the Controller.
-func (c *SchedulerController) Run(stopChan <-chan struct{}) {
+func (c *SchedulingManager) Run(stopChan <-chan struct{}) {
 	go c.controller.Run(stopChan)
 
 	// wait for the caches to synchronize before starting the worker
@@ -109,7 +109,7 @@ func (c *SchedulerController) Run(stopChan <-chan struct{}) {
 	c.worker.Run(stopChan)
 }
 
-func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
 	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)

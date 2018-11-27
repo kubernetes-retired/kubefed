@@ -55,10 +55,10 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 	BeforeEach(func() {
 		clusterNames = f.ClusterNames(userAgent)
 		if framework.TestContext.TestManagedFederation {
-			fixture := managed.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
+			fixture := managed.NewSchedulingControllerFixture(tl, schedulingKind, f.ControllerConfig(), typeConfigs)
 			f.RegisterFixture(fixture)
 		} else if framework.TestContext.InMemoryControllers {
-			fixture := managed.NewSchedulerControllerFixture(tl, f.ControllerConfig())
+			fixture := managed.NewSchedulingManagerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
 		kubeConfig = f.KubeConfig()
