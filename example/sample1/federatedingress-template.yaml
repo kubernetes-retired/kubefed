@@ -1,0 +1,15 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedIngress
+metadata:
+  name: test-ingress
+  namespace: test-namespace
+spec:
+  template:
+    spec:
+      rules:
+      - host: ingress.example.com
+        http:
+          paths:
+          - backend:
+              serviceName: test-service
+              servicePort: 80
