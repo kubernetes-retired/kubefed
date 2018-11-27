@@ -21,6 +21,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+DELETE_INSECURE_REGISTRY="${DELETE_INSECURE_REGISTRY:-}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 
 function delete-insecure-registry() {
@@ -38,8 +39,10 @@ function delete-clusters() {
   done
 }
 
-echo "Deleting container registry on host"
-delete-insecure-registry
+if [[ "${DELETE_INSECURE_REGISTRY}" ]]; then
+  echo "Deleting container registry on host"
+  delete-insecure-registry
+fi
 
 echo "Deleting ${NUM_CLUSTERS} clusters"
 delete-clusters ${NUM_CLUSTERS}
