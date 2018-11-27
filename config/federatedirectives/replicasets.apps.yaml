@@ -4,5 +4,3 @@ metadata:
   name: replicasets.apps
 spec:
   comparisonField: Generation
-  overridePaths:
-    - path: spec.replicas

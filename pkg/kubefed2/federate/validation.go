@@ -17,9 +17,6 @@ limitations under the License.
 package federate
 
 import (
-	"fmt"
-	"strings"
-
 	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
@@ -55,28 +52,7 @@ func placementValidationSchema() *v1beta1.CustomResourceValidation {
 	})
 }
 
-func overrideValidationSchema(accessor schemaAccessor, overridePaths map[string][]string) (*v1beta1.CustomResourceValidation, error) {
-	// No schema accessor means the validation schema cannot be determined
-	if accessor == nil {
-		return nil, nil
-	}
-	fieldsSchema := map[string]v1beta1.JSONSchemaProps{
-		"clusterName": {
-			Type: "string",
-		},
-	}
-	for overrideName, pathEntries := range overridePaths {
-		fieldSchema, err := accessor.schemaForField(pathEntries)
-		errMsg := fmt.Sprintf("Unable to find validation schema for %q", strings.Join(pathEntries, "."))
-		if err != nil {
-			return nil, fmt.Errorf("%s: %v", errMsg, err)
-		}
-		if fieldSchema == nil {
-			return nil, fmt.Errorf(errMsg)
-		}
-		fieldsSchema[overrideName] = *fieldSchema
-	}
-
+func overrideValidationSchema() *v1beta1.CustomResourceValidation {
 	return ValidationSchema(v1beta1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]v1beta1.JSONSchemaProps{
@@ -84,13 +60,50 @@ func overrideValidationSchema(accessor schemaAccessor, overridePaths map[string]
 				Type: "array",
 				Items: &v1beta1.JSONSchemaPropsOrArray{
 					Schema: &v1beta1.JSONSchemaProps{
-						Type:       "object",
-						Properties: fieldsSchema,
+						Type: "object",
+						Properties: map[string]v1beta1.JSONSchemaProps{
+							"clusterName": {
+								Type: "string",
+							},
+							"clusterOverrides": {
+								Type: "array",
+								Items: &v1beta1.JSONSchemaPropsOrArray{
+									Schema: &v1beta1.JSONSchemaProps{
+										Type: "object",
+										Properties: map[string]v1beta1.JSONSchemaProps{
+											"path": {
+												Type: "string",
+											},
+											"value": {
+												// Supporting the override of an arbitrary field
+												// precludes up-front validation.  Errors in
+												// the definition of override values will need to
+												// be caught during propagation.
+												AnyOf: []v1beta1.JSONSchemaProps{
+													{
+														Type: "string",
+													},
+													{
+														Type: "integer",
+													},
+													{
+														Type: "boolean",
+													},
+													{
+														Type: "object",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 		},
-	}), nil
+	})
 }
 
 func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
@@ -103,6 +116,7 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 				"kind": {
 					Type: "string",
 				},
+				// TODO(marun) Add a comprehensive schema for metadata
 				"metadata": {
 					Type: "object",
 				},

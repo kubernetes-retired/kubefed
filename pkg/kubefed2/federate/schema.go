@@ -18,7 +18,6 @@ package federate
 
 import (
 	"fmt"
-	"strings"
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -33,7 +32,6 @@ import (
 
 type schemaAccessor interface {
 	templateSchema() map[string]apiextv1b1.JSONSchemaProps
-	schemaForField(pathEntries []string) (*apiextv1b1.JSONSchemaProps, error)
 }
 
 func newSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (schemaAccessor, error) {
@@ -80,28 +78,6 @@ func (a *crdSchemaAccessor) templateSchema() map[string]apiextv1b1.JSONSchemaPro
 	return nil
 }
 
-func (a *crdSchemaAccessor) schemaForField(pathEntries []string) (*apiextv1b1.JSONSchemaProps, error) {
-	if a.validation == nil || a.validation.OpenAPIV3Schema == nil ||
-		a.validation.OpenAPIV3Schema.Properties == nil {
-
-		return nil, fmt.Errorf("Validation schema not available for target CRD")
-	}
-	schemaMap := a.validation.OpenAPIV3Schema.Properties
-	path := strings.Join(pathEntries, ".")
-	var schema *apiextv1b1.JSONSchemaProps
-	for _, pathEntry := range pathEntries {
-		foundSchema, ok := schemaMap[pathEntry]
-		if !ok {
-			return nil, fmt.Errorf("Error finding schema for %q: %q missing from local map", path, pathEntry)
-		}
-		schema = &foundSchema
-		if schema.Properties != nil {
-			schemaMap = schema.Properties
-		}
-	}
-	return schema, nil
-}
-
 type openAPISchemaAccessor struct {
 	targetResource proto.Schema
 }
@@ -139,18 +115,6 @@ func (a *openAPISchemaAccessor) templateSchema() map[string]apiextv1b1.JSONSchem
 	a.targetResource.Accept(visitor)
 
 	return templateSchema.Properties
-}
-
-func (a *openAPISchemaAccessor) schemaForField(pathEntries []string) (*apiextv1b1.JSONSchemaProps, error) {
-	var fieldSchema *apiextv1b1.JSONSchemaProps
-	visitor := &fieldSchemaVistor{
-		collect: func(schema apiextv1b1.JSONSchemaProps) {
-			fieldSchema = &schema
-		},
-		pathEntries: pathEntries,
-	}
-	a.targetResource.Accept(visitor)
-	return fieldSchema, nil
 }
 
 // jsonSchemaVistor converts proto.Schema resources into json schema.
@@ -220,61 +184,6 @@ func (v *jsonSchemaVistor) VisitKind(k *proto.Kind) {
 }
 
 func (v *jsonSchemaVistor) VisitReference(r proto.Reference) {
-	r.SubSchema().Accept(v)
-}
-
-// fieldSchemaVistor determines the type and format of the given field
-// path.  Only primitive fields are supported, and this schema is
-// likely to be deprecated in favor of generic overrides in the near
-// future.
-type fieldSchemaVistor struct {
-	collect     func(schema apiextv1b1.JSONSchemaProps)
-	pathEntries []string
-}
-
-func (v *fieldSchemaVistor) VisitArray(a *proto.Array) {
-	// Arrays are not supported as override targets
-}
-
-func (v *fieldSchemaVistor) VisitMap(m *proto.Map) {
-	// Maps are only supported as direct override targets (
-	// e.g. secret 'data' field).  The simple path-based override
-	// mechanism doesn't have a way of expressing a path that includes
-	// an entry in a map (e.g. spec.mydata["foo"]).
-	mapSchema := apiextv1b1.JSONSchemaProps{
-		Type: "object",
-		AdditionalProperties: &apiextv1b1.JSONSchemaPropsOrBool{
-			Allows: true,
-		},
-	}
-	localVisitor := &jsonSchemaVistor{
-		collect: func(schema apiextv1b1.JSONSchemaProps) {
-			mapSchema.AdditionalProperties.Schema = &schema
-		},
-	}
-	m.SubType.Accept(localVisitor)
-	v.collect(mapSchema)
-}
-
-func (v *fieldSchemaVistor) VisitPrimitive(p *proto.Primitive) {
-	schema := schemaForPrimitive(p)
-	v.collect(schema)
-}
-
-func (v *fieldSchemaVistor) VisitKind(k *proto.Kind) {
-	for key, fieldSchema := range k.Fields {
-		if key == v.pathEntries[0] {
-			localVisitor := &fieldSchemaVistor{
-				collect:     v.collect,
-				pathEntries: v.pathEntries[1:],
-			}
-			fieldSchema.Accept(localVisitor)
-			break
-		}
-	}
-}
-
-func (v *fieldSchemaVistor) VisitReference(r proto.Reference) {
 	r.SubSchema().Accept(v)
 }
 

@@ -39,8 +39,11 @@ const (
 	ClusterNamesField = "clusterNames"
 
 	// Override fields
-	ClusterNameField = "clusterName"
-	OverridesField   = "overrides"
+	OverridesField        = "overrides"
+	ClusterNameField      = "clusterName"
+	ClusterOverridesField = "clusterOverrides"
+	PathField             = "path"
+	ValueField            = "value"
 )
 
 type ReconciliationStatus int

@@ -16,4 +16,6 @@ template:
             image: busybox
             command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
 overrides:
-  - replicas: 2
+  - clusterOverrides:
+    - path: spec.replicas
+      value: 2

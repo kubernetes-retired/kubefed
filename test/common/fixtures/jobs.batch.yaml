@@ -18,4 +18,6 @@ template:
             image: busybox
             command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
 overrides:
-  - parallelism: 2
+  - clusterOverrides:
+    - path: spec.parallelism
+      value: 2

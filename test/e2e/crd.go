@@ -89,11 +89,6 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Namespaced: namespaced,
 	}
 
-	overridePaths := []fedv1a1.OverridePath{
-		{
-			Path: "spec.bar",
-		},
-	}
 	validationSchema := federate.ValidationSchema(apiextv1b1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextv1b1.JSONSchemaProps{
@@ -145,7 +140,6 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 			PrimitiveGroup:   targetAPIResource.Group,
 			PrimitiveVersion: targetAPIResource.Version,
 			ComparisonField:  apicommon.ResourceVersionField,
-			OverridePaths:    overridePaths,
 		},
 	}
 
@@ -189,7 +183,9 @@ template:
   spec:
     bar: baz
 overrides:
-  - bar: foo
+  - clusterOverrides:
+    - path: bar
+      value: foo
 `
 		fixture := &unstructured.Unstructured{}
 		err = federate.DecodeYAML(strings.NewReader(fixtureYAML), fixture)
