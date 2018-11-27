@@ -104,9 +104,24 @@ var (
 							Type: "object",
 						},
 						"spec": v1beta1.JSONSchemaProps{
-							Type:       "object",
-							Properties: map[string]v1beta1.JSONSchemaProps{},
-						},
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterWeights": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"totalCompletions": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"totalParallelism": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+							},
+							Required: []string{
+								"totalParallelism",
+								"totalCompletions",
+							}},
 						"status": v1beta1.JSONSchemaProps{
 							Type:       "object",
 							Properties: map[string]v1beta1.JSONSchemaProps{},

@@ -943,6 +943,10 @@ var (
 												"clusterName": v1beta1.JSONSchemaProps{
 													Type: "string",
 												},
+												"completions": v1beta1.JSONSchemaProps{
+													Type:   "integer",
+													Format: "int32",
+												},
 												"parallelism": v1beta1.JSONSchemaProps{
 													Type:   "integer",
 													Format: "int32",

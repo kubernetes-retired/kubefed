@@ -1126,6 +1126,15 @@ func (in *FederatedJobClusterOverride) DeepCopyInto(out *FederatedJobClusterOver
 			**out = **in
 		}
 	}
+	if in.Completions != nil {
+		in, out := &in.Completions, &out.Completions
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int32)
+			**out = **in
+		}
+	}
 	return
 }
 
