@@ -43,6 +43,12 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
 
+const (
+	defaultComparisonField  = apicommon.ResourceVersionField
+	defaultPrimitiveGroup   = "primitives.federation.k8s.io"
+	defaultPrimitiveVersion = "v1alpha1"
+)
+
 var (
 	enable_long = `
 		Enables a Kubernetes API type (including a CRD) to be propagated
@@ -68,28 +74,29 @@ type enableTypeOptions struct {
 	targetName         string
 	targetVersion      string
 	rawComparisonField string
-	comparisonField    apicommon.VersionComparisonField
 	rawOverridePaths   string
-	overridePaths      []string
 	primitiveVersion   string
 	primitiveGroup     string
 	output             string
 	outputYAML         bool
+	filename           string
+	federateDirective  *FederateDirective
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
 // argument.
 func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.targetVersion, "version", "", "Optional, the API version of the target type.")
-	flags.StringVar(&o.rawComparisonField, "comparison-field", string(apicommon.ResourceVersionField),
+	flags.StringVar(&o.rawComparisonField, "comparison-field", string(defaultComparisonField),
 		fmt.Sprintf("The field in the target type to compare for equality. Valid values are %q (default) and %q.",
 			apicommon.ResourceVersionField, apicommon.GenerationField,
 		),
 	)
 	flags.StringVar(&o.rawOverridePaths, "override-paths", "", "A comma-separated list of dot-separated paths (e.g. spec.completions,spec.parallelism).")
-	flags.StringVar(&o.primitiveGroup, "primitive-group", "primitives.federation.k8s.io", "The name of the API group to use for generated federation primitives.")
-	flags.StringVar(&o.primitiveVersion, "primitive-version", "v1alpha1", "The API version to use for generated federation primitives.")
+	flags.StringVar(&o.primitiveGroup, "primitive-group", defaultPrimitiveGroup, "The name of the API group to use for generated federation primitives.")
+	flags.StringVar(&o.primitiveVersion, "primitive-version", defaultPrimitiveVersion, "The API version to use for generated federation primitives.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that will be created in the API will be output to stdout in the provided format.  Valid values are ['yaml'].")
+	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output wll be accepted from the command line")
 }
 
 // NewCmdFederateEnable defines the `federate enable` command that
@@ -124,32 +131,58 @@ func NewCmdFederateEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Comman
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *enableType) Complete(args []string) error {
-	if len(args) == 0 {
-		return errors.New("NAME is required")
-	}
-	j.targetName = args[0]
+	j.federateDirective = &FederateDirective{}
+	fd := j.federateDirective
 
-	if j.rawComparisonField == string(apicommon.ResourceVersionField) ||
-		j.rawComparisonField == string(apicommon.GenerationField) {
-		j.comparisonField = apicommon.VersionComparisonField(j.rawComparisonField)
-	} else {
-		return fmt.Errorf("--comparison-field must be %q or %q",
-			apicommon.ResourceVersionField, apicommon.GenerationField,
-		)
-	}
-	if len(j.rawOverridePaths) > 0 {
-		j.overridePaths = strings.Split(j.rawOverridePaths, ",")
-	}
-	if len(j.primitiveGroup) == 0 {
-		return errors.New("--primitive-group is a mandatory parameter")
-	}
-	if len(j.primitiveVersion) == 0 {
-		return errors.New("--primitive-version is a mandatory parameter")
-	}
+	fd.Spec.ComparisonField = defaultComparisonField
+	fd.Spec.PrimitiveGroup = defaultPrimitiveGroup
+	fd.Spec.PrimitiveVersion = defaultPrimitiveVersion
+
 	if j.output == "yaml" {
 		j.outputYAML = true
 	} else if len(j.output) > 0 {
 		return fmt.Errorf("Invalid value for --output: %s", j.output)
+	}
+
+	if len(j.filename) > 0 {
+		err := DecodeYAMLFromFile(j.filename, fd)
+		if err != nil {
+			return fmt.Errorf("Failed to load yaml from file %q: %v", j.filename, err)
+		}
+		return nil
+	}
+
+	if len(args) == 0 {
+		return errors.New("NAME is required")
+	}
+	fd.Name = args[0]
+
+	if j.rawComparisonField == string(apicommon.ResourceVersionField) ||
+		j.rawComparisonField == string(apicommon.GenerationField) {
+
+		fd.Spec.ComparisonField = apicommon.VersionComparisonField(j.rawComparisonField)
+	} else {
+		return fmt.Errorf("comparison field must be %q or %q",
+			apicommon.ResourceVersionField, apicommon.GenerationField,
+		)
+	}
+	if len(j.rawOverridePaths) > 0 {
+		for _, path := range strings.Split(j.rawOverridePaths, ",") {
+			fd.Spec.OverridePaths = append(fd.Spec.OverridePaths,
+				fedv1a1.OverridePath{
+					Path: path,
+				},
+			)
+		}
+	}
+	if len(j.targetVersion) > 0 {
+		fd.Spec.TargetVersion = j.targetVersion
+	}
+	if len(j.primitiveGroup) > 0 {
+		fd.Spec.PrimitiveGroup = j.primitiveGroup
+	}
+	if len(j.primitiveVersion) > 0 {
+		fd.Spec.PrimitiveVersion = j.primitiveVersion
 	}
 
 	return nil
@@ -162,9 +195,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return fmt.Errorf("Failed to get host cluster config: %v", err)
 	}
 
-	resources, err := GetResources(hostConfig, j.targetName,
-		j.targetVersion, j.FederationNamespace, j.primitiveGroup,
-		j.primitiveVersion, j.comparisonField, j.overridePaths)
+	resources, err := GetResources(hostConfig, j.federateDirective)
 	if err != nil {
 		return err
 	}
@@ -186,7 +217,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	err = CreateResources(cmdOut, hostConfig, resources)
+	err = CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace)
 	if err != nil {
 		return err
 	}
@@ -199,19 +230,14 @@ type typeResources struct {
 	CRDs       []*apiextv1b1.CustomResourceDefinition
 }
 
-func GetResources(config *rest.Config, key, targetVersion,
-	namespace, primitiveGroup, primitiveVersion string,
-	comparisonField apicommon.VersionComparisonField,
-	overridePaths []string) (*typeResources, error) {
-
-	apiResource, err := LookupAPIResource(config, key, targetVersion)
+func GetResources(config *rest.Config, federateDirective *FederateDirective) (*typeResources, error) {
+	apiResource, err := LookupAPIResource(config, federateDirective.Name, federateDirective.Spec.TargetVersion)
 	if err != nil {
 		return nil, err
 	}
 	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
 
-	typeConfig := typeConfigForTarget(*apiResource, namespace, primitiveGroup,
-		primitiveVersion, comparisonField, overridePaths)
+	typeConfig := typeConfigForTarget(*apiResource, federateDirective)
 
 	accessor, err := newSchemaAccessor(config, *apiResource)
 	if err != nil {
@@ -231,7 +257,7 @@ func GetResources(config *rest.Config, key, targetVersion,
 // TODO(marun) Allow updates to the configuration for a type that has
 // already been enabled for federation.  This would likely involve
 // updating the version of the target type and the validation of the schema.
-func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources) error {
+func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string) error {
 	write := func(data string) {
 		if cmdOut != nil {
 			cmdOut.Write([]byte(data))
@@ -255,7 +281,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		return fmt.Errorf("Failed to get federation clientset: %v", err)
 	}
 	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
-	_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(concreteTypeConfig.Namespace).Create(concreteTypeConfig)
+	_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(namespace).Create(concreteTypeConfig)
 	if err != nil {
 		return fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
 	}
@@ -264,11 +290,8 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	return nil
 }
 
-func typeConfigForTarget(apiResource metav1.APIResource, namespace,
-	primitiveGroup, primitiveVersion string,
-	comparisonField apicommon.VersionComparisonField,
-	overridePaths []string) typeconfig.Interface {
-
+func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *FederateDirective) typeconfig.Interface {
+	spec := federateDirective.Spec
 	kind := apiResource.Kind
 	typeConfig := &fedv1a1.FederatedTypeConfig{
 		// Explicitly including TypeMeta will ensure it will be
@@ -278,8 +301,7 @@ func typeConfigForTarget(apiResource metav1.APIResource, namespace,
 			APIVersion: "core.federation.k8s.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      groupQualifiedName(apiResource),
-			Namespace: namespace,
+			Name: groupQualifiedName(apiResource),
 		},
 		Spec: fedv1a1.FederatedTypeConfigSpec{
 			Target: fedv1a1.APIResource{
@@ -287,11 +309,11 @@ func typeConfigForTarget(apiResource metav1.APIResource, namespace,
 				Kind:    kind,
 			},
 			Namespaced:         apiResource.Namespaced,
-			ComparisonField:    comparisonField,
+			ComparisonField:    spec.ComparisonField,
 			PropagationEnabled: true,
 			Template: fedv1a1.APIResource{
-				Group:   primitiveGroup,
-				Version: primitiveVersion,
+				Group:   spec.PrimitiveGroup,
+				Version: spec.PrimitiveVersion,
 				Kind:    fmt.Sprintf("Federated%s", kind),
 			},
 			Placement: fedv1a1.APIResource{
@@ -299,15 +321,11 @@ func typeConfigForTarget(apiResource metav1.APIResource, namespace,
 			},
 		},
 	}
-	if len(overridePaths) > 0 {
+	if len(spec.OverridePaths) > 0 {
 		typeConfig.Spec.Override = &fedv1a1.APIResource{
 			Kind: fmt.Sprintf("Federated%sOverride", kind),
 		}
-		specPaths := []fedv1a1.OverridePath{}
-		for _, overridePath := range overridePaths {
-			specPaths = append(specPaths, fedv1a1.OverridePath{Path: overridePath})
-		}
-		typeConfig.Spec.OverridePaths = specPaths
+		typeConfig.Spec.OverridePaths = spec.OverridePaths
 	}
 	// Set defaults that would normally be set by the api
 	fedv1a1.SetFederatedTypeConfigDefaults(typeConfig)

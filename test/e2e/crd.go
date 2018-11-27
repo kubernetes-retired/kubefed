@@ -89,7 +89,11 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Namespaced: namespaced,
 	}
 
-	overridePaths := []string{"spec.bar"}
+	overridePaths := []fedv1a1.OverridePath{
+		{
+			Path: "spec.bar",
+		},
+	}
 	validationSchema := federate.ValidationSchema(apiextv1b1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextv1b1.JSONSchemaProps{
@@ -132,15 +136,26 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		tl.Fatalf("Timed out waiting for target type %q to be published as an available resource", targetName)
 	}
 
-	resources, err := federate.GetResources(hostConfig, targetAPIResource.Name,
-		targetAPIResource.Version, f.FederationSystemNamespace(), targetAPIResource.Group,
-		targetAPIResource.Version, apicommon.ResourceVersionField, overridePaths)
+	federateDirective := &federate.FederateDirective{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: targetAPIResource.Name,
+		},
+		Spec: federate.FederateDirectiveSpec{
+			TargetVersion:    targetAPIResource.Version,
+			PrimitiveGroup:   targetAPIResource.Group,
+			PrimitiveVersion: targetAPIResource.Version,
+			ComparisonField:  apicommon.ResourceVersionField,
+			OverridePaths:    overridePaths,
+		},
+	}
+
+	resources, err := federate.GetResources(hostConfig, federateDirective)
 	if err != nil {
 		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
 	typeConfig := resources.TypeConfig
 
-	err = federate.CreateResources(nil, hostConfig, resources)
+	err = federate.CreateResources(nil, hostConfig, resources, f.FederationSystemNamespace())
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
@@ -150,7 +165,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// TODO(marun) Make this more resilient so that removal of all
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
-		qualifiedName := util.QualifiedName{Namespace: objectMeta.Namespace, Name: objectMeta.Name}
+		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
 		err := federate.DisableFederation(nil, hostConfig, qualifiedName, delete, dryRun)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
@@ -178,8 +193,10 @@ spec:
     spec:
       bar: baz
 `
+
 		templateData := fmt.Sprintf(templateYaml, group, version, typeConfig.GetTemplate().Kind)
-		template, err = common.ReaderToObj(strings.NewReader(templateData))
+		template = &unstructured.Unstructured{}
+		err = federate.DecodeYAML(strings.NewReader(templateData), template)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("Error reading test template: %v", err)
 		}
@@ -203,7 +220,8 @@ spec:
     bar: foo
 `
 		overrideData := fmt.Sprintf(overrideYaml, group, version, typeConfig.GetOverride().Kind)
-		override, err = common.ReaderToObj(strings.NewReader(overrideData))
+		override = &unstructured.Unstructured{}
+		err = federate.DecodeYAML(strings.NewReader(overrideData), override)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("Error reading test override: %v", err)
 		}

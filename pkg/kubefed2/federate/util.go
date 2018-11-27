@@ -18,14 +18,32 @@ package federate
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 )
+
+func DecodeYAMLFromFile(filename string, obj interface{}) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return DecodeYAML(f, obj)
+}
+
+func DecodeYAML(r io.Reader, obj interface{}) error {
+	decoder := yaml.NewYAMLToJSONDecoder(r)
+	return decoder.Decode(obj)
+}
 
 func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.CustomResourceValidation) *apiextv1b1.CustomResourceDefinition {
 	scope := apiextv1b1.ClusterScoped

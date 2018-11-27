@@ -18,16 +18,14 @@ package common
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
@@ -44,7 +42,8 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 	if typeConfig.GetOverride() != nil {
 		filenameTemplate := fixtureFilenameTemplate(typeConfig)
 		overrideFilename := fmt.Sprintf(filenameTemplate, "override")
-		override, err = fileToObj(overrideFilename)
+		override = &unstructured.Unstructured{}
+		err := federate.DecodeYAMLFromFile(overrideFilename, override)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -61,7 +60,8 @@ func NewTestTemplate(typeConfig typeconfig.Interface, namespace string) (*unstru
 	filenameTemplate := fixtureFilenameTemplate(typeConfig)
 
 	templateFilename := fmt.Sprintf(filenameTemplate, "template")
-	template, err := fileToObj(templateFilename)
+	template := &unstructured.Unstructured{}
+	err := federate.DecodeYAMLFromFile(templateFilename, template)
 	if err != nil {
 		return nil, err
 	}
@@ -86,30 +86,11 @@ func fixturePath() string {
 	return filepath.Join(commonPath, "fixtures")
 }
 
-func fileToObj(filename string) (*unstructured.Unstructured, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	return ReaderToObj(f)
-}
-
-func ReaderToObj(r io.Reader) (*unstructured.Unstructured, error) {
-	decoder := yaml.NewYAMLToJSONDecoder(r)
-	obj := &unstructured.Unstructured{}
-	err := decoder.Decode(obj)
-	if err != nil {
-		return nil, err
-	}
-	return obj, nil
-}
-
 func GetPlacementTestObject(typeConfig typeconfig.Interface, namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
 	path := fixturePath()
 	placementFilename := filepath.Join(path, "placement.yaml")
-	placement, err := fileToObj(placementFilename)
+	placement := &unstructured.Unstructured{}
+	err := federate.DecodeYAMLFromFile(placementFilename, placement)
 	if err != nil {
 		return nil, err
 	}
