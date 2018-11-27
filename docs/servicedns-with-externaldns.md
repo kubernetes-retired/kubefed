@@ -42,7 +42,8 @@ providers.
 Setting-up MCSDNS can be accomplished by referencing the following documentation:
 
 - The Federation-v2 [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
-control-plane. If running in GKE, the cluster hosting the ExternalDNS controller must have scope
+control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/federation-v2/issues/370), the environment running
+the clusters must support service `type: LoadBalancer`. For the GKE deployment option, the cluster hosting the ExternalDNS controller must have scope
 `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with
 ExternalDNS. Reference your DNS provider documentation on how to create a domain or delegate a subdomain.
@@ -60,9 +61,15 @@ controller. You must ensure the following `args` are provided in the external-dn
     resources.
 
 After the cluster, federation control-plane, and external-dns controller are running, use the
-[sample](../example/sample1) federated deployment and service to test MCSDNS.
+[sample](../example/sample1) federated deployment and service to test MCSDNS. You must change the sample service type to
+`LoadBalancer` for the Service DNS controller to populate the status IP of the `ServiceDNSRecord` and the target IP's of
+the `DNSEndpoint`:
+```bash
+sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice-template.yaml
+```
 
-Check the status of all the resources in each cluster by running:
+You can now create the sample deployment and service using `kubectl`. Then check the status of all the resources in each
+cluster before proceeding:
 ```bash
 $ for r in deployment service; do
     for c in cluster1 cluster2; do
