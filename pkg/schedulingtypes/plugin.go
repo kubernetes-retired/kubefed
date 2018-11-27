@@ -32,11 +32,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	replicasField = "replicas"
-	replicasPath  = "spec.replicas"
-)
-
 type Plugin struct {
 	targetInformer util.FederatedInformer
 
@@ -205,6 +200,18 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result Sche
 	}
 
 	return nil
+}
+
+func (p *Plugin) ReadyClusterNames() ([]string, error) {
+	clusters, err := p.targetInformer.GetReadyClusters()
+	if err != nil {
+		return nil, err
+	}
+	clusterNames := []string{}
+	for _, cluster := range clusters {
+		clusterNames = append(clusterNames, cluster.Name)
+	}
+	return clusterNames, nil
 }
 
 func newUnstructured(apiResource metav1.APIResource, qualifiedName util.QualifiedName) *unstructured.Unstructured {

@@ -42,7 +42,9 @@ import (
 )
 
 const (
-	RSPKind = "ReplicaSchedulingPreference"
+	RSPKind       = "ReplicaSchedulingPreference"
+	replicasField = "replicas"
+	replicasPath  = "spec.replicas"
 )
 
 func init() {
