@@ -12,14 +12,12 @@ download and install a known working version.
 ./scripts/download-e2e-binaries.sh
 ```
 
-Make sure that your `GOBIN` directory is in your path as that is where `kind`
+Make sure that your `GOBIN` directory is in your `PATH` as that is where `kind`
 will be installed. Your `GOBIN` directory should be at `$(go env GOPATH)/bin`:
 
 ## Create Clusters
 
 You can proceed to create clusters once you have `kind` available in your path.
-The `NUM_CLUSTERS` is `2` by default. Set that variable before invoking the
-script if you'd like to change the default.
 
 ### Create Insecure Container Registry
 
@@ -27,7 +25,11 @@ Please answer the following question to determine if you need to set up an
 insecure container registry on your host:
 
 1. Are you planning on creating container images locally without pushing to a
-public container registry such as quay.io?
+   public container registry such as `quay.io`? For example, you can build your
+   own custom image e.g. `172.17.0.1:5000/<imagename>:<tag>`, as part of your
+   development workflow and push to this container registry . See the
+   [development guide](/docs/development.md#test-your-changes) for more
+   examples.
 
 If you answered yes, then you will need to create an insecure container
 registry. Creating a container registry is necessary if you want your kind
@@ -75,7 +77,8 @@ if a config already exists, or your docker daemon is already configured with an
 
 If you would like to manually make the changes to your docker daemon instead,
 add `172.17.0.1:5000` as an insecure registry host and reload or restart your
-docker daemon.
+docker daemon. See the [docker
+docs](https://docs.docker.com/registry/insecure/) for more details.
 
 ### Run Script
 
@@ -85,10 +88,14 @@ Run the following command to create `2` `kind` clusters:
 ./scripts/create-clusters.sh
 ```
 
-## Delete Clusters
+The `NUM_CLUSTERS` is `2` by default. Set that variable before invoking the
+script if you'd like to change the default:
 
-The NUM_CLUSTERS is 2 by default. Set that variable before invoking the script
-if you'd like to change the default.
+```bash
+NUM_CLUSTERS=<num> ./scripts/create-clusters.sh
+```
+
+## Delete Clusters
 
 ### Delete Insecure Container Registry
 
@@ -105,4 +112,11 @@ Run the following command to delete `2` `kind` clusters:
 
 ```bash
 ./scripts/delete-clusters.sh
+```
+
+The NUM_CLUSTERS is 2 by default. Set that variable before invoking the script
+if you'd like to change the default.
+
+```bash
+NUM_CLUSTERS=<num> ./scripts/delete-clusters.sh
 ```
