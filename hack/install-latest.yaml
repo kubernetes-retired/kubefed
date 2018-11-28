@@ -546,6 +546,9 @@ spec:
                 properties:
                   clusterName:
                     type: string
+                  completions:
+                    format: int32
+                    type: integer
                   parallelism:
                     format: int32
                     type: integer
@@ -1458,6 +1461,52 @@ spec:
               type: array
             domain:
               type: string
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 1.0.4
+  name: jobschedulingpreferences.scheduling.federation.k8s.io
+spec:
+  group: scheduling.federation.k8s.io
+  names:
+    kind: JobSchedulingPreference
+    plural: jobschedulingpreferences
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            clusterWeights:
+              type: object
+            totalCompletions:
+              format: int32
+              type: integer
+            totalParallelism:
+              format: int32
+              type: integer
+          required:
+          - totalParallelism
+          - totalCompletions
+          type: object
+        status:
           type: object
   version: v1alpha1
 status:
