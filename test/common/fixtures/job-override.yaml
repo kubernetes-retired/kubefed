@@ -7,3 +7,4 @@ spec:
   overrides:
     - clusterName: placeholder
       parallelism: 2
+      completions: 2

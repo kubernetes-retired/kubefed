@@ -19,3 +19,4 @@ spec:
     kind: FederatedJobOverride
   overridePaths:
     - path: spec.parallelism
+    - path: spec.completions

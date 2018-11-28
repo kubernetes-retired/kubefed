@@ -33,14 +33,16 @@ import (
 )
 
 const (
-	JobSchedulingKind = "JobSchedulingPreference"
-	parallelismField  = "parallelism"
-	completionsField  = "completions"
+	JSPKind          = "JobSchedulingPreference"
+	ParallelismField = "parallelism"
+	CompletionsField = "completions"
+	ParallelismPath  = "spec.parallelism"
+	CompletionsPath  = "spec.completions"
 )
 
 func init() {
 	schedulingType := SchedulingType{
-		Kind:             JobSchedulingKind,
+		Kind:             JSPKind,
 		SchedulerFactory: NewJobScheduler,
 	}
 	RegisterSchedulingType("jobs.batch", schedulingType)
@@ -96,7 +98,7 @@ func (j *JobScheduler) FedWatch(namespace string, options metav1.ListOptions) (w
 }
 
 func (j *JobScheduler) Start(stopChan <-chan struct{}) {
-	j.plugin.Start(stopChan)
+	// NOOP
 }
 
 func (j *JobScheduler) HasSynced() bool {
@@ -154,12 +156,12 @@ type ClusterJobValues struct {
 }
 
 type JobScheduleResult struct {
-	result map[string]ClusterJobValues
+	Result map[string]ClusterJobValues
 }
 
-func (r *JobScheduleResult) clusterNames() []string {
+func (r *JobScheduleResult) ClusterNames() []string {
 	clusterNames := []string{}
-	for name := range r.result {
+	for name := range r.Result {
 		clusterNames = append(clusterNames, name)
 	}
 	return clusterNames
@@ -167,7 +169,7 @@ func (r *JobScheduleResult) clusterNames() []string {
 
 func (r *JobScheduleResult) SetPlacementSpec(obj *unstructured.Unstructured) {
 	obj.Object[util.SpecField] = map[string]interface{}{
-		util.ClusterNamesField: r.clusterNames(),
+		util.ClusterNamesField: r.ClusterNames(),
 	}
 }
 
@@ -178,11 +180,11 @@ func (r *JobScheduleResult) PlacementUpdateNeeded(names []string) bool {
 
 func (r *JobScheduleResult) SetOverrideSpec(obj *unstructured.Unstructured) {
 	overrides := []interface{}{}
-	for clusterName, values := range r.result {
+	for clusterName, values := range r.Result {
 		overridesMap := map[string]interface{}{
 			util.ClusterNameField: clusterName,
-			parallelismField:      values.Parallelism,
-			completionsField:      values.Completions,
+			ParallelismField:      values.Parallelism,
+			CompletionsField:      values.Completions,
 		}
 		overrides = append(overrides, overridesMap)
 	}
@@ -222,6 +224,6 @@ func (j *JobScheduler) schedule(jsp *fedschedulingv1a1.JobSchedulingPreference, 
 	}
 
 	return &JobScheduleResult{
-		result: result,
+		Result: result,
 	}
 }
