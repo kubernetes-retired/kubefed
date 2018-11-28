@@ -19,15 +19,12 @@ package e2e
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -179,20 +176,10 @@ func rspSpecWithClusterList(total int32, w1, w2, min1, min2 int64, clusters []st
 }
 
 func createTestObjs(fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
-	templateAPIResource := typeConfig.GetTemplate()
-	templateClient, err := util.NewResourceClientFromConfig(kubeConfig, &templateAPIResource)
+	name, err := createTemplate(typeConfig, kubeConfig, namespace)
 	if err != nil {
 		return "", err
 	}
-	template, err := common.NewTestTemplate(typeConfig, namespace)
-	if err != nil {
-		return "", err
-	}
-	createdTemplate, err := templateClient.Resources(namespace).Create(template)
-	if err != nil {
-		return "", err
-	}
-	name := createdTemplate.GetName()
 
 	rsp := &fedschedulingv1a1.ReplicaSchedulingPreference{
 		ObjectMeta: metav1.ObjectMeta{
@@ -207,50 +194,4 @@ func createTestObjs(fedClient clientset.Interface, typeConfig typeconfig.Interfa
 	}
 
 	return name, nil
-}
-
-func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected *schedulingtypes.ReplicaScheduleResult) error {
-	placementAPIResource := typeConfig.GetPlacement()
-	placementKind := placementAPIResource.Kind
-	client, err := util.NewResourceClientFromConfig(kubeConfig, &placementAPIResource)
-	if err != nil {
-		return err
-	}
-
-	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		placement, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				tl.Errorf("An error occurred while polling for %s %s/%s: %v", placementKind, namespace, name, err)
-			}
-			return false, nil
-		}
-
-		clusterNames, err := util.GetClusterNames(placement)
-		if err != nil {
-			tl.Errorf("An error occurred while retrieving cluster names for override %s %s/%s: %v", placementKind, namespace, name, err)
-			return false, nil
-		}
-		return !expected.PlacementUpdateNeeded(clusterNames), nil
-	})
-}
-
-func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected *schedulingtypes.ReplicaScheduleResult) error {
-	overrideAPIResource := typeConfig.GetOverride()
-	overrideKind := overrideAPIResource.Kind
-	client, err := util.NewResourceClientFromConfig(kubeConfig, overrideAPIResource)
-	if err != nil {
-		return err
-	}
-
-	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		override, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				tl.Errorf("An error occurred while polling for %s %s/%s: %v", overrideKind, namespace, name, err)
-			}
-			return false, nil
-		}
-		return !expected.OverrideUpdateNeeded(typeConfig, override), nil
-	})
 }
