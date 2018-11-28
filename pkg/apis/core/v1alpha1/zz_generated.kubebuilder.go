@@ -452,6 +452,7 @@ var (
 								"propagationEnabled",
 								"template",
 								"placement",
+								"override",
 							}},
 						"status": v1beta1.JSONSchemaProps{
 							Type: "object",
