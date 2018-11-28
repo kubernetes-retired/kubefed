@@ -116,8 +116,7 @@ func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desi
 	var override *unstructured.Unstructured
 	if desiredOverride != nil {
 		desiredOverride.SetName(name)
-		overrideAPIResource := c.typeConfig.GetOverride()
-		override = c.createFedResource(*overrideAPIResource, desiredOverride)
+		override = c.createFedResource(c.typeConfig.GetOverride(), desiredOverride)
 	}
 
 	desiredTemplate.SetName(name)

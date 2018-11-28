@@ -30,7 +30,7 @@ type Interface interface {
 	GetPropagationEnabled() bool
 	GetTemplate() metav1.APIResource
 	GetPlacement() metav1.APIResource
-	GetOverride() *metav1.APIResource
+	GetOverride() metav1.APIResource
 	GetStatus() *metav1.APIResource
 	GetEnableStatus() bool
 }

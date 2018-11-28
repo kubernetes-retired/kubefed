@@ -277,7 +277,7 @@ func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interf
 func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected32 map[string]int32) error {
 	overrideAPIResource := typeConfig.GetOverride()
 	overrideKind := overrideAPIResource.Kind
-	client, err := util.NewResourceClientFromConfig(kubeConfig, overrideAPIResource)
+	client, err := util.NewResourceClientFromConfig(kubeConfig, &overrideAPIResource)
 	if err != nil {
 		return err
 	}

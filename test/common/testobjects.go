@@ -39,12 +39,9 @@ func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNa
 		return nil, nil, nil, err
 	}
 
-	overrideAPIResource := typeConfig.GetOverride()
-	if overrideAPIResource != nil {
-		override, err = newTestOverride(*overrideAPIResource, namespace, clusterNames, fixture)
-		if err != nil {
-			return nil, nil, nil, err
-		}
+	override, err = newTestOverride(typeConfig.GetOverride(), namespace, clusterNames, fixture)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	return template, placement, override, nil

@@ -299,7 +299,7 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 			Placement: fedv1a1.APIResource{
 				Kind: fmt.Sprintf("Federated%sPlacement", kind),
 			},
-			Override: &fedv1a1.APIResource{
+			Override: fedv1a1.APIResource{
 				Kind: fmt.Sprintf("Federated%sOverride", kind),
 			},
 		},
@@ -339,7 +339,7 @@ func primitiveCRDs(typeConfig typeconfig.Interface, accessor schemaAccessor) ([]
 	crds = append(crds, CrdForAPIResource(typeConfig.GetPlacement(), placementSchema))
 
 	overrideSchema := overrideValidationSchema()
-	crds = append(crds, CrdForAPIResource(*typeConfig.GetOverride(), overrideSchema))
+	crds = append(crds, CrdForAPIResource(typeConfig.GetOverride(), overrideSchema))
 
 	return crds, nil
 }
