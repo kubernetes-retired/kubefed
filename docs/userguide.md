@@ -169,12 +169,16 @@ kubectl apply -f example/propagation/federatednamespace-placement.yaml
 
 ### Update FederatedNamespacePlacement
 
-Add both clusters via a patch command or manually:
+Add both clusters via a patch command:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
     --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\", \"${MEMBER_CLUSTER}\"]}}"
+```
 
+Or add both clusters manually:
+
+```bash
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
 
@@ -241,12 +245,16 @@ done
 
 ### Update FederatedNamespacePlacement
 
-Remove `MEMBER_CLUSTER` via a patch command or manually:
+Remove `MEMBER_CLUSTER` via a patch command:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
     --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\"]}}"
+```
 
+Or remove `MEMBER_CLUSTER` manually:
+
+```bash
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
 
@@ -263,13 +271,17 @@ done
 ```
 
 We can quickly add back all the resources by simply updating the
-`FederatedNamespacePlacement` to add `MEMBER_CLUSTER` again via a patch command or
-manually:
+`FederatedNamespacePlacement` to add `MEMBER_CLUSTER` again via a patch
+command:
 
 ```bash
 kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
     --type=merge -p "{\"spec\":{\"clusterNames\": [\"${HOST_CLUSTER}\", \"${MEMBER_CLUSTER}\"]}}"
+```
 
+Or add `MEMBER_CLUSTER` again manually:
+
+```bash
 kubectl -n test-namespace edit federatednamespaceplacement test-namespace
 ```
 
