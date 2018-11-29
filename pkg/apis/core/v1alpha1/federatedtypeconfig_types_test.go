@@ -159,6 +159,16 @@ func TestPluralName(t *testing.T) {
 			plural: "waltzs",
 			expect: false,
 		},
+		{
+			name:   "serviceentry",
+			plural: "serviceentrys",
+			expect: false,
+		},
+		{
+			name:   "serviceentry",
+			plural: "serviceentries",
+			expect: true,
+		},
 	}
 
 	for _, rt := range tests {
