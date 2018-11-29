@@ -25,7 +25,7 @@ Please answer the following question to determine if you need to set up an
 insecure container registry on your host:
 
 1. Are you planning on creating container images locally without pushing to a
-   public container registry such as `quay.io`? For example, you can build your
+   public container registry such as `quay.io`. For example, you can build your
    own custom image e.g. `172.17.0.1:5000/<imagename>:<tag>`, as part of your
    development workflow and push to this container registry . See the
    [development guide](/docs/development.md#test-your-changes) for more
@@ -114,8 +114,8 @@ Run the following command to delete `2` `kind` clusters:
 ./scripts/delete-clusters.sh
 ```
 
-The NUM_CLUSTERS is 2 by default. Set that variable before invoking the script
-if you'd like to change the default.
+The `NUM_CLUSTERS` is `2` by default. Set that variable before invoking the script
+if you'd like to change the default:
 
 ```bash
 NUM_CLUSTERS=<num> ./scripts/delete-clusters.sh
