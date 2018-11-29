@@ -191,7 +191,6 @@ spec:
     version: v1
     kind: Bar
   namespaced: true
-  comparisonField: Generation
   propagationEnabled: true
   template:
     group: federation.example.io

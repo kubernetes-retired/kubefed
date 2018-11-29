@@ -34,8 +34,7 @@ type ClusterPropagatedVersionSpec struct {
 // ClusterPropagatedVersion encodes the kind and name of the resource
 // it stores information for. The type of version information stored
 // in ClusterPropagatedVersion will be the metadata.resourceVersion or
-// metadata.Generation of the resource depending on the value of
-// spec.comparisonField in the FederatedTypeConfig associated with the
+// metadata.Generation of the resource depending on the kind of the
 // resource.
 //
 // +k8s:openapi-gen=true

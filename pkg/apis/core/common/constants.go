@@ -25,12 +25,3 @@ const (
 	// ClusterOffline means the cluster is temporarily down or not reachable
 	ClusterOffline ClusterConditionType = "Offline"
 )
-
-type VersionComparisonField string
-
-const (
-	// ResourceVersionComparison indicates comparison via the ResourceVersion field
-	ResourceVersionField VersionComparisonField = "ResourceVersion"
-	// GenerationComparison indicates comparison via the Generation field
-	GenerationField = "Generation"
-)

@@ -1102,8 +1102,6 @@ spec:
           type: object
         spec:
           properties:
-            comparisonField:
-              type: string
             enableStatus:
               type: boolean
             namespaced:
@@ -1189,7 +1187,6 @@ spec:
           required:
           - target
           - namespaced
-          - comparisonField
           - propagationEnabled
           - template
           - placement

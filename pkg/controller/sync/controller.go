@@ -195,10 +195,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		fedClient, templateAPIResource.Namespaced, templateAPIResource.Kind, targetAPIResource.Kind, targetNamespace,
 	)
 
-	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.GetComparisonField())
-	if err != nil {
-		return nil, err
-	}
+	s.comparisonHelper = util.NewComparisonHelper(targetAPIResource.Kind)
 
 	// Federated informer on the resource type in members of federation.
 	s.informer = util.NewFederatedInformer(

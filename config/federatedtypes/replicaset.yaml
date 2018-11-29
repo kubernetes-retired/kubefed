@@ -7,7 +7,6 @@ spec:
     version: v1
     kind: ReplicaSet
   namespaced: true
-  comparisonField: Generation
   propagationEnabled: true
   template:
     group: core.federation.k8s.io

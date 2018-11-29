@@ -35,7 +35,6 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
-	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -44,7 +43,6 @@ import (
 )
 
 const (
-	defaultComparisonField  = apicommon.ResourceVersionField
 	defaultPrimitiveGroup   = "primitives.federation.k8s.io"
 	defaultPrimitiveVersion = "v1alpha1"
 )
@@ -71,27 +69,21 @@ type enableType struct {
 }
 
 type enableTypeOptions struct {
-	targetName         string
-	targetVersion      string
-	rawComparisonField string
-	rawOverridePaths   string
-	primitiveVersion   string
-	primitiveGroup     string
-	output             string
-	outputYAML         bool
-	filename           string
-	federateDirective  *FederateDirective
+	targetName        string
+	targetVersion     string
+	rawOverridePaths  string
+	primitiveVersion  string
+	primitiveGroup    string
+	output            string
+	outputYAML        bool
+	filename          string
+	federateDirective *FederateDirective
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
 // argument.
 func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.targetVersion, "version", "", "Optional, the API version of the target type.")
-	flags.StringVar(&o.rawComparisonField, "comparison-field", string(defaultComparisonField),
-		fmt.Sprintf("The field in the target type to compare for equality. Valid values are %q (default) and %q.",
-			apicommon.ResourceVersionField, apicommon.GenerationField,
-		),
-	)
 	flags.StringVar(&o.rawOverridePaths, "override-paths", "", "A comma-separated list of dot-separated paths (e.g. spec.completions,spec.parallelism).")
 	flags.StringVar(&o.primitiveGroup, "primitive-group", defaultPrimitiveGroup, "The name of the API group to use for generated federation primitives.")
 	flags.StringVar(&o.primitiveVersion, "primitive-version", defaultPrimitiveVersion, "The API version to use for generated federation primitives.")
@@ -134,7 +126,6 @@ func (j *enableType) Complete(args []string) error {
 	j.federateDirective = &FederateDirective{}
 	fd := j.federateDirective
 
-	fd.Spec.ComparisonField = defaultComparisonField
 	fd.Spec.PrimitiveGroup = defaultPrimitiveGroup
 	fd.Spec.PrimitiveVersion = defaultPrimitiveVersion
 
@@ -157,15 +148,6 @@ func (j *enableType) Complete(args []string) error {
 	}
 	fd.Name = args[0]
 
-	if j.rawComparisonField == string(apicommon.ResourceVersionField) ||
-		j.rawComparisonField == string(apicommon.GenerationField) {
-
-		fd.Spec.ComparisonField = apicommon.VersionComparisonField(j.rawComparisonField)
-	} else {
-		return fmt.Errorf("comparison field must be %q or %q",
-			apicommon.ResourceVersionField, apicommon.GenerationField,
-		)
-	}
 	if len(j.rawOverridePaths) > 0 {
 		for _, path := range strings.Split(j.rawOverridePaths, ",") {
 			fd.Spec.OverridePaths = append(fd.Spec.OverridePaths,
@@ -309,7 +291,6 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 				Kind:    kind,
 			},
 			Namespaced:         apiResource.Namespaced,
-			ComparisonField:    spec.ComparisonField,
 			PropagationEnabled: true,
 			Template: fedv1a1.APIResource{
 				Group:   spec.PrimitiveGroup,

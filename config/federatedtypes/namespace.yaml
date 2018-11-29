@@ -7,7 +7,6 @@ spec:
     version: v1
     kind: Namespace
   namespaced: false
-  comparisonField: ResourceVersion
   propagationEnabled: true
   template:
     version: v1

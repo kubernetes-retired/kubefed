@@ -22,7 +22,6 @@ import (
 
 	"github.com/pborman/uuid"
 
-	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -144,7 +143,6 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 			TargetVersion:    targetAPIResource.Version,
 			PrimitiveGroup:   targetAPIResource.Group,
 			PrimitiveVersion: targetAPIResource.Version,
-			ComparisonField:  apicommon.ResourceVersionField,
 			OverridePaths:    overridePaths,
 		},
 	}

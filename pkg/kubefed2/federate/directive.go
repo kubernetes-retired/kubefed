@@ -19,7 +19,6 @@ package federate
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 )
 
@@ -28,10 +27,6 @@ type FederateDirectiveSpec struct {
 	// The API version of the target type.
 	// +optional
 	TargetVersion string `json:"targetVersion,omitempty"`
-
-	// Which field of the target type determines whether federation
-	// considers two resources to be equal.
-	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 
 	// The name of the API group to use for generated federation primitives.
 	// +optional
@@ -57,7 +52,6 @@ type FederateDirective struct {
 }
 
 func (ft *FederateDirective) SetDefaults() {
-	ft.Spec.ComparisonField = defaultComparisonField
 	ft.Spec.PrimitiveGroup = defaultPrimitiveGroup
 	ft.Spec.PrimitiveVersion = defaultPrimitiveVersion
 }

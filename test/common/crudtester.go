@@ -69,15 +69,10 @@ type TestCluster struct {
 }
 
 func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
-	compare, err := util.NewComparisonHelper(typeConfig.GetComparisonField())
-	if err != nil {
-		return nil, err
-	}
-
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
-		comparisonHelper:   compare,
+		comparisonHelper:   util.NewComparisonHelper(typeConfig.GetTarget().Kind),
 		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
 		pool:               dynamic.NewDynamicClientPool(kubeConfig),
 		testClusters:       testClusters,

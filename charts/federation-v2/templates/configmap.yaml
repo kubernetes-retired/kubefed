@@ -7,7 +7,6 @@ spec:
     version: v1
     kind: ConfigMap
   namespaced: true
-  comparisonField: ResourceVersion
   propagationEnabled: true
   template:
     group: core.federation.k8s.io

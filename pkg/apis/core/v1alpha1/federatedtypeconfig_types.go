@@ -21,8 +21,6 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 )
 
 // FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig.
@@ -35,9 +33,6 @@ type FederatedTypeConfigSpec struct {
 	// (template, placement, overrides) for the type will share this
 	// characteristic.
 	Namespaced bool `json:"namespaced"`
-	// Which field of the target type determines whether federation
-	// considers two resources to be equal.
-	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 	// Whether or not propagation to member clusters should be enabled.
 	PropagationEnabled bool `json:"propagationEnabled"`
 	// Configuration for the template type that holds the base definition of
@@ -203,10 +198,6 @@ func (f *FederatedTypeConfig) GetTarget() metav1.APIResource {
 
 func (f *FederatedTypeConfig) GetNamespaced() bool {
 	return f.Spec.Namespaced
-}
-
-func (f *FederatedTypeConfig) GetComparisonField() common.VersionComparisonField {
-	return f.Spec.ComparisonField
 }
 
 func (f *FederatedTypeConfig) GetPropagationEnabled() bool {

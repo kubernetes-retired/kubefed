@@ -17,12 +17,10 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,18 +30,16 @@ type ComparisonHelper interface {
 	Equivalent(objMeta1, objectMeta2 metav1.Object) bool
 }
 
-// NewComparisonHelper instantiates and returns a Resource or Generation Helper
-// struct that implements the ComparisonHelper interface based on the version
-// comparison type passed in.
-func NewComparisonHelper(comparisonField common.VersionComparisonField) (ComparisonHelper, error) {
-	switch comparisonField {
-	case common.ResourceVersionField:
-		return &ResourceHelper{}, nil
-	case common.GenerationField:
-		return &GenerationHelper{}, nil
-	default:
-		return nil, fmt.Errorf("Unrecognized version comparison field %v", comparisonField)
+// NewComparisonHelper instantiates and returns a Resource or
+// Generation Helper struct that implements the ComparisonHelper
+// interface based the kind passed in.
+func NewComparisonHelper(targetKind string) ComparisonHelper {
+	// Namespaces don't have a generation field, so the only
+	// field-based comparison possible is with resourceVersion.
+	if targetKind == NamespaceKind {
+		return &ResourceHelper{}
 	}
+	return &GenerationHelper{}
 }
 
 type GenerationHelper struct{}
