@@ -1,0 +1,9 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederateDirective
+metadata:
+  name: services
+## TODO(marun) enable status generation
+# spec:
+#   status:
+#     kind: FederatedServiceStatus
+#   enableStatus: true

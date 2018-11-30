@@ -1,7 +1,0 @@
-apiVersion: placeholder
-kind: placeholder
-metadata:
-  name: placeholder
-spec:
-  clusterNames:
-    - placeholder

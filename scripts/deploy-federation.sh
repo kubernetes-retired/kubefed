@@ -142,13 +142,14 @@ kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registr
 # TODO(marun) Ensure federatdtypeconfig is available before creating instances
 # TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
 
+go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
+
 # Enable available types
-for filename in ./config/federatedtypes/*.yaml; do
-  kubectl -n "${NS}" apply -f "${filename}"
+for filename in ./config/federatedirectives/*.yaml; do
+  ./bin/kubefed2 federate enable -f "${filename}" --federation-namespace="${NS}"
 done
 
 # Join the host cluster
-go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
 CONTEXT="$(kubectl config current-context)"
 ./bin/kubefed2 join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
 

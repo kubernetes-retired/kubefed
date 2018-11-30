@@ -17,52 +17,61 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	. "github.com/onsi/ginkgo"
 )
 
 type testObjectAccessor func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error)
 
-var _ = Describe("Federated types", func() {
+var _ = Describe("Federated", func() {
 	f := framework.NewFederationFramework("federated-types")
 
 	tl := framework.NewE2ELogger()
 
-	typeConfigs := common.TypeConfigsOrDie(tl)
+	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 
-	for i := range typeConfigs {
-		// Bind the type config inside the loop to ensure the ginkgo
-		// closure gets a different value for every loop iteration.
-		//
-		// Reference: https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
-		typeConfig := typeConfigs[i]
-		templateKind := typeConfig.GetTemplate().Kind
-
-		Describe(fmt.Sprintf("%q resources", templateKind), func() {
+	for key := range typeConfigFixtures {
+		typeConfigName := key
+		fixture := typeConfigFixtures[key]
+		Describe(fmt.Sprintf("%q", typeConfigName), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				if templateKind == util.NamespaceKind {
-					// TODO (font): e2e tests for federated Namespace using a
-					// test managed federation does not work until k8s
-					// namespace controller is added.
-					if framework.TestContext.TestManagedFederation {
-						framework.Skipf("%s not supported for test managed federation.", templateKind)
-					}
-					if framework.TestContext.LimitedScope {
-						// It is not possible to propagate namespaces when namespaced.
-						framework.Skipf("%s federation not supported for namespaced control plane.", templateKind)
-					}
+				// TODO (font): e2e tests for federated Namespace using a
+				// test managed federation does not work until k8s
+				// namespace controller is added.
+				if typeConfigName == util.NamespaceName && framework.TestContext.TestManagedFederation {
+					framework.Skipf("Federated %s not supported for test managed federation.", typeConfigName)
+				}
+
+				// Lookup the type config from the api
+				dynClient, err := client.New(f.KubeConfig(), client.Options{})
+				if err != nil {
+					tl.Fatalf("Error initializing dynamic client: %v", err)
+				}
+				typeConfig := &fedv1a1.FederatedTypeConfig{}
+				key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
+				err = dynClient.Get(context.Background(), key, typeConfig)
+				if err != nil {
+					tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
+				}
+
+				if framework.TestContext.LimitedScope && !typeConfig.GetNamespaced() {
+					framework.Skipf("Federation of cluster-scoped type %s is not supported by a namespaced control plane.", typeConfigName)
 				}
 
 				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-					return common.NewTestObjects(typeConfig, namespace, clusterNames)
+					return common.NewTestObjects(typeConfig, namespace, clusterNames, fixture)
 				}
 				validateCrud(f, tl, typeConfig, testObjectFunc)
 			})

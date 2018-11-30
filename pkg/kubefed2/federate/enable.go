@@ -131,12 +131,8 @@ func NewCmdFederateEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Comman
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *enableType) Complete(args []string) error {
-	j.federateDirective = &FederateDirective{}
+	j.federateDirective = NewFederateDirective()
 	fd := j.federateDirective
-
-	fd.Spec.ComparisonField = defaultComparisonField
-	fd.Spec.PrimitiveGroup = defaultPrimitiveGroup
-	fd.Spec.PrimitiveVersion = defaultPrimitiveVersion
 
 	if j.output == "yaml" {
 		j.outputYAML = true
@@ -311,15 +307,21 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 			Namespaced:         apiResource.Namespaced,
 			ComparisonField:    spec.ComparisonField,
 			PropagationEnabled: true,
-			Template: fedv1a1.APIResource{
-				Group:   spec.PrimitiveGroup,
-				Version: spec.PrimitiveVersion,
-				Kind:    fmt.Sprintf("Federated%s", kind),
-			},
 			Placement: fedv1a1.APIResource{
 				Kind: fmt.Sprintf("Federated%sPlacement", kind),
 			},
 		},
+	}
+	if typeConfig.Name == ctlutil.NamespaceName {
+		typeConfig.Spec.Template = typeConfig.Spec.Target
+		typeConfig.Spec.Placement.Group = spec.PrimitiveGroup
+		typeConfig.Spec.Placement.Version = spec.PrimitiveVersion
+	} else {
+		typeConfig.Spec.Template = fedv1a1.APIResource{
+			Group:   spec.PrimitiveGroup,
+			Version: spec.PrimitiveVersion,
+			Kind:    fmt.Sprintf("Federated%s", kind),
+		}
 	}
 	if len(spec.OverridePaths) > 0 {
 		typeConfig.Spec.Override = &fedv1a1.APIResource{

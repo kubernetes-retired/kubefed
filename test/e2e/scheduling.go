@@ -17,13 +17,16 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -43,27 +46,53 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 
 	userAgent := "rsp-test"
 
-	typeConfigs := common.TypeConfigsOrDie(tl)
-
-	schedulingKind := schedulingtypes.RSPKind
+	schedulingTypes := make(map[string]schedulingtypes.SchedulerFactory)
+	for typeConfigName, schedulingType := range schedulingtypes.SchedulingTypes() {
+		if schedulingType.Kind != schedulingtypes.RSPKind {
+			continue
+		}
+		schedulingTypes[typeConfigName] = schedulingType.SchedulerFactory
+	}
+	if len(schedulingTypes) == 0 {
+		tl.Fatalf("No target types found for scheduling type %q", schedulingtypes.RSPKind)
+	}
 
 	var kubeConfig *restclient.Config
 	var fedClient fedclientset.Interface
 	var namespace string
 	var clusterNames []string
+	typeConfigs := make(map[string]typeconfig.Interface)
 
 	BeforeEach(func() {
-		clusterNames = f.ClusterNames(userAgent)
-		if framework.TestContext.TestManagedFederation {
-			fixture := managed.NewRSPControllerFixture(tl, f.ControllerConfig(), typeConfigs)
-			f.RegisterFixture(fixture)
-		} else if framework.TestContext.InMemoryControllers {
+		// The following setup is shared across tests but must be
+		// performed at test time rather than at test collection.
+		if kubeConfig == nil {
+			dynClient, err := client.New(f.KubeConfig(), client.Options{})
+			if err != nil {
+				tl.Fatalf("Error initializing dynamic client: %v", err)
+			}
+			for targetTypeName := range schedulingTypes {
+				typeConfig := &fedv1a1.FederatedTypeConfig{}
+				key := client.ObjectKey{
+					Namespace: f.FederationSystemNamespace(),
+					Name:      targetTypeName,
+				}
+				err = dynClient.Get(context.Background(), key, typeConfig)
+				if err != nil {
+					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
+				}
+				typeConfigs[targetTypeName] = typeConfig
+			}
+
+			clusterNames = f.ClusterNames(userAgent)
+			fedClient = f.FedClient(userAgent)
+			kubeConfig = f.KubeConfig()
+		}
+		namespace = f.TestNamespaceName()
+		if framework.TestContext.RunControllers() {
 			fixture := managed.NewSchedulerControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
-		kubeConfig = f.KubeConfig()
-		fedClient = f.FedClient(userAgent)
-		namespace = f.TestNamespaceName()
 	})
 
 	testCases := map[string]struct {
@@ -102,20 +131,19 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 		},
 	}
 
-	for i := range typeConfigs {
-		typeConfig := typeConfigs[i]
+	for key := range schedulingTypes {
+		typeConfigName := key
 
-		schedulingType := schedulingtypes.GetSchedulingType(typeConfig.GetObjectMeta().Name)
-		if schedulingType == nil || schedulingType.Kind != schedulingKind {
-			continue
-		}
-
-		// TODO(marun) Rename RSP field s/TargetKind/TemplateKind/
-		templateKind := typeConfig.GetTemplate().Kind
-
-		Describe(fmt.Sprintf("scheduling for %s", templateKind), func() {
+		Describe(fmt.Sprintf("scheduling for federated %s", typeConfigName), func() {
 			for testName, tc := range testCases {
 				It(fmt.Sprintf("should result in %s", testName), func() {
+
+					typeConfig, ok := typeConfigs[typeConfigName]
+					if !ok {
+						tl.Fatalf("Unable to find type config for %q", typeConfigName)
+					}
+					templateKind := typeConfig.GetTemplate().Kind
+
 					clusterCount := len(clusterNames)
 					if clusterCount != 2 {
 						framework.Skipf("Tests of ReplicaSchedulingPreferences requires 2 clusters but got: %d", clusterCount)
@@ -133,7 +161,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 						clusterNames[1]: tc.cluster2,
 					}
 
-					name, err := createTestObjs(fedClient, typeConfig, kubeConfig, rspSpec, namespace)
+					name, err := createTestObjs(tl, fedClient, typeConfig, kubeConfig, rspSpec, namespace)
 					if err != nil {
 						tl.Fatalf("Creation of test objects failed in federation: %v", err)
 					}
@@ -178,13 +206,19 @@ func rspSpecWithClusterList(total int32, w1, w2, min1, min2 int64, clusters []st
 	return rspSpec
 }
 
-func createTestObjs(fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
+func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
 	templateAPIResource := typeConfig.GetTemplate()
 	templateClient, err := util.NewResourceClientFromConfig(kubeConfig, &templateAPIResource)
 	if err != nil {
 		return "", err
 	}
-	template, err := common.NewTestTemplate(typeConfig, namespace)
+	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
+	typeConfigName := typeConfig.GetObjectMeta().Name
+	fixture, ok := typeConfigFixtures[typeConfigName]
+	if !ok {
+		return "", fmt.Errorf("Unable to find fixture for %q", typeConfigName)
+	}
+	template, err := common.NewTestTemplate(typeConfig.GetTemplate(), namespace, fixture)
 	if err != nil {
 		return "", err
 	}

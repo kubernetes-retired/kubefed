@@ -125,6 +125,9 @@ check-kubebuilder-output
 echo "Checking that hack/install-latest.yaml is up-to-date"
 check-install-yaml
 
+echo "Checking that fixture is available for all federate directives"
+./scripts/check-directive-fixtures.sh
+
 echo "Building federation binaries"
 build-binaries
 

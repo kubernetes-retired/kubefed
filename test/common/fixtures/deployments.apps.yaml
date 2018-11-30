@@ -1,0 +1,19 @@
+kind: fixture
+template:
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        foo: bar
+    template:
+      metadata:
+        labels:
+          foo: bar
+      spec:
+        terminationGracePeriodSeconds: 0
+        containers:
+          - name: busybox
+            image: busybox
+            command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
+overrides:
+  - replicas: 2

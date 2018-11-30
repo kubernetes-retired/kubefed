@@ -29,28 +29,6 @@ type CoreV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClusterPropagatedVersionsGetter
 	FederatedClustersGetter
-	FederatedConfigMapsGetter
-	FederatedConfigMapOverridesGetter
-	FederatedConfigMapPlacementsGetter
-	FederatedDeploymentsGetter
-	FederatedDeploymentOverridesGetter
-	FederatedDeploymentPlacementsGetter
-	FederatedIngressesGetter
-	FederatedIngressPlacementsGetter
-	FederatedJobsGetter
-	FederatedJobOverridesGetter
-	FederatedJobPlacementsGetter
-	FederatedNamespacePlacementsGetter
-	FederatedReplicaSetsGetter
-	FederatedReplicaSetOverridesGetter
-	FederatedReplicaSetPlacementsGetter
-	FederatedSecretsGetter
-	FederatedSecretOverridesGetter
-	FederatedSecretPlacementsGetter
-	FederatedServicesGetter
-	FederatedServiceAccountsGetter
-	FederatedServiceAccountPlacementsGetter
-	FederatedServicePlacementsGetter
 	FederatedServiceStatusesGetter
 	FederatedTypeConfigsGetter
 	PropagatedVersionsGetter
@@ -67,94 +45,6 @@ func (c *CoreV1alpha1Client) ClusterPropagatedVersions() ClusterPropagatedVersio
 
 func (c *CoreV1alpha1Client) FederatedClusters(namespace string) FederatedClusterInterface {
 	return newFederatedClusters(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedConfigMaps(namespace string) FederatedConfigMapInterface {
-	return newFederatedConfigMaps(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedConfigMapOverrides(namespace string) FederatedConfigMapOverrideInterface {
-	return newFederatedConfigMapOverrides(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedConfigMapPlacements(namespace string) FederatedConfigMapPlacementInterface {
-	return newFederatedConfigMapPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedDeployments(namespace string) FederatedDeploymentInterface {
-	return newFederatedDeployments(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedDeploymentOverrides(namespace string) FederatedDeploymentOverrideInterface {
-	return newFederatedDeploymentOverrides(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedDeploymentPlacements(namespace string) FederatedDeploymentPlacementInterface {
-	return newFederatedDeploymentPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedIngresses(namespace string) FederatedIngressInterface {
-	return newFederatedIngresses(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedIngressPlacements(namespace string) FederatedIngressPlacementInterface {
-	return newFederatedIngressPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedJobs(namespace string) FederatedJobInterface {
-	return newFederatedJobs(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedJobOverrides(namespace string) FederatedJobOverrideInterface {
-	return newFederatedJobOverrides(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedJobPlacements(namespace string) FederatedJobPlacementInterface {
-	return newFederatedJobPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedNamespacePlacements(namespace string) FederatedNamespacePlacementInterface {
-	return newFederatedNamespacePlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedReplicaSets(namespace string) FederatedReplicaSetInterface {
-	return newFederatedReplicaSets(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedReplicaSetOverrides(namespace string) FederatedReplicaSetOverrideInterface {
-	return newFederatedReplicaSetOverrides(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedReplicaSetPlacements(namespace string) FederatedReplicaSetPlacementInterface {
-	return newFederatedReplicaSetPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedSecrets(namespace string) FederatedSecretInterface {
-	return newFederatedSecrets(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedSecretOverrides(namespace string) FederatedSecretOverrideInterface {
-	return newFederatedSecretOverrides(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedSecretPlacements(namespace string) FederatedSecretPlacementInterface {
-	return newFederatedSecretPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedServices(namespace string) FederatedServiceInterface {
-	return newFederatedServices(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedServiceAccounts(namespace string) FederatedServiceAccountInterface {
-	return newFederatedServiceAccounts(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedServiceAccountPlacements(namespace string) FederatedServiceAccountPlacementInterface {
-	return newFederatedServiceAccountPlacements(c, namespace)
-}
-
-func (c *CoreV1alpha1Client) FederatedServicePlacements(namespace string) FederatedServicePlacementInterface {
-	return newFederatedServicePlacements(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) FederatedServiceStatuses(namespace string) FederatedServiceStatusInterface {

@@ -1,0 +1,8 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederateDirective
+metadata:
+  name: jobs.batch
+spec:
+  comparisonField: Generation
+  overridePaths:
+    - path: spec.parallelism

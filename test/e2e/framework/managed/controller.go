@@ -24,12 +24,10 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 )
 
@@ -95,38 +93,6 @@ func NewClusterControllerFixture(config *util.ControllerConfig) *ControllerFixtu
 	}
 	monitorPeriod := 1 * time.Second
 	federatedcluster.StartClusterController(config, f.stopChan, monitorPeriod)
-	return f
-}
-
-// NewRSPControllerFixture initializes a new RSP controller fixture.
-func NewRSPControllerFixture(tl common.TestLogger, config *util.ControllerConfig, typeConfigs []typeconfig.Interface) *ControllerFixture {
-	f := &ControllerFixture{
-		stopChan: make(chan struct{}),
-	}
-
-	schedulingKind := schedulingtypes.RSPKind
-	var scheduler schedulingtypes.Scheduler
-	for _, typeConfig := range typeConfigs {
-		schedulingType := schedulingtypes.GetSchedulingType(typeConfig.GetObjectMeta().Name)
-		if schedulingType == nil || schedulingType.Kind != schedulingKind {
-			continue
-		}
-
-		if scheduler == nil {
-			var err error
-			scheduler, err = schedulingpreference.StartSchedulingPreferenceController(config, *schedulingType, f.stopChan)
-			if err != nil {
-				tl.Fatalf("Error starting ReplicaSchedulingPreference controller: %v", err)
-			}
-		}
-
-		err := scheduler.StartPlugin(typeConfig, f.stopChan)
-		if err != nil {
-			templateKind := typeConfig.GetTemplate().Kind
-			tl.Fatalf("Error starting ReplicaSchedulingPreference plugin for %q : %v", templateKind, err)
-		}
-	}
-
 	return f
 }
 

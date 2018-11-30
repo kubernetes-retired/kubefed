@@ -24,8 +24,10 @@ import (
 const (
 	NoResyncPeriod time.Duration = 0 * time.Second
 
+	NamespaceName = "namespaces"
 	NamespaceKind = "Namespace"
-	ServiceKind   = "Service"
+
+	ServiceKind = "Service"
 
 	// The following fields are used to interact with unstructured
 	// resources.

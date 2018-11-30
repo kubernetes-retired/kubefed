@@ -17,12 +17,14 @@ limitations under the License.
 package e2e
 
 import (
-	"fmt"
+	"context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -38,7 +40,7 @@ var _ = Describe("Placement", func() {
 
 	tl := framework.NewE2ELogger()
 
-	typeConfigs := common.TypeConfigsOrDie(tl)
+	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 
 	// TODO(marun) Since this test only targets namespaced federation,
 	// concurrent test isolation against unmanaged fixture is
@@ -50,13 +52,30 @@ var _ = Describe("Placement", func() {
 			framework.Skipf("Considering namespace placement when determining resource placement is not supported for cluster-scoped federation.")
 		}
 
-		// Select the first non-namespace type config
+		dynClient, err := client.New(f.KubeConfig(), client.Options{})
+		if err != nil {
+			tl.Fatalf("Error initializing dynamic client: %v", err)
+		}
+
+		// Select the first namespaced type config
 		var selectedTypeConfig typeconfig.Interface
-		for _, typeConfig := range typeConfigs {
-			if typeConfig.GetTemplate().Kind != util.NamespaceKind {
-				selectedTypeConfig = typeConfig
-				break
+		var fixture *unstructured.Unstructured
+		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
+			typeConfig := &fedv1a1.FederatedTypeConfig{}
+			key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
+			err = dynClient.Get(context.Background(), key, typeConfig)
+			if errors.IsNotFound(err) {
+				continue
 			}
+			if err != nil {
+				tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
+			}
+			if !typeConfig.GetNamespaced() {
+				continue
+			}
+			selectedTypeConfig = typeConfig
+			fixture = typeConfigFixture
+			break
 		}
 		if selectedTypeConfig == nil {
 			tl.Fatal("Unable to find non-namespace type config")
@@ -64,7 +83,7 @@ var _ = Describe("Placement", func() {
 
 		// Propagate a resource to member clusters
 		testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-			return common.NewTestObjects(selectedTypeConfig, namespace, clusterNames)
+			return common.NewTestObjects(selectedTypeConfig, namespace, clusterNames, fixture)
 		}
 		crudTester, desiredTemplate, desiredPlacement, desiredOverride := initCrudTest(f, tl, selectedTypeConfig, testObjectFunc)
 		template, _, _ := crudTester.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
@@ -75,24 +94,31 @@ var _ = Describe("Placement", func() {
 
 		namespace := f.TestNamespaceName()
 
-		// Create namespace placement with no clusters.
-		client := f.FedClient("placement")
-		placementKey := fmt.Sprintf("%s/%s", namespace, namespace)
-		_, err := client.CoreV1alpha1().FederatedNamespacePlacements(namespace).Create(&fedv1a1.FederatedNamespacePlacement{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      namespace,
-			},
-		})
+		dynclient, err := client.New(f.KubeConfig(), client.Options{})
 		if err != nil {
-			tl.Fatalf("Error creating FederatedNamespacePlacement %s/%s: %v", placementKey, err)
+			tl.Fatalf("Error initializing dynamic client: %v", err)
+		}
+
+		namespacePlacement := &unstructured.Unstructured{}
+		// TODO(marun) Source this from the ns type config
+		namespacePlacement.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "primitives.federation.k8s.io",
+			Kind:    "FederatedNamespacePlacement",
+			Version: "v1alpha1",
+		})
+		namespacePlacement.SetNamespace(namespace)
+		namespacePlacement.SetName(namespace)
+		placementKey := util.NewQualifiedName(namespacePlacement).String()
+		err = dynclient.Create(context.Background(), namespacePlacement)
+		if err != nil {
+			tl.Fatalf("Error creating FederatedNamespacePlacement %q: %v", placementKey, err)
 		}
 		tl.Logf("Created new FederatedNamespacePlacement %q", placementKey)
 		// Ensure the removal of the namespace placement to avoid affecting other tests.
 		defer func() {
-			err := client.CoreV1alpha1().FederatedNamespacePlacements(namespace).Delete(namespace, nil)
+			err := dynclient.Delete(context.Background(), namespacePlacement)
 			if err != nil && !errors.IsNotFound(err) {
-				tl.Fatalf("Error deleting FederatedNamespacePlacement %s/%s: %v", namespace, namespace, err)
+				tl.Fatalf("Error deleting FederatedNamespacePlacement %q: %v", placementKey, err)
 			}
 			tl.Logf("Deleted FederatedNamespacePlacement %q", placementKey)
 		}()

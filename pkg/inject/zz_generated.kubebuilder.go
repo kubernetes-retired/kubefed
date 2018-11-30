@@ -40,72 +40,6 @@ func init() {
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedCluster{}, arguments.Informers.Core().V1alpha1().FederatedClusters()); err != nil {
 			return err
 		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedConfigMap{}, arguments.Informers.Core().V1alpha1().FederatedConfigMaps()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedConfigMapOverride{}, arguments.Informers.Core().V1alpha1().FederatedConfigMapOverrides()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedConfigMapPlacement{}, arguments.Informers.Core().V1alpha1().FederatedConfigMapPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedDeployment{}, arguments.Informers.Core().V1alpha1().FederatedDeployments()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedDeploymentOverride{}, arguments.Informers.Core().V1alpha1().FederatedDeploymentOverrides()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedDeploymentPlacement{}, arguments.Informers.Core().V1alpha1().FederatedDeploymentPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedIngress{}, arguments.Informers.Core().V1alpha1().FederatedIngresses()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedIngressPlacement{}, arguments.Informers.Core().V1alpha1().FederatedIngressPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedJob{}, arguments.Informers.Core().V1alpha1().FederatedJobs()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedJobOverride{}, arguments.Informers.Core().V1alpha1().FederatedJobOverrides()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedJobPlacement{}, arguments.Informers.Core().V1alpha1().FederatedJobPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedNamespacePlacement{}, arguments.Informers.Core().V1alpha1().FederatedNamespacePlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedReplicaSet{}, arguments.Informers.Core().V1alpha1().FederatedReplicaSets()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedReplicaSetOverride{}, arguments.Informers.Core().V1alpha1().FederatedReplicaSetOverrides()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedReplicaSetPlacement{}, arguments.Informers.Core().V1alpha1().FederatedReplicaSetPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedSecret{}, arguments.Informers.Core().V1alpha1().FederatedSecrets()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedSecretOverride{}, arguments.Informers.Core().V1alpha1().FederatedSecretOverrides()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedSecretPlacement{}, arguments.Informers.Core().V1alpha1().FederatedSecretPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedService{}, arguments.Informers.Core().V1alpha1().FederatedServices()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceAccount{}, arguments.Informers.Core().V1alpha1().FederatedServiceAccounts()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceAccountPlacement{}, arguments.Informers.Core().V1alpha1().FederatedServiceAccountPlacements()); err != nil {
-			return err
-		}
-		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServicePlacement{}, arguments.Informers.Core().V1alpha1().FederatedServicePlacements()); err != nil {
-			return err
-		}
 		if err := arguments.ControllerManager.AddInformerProvider(&corev1alpha1.FederatedServiceStatus{}, arguments.Informers.Core().V1alpha1().FederatedServiceStatuses()); err != nil {
 			return err
 		}
@@ -139,28 +73,6 @@ func init() {
 	// Inject CRDs
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.ClusterPropagatedVersionCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedClusterCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedConfigMapCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedConfigMapOverrideCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedConfigMapPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedDeploymentCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedDeploymentOverrideCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedDeploymentPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedIngressCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedIngressPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedJobCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedJobOverrideCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedJobPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedNamespacePlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedReplicaSetCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedReplicaSetOverrideCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedReplicaSetPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedSecretCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedSecretOverrideCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedSecretPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceAccountPlacementCRD)
-	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServicePlacementCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedServiceStatusCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.FederatedTypeConfigCRD)
 	Injector.CRDs = append(Injector.CRDs, &corev1alpha1.PropagatedVersionCRD)
