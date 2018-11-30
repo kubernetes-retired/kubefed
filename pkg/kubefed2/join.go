@@ -62,11 +62,18 @@ var (
 
 	// Policy rules allowing full access to resources in the cluster
 	// or namespace.
-	adminPolicyRules = []rbacv1.PolicyRule{
+	namespacedPolicyRules = []rbacv1.PolicyRule{
 		{
 			Verbs:     []string{rbacv1.VerbAll},
 			APIGroups: []string{rbacv1.APIGroupAll},
 			Resources: []string{rbacv1.ResourceAll},
+		},
+	}
+	clusterPolicyRules = []rbacv1.PolicyRule{
+		namespacedPolicyRules[0],
+		{
+			NonResourceURLs: []string{rbacv1.NonResourceAll},
+			Verbs:           []string{"get"},
 		},
 	}
 )
@@ -430,14 +437,26 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 	if limitedScope {
 		glog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-		err = createNamespacedRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun)
+		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun)
 		if err != nil {
-			glog.V(2).Infof("Error creating role and binding for service account: %s in joining cluster: %s due to: %v",
-				saName, joiningClusterName, err)
+			glog.V(2).Infof("Error creating role and binding for service account: %s in joining cluster: %s due to: %v", saName, joiningClusterName, err)
 			return nil, err
 		}
 
 		glog.V(2).Infof("Created role and binding for service account: %s in joining cluster: %s",
+			saName, joiningClusterName)
+
+		glog.V(2).Infof("Creating health check cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+
+		err = createHealthCheckClusterRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName,
+			dryRun)
+		if err != nil {
+			glog.V(2).Infof("Error creating health check cluster role and binding for service account: %s in joining cluster: %s due to: %v",
+				saName, joiningClusterName, err)
+			return nil, err
+		}
+
+		glog.V(2).Infof("Created health check cluster role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
 
 	} else {
@@ -453,18 +472,6 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 		glog.V(2).Infof("Created cluster role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
 	}
-
-	glog.V(2).Infof("Creating common cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
-
-	err = createCommonClusterRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun)
-	if err != nil {
-		glog.V(2).Infof("Error creating common cluster role and binding for service account: %s in joining cluster: %s due to: %v",
-			saName, joiningClusterName, err)
-		return nil, err
-	}
-
-	glog.V(2).Infof("Created common cluster role and binding for service account: %s in joining cluster: %s",
-		saName, joiningClusterName)
 
 	glog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
 
@@ -531,7 +538,7 @@ func createClusterRoleAndBinding(clientset client.Interface, saName, namespace, 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleName,
 		},
-		Rules: adminPolicyRules,
+		Rules: clusterPolicyRules,
 	}
 	_, err := clientset.RbacV1().ClusterRoles().Create(role)
 	if err != nil {
@@ -562,10 +569,10 @@ func createClusterRoleAndBinding(clientset client.Interface, saName, namespace, 
 	return nil
 }
 
-// createNamespacedRoleAndBinding creates an RBAC role and binding
+// createRoleAndBinding creates an RBAC role and binding
 // that allows the service account identified by saName to access all
 // resources in the specified namespace.
-func createNamespacedRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun bool) error {
+func createRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -576,7 +583,7 @@ func createNamespacedRoleAndBinding(clientset client.Interface, saName, namespac
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleName,
 		},
-		Rules: adminPolicyRules,
+		Rules: namespacedPolicyRules,
 	}
 	_, err := clientset.RbacV1().Roles(namespace).Create(role)
 	if err != nil {
@@ -606,15 +613,15 @@ func createNamespacedRoleAndBinding(clientset client.Interface, saName, namespac
 	return nil
 }
 
-// createCommonClusterRoleAndBinding creates an RBAC cluster role and
+// createHealthCheckClusterRoleAndBinding creates an RBAC cluster role and
 // binding that allows the service account identified by saName to
 // access the health check path of the cluster.
-func createCommonClusterRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun bool) error {
+func createHealthCheckClusterRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
 
-	roleName := util.CommonClusterRoleName(saName)
+	roleName := util.HealthCheckRoleName(saName)
 
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -636,7 +643,7 @@ func createCommonClusterRoleAndBinding(clientset client.Interface, saName, names
 	}
 	_, err := clientset.RbacV1().ClusterRoles().Create(role)
 	if err != nil {
-		glog.V(2).Infof("Could not create common cluster role for service account: %s in joining cluster: %s due to: %v",
+		glog.V(2).Infof("Could not create health check cluster role for service account: %s in joining cluster: %s due to: %v",
 			saName, clusterName, err)
 		return err
 	}
@@ -654,7 +661,7 @@ func createCommonClusterRoleAndBinding(clientset client.Interface, saName, names
 	}
 	_, err = clientset.RbacV1().ClusterRoleBindings().Create(&binding)
 	if err != nil {
-		glog.V(2).Infof("Could not create common cluster role binding for service account: %s in joining cluster: %s due to: %v",
+		glog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 			saName, clusterName, err)
 		return err
 	}

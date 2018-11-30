@@ -345,12 +345,12 @@ func deleteClusterRoleAndBinding(clusterClientset client.Interface, saName, name
 	}
 
 	roleName := util.RoleName(saName)
-	commonClusterRoleName := util.CommonClusterRoleName(saName)
+	healthCheckRoleName := util.HealthCheckRoleName(saName)
 
 	// Attempt to delete all role and role bindings created by join
 	// and ignore if there is any error
 
-	for _, name := range []string{roleName, commonClusterRoleName} {
+	for _, name := range []string{roleName, healthCheckRoleName} {
 		err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			deletionSucceeded = false
