@@ -71,6 +71,7 @@ apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
 kind: IngressDNSRecord
 metadata:
   name: test-ingress
+  namespace: test-namespace
 spec:
   hosts:
   - ingress.example.com
@@ -90,9 +91,9 @@ items:
     creationTimestamp: 2018-10-10T20:37:38Z
     generation: 1
     name: ingress-test-ingress
-    namespace: default
+    namespace: test-namespace
     resourceVersion: "251874"
-    selfLink: /apis/multiclusterdns.federation.k8s.io/v1alpha1/namespaces/default/dnsendpoints/ingress-test-ingress
+    selfLink: /apis/multiclusterdns.federation.k8s.io/v1alpha1/namespaces/test-namespace/dnsendpoints/ingress-test-ingress
     uid: 538d1063-cccc-11e8-bebb-42010a8a00b8
   spec:
     endpoints:
