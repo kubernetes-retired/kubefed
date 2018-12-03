@@ -5,7 +5,7 @@ Kubernetes Federation V2 is a Kubernetes Incubator project. It builds on the syn
 to iterate on the API concepts laid down in the [brainstorming
 doc](https://docs.google.com/document/d/159cQGlfgXo6O4WxXyWzjZiPoIuiHVl933B43xhmqPEE/edit#)
 and further refined in the [architecture
-doc](https://docs.google.com/document/d/1ihWETo-zE8U_QNuzw5ECxOWX0Df_2BVfO3lC4OesKRQ/edit#). 
+doc](https://docs.google.com/document/d/1ihWETo-zE8U_QNuzw5ECxOWX0Df_2BVfO3lC4OesKRQ/edit#).
 Access to both documents is available to members of the
 [kubernetes-sig-multicluster google
 group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
@@ -81,19 +81,19 @@ $ kubectl delete ns kube-multicluster-public
 The following tables lists the configurable parameters of the Federation V2
 chart and their default values.
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| controllermanager.enabled | Specifies whether to enable the controller manager in federation v2. | true |
-| controllermanager.replicaCount | Number of replica for federation v2 controller manager. | 1 |
-| controllermanager.repository | Repo of the federation v2 image. | quay.io/kubernetes-multicluster |
-| controllermanager.image | Name of the federation v2 image. | federation-v2 |
-| controllermanager.tag | Tag of the federation v2 image. | latest |
-| controllermanager.pullPolicy | Image pull policy. | IfNotPresent |
-| controllermanager.featureGates | Feature gates are a set of `key=value` pairs that describe alpha or experimental features. An administrator can use the `--feature-gates` command line flag on each component to turn a feature on or off. | PushReconciler=true,SchedulerPreferences=true,CrossClusterServiceDiscovery=true,FederatedIngress=true |
-| controllermanager.federationNamespace | The namespace the federation control plane is deployed in. | federation-system |
-| controllermanager.registryNamespace | The cluster registry namespace. | kube-multicluster-public |
-| controllermanager.limitedScope | Whether the federation namespace will be the only target for federation. If set to true, the value set for `controllermanager.registryNamespace` and `controllermanager.registryNamespace` will be ignored. | false |
-| clusterregistry.enabled | Specifies whether to enable the clusterregistry in federation v2. | true |
+| Parameter                             | Description                                                                                                                                                                                                 | Default                                                                                               |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| controllermanager.enabled             | Specifies whether to enable the controller manager in federation v2.                                                                                                                                        | true                                                                                                  |
+| controllermanager.replicaCount        | Number of replica for federation v2 controller manager.                                                                                                                                                     | 1                                                                                                     |
+| controllermanager.repository          | Repo of the federation v2 image.                                                                                                                                                                            | quay.io/kubernetes-multicluster                                                                       |
+| controllermanager.image               | Name of the federation v2 image.                                                                                                                                                                            | federation-v2                                                                                         |
+| controllermanager.tag                 | Tag of the federation v2 image.                                                                                                                                                                             | latest                                                                                                |
+| controllermanager.pullPolicy          | Image pull policy.                                                                                                                                                                                          | IfNotPresent                                                                                          |
+| controllermanager.featureGates        | Feature gates are a set of `key=value` pairs that describe alpha or experimental features. An administrator can use the `--feature-gates` command line flag on each component to turn a feature on or off.  | PushReconciler=true,SchedulerPreferences=true,CrossClusterServiceDiscovery=true,FederatedIngress=true |
+| controllermanager.federationNamespace | The namespace the federation control plane is deployed in.                                                                                                                                                  | federation-system                                                                                     |
+| controllermanager.registryNamespace   | The cluster registry namespace.                                                                                                                                                                             | kube-multicluster-public                                                                              |
+| controllermanager.limitedScope        | Whether the federation namespace will be the only target for federation. If set to true, the value set for `controllermanager.registryNamespace` and `controllermanager.registryNamespace` will be ignored. | false                                                                                                 |
+| clusterregistry.enabled               | Specifies whether to enable the clusterregistry in federation v2.                                                                                                                                           | true                                                                                                  |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.

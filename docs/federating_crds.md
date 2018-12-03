@@ -1,6 +1,6 @@
 # Federate a CRD in the target cluster
 
-Handling arbitrary resources is one of the essential use-cases for federation. This example will demonstrate how to 
+Handling arbitrary resources is one of the essential use-cases for federation. This example will demonstrate how to
 configure federation to handle a previously unknown, arbitrary custom resource.
 
 **Note:**
@@ -61,9 +61,10 @@ customresourcedefinition.apiextensions.k8s.io/bars.example.io created
 Now that we've created the CRD in all the clusters we want to federate it to, let's create the federation API for that CRD. The federation API for your CRD is distinct from the CRD itself and is the API surface that declares what the state that should be spread to different clusters is.
 
 There are three pieces of the federation API for a type.
-* The **template type** describes the base definition of a resource that federation should propagate.
-* The **placement type** holds information about which clusters a federated resource should be spread to.
-* The **overrides type** optionally defines how a particular resource should be varied in certain federated clusters:
+
+- The **template type** describes the base definition of a resource that federation should propagate.
+- The **placement type** holds information about which clusters a federated resource should be spread to.
+- The **overrides type** optionally defines how a particular resource should be varied in certain federated clusters:
 
 We stored all these definition in the [federatedbar_crd.yaml](../example/crd/federatedbar_crd.yaml) file.
 
@@ -172,12 +173,12 @@ customresourcedefinition.apiextensions.k8s.io/federatedbaroverrides.federation.e
 ```
 
 **Note:**
-Only federated resources are propagated. Hence it's important to create a `federatedbar` to have an instance of the 
+Only federated resources are propagated. Hence it's important to create a `federatedbar` to have an instance of the
 target type created in member clusters.
 
 ### Enable propagation of your federated CRD
 
-It's time to work towards enabling the push configuration for those CRDs by creating a `FederatedTypeConfig` for `Bar`. 
+It's time to work towards enabling the push configuration for those CRDs by creating a `FederatedTypeConfig` for `Bar`.
 See example in the [federatedBar.yaml](../example/crd/federatedBar.yaml) file.
 
 ```yaml
@@ -202,8 +203,8 @@ spec:
   override:
     kind: FederatedBarOverride
   overridePath:
-   - spec
-   - data
+    - spec
+    - data
 ```
 
 Deploy it to the federated host cluster
@@ -211,11 +212,11 @@ Deploy it to the federated host cluster
 ```shell
 $ kubectl apply -f ./example/crd/federatedBar.yaml --context=cluster1
 federatedtypeconfig.core.federation.k8s.io/bars.example.io created
-``` 
+```
 
 ### Create federated API resources and see them propagate
 
-Use  [federatedbar_test.yaml](../example/crd/federatedbar_test.yaml)  file to verify if you can federate a CRD of the type `Bar` in the target clusters.
+Use [federatedbar_test.yaml](../example/crd/federatedbar_test.yaml) file to verify if you can federate a CRD of the type `Bar` in the target clusters.
 
 ```yaml
 apiVersion: federation.example.io/v1alpha1
@@ -239,7 +240,7 @@ metadata:
 spec:
   overrides:
   - clusterName: cluster2
-     data: "World"    
+     data: "World"
 ---
 apiVersion: federation.example.io/v1alpha1
 kind: FederatedBarPlacement
@@ -251,13 +252,15 @@ spec:
   - cluster2
   - cluster1
 ```
+
 Deploy it to the cluster that hosts federation
+
 ```shell
 $ kubectl apply -f example/crd/federatedbar_test.yaml --context=cluster1
 federatedbar.federation.example.io/test-crd created
 federatedbaroverride.federation.example.io/test-crd created
 federatedbarplacement.federation.example.io/test-crd created
-``` 
+```
 
 Now we can check instances of our CRD
 
