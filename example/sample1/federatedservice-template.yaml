@@ -1,4 +1,4 @@
-apiVersion: core.federation.k8s.io/v1alpha1
+apiVersion: primitives.federation.k8s.io/v1alpha1
 kind: FederatedService
 metadata:
   name: test-service
