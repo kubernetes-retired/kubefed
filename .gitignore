@@ -6,5 +6,6 @@
 /hack/install-crds-latest.yaml
 /hack/install-namespaced.yaml
 /images/federation-v2/hyperfed
+/images/federation-v2/config/
 # temporarily added below file to ignore list to avoid someone pushing this file in a pr by accident.
 /images/federation-v2/controller-manager
