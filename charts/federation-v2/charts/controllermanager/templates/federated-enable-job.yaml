@@ -1,0 +1,46 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: federated-enable-job
+  namespace: {{ .Release.Namespace }}
+  labels:
+    api: federation
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": post-install
+    # Specifies Tiller should delete the hook after the hook is successfully
+    # executed or failed during execution.
+    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
+spec:
+  template:
+    metadata:
+      labels:
+        api: federation
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: federated-enable-job
+          image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
+          command:
+          - /bin/sh
+          - -c
+          - >
+              for filename in /root/config/federatedirectives/*.yaml; do
+                /root/kubefed2 federate enable -f "${filename}" \
+{{- if .Values.limitedScope }}
+                  --federation-namespace="$(FEDERATION_NAMESPACE)"
+{{- else if .Values.federationNamespace }}
+                  --federation-namespace={{ .Values.federationNamespace }}
+{{- else }}
+                  --federation-namespace=federation-system
+{{- end }}
+              done
+{{- if .Values.limitedScope }}
+          env:
+          - name: FEDERATION_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+{{- end }}
