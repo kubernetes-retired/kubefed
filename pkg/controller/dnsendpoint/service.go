@@ -54,13 +54,22 @@ func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <
 // getServiceDNSEndpoints returns endpoint objects for each ServiceDNSRecord object that should be processed.
 func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 	var endpoints []*feddnsv1a1.Endpoint
+	var commonPrefix string
+	labels := make(map[string]string)
 
 	dnsObject, ok := obj.(*feddnsv1a1.ServiceDNSRecord)
 	if !ok {
 		return nil, fmt.Errorf("received event for unknown object %v", obj)
 	}
 
-	commonPrefix := strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
+	if dnsObject.Spec.ExternalName != "" {
+		commonPrefix = strings.Join([]string{dnsObject.Spec.ExternalName, dnsObject.Namespace, dnsObject.Spec.DomainRef,
+			"svc"}, ".")
+		labels["serviceName"] = dnsObject.Name
+	} else {
+		commonPrefix = strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
+	}
+
 	for _, clusterDNS := range dnsObject.Status.DNS {
 		zone := clusterDNS.Zone
 		region := clusterDNS.Region
@@ -96,7 +105,7 @@ func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 			ttl = defaultDNSTTL
 		}
 		for i, target := range targets {
-			endpoint, err := generateEndpointForServiceDNSObject(dnsNames[i], target, dnsNames[i+1], ttl)
+			endpoint, err := generateEndpointForServiceDNSObject(dnsNames[i], target, dnsNames[i+1], ttl, labels)
 			if err != nil {
 				return nil, err
 			}
@@ -116,10 +125,15 @@ func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 	return DedupeAndMergeEndpoints(endpoints), nil
 }
 
-func generateEndpointForServiceDNSObject(name string, targets feddnsv1a1.Targets, uplevelCname string, ttl feddnsv1a1.TTL) (ep *feddnsv1a1.Endpoint, err error) {
+func generateEndpointForServiceDNSObject(name string, targets feddnsv1a1.Targets, uplevelCname string,
+	ttl feddnsv1a1.TTL, labels map[string]string) (ep *feddnsv1a1.Endpoint, err error) {
 	ep = &feddnsv1a1.Endpoint{
 		DNSName:   name,
 		RecordTTL: ttl,
+	}
+
+	if len(labels) > 0 {
+		ep.Labels = labels
 	}
 
 	if len(targets) > 0 {

@@ -1447,6 +1447,8 @@ spec:
               type: string
             domainRef:
               type: string
+            externalName:
+              type: string
             recordTTL:
               format: int64
               type: integer

@@ -45,11 +45,18 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 
 	netWrapper = netmock
 
-	globalDNSName := strings.Join([]string{name, namespace, federation, "svc", dnsZone}, ".")
-	c1RegionDNSName := strings.Join([]string{name, namespace, federation, "svc", c1Region, dnsZone}, ".")
-	c1ZoneDNSName := strings.Join([]string{name, namespace, federation, "svc", c1Zone, c1Region, dnsZone}, ".")
-	c2RegionDNSName := strings.Join([]string{name, namespace, federation, "svc", c2Region, dnsZone}, ".")
-	c2ZoneDNSName := strings.Join([]string{name, namespace, federation, "svc", c2Zone, c2Region, dnsZone}, ".")
+	globalDNSPrefix := strings.Join([]string{namespace, federation, "svc", dnsZone}, ".")
+	c1RegionDNSPrefix := strings.Join([]string{namespace, federation, "svc", c1Region, dnsZone}, ".")
+	c1ZoneDNSPrefix := strings.Join([]string{namespace, federation, "svc", c1Zone, c1Region, dnsZone}, ".")
+	c2RegionDNSPrefix := strings.Join([]string{namespace, federation, "svc", c2Region, dnsZone}, ".")
+	c2ZoneDNSPrefix := strings.Join([]string{namespace, federation, "svc", c2Zone, c2Region, dnsZone}, ".")
+	globalDNSName := strings.Join([]string{name, globalDNSPrefix}, ".")
+	c1RegionDNSName := strings.Join([]string{name, c1RegionDNSPrefix}, ".")
+	c1ZoneDNSName := strings.Join([]string{name, c1ZoneDNSPrefix}, ".")
+	c2RegionDNSName := strings.Join([]string{name, c2RegionDNSPrefix}, ".")
+	c2ZoneDNSName := strings.Join([]string{name, c2ZoneDNSPrefix}, ".")
+
+	labels := map[string]string{"serviceName": name}
 
 	testCases := map[string]struct {
 		dnsObject       feddnsv1a1.ServiceDNSRecord
@@ -276,6 +283,39 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 				{DNSName: "foo" + "." + dnsZone, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
+			},
+			expectError: false,
+		},
+		"UserConfiguredExternalName": {
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
+					DomainRef:    federation,
+					ExternalName: "foo",
+				},
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
+					DNS: []feddnsv1a1.ClusterDNS{
+						{
+							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
+						},
+						{
+							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
+						},
+					},
+				},
+			},
+			expectEndpoints: []*feddnsv1a1.Endpoint{
+				{DNSName: "foo" + "." + globalDNSPrefix, Targets: []string{lb1, lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
+				{DNSName: "foo" + "." + c1RegionDNSPrefix, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
+				{DNSName: "foo" + "." + c1ZoneDNSPrefix, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
+				{DNSName: "foo" + "." + c2RegionDNSPrefix, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
+				{DNSName: "foo" + "." + c2ZoneDNSPrefix, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
 			},
 			expectError: false,
 		},
