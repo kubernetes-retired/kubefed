@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -66,6 +67,9 @@ member clusters and does the necessary reconciliation`,
 			}
 		},
 	}
+
+	// Add the command line flags from other dependencies(glog, kubebuilder, etc.)
+	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	opts.AddFlags(cmd.Flags())
 	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
