@@ -113,6 +113,9 @@ cd "$base_dir" || {
 echo "Downloading test dependencies"
 download-dependencies
 
+echo "Checking sync up status of helm chart CRDs"
+PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
+
 echo "Checking initial state of working tree"
 check-git-state
 
