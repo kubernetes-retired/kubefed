@@ -29,17 +29,22 @@ type ResourcePlacementPlugin struct {
 	store cache.Store
 	// Informer controller for placement directives of the federated type
 	controller cache.Controller
+
+	// Whether to default to all clusters if a placement resource is
+	// not found for a given qualified name.
+	defaultAll bool
 }
 
-func NewResourcePlacementPlugin(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
-	return newResourcePlacementPluginWithOk(client, targetNamespace, triggerFunc)
+func NewResourcePlacementPlugin(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object), defaultAll bool) PlacementPlugin {
+	return newResourcePlacementPluginWithOk(client, targetNamespace, triggerFunc, defaultAll)
 }
 
-func newResourcePlacementPluginWithOk(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) *ResourcePlacementPlugin {
+func newResourcePlacementPluginWithOk(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object), defaultAll bool) *ResourcePlacementPlugin {
 	store, controller := util.NewResourceInformer(client, targetNamespace, triggerFunc)
 	return &ResourcePlacementPlugin{
 		store:      store,
 		controller: controller,
+		defaultAll: defaultAll,
 	}
 }
 
@@ -63,6 +68,9 @@ func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.Qual
 		return nil, nil, false, err
 	}
 	if cachedObj == nil {
+		if p.defaultAll {
+			return clusterNames, []string{}, false, nil
+		}
 		return []string{}, clusterNames, false, nil
 	}
 	unstructuredObj := cachedObj.(*unstructured.Unstructured)

@@ -29,8 +29,8 @@ type namespacedPlacementPlugin struct {
 
 func NewNamespacedPlacementPlugin(resourceClient, namespaceClient util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
 	return &namespacedPlacementPlugin{
-		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc),
-		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc),
+		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc, false),
+		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc, false),
 	}
 }
 

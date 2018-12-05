@@ -171,10 +171,9 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		return nil, err
 	}
 	targetAPIResource := typeConfig.GetTarget()
-	if targetAPIResource.Kind == util.NamespaceKind {
-		s.placementPlugin = placement.NewNamespacePlacementPlugin(placementClient, targetNamespace, enqueueObj)
-	} else if targetNamespace == metav1.NamespaceAll {
-		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
+	if targetNamespace == metav1.NamespaceAll {
+		defaultAll := targetAPIResource.Kind == util.NamespaceKind
+		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj, defaultAll)
 	} else {
 		namespacePlacementClient, err := util.NewResourceClient(pool, namespacePlacement)
 		if err != nil {
