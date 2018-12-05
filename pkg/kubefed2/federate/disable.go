@@ -200,12 +200,12 @@ func deletePrimitives(config *rest.Config, typeConfig typeconfig.Interface, writ
 
 func primitiveCRDNames(typeConfig typeconfig.Interface) []string {
 	names := []string{
-		groupQualifiedName(typeConfig.GetTemplate()),
-		groupQualifiedName(typeConfig.GetPlacement()),
+		typeconfig.GroupQualifiedName(typeConfig.GetTemplate()),
+		typeconfig.GroupQualifiedName(typeConfig.GetPlacement()),
 	}
 	overrideAPIResource := typeConfig.GetOverride()
 	if overrideAPIResource != nil {
-		names = append(names, groupQualifiedName(*overrideAPIResource))
+		names = append(names, typeconfig.GroupQualifiedName(*overrideAPIResource))
 	}
 	return names
 }

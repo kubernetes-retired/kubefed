@@ -297,7 +297,7 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 			APIVersion: "core.federation.k8s.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: groupQualifiedName(apiResource),
+			Name: typeconfig.GroupQualifiedName(apiResource),
 		},
 		Spec: fedv1a1.FederatedTypeConfigSpec{
 			Target: fedv1a1.APIResource{

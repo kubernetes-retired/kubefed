@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 )
 
 func DecodeYAMLFromFile(filename string, obj interface{}) error {
@@ -58,7 +60,7 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 			APIVersion: "apiextensions.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: groupQualifiedName(apiResource),
+			Name: typeconfig.GroupQualifiedName(apiResource),
 		},
 		Spec: apiextv1b1.CustomResourceDefinitionSpec{
 			Group:   apiResource.Group,
@@ -142,11 +144,4 @@ func resourceKey(apiResource metav1.APIResource) string {
 		version = apiResource.Version
 	}
 	return fmt.Sprintf("%s.%s/%s", apiResource.Name, group, version)
-}
-
-func groupQualifiedName(apiResource metav1.APIResource) string {
-	if len(apiResource.Group) == 0 {
-		return apiResource.Name
-	}
-	return fmt.Sprintf("%s.%s", apiResource.Name, apiResource.Group)
 }

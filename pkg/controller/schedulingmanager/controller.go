@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	corev1alpha1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
@@ -142,6 +143,13 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 	// set name and group for the type config target
 	corev1a1.SetFederatedTypeConfigDefaults(typeConfig)
+
+	// TODO(marun) Replace with validation webhook
+	err = typeconfig.CheckTypeConfigName(typeConfig)
+	if err != nil {
+		runtime.HandleError(err)
+		return util.StatusError
+	}
 
 	// Scheduling preference controller is started on demand
 	schedulingKind := schedulingType.Kind
