@@ -289,6 +289,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *FederateDirective) typeconfig.Interface {
 	spec := federateDirective.Spec
 	kind := apiResource.Kind
+	pluralName := apiResource.Name
 	typeConfig := &fedv1a1.FederatedTypeConfig{
 		// Explicitly including TypeMeta will ensure it will be
 		// serialized properly to yaml.
@@ -318,9 +319,10 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 		typeConfig.Spec.Placement.Version = spec.PrimitiveVersion
 	} else {
 		typeConfig.Spec.Template = fedv1a1.APIResource{
-			Group:   spec.PrimitiveGroup,
-			Version: spec.PrimitiveVersion,
-			Kind:    fmt.Sprintf("Federated%s", kind),
+			Group:      spec.PrimitiveGroup,
+			Version:    spec.PrimitiveVersion,
+			Kind:       fmt.Sprintf("Federated%s", kind),
+			PluralName: fmt.Sprintf("federated%s", pluralName),
 		}
 	}
 	if len(spec.OverridePaths) > 0 {
