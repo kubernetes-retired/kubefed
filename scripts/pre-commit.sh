@@ -45,6 +45,14 @@ function download-dependencies() {
   ./scripts/download-binaries.sh
 }
 
+function run-unit-tests() {
+  # Ensure the test binaries are in the path.
+  export TEST_ASSET_PATH="${base_dir}/bin"
+  export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
+  export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
+  ${MAKE_CMD} test
+}
+
 function run-e2e-tests-with-managed-fixture() {
   # Ensure the test binaries are in the path.
   export TEST_ASSET_PATH="${base_dir}/bin"
@@ -133,6 +141,9 @@ echo "Checking that fixture is available for all federate directives"
 
 echo "Building federation binaries"
 build-binaries
+
+echo "Running unit tests"
+run-unit-tests
 
 echo "Running go e2e tests with managed fixture"
 run-e2e-tests-with-managed-fixture
