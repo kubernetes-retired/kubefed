@@ -38,9 +38,30 @@ type ClusterOverridesMap map[string]interface{}
 // Mapping of clusterName to overrides for the cluster
 type OverridesMap map[string]ClusterOverridesMap
 
-// GetOverridesMap returns a map of overrides populated from the given
+// ToUnstructuredSlice converts the map of overrides to a slice of
+// interfaces that can be set in an unstructured object.
+func (m OverridesMap) ToUnstructuredSlice() []interface{} {
+	overrides := []interface{}{}
+	for clusterName, clusterOverridesMap := range m {
+		clusterOverrides := []map[string]interface{}{}
+		for path, value := range clusterOverridesMap {
+			clusterOverrides = append(clusterOverrides, map[string]interface{}{
+				PathField:  path,
+				ValueField: value,
+			})
+		}
+		overridesItem := map[string]interface{}{
+			ClusterNameField:      clusterName,
+			ClusterOverridesField: clusterOverrides,
+		}
+		overrides = append(overrides, overridesItem)
+	}
+	return overrides
+}
+
+// GetOverrides returns a map of overrides populated from the given
 // unstructured object.
-func GetOverridesMap(override *unstructured.Unstructured) (OverridesMap, error) {
+func GetOverrides(override *unstructured.Unstructured) (OverridesMap, error) {
 	overridesMap := make(OverridesMap)
 	if override == nil {
 		return overridesMap, nil
@@ -100,4 +121,21 @@ func GetOverridesMap(override *unstructured.Unstructured) (OverridesMap, error) 
 	}
 
 	return overridesMap, nil
+}
+
+// SetOverrides sets the spec.overrides field of the unstructured
+// object from the provided overrides map.
+func SetOverrides(override *unstructured.Unstructured, overridesMap OverridesMap) error {
+	rawSpec := override.Object[SpecField]
+	if rawSpec == nil {
+		rawSpec = map[string]interface{}{}
+		override.Object[SpecField] = rawSpec
+	}
+
+	spec, ok := rawSpec.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("Unable to set overrides since %q is not an object: %T", SpecField, rawSpec)
+	}
+	spec[OverridesField] = overridesMap.ToUnstructuredSlice()
+	return nil
 }

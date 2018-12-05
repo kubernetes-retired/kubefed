@@ -534,7 +534,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 	operations := make([]util.FederatedOperation, 0)
 
-	overridesMap, err := util.GetOverridesMap(override)
+	overridesMap, err := util.GetOverrides(override)
 	if err != nil {
 		overrideKind := s.typeConfig.GetOverride().Kind
 		return nil, fmt.Errorf("Error reading cluster overrides for %s %q: %v", overrideKind, key, err)

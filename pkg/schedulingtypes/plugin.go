@@ -192,19 +192,25 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		}
 		apiResource := p.typeConfig.GetOverride()
 		newOverride := newUnstructured(*apiResource, qualifiedName)
-		newOverride.Object[util.SpecField] = unstructuredOverrides(make(util.OverridesMap), result)
-		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
+		err := setOverrides(newOverride, nil, result)
+		if err != nil {
+			return err
+		}
+		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
 		return err
 	}
 
-	overridesMap, err := util.GetOverridesMap(override)
+	overridesMap, err := util.GetOverrides(override)
 	if err != nil {
 		return fmt.Errorf("Error reading cluster overrides for %s %q: %v", p.typeConfig.GetOverride().Kind, qualifiedName, err)
 	}
 
 	if OverrideUpdateNeeded(overridesMap, result) {
-		override.Object[util.SpecField] = unstructuredOverrides(overridesMap, result)
-		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
+		err := setOverrides(override, overridesMap, result)
+		if err != nil {
+			return err
+		}
+		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
 		if err != nil {
 			return err
 		}
@@ -236,26 +242,12 @@ func PlacementUpdateNeeded(names, newNames []string) bool {
 	return !reflect.DeepEqual(names, newNames)
 }
 
-func unstructuredOverrides(overridesMap util.OverridesMap, replicasMap map[string]int64) map[string]interface{} {
+func setOverrides(obj *unstructured.Unstructured, overridesMap util.OverridesMap, replicasMap map[string]int64) error {
+	if overridesMap == nil {
+		overridesMap = make(util.OverridesMap)
+	}
 	updateOverridesMap(overridesMap, replicasMap)
-	overrides := []interface{}{}
-	for clusterName, clusterOverridesMap := range overridesMap {
-		clusterOverrides := []map[string]interface{}{}
-		for path, value := range clusterOverridesMap {
-			clusterOverrides = append(clusterOverrides, map[string]interface{}{
-				util.PathField:  path,
-				util.ValueField: value,
-			})
-		}
-		overridesItem := map[string]interface{}{
-			util.ClusterNameField:      clusterName,
-			util.ClusterOverridesField: clusterOverrides,
-		}
-		overrides = append(overrides, overridesItem)
-	}
-	return map[string]interface{}{
-		util.OverridesField: overrides,
-	}
+	return util.SetOverrides(obj, overridesMap)
 }
 
 func updateOverridesMap(overridesMap util.OverridesMap, replicasMap map[string]int64) {

@@ -292,7 +292,7 @@ func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interfa
 			}
 			return false, nil
 		}
-		overridesMap, err := util.GetOverridesMap(override)
+		overridesMap, err := util.GetOverrides(override)
 		if err != nil {
 			tl.Errorf("Error reading cluster overrides for %s %s/%s: %v", overrideKind, namespace, name, err)
 			return false, nil

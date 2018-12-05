@@ -343,7 +343,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		return
 	}
 
-	overridesMap, err := util.GetOverridesMap(override)
+	overridesMap, err := util.GetOverrides(override)
 	if err != nil {
 		overrideKind := c.typeConfig.GetOverride().Kind
 		c.tl.Fatalf("Error reading cluster overrides for %s %q: %v", overrideKind, qualifiedName, err)
