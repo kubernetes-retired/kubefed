@@ -20,6 +20,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -77,10 +78,11 @@ func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.Qual
 	}
 	unstructuredObj := cachedObj.(*unstructured.Unstructured)
 
-	selectedNames, err := util.GetClusterNames(unstructuredObj)
+	selectedNames, err := selectedClusterNames(unstructuredObj, clusters)
 	if err != nil {
 		return nil, nil, false, err
 	}
+
 	clusterSet := sets.NewString(clusterNames...)
 	selectedSet := sets.NewString(selectedNames...)
 	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), true, nil
@@ -92,4 +94,23 @@ func getClusterNames(clusters []*fedv1a1.FederatedCluster) []string {
 		clusterNames = append(clusterNames, cluster.Name)
 	}
 	return clusterNames
+}
+
+func selectedClusterNames(rawPlacement *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) ([]string, error) {
+	directive, err := util.GetPlacementDirective(rawPlacement)
+	if err != nil {
+		return nil, err
+	}
+
+	if directive.ClusterNames != nil {
+		return directive.ClusterNames, nil
+	}
+
+	selectedNames := []string{}
+	for _, cluster := range clusters {
+		if directive.ClusterSelector.Matches(labels.Set(cluster.Labels)) {
+			selectedNames = append(selectedNames, cluster.Name)
+		}
+	}
+	return selectedNames, nil
 }

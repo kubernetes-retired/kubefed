@@ -43,11 +43,55 @@ func placementValidationSchema() *v1beta1.CustomResourceValidation {
 	return ValidationSchema(v1beta1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]v1beta1.JSONSchemaProps{
+			// clusterName allows a scheduling mechanism to explicitly
+			// indicate placement. If clusterName is provided,
+			// labelSelector will be ignored.
 			"clusterNames": {
 				Type: "array",
 				Items: &v1beta1.JSONSchemaPropsOrArray{
 					Schema: &v1beta1.JSONSchemaProps{
 						Type: "string",
+					},
+				},
+			},
+			"clusterSelector": {
+				Type: "object",
+				Properties: map[string]v1beta1.JSONSchemaProps{
+					"matchExpressions": {
+						Type: "array",
+						Items: &v1beta1.JSONSchemaPropsOrArray{
+							Schema: &v1beta1.JSONSchemaProps{
+								Type: "object",
+								Properties: map[string]v1beta1.JSONSchemaProps{
+									"key": {
+										Type: "string",
+									},
+									"operator": {
+										Type: "string",
+									},
+									"values": {
+										Type: "array",
+										Items: &v1beta1.JSONSchemaPropsOrArray{
+											Schema: &v1beta1.JSONSchemaProps{
+												Type: "string",
+											},
+										},
+									},
+								},
+								Required: []string{
+									"key",
+									"operator",
+								},
+							},
+						},
+					},
+					"matchLabels": {
+						Type: "object",
+						AdditionalProperties: &v1beta1.JSONSchemaPropsOrBool{
+							Schema: &v1beta1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
 					},
 				},
 			},

@@ -17,8 +17,49 @@ limitations under the License.
 package util
 
 import (
+	"encoding/json"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 )
+
+type GenericPlacementSpec struct {
+	ClusterNames    []string              `json:"clusterNames,omitempty"`
+	ClusterSelector *metav1.LabelSelector `json:"clusterSelector"`
+}
+
+type GenericPlacement struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec GenericPlacementSpec `json:"spec,omitempty"`
+}
+
+type PlacementDirective struct {
+	ClusterNames    []string
+	ClusterSelector labels.Selector
+}
+
+func GetPlacementDirective(rawPlacement *unstructured.Unstructured) (*PlacementDirective, error) {
+	content, err := rawPlacement.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	placement := GenericPlacement{}
+	err = json.Unmarshal(content, &placement)
+	if err != nil {
+		return nil, err
+	}
+	selector, err := metav1.LabelSelectorAsSelector(placement.Spec.ClusterSelector)
+	if err != nil {
+		return nil, err
+	}
+	return &PlacementDirective{
+		ClusterNames:    placement.Spec.ClusterNames,
+		ClusterSelector: selector,
+	}, nil
+}
 
 func GetClusterNames(placement *unstructured.Unstructured) ([]string, error) {
 	clusterNames, _, err := unstructured.NestedStringSlice(placement.Object, SpecField, ClusterNamesField)
