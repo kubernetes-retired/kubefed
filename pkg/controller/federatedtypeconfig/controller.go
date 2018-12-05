@@ -46,6 +46,10 @@ type Controller struct {
 	// Arguments to use when starting new controllers
 	controllerConfig *util.ControllerConfig
 
+	// The namespace placement resource which will be needed to start
+	// sync controllers when running namespaced.
+	namespacePlacement *metav1.APIResource
+
 	client corev1alpha1client.CoreV1alpha1Interface
 
 	// Map of running sync controllers keyed by qualified target type
@@ -244,9 +248,13 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 }
 
 func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error {
+	namespacePlacement, err := c.getNamespacePlacement()
+	if err != nil {
+		return err
+	}
 	kind := tc.Spec.Template.Kind
 	stopChan := make(chan struct{})
-	err := synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc)
+	err = synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc, namespacePlacement)
 	if err != nil {
 		close(stopChan)
 		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)
@@ -308,4 +316,38 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	accessor.SetFinalizers(finalizers.List())
 	_, err = c.client.FederatedTypeConfigs(tc.Namespace).UpdateStatus(tc)
 	return err
+}
+
+func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
+	// Namespace placement is only required if running namespaced.
+	if c.controllerConfig.TargetNamespace == metav1.NamespaceAll {
+		return nil, nil
+	}
+
+	// TODO(marun) Document the requirement to restart the controller
+	// manager if the namespace placement resource changes.
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if c.namespacePlacement != nil {
+		return c.namespacePlacement, nil
+	}
+
+	qualifiedName := util.QualifiedName{
+		Namespace: c.controllerConfig.TargetNamespace,
+		Name:      util.NamespaceName,
+	}
+	key := qualifiedName.String()
+	cachedObj, exists, err := c.store.GetByKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving %q from the informer cache: %v", key, err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("Unable to find %q in the informer cache: %v", key)
+	}
+	namespaceTypeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
+	placement := namespaceTypeConfig.GetPlacement()
+	c.namespacePlacement = &placement
+	return c.namespacePlacement, nil
 }

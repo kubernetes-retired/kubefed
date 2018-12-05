@@ -273,7 +273,7 @@ func (f *UnmanagedFramework) inMemoryTargetNamespace() string {
 	return metav1.NamespaceAll
 }
 
-func (f *UnmanagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
+func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) managed.TestFixture {
 	// Hybrid setup where just the sync controller is run and we do not rely on
 	// the already deployed (unmanaged) controller manager. Only do this if
 	// in-memory-controllers is true.
@@ -283,7 +283,7 @@ func (f *UnmanagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.In
 		if typeConfig.GetTarget().Kind == util.NamespaceKind {
 			controllerConfig.TargetNamespace = metav1.NamespaceAll
 		}
-		return managed.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig)
+		return managed.NewSyncControllerFixture(f.logger, controllerConfig, typeConfig, namespacePlacement)
 	}
 	return nil
 }

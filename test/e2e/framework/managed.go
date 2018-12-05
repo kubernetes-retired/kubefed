@@ -143,6 +143,6 @@ func (f *ManagedFramework) TestNamespaceName() string {
 	return f.testNamespaceName
 }
 
-func (f *ManagedFramework) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
-	return managed.NewSyncControllerFixture(f.logger, f.ControllerConfig(), typeConfig)
+func (f *ManagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) managed.TestFixture {
+	return managed.NewSyncControllerFixture(f.logger, f.ControllerConfig(), typeConfig, namespacePlacement)
 }
