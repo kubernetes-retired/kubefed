@@ -58,18 +58,18 @@ var _ = Describe("FederatedServiceStatus", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				By("defaulting the expected fields")
-				Expect(actual.Spec).To(Equal(expected.Spec))
+				Expect(actual.ClusterStatus).To(Equal(expected.ClusterStatus))
 
 				By("returning the item for list requests")
 				result, err := client.List(metav1.ListOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(result.Items).To(HaveLen(1))
-				Expect(result.Items[0].Spec).To(Equal(expected.Spec))
+				Expect(result.Items[0].ClusterStatus).To(Equal(expected.ClusterStatus))
 
 				By("returning the item for get requests")
 				actual, err = client.Get(instance.Name, metav1.GetOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(actual.Spec).To(Equal(expected.Spec))
+				Expect(actual.ClusterStatus).To(Equal(expected.ClusterStatus))
 
 				By("deleting the item for delete requests")
 				err = client.Delete(instance.Name, &metav1.DeleteOptions{})

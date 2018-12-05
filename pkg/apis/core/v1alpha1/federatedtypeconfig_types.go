@@ -191,7 +191,7 @@ func PluralName(kind string) string {
 		return fmt.Sprintf("%ses", lowerKind)
 	}
 	if strings.HasSuffix(lowerKind, "y") {
-		strings.TrimSuffix(lowerKind, "y")
+		lowerKind = strings.TrimSuffix(lowerKind, "y")
 		return fmt.Sprintf("%sies", lowerKind)
 	}
 	return fmt.Sprintf("%ss", lowerKind)

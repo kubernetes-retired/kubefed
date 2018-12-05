@@ -59,28 +59,24 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
-VET = go vet $(TEST_PKGS)
-FMT = go fmt $(TEST_PKGS)
-
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt
+.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build
 
 all: container hyperfed controller kubefed2
 
-local-test:
-	$(TEST)
-
 # Unit tests
-test: hyperfed controller kubefed2 vet
-	$(DOCKER_BUILD) '$(TEST)'
+test: vet
+	go test $(TEST_PKGS)
+
+build: hyperfed controller kubefed2
 
 vet:
-	$(DOCKER_BUILD) '$(VET)'
+	go vet $(TEST_PKGS)
 
 fmt:
-	$(FMT)
+	go fmt $(TEST_PKGS)
 
 container: hyperfed
 	cp -f bin/hyperfed images/federation-v2/

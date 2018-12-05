@@ -352,7 +352,7 @@ func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
 		return nil, fmt.Errorf("Error retrieving %q from the informer cache: %v", key, err)
 	}
 	if !exists {
-		return nil, fmt.Errorf("Unable to find %q in the informer cache: %v", key)
+		return nil, fmt.Errorf("Unable to find %q in the informer cache", key)
 	}
 	namespaceTypeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 	placement := namespaceTypeConfig.GetPlacement()

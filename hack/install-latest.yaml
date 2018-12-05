@@ -471,6 +471,8 @@ spec:
           type: string
         metadata:
           type: object
+        nameServer:
+          type: string
       required:
       - domain
   version: v1alpha1
