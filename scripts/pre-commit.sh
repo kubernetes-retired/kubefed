@@ -121,9 +121,6 @@ cd "$base_dir" || {
 echo "Downloading test dependencies"
 download-dependencies
 
-echo "Checking sync up status of helm chart CRDs"
-PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
-
 echo "Checking initial state of working tree"
 check-git-state
 
@@ -161,6 +158,12 @@ join-cluster-list > /dev/null
 
 echo "Deploying federation-v2"
 ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
+
+echo "Checking sync up status of helm chart"
+PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
+
+echo "Checking helm chart state of working tree"
+check-git-state
 
 echo "Running go e2e tests with unmanaged fixture"
 run-e2e-tests-with-unmanaged-fixture

@@ -18,8 +18,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+NS="${FEDERATION_NAMESPACE:-federation-system}"
 CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/federation-v2/charts/controllermanager/templates}"
-
+CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/federation-v2/templates}"
 INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML:-hack/install-crds-latest.yaml}"
 
 INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML}" scripts/generate-install-crds-yaml.sh
@@ -30,3 +31,8 @@ crd_diff=`(diff -U 4 $INSTALL_CRDS_YAML $CHART_FEDERATED_CRD_DIR/crds.yaml; true
 if [ -n "${crd_diff}" ]; then
   cp -f $INSTALL_CRDS_YAML $CHART_FEDERATED_CRD_DIR/crds.yaml
 fi
+
+# Generate YAML templates to enable resource propagation for helm chart.
+for filename in ./config/federatedirectives/*.yaml; do
+  ./bin/kubefed2 federate enable -f "${filename}" --federation-namespace="${NS}" --dry-run -oyaml > ${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
+done
