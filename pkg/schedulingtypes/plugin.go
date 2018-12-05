@@ -197,7 +197,7 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		return err
 	}
 
-	overridesMap, err := util.GetOverridesMap(p.typeConfig, override)
+	overridesMap, err := util.GetOverridesMap(override)
 	if err != nil {
 		return fmt.Errorf("Error reading cluster overrides for %s %q: %v", p.typeConfig.GetOverride().Kind, qualifiedName, err)
 	}

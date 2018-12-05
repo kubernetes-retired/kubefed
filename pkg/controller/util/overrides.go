@@ -19,7 +19,6 @@ package util
 import (
 	"fmt"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -39,21 +38,22 @@ type ClusterOverridesMap map[string]interface{}
 // Mapping of clusterName to overrides for the cluster
 type OverridesMap map[string]ClusterOverridesMap
 
-func GetOverridesMap(typeConfig typeconfig.Interface, override *unstructured.Unstructured) (OverridesMap, error) {
+// GetOverridesMap returns a map of overrides populated from the given
+// unstructured object.
+func GetOverridesMap(override *unstructured.Unstructured) (OverridesMap, error) {
 	overridesMap := make(OverridesMap)
-	if override == nil || typeConfig.GetOverride() == nil {
+	if override == nil {
 		return overridesMap, nil
 	}
 
-	qualifiedName := NewQualifiedName(override)
-	overrideKind := typeConfig.GetOverride().Kind
+	overridesPath := fmt.Sprintf("%s.%s", SpecField, OverridesField)
 
 	rawOverrides, ok, err := unstructured.NestedSlice(override.Object, SpecField, OverridesField)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving spec.overrides for %s %q: %v", overrideKind, qualifiedName, err)
+		return nil, fmt.Errorf("unable to retrieve %s: %v", overridesPath, err)
 	}
 	if !ok {
-		return nil, fmt.Errorf("%s %q is missing spec.overrides: %v", overrideKind, qualifiedName, err)
+		return nil, fmt.Errorf("%s not found", overridesPath)
 	}
 
 	for i, overrideInterface := range rawOverrides {
@@ -61,17 +61,17 @@ func GetOverridesMap(typeConfig typeconfig.Interface, override *unstructured.Uns
 
 		rawClusterName, ok := rawOverride[ClusterNameField]
 		if !ok {
-			return nil, fmt.Errorf("%s %q is missing clusterName for spec.overrides[%d]", overrideKind, qualifiedName, i)
+			return nil, fmt.Errorf("%s not found for %s[%d]", ClusterNameField, overridesPath, i)
 		}
 		clusterName := rawClusterName.(string)
 		if _, ok := overridesMap[clusterName]; ok {
-			return nil, fmt.Errorf("Cluster %q appears more than once in %s %q", i, clusterName, overrideKind, qualifiedName)
+			return nil, fmt.Errorf("cluster %q appears more than once in %s", clusterName, overridesPath)
 		}
 		overridesMap[clusterName] = make(ClusterOverridesMap)
 
 		rawClusterOverrides, ok := rawOverride[ClusterOverridesField]
 		if !ok {
-			return nil, fmt.Errorf("%s %q is missing clusterOverrides for spec.overrides[%s]", overrideKind, qualifiedName, clusterName)
+			return nil, fmt.Errorf("%s not found for %s[%s]", ClusterOverridesField, overridesPath, clusterName)
 		}
 		clusterOverrides := rawClusterOverrides.([]interface{})
 
@@ -80,19 +80,19 @@ func GetOverridesMap(typeConfig typeconfig.Interface, override *unstructured.Uns
 
 			rawPath, ok := clusterOverride[PathField]
 			if !ok {
-				return nil, fmt.Errorf("%s %q is missing path for spec.overrides[%s].clusterOverrides[%d]", overrideKind, qualifiedName, clusterName, j)
+				return nil, fmt.Errorf("%s not found for %s[%s].%s[%d]", PathField, overridesPath, clusterName, ClusterOverridesField, j)
 			}
 			path := rawPath.(string)
 			if invalidPaths.Has(path) {
-				return nil, fmt.Errorf("%s %q has an invalid path for spec.overrides[%s].clusterOverrides[%d]: %s", overrideKind, qualifiedName, clusterName, j, path)
+				return nil, fmt.Errorf("%s %q is invalid for %s[%s].%s[%d]", PathField, path, overridesPath, clusterName, ClusterOverridesField, j)
 			}
 			if _, ok := overridesMap[clusterName][path]; ok {
-				return nil, fmt.Errorf("Path %q appears more than once for cluster %q in %s %q", path, clusterName, overrideKind, qualifiedName)
+				return nil, fmt.Errorf("%s %q appears more than once for %s[%s]", PathField, path, overridesPath, clusterName)
 			}
 
 			value, ok := clusterOverride[ValueField]
 			if !ok {
-				return nil, fmt.Errorf("%s %q is missing the value for spec.overrides[%s].clusterOverrides[%s]", overrideKind, qualifiedName, clusterName, path)
+				return nil, fmt.Errorf("%s for %q not found for %s[%s].%s[%d]", ValueField, path, overridesPath, clusterName, ClusterOverridesField, j)
 			}
 
 			overridesMap[clusterName][path] = value

@@ -534,10 +534,10 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 	operations := make([]util.FederatedOperation, 0)
 
-	overridesMap, err := util.GetOverridesMap(s.typeConfig, override)
+	overridesMap, err := util.GetOverridesMap(override)
 	if err != nil {
-		templateKind := s.typeConfig.GetTemplate().Kind
-		return nil, fmt.Errorf("Failed to marshall cluster overrides for %s %q: %v", templateKind, key, err)
+		overrideKind := s.typeConfig.GetOverride().Kind
+		return nil, fmt.Errorf("Error reading cluster overrides for %s %q: %v", overrideKind, key, err)
 	}
 
 	versionMap := s.versionManager.Get(template, override)
