@@ -204,6 +204,9 @@ var (
 						"metadata": v1beta1.JSONSchemaProps{
 							Type: "object",
 						},
+						"nameServer": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
 					},
 					Required: []string{
 						"domain",
