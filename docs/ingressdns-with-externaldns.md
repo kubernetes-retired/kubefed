@@ -13,40 +13,34 @@ external DNS records of Ingress resources in supported DNS providers.
 The above diagram illustrates MCIDNS. A typical MCIDNS workflow consists of:
 
 1. Creating `FederatedDeployment`, `FederatedService`, and `FederatedIngress` resources. The Federation sync
-controller propagates the corresponding `Deployment`, `Service`, and `Ingress` resources to target clusters.
+   controller propagates the corresponding `Deployment`, `Service`, and `Ingress` resources to target clusters.
 2. Creating an `IngressDNSRecord` resource that identifies the intended domain name(s) and optional DNS resource
-record parameters.
+   record parameters.
 
 MCIDNS is comprised of multiple types and controllers:
 
 - The Ingress DNS Controller watches for `IngressDNSRecord` resources and updates the status of the resource with the IP
-address of matching target `Ingress` resource(s).
-- The DNS Endpoint Controller watches for `IngressDNSRecord` resources and creates an associated  `DNSEndpoint`
-resource. `DNSEndpoint` contains the necessary information to create an external DNS record. An external DNS system
-(i.e. [ExternalDNS](https://github.com/kubernetes-incubator/external-dns)) is responsible for watching `DNSEndpoint`
-resources and using the endpoint information to create the DNS resource record in the DNS provider.
+  address of matching target `Ingress` resource(s).
+- The DNS Endpoint Controller watches for `IngressDNSRecord` resources and creates an associated `DNSEndpoint`
+  resource. `DNSEndpoint` contains the necessary information to create an external DNS record. An external DNS system
+  (i.e. [ExternalDNS](https://github.com/kubernetes-incubator/external-dns)) is responsible for watching `DNSEndpoint`
+  resources and using the endpoint information to create the DNS resource record in the DNS provider.
 
 ## User Guide
 
 Setting-up MCIDNS can be accomplished by referencing the following documentation:
 
 - The Federation-v2 [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
-control-plane. If running in GKE, the cluster hosting the ExternalDNS controller must have scope
-`https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
+  control-plane. If running in GKE, the cluster hosting the ExternalDNS controller must have scope
+  `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with
-ExternalDNS. Reference your DNS provider documentation on how to create a domain or delegate a subdomain.
+  ExternalDNS. Reference your DNS provider documentation on how to create a domain or delegate a subdomain.
 - The [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) user guides to run the external-dns
-controller. You must ensure the following `args` are provided in the external-dns Deployment manifest:
-    ```
-    --source=crd
-    --crd-source-apiversion=multiclusterdns.federation.k8s.io/v1alpha1
-    --crd-source-kind=DNSEndpoint
-    --registry=txt
-    --txt-prefix=cname
-    ```
-    __Note__: If you do not deploy the external-dns controller to the same namespace and use the default service account
-    of the federation control-plane, you must setup RBAC permissions allowing the controller access to necessary
-    resources.
+  controller. You must ensure the following `args` are provided in the external-dns Deployment manifest:
+  `--source=crd --crd-source-apiversion=multiclusterdns.federation.k8s.io/v1alpha1 --crd-source-kind=DNSEndpoint --registry=txt --txt-prefix=cname`
+  **Note**: If you do not deploy the external-dns controller to the same namespace and use the default service account
+  of the federation control-plane, you must setup RBAC permissions allowing the controller access to necessary
+  resources.
 
 After the cluster, federation control-plane, and external-dns controller are running, use the
 [sample](../example/sample1) federated deployment, service, and ingress to test MCIDNS. Check the status of all the
@@ -63,8 +57,9 @@ done
 ```
 
 It may take a few minutes for the `ADDRESS` field of each `Ingress` to be populated. Next, create the
-`IngressDNSRecord`. __Note:__ The `hosts` field value(s) should match the associated `host` field value(s) in the associated
+`IngressDNSRecord`. **Note:** The `hosts` field value(s) should match the associated `host` field value(s) in the associated
 `FederatedIngress` resource.
+
 ```bash
 $ cat <<EOF | kubectl create -f -
 apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
@@ -81,6 +76,7 @@ EOF
 
 After creating the `IngressDNSRecord`, the DNS Endpoint controller uses the IP address from each target `Ingress` to
 populate the `targets` field of the `DNSEndpoint` resource. For example:
+
 ```bash
 $ kubectl get dnsendpoints -o yaml
 apiVersion: v1
@@ -113,6 +109,7 @@ metadata:
 The ExternalDNS controller is watching `DNSEndpoint` resources and creates `A` and `TXT` records in the configured DNS
 provider for each target `Ingress`. Here is an example for the Google Cloud DNS provider using a zone named
 "example-com".
+
 ```bash
 $ gcloud dns record-sets list --zone="example-com"
 NAME                  TYPE  TTL    DATA
@@ -125,6 +122,7 @@ ingress.example.com.  TXT   300    "heritage=external-dns,external-dns/owner=my-
 Check that name resolution works. Keep in mind that propagating DNS names from authoritative name servers to
 resolvers takes time. In this example, `dig` is used with authoritative name server
 `ns-cloud-b1.googledomains.com`:
+
 ```bash
 $ dig +short @ns-cloud-b1.googledomains.com. ingress.example.com
 $CLUSTER1_INGRESS_IP

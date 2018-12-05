@@ -57,6 +57,7 @@ Kubernetes environments that have been tested and are supported by the Federatio
 After completing the steps in one of the above guides, return here to continue the Federation v2 deployment.
 
 **NOTE:** You must set the correct context using the command below as this guide depends on it.
+
 ```bash
 kubectl config use-context cluster1
 ```
@@ -149,11 +150,14 @@ Create all the test resources by running:
 ```bash
 kubectl apply -R -f example/sample1
 ```
+
 **NOTE:** If you get the following error while creating a test resource i.e.
-```
-unable to recognize "example/sample1/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1", 
 
 ```
+unable to recognize "example/sample1/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1",
+
+```
+
 then it indicates that a given type may need to be federated by `kubefed2 federate enable <type>`
 
 ### Check Status of Resources
@@ -244,6 +248,7 @@ If you were able to verify the resources removed and added back then you have
 successfully verified a working federation-v2 deployment.
 
 ### Example: federating a CRD
+
 Please use this [guide](./federating_crds.md) to federate a CRD in the target cluster.
 
 ### Example Cleanup
@@ -293,10 +298,10 @@ by default. On successful completion of the script used in example, both `cluste
 ## Namespaced Federation
 
 All prior instructions referred to the deployment and use of a
-cluster-scoped federation control plane.  It is also possible to
-deploy a namespace-scoped control plane.  In this mode of operation,
+cluster-scoped federation control plane. It is also possible to
+deploy a namespace-scoped control plane. In this mode of operation,
 federation controllers will target resources in a single namespace on
-both host and member clusters.  This may be desirable when
+both host and member clusters. This may be desirable when
 experimenting with federation on a production cluster.
 
 ### Automated Deployment
@@ -309,10 +314,10 @@ NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <imag
 ```
 
 - `NAMESPACED` indicates that the control plane should target a
-single namespace - the same namespace it is deployed to.
+  single namespace - the same namespace it is deployed to.
 - `FEDERATION_NAMESPACE`indicates the namespace to deploy the control
-plane to.  The control plane will only have permission to access this
-on both the host and member clusters.
+  plane to. The control plane will only have permission to access this
+  on both the host and member clusters.
 
 It may be useful to supply `FEDERATION_NAMESPACE=test-namespace` to
 allow the examples to work unmodified. You can run following command
@@ -342,6 +347,7 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
     --federation-namespace=test-namespace --registry-namespace=test-namespace \
     --limited-scope=true
 ```
+
 ### Multi-Cluster Ingress DNS
 
 Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
@@ -365,60 +371,60 @@ NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
 
 ## Higher order behaviour
 
-The architecture of federation v2 API allows higher level APIs to be 
-constructed using the mechanics provided by the core API types (`template`, 
+The architecture of federation v2 API allows higher level APIs to be
+constructed using the mechanics provided by the core API types (`template`,
 `placement` and `override`) and associated controllers for a given resource.
-Further sections describe few of higher level APIs implemented as part of 
+Further sections describe few of higher level APIs implemented as part of
 Federation V2.
 
-###  ReplicaSchedulingPreference
+### ReplicaSchedulingPreference
 
-ReplicaSchedulingPreference provides an automated mechanism of distributing 
-and maintaining total number of replicas for `deployment` or `replicaset` based 
-federated workloads into federated clusters. This is based on high level 
-user preferences given by the user. These preferences include the semantics 
-of weighted distribution and limits (min and max) for distributing the replicas. 
-These also include semantics to allow redistribution of replicas dynamically 
-in case some replica pods remain unscheduled in some clusters, for example 
-due to insufficient resources in that cluster. 
+ReplicaSchedulingPreference provides an automated mechanism of distributing
+and maintaining total number of replicas for `deployment` or `replicaset` based
+federated workloads into federated clusters. This is based on high level
+user preferences given by the user. These preferences include the semantics
+of weighted distribution and limits (min and max) for distributing the replicas.
+These also include semantics to allow redistribution of replicas dynamically
+in case some replica pods remain unscheduled in some clusters, for example
+due to insufficient resources in that cluster.
 
 RSP is used in place of ReplicaSchedulingPreference for brevity in text further on.
 
-The RSP controller works in a sync loop observing the RSP resource and the 
-matching `namespace/name` pair `FederatedDeployment` or `FederatedReplicaset` 
-resource. 
-If it finds that both RSP and its target template resource, the type of which 
-is specified using `spec.targetKind`, exists, it goes ahead to list currently 
-healthy clusters and distributes the `spec.totalReplicas` using the associated 
-per cluster user preferences. If the per cluster preferences are absent, it 
-distributes the `spec.totalReplicas` evenly among all clusters. It updates (or 
-creates if missing) the same `namespace/name` `placement` and `overrides` for the 
-`targetKind` with the replica values calculated, leveraging the sync controller 
-to actually propagate the k8s resource to federated clusters. Its noteworthy that 
-if an RSP is present, the `spec.replicas` from the `template` resource are unused. 
-RSP also provides a further more useful feature using `spec.rebalance`. If this is 
-set to `true`, the RSP controller monitors the replica pods for target replica 
-workload from each federated cluster and if it finds that some clusters are not 
-able to schedule those pods for long, it moves (rebalances) the replicas to 
-clusters where all the pods are running and healthy. This in other words helps 
-moving the replica workloads to those clusters where there is enough capacity 
-and away from those clusters which are currently running out of capacity. The 
-`rebalance` feature might cause initial shuffle of replicas to  reach an eventually 
-balanced state of distribution. The controller might further keep trying to move 
-few replicas back into the cluster(s) which ran out of capacity, to check if it can 
-be scheduled again to reach the normalised state (even distribution or the state 
-desired by user preferences), which apparently is the only mechanism to check if 
-this cluster has capacity now. The `spec.rebalance` should not be used if this 
+The RSP controller works in a sync loop observing the RSP resource and the
+matching `namespace/name` pair `FederatedDeployment` or `FederatedReplicaset`
+resource.
+If it finds that both RSP and its target template resource, the type of which
+is specified using `spec.targetKind`, exists, it goes ahead to list currently
+healthy clusters and distributes the `spec.totalReplicas` using the associated
+per cluster user preferences. If the per cluster preferences are absent, it
+distributes the `spec.totalReplicas` evenly among all clusters. It updates (or
+creates if missing) the same `namespace/name` `placement` and `overrides` for the
+`targetKind` with the replica values calculated, leveraging the sync controller
+to actually propagate the k8s resource to federated clusters. Its noteworthy that
+if an RSP is present, the `spec.replicas` from the `template` resource are unused.
+RSP also provides a further more useful feature using `spec.rebalance`. If this is
+set to `true`, the RSP controller monitors the replica pods for target replica
+workload from each federated cluster and if it finds that some clusters are not
+able to schedule those pods for long, it moves (rebalances) the replicas to
+clusters where all the pods are running and healthy. This in other words helps
+moving the replica workloads to those clusters where there is enough capacity
+and away from those clusters which are currently running out of capacity. The
+`rebalance` feature might cause initial shuffle of replicas to reach an eventually
+balanced state of distribution. The controller might further keep trying to move
+few replicas back into the cluster(s) which ran out of capacity, to check if it can
+be scheduled again to reach the normalised state (even distribution or the state
+desired by user preferences), which apparently is the only mechanism to check if
+this cluster has capacity now. The `spec.rebalance` should not be used if this
 behaviour is unacceptable.
 
-The RSP can be considered as more user friendly mechanism to distribute the 
-replicas, where the inputs needed from the user at federated control plane are 
-reduced. The user only needs to create the RSP resource and the mapping template 
-resource, to distribute the replicas. It can also be considered as a more 
-automated approach at distribution and further reconciliation of the workload 
+The RSP can be considered as more user friendly mechanism to distribute the
+replicas, where the inputs needed from the user at federated control plane are
+reduced. The user only needs to create the RSP resource and the mapping template
+resource, to distribute the replicas. It can also be considered as a more
+automated approach at distribution and further reconciliation of the workload
 replicas.
 
-The usage of the RSP semantics is illustrated using some examples below. The 
+The usage of the RSP semantics is illustrated using some examples below. The
 examples considers 3 federated clusters `A`, `B` and `C`.
 
 #### Distribute total replicas evenly in all available clusters
@@ -433,7 +439,9 @@ spec:
   targetKind: FederatedDeployment
   totalReplicas: 9
 ```
-or 
+
+or
+
 ```bash
 apiVersion: scheduling.federation.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
@@ -447,6 +455,7 @@ spec:
     "*":
       weight: 1
 ```
+
 A, B and C get 3 replicas each.
 
 #### Distribute total replicas in weighted proportions
@@ -466,7 +475,8 @@ spec:
     B:
       weight: 2
 ```
-A gets 3 and B gets 6 replicas in the proportion of 1:2. C does not get 
+
+A gets 3 and B gets 6 replicas in the proportion of 1:2. C does not get
 any replica as missing weight preference is considered as weight=0.
 
 #### Distribute replicas in weighted proportions, also enforcing replica limits per cluster
@@ -490,7 +500,8 @@ spec:
       maxReplicas: 8
       weight: 2
 ```
-A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas=4. 
+
+A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas=4.
 
 #### Distribute replicas evenly in all clusters, however not more then 20 in C
 
@@ -510,17 +521,23 @@ spec:
       maxReplicas: 20
       weight: 1
 ```
+
 Possible scenarios
 
-All have capacity. 
+All have capacity.
+
 ```
 Replica layout: A=16 B=17 C=17.
 ```
+
 B is offline/has no capacity
+
 ```
 Replica layout: A=30 B=0 C=20
 ```
-A and B are offline: 
+
+A and B are offline:
+
 ```
-Replica layout: C=20 
+Replica layout: C=20
 ```
