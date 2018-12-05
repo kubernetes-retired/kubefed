@@ -33,5 +33,5 @@ type Domain struct {
 	// Domain is the DNS zone associated with the federation
 	Domain string `json:"domain"`
 	// NameServer is the authoritative DNS name server for the federation domain
-	NameServer string `json:nameServer,omitempty"`
+	NameServer string `json:"nameServer,omitempty"`
 }
