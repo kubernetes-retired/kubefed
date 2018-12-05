@@ -93,7 +93,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Type: "object",
 		Properties: map[string]apiextv1b1.JSONSchemaProps{
 			"bar": {
-				Type: "string",
+				Type: "array",
 			},
 		},
 	})
@@ -181,11 +181,15 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 kind: fixture
 template:
   spec:
-    bar: baz
+    bar:
+    - baz
+    - bal
 overrides:
   - clusterOverrides:
     - path: bar
-      value: foo
+      value:
+      - fiz
+      - bang
 `
 		fixture := &unstructured.Unstructured{}
 		err = federate.DecodeYAML(strings.NewReader(fixtureYAML), fixture)

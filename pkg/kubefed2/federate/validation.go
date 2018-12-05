@@ -92,6 +92,9 @@ func overrideValidationSchema() *v1beta1.CustomResourceValidation {
 													{
 														Type: "object",
 													},
+													{
+														Type: "array",
+													},
 												},
 											},
 										},
