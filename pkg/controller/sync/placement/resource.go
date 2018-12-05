@@ -17,6 +17,7 @@ limitations under the License.
 package placement
 
 import (
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -56,17 +57,18 @@ func (p *ResourcePlacementPlugin) HasSynced() bool {
 	return p.controller.HasSynced()
 }
 
-func (p *ResourcePlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
-	selectedClusters, unselectedClusters, _, err = p.computePlacementWithOk(qualifiedName, clusterNames)
+func (p *ResourcePlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, err error) {
+	selectedClusters, unselectedClusters, _, err = p.computePlacementWithOk(qualifiedName, clusters)
 	return selectedClusters, unselectedClusters, err
 }
 
-func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, ok bool, err error) {
+func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.QualifiedName, clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, ok bool, err error) {
 	key := qualifiedName.String()
 	cachedObj, _, err := p.store.GetByKey(key)
 	if err != nil {
 		return nil, nil, false, err
 	}
+	clusterNames := getClusterNames(clusters)
 	if cachedObj == nil {
 		if p.defaultAll {
 			return clusterNames, []string{}, false, nil
@@ -82,4 +84,12 @@ func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.Qual
 	clusterSet := sets.NewString(clusterNames...)
 	selectedSet := sets.NewString(selectedNames...)
 	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), true, nil
+}
+
+func getClusterNames(clusters []*fedv1a1.FederatedCluster) []string {
+	clusterNames := []string{}
+	for _, cluster := range clusters {
+		clusterNames = append(clusterNames, cluster.Name)
+	}
+	return clusterNames
 }

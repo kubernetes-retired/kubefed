@@ -400,13 +400,13 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	}
 	template = finalizedTemplate.(*unstructured.Unstructured)
 
-	clusterNames, err := s.clusterNames()
+	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
 		return util.StatusNotSynced
 	}
 
-	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(placementName, clusterNames)
+	selectedClusters, unselectedClusters, err := s.placementPlugin.ComputePlacement(placementName, clusters)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", templateKind, placementName, err))
 		return util.StatusError
@@ -445,19 +445,6 @@ func (s *FederationSyncController) objFromCache(store cache.Store, kind, key str
 		return nil, nil
 	}
 	return obj.(*unstructured.Unstructured), nil
-}
-
-func (s *FederationSyncController) clusterNames() ([]string, error) {
-	clusters, err := s.informer.GetReadyClusters()
-	if err != nil {
-		return nil, err
-	}
-	clusterNames := []string{}
-	for _, cluster := range clusters {
-		clusterNames = append(clusterNames, cluster.Name)
-	}
-
-	return clusterNames, nil
 }
 
 // delete deletes the given resource or returns error if the deletion was not complete.

@@ -17,11 +17,12 @@ limitations under the License.
 package placement
 
 import (
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 type PlacementPlugin interface {
 	Run(stopCh <-chan struct{})
 	HasSynced() bool
-	ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error)
+	ComputePlacement(qualifiedName util.QualifiedName, clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, err error)
 }
