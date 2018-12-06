@@ -17,6 +17,7 @@ limitations under the License.
 package placement
 
 import (
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -29,8 +30,8 @@ type namespacedPlacementPlugin struct {
 
 func NewNamespacedPlacementPlugin(resourceClient, namespaceClient util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
 	return &namespacedPlacementPlugin{
-		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc),
-		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc),
+		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc, false),
+		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc, false),
 	}
 }
 
@@ -43,14 +44,14 @@ func (p *namespacedPlacementPlugin) HasSynced() bool {
 	return p.resourcePlugin.HasSynced() && p.namespacePlugin.HasSynced()
 }
 
-func (p *namespacedPlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusterNames []string) (selectedClusters, unselectedClusters []string, err error) {
-	selectedClusters, unselectedClusters, err = p.resourcePlugin.ComputePlacement(qualifiedName, clusterNames)
+func (p *namespacedPlacementPlugin) ComputePlacement(qualifiedName util.QualifiedName, clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, err error) {
+	selectedClusters, unselectedClusters, err = p.resourcePlugin.ComputePlacement(qualifiedName, clusters)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	placementName := util.QualifiedName{Namespace: qualifiedName.Namespace, Name: qualifiedName.Namespace}
-	namespaceSelectedClusters, _, ok, err := p.namespacePlugin.computePlacementWithOk(placementName, clusterNames)
+	namespaceSelectedClusters, _, ok, err := p.namespacePlugin.computePlacementWithOk(placementName, clusters)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -62,7 +63,7 @@ func (p *namespacedPlacementPlugin) ComputePlacement(qualifiedName util.Qualifie
 
 	resourceClusterSet := sets.NewString(selectedClusters...)
 	namespaceClusterSet := sets.NewString(namespaceSelectedClusters...)
-	clusterSet := sets.NewString(clusterNames...)
+	clusterSet := sets.NewString(getClusterNames(clusters)...)
 
 	// If both namespace and resource placement exist, the desired
 	// list of clusters should be their intersection.
