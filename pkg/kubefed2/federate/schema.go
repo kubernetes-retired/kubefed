@@ -72,7 +72,7 @@ func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (
 }
 
 func (a *crdSchemaAccessor) templateSchema() map[string]apiextv1b1.JSONSchemaProps {
-	if a.validation.OpenAPIV3Schema != nil {
+	if a.validation != nil && a.validation.OpenAPIV3Schema != nil {
 		return a.validation.OpenAPIV3Schema.Properties
 	}
 	return nil
