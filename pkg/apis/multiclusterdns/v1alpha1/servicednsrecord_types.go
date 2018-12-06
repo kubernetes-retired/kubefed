@@ -29,6 +29,9 @@ type ServiceDNSRecordSpec struct {
 	RecordTTL TTL `json:"recordTTL,omitempty"`
 	// DNSPrefix when specified, an additional DNS record would be created with <DNSPrefix>.<FederationDomain>
 	DNSPrefix string `json:"dnsPrefix,omitempty"`
+	// ExternalName when specified, replaces the service name portion of a resource record
+	// with the value of ExternalName.
+	ExternalName string `json:"externalName,omitempty"`
 	// AllowServiceWithoutEndpoints allows DNS records to be written for Service shards without endpoints
 	AllowServiceWithoutEndpoints bool `json:"allowServiceWithoutEndpoints,omitempty"`
 }
