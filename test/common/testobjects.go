@@ -74,12 +74,11 @@ func newTestOverride(apiResource metav1.APIResource, namespace string, clusterNa
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving overrides field: %v", err)
 	}
-	var targetOverrides map[string]interface{}
-	if ok {
-		targetOverrides = overridesSlice[0].(map[string]interface{})
-	} else {
-		targetOverrides = map[string]interface{}{}
+	if !ok {
+		return nil, nil
 	}
+
+	targetOverrides := overridesSlice[0].(map[string]interface{})
 	targetOverrides[util.ClusterNameField] = clusterNames[0]
 	overridesSlice[0] = targetOverrides
 	err = unstructured.SetNestedSlice(obj.Object, overridesSlice, "spec", "overrides")

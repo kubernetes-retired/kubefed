@@ -4,5 +4,3 @@ metadata:
   name: jobs.batch
 spec:
   comparisonField: Generation
-  overridePaths:
-    - path: spec.parallelism

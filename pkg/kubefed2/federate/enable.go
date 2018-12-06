@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
@@ -74,7 +73,6 @@ type enableTypeOptions struct {
 	targetName         string
 	targetVersion      string
 	rawComparisonField string
-	rawOverridePaths   string
 	primitiveVersion   string
 	primitiveGroup     string
 	output             string
@@ -92,7 +90,6 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 			apicommon.ResourceVersionField, apicommon.GenerationField,
 		),
 	)
-	flags.StringVar(&o.rawOverridePaths, "override-paths", "", "A comma-separated list of dot-separated paths (e.g. spec.completions,spec.parallelism).")
 	flags.StringVar(&o.primitiveGroup, "primitive-group", defaultPrimitiveGroup, "The name of the API group to use for generated federation primitives.")
 	flags.StringVar(&o.primitiveVersion, "primitive-version", defaultPrimitiveVersion, "The API version to use for generated federation primitives.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that will be created in the API will be output to stdout in the provided format.  Valid values are ['yaml'].")
@@ -161,15 +158,6 @@ func (j *enableType) Complete(args []string) error {
 		return fmt.Errorf("comparison field must be %q or %q",
 			apicommon.ResourceVersionField, apicommon.GenerationField,
 		)
-	}
-	if len(j.rawOverridePaths) > 0 {
-		for _, path := range strings.Split(j.rawOverridePaths, ",") {
-			fd.Spec.OverridePaths = append(fd.Spec.OverridePaths,
-				fedv1a1.OverridePath{
-					Path: path,
-				},
-			)
-		}
 	}
 	if len(j.targetVersion) > 0 {
 		fd.Spec.TargetVersion = j.targetVersion
@@ -281,7 +269,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	if err != nil {
 		return fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
 	}
-	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s created in namespace %s\n", concreteTypeConfig.Name, concreteTypeConfig.Namespace))
+	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s created in namespace %s\n", concreteTypeConfig.Name, namespace))
 
 	return nil
 }
@@ -311,12 +299,17 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 			Placement: fedv1a1.APIResource{
 				Kind: fmt.Sprintf("Federated%sPlacement", kind),
 			},
+			Override: &fedv1a1.APIResource{
+				Kind: fmt.Sprintf("Federated%sOverride", kind),
+			},
 		},
 	}
 	if typeConfig.Name == ctlutil.NamespaceName {
 		typeConfig.Spec.Template = typeConfig.Spec.Target
 		typeConfig.Spec.Placement.Group = spec.PrimitiveGroup
 		typeConfig.Spec.Placement.Version = spec.PrimitiveVersion
+		typeConfig.Spec.Override.Group = spec.PrimitiveGroup
+		typeConfig.Spec.Override.Version = spec.PrimitiveVersion
 	} else {
 		typeConfig.Spec.Template = fedv1a1.APIResource{
 			Group:      spec.PrimitiveGroup,
@@ -324,12 +317,6 @@ func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *Fede
 			Kind:       fmt.Sprintf("Federated%s", kind),
 			PluralName: fmt.Sprintf("federated%s", pluralName),
 		}
-	}
-	if len(spec.OverridePaths) > 0 {
-		typeConfig.Spec.Override = &fedv1a1.APIResource{
-			Kind: fmt.Sprintf("Federated%sOverride", kind),
-		}
-		typeConfig.Spec.OverridePaths = spec.OverridePaths
 	}
 	// Set defaults that would normally be set by the api
 	fedv1a1.SetFederatedTypeConfigDefaults(typeConfig)
@@ -351,14 +338,9 @@ func primitiveCRDs(typeConfig typeconfig.Interface, accessor schemaAccessor) ([]
 	placementSchema := placementValidationSchema()
 	crds = append(crds, CrdForAPIResource(typeConfig.GetPlacement(), placementSchema))
 
-	overrideAPIResource := typeConfig.GetOverride()
-	if overrideAPIResource != nil {
-		overrideSchema, err := overrideValidationSchema(accessor, typeConfig.GetOverridePaths())
-		if err != nil {
-			return nil, err
-		}
-		crds = append(crds, CrdForAPIResource(*overrideAPIResource, overrideSchema))
-	}
+	overrideSchema := overrideValidationSchema()
+	crds = append(crds, CrdForAPIResource(*typeConfig.GetOverride(), overrideSchema))
+
 	return crds, nil
 }
 

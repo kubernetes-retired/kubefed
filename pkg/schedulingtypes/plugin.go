@@ -35,8 +35,7 @@ import (
 )
 
 const (
-	replicasField = "replicas"
-	replicasPath  = "spec.replicas"
+	replicasPath = "spec.replicas"
 )
 
 type Plugin struct {
@@ -193,14 +192,25 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		}
 		apiResource := p.typeConfig.GetOverride()
 		newOverride := newUnstructured(*apiResource, qualifiedName)
-		setOverrideSpec(newOverride, result)
-		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
+		err := setOverrides(newOverride, nil, result)
+		if err != nil {
+			return err
+		}
+		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
 		return err
 	}
 
-	if OverrideUpdateNeeded(p.typeConfig, override, result) {
-		setOverrideSpec(override, result)
-		_, err := p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
+	overridesMap, err := util.GetOverrides(override)
+	if err != nil {
+		return fmt.Errorf("Error reading cluster overrides for %s %q: %v", p.typeConfig.GetOverride().Kind, qualifiedName, err)
+	}
+
+	if OverrideUpdateNeeded(overridesMap, result) {
+		err := setOverrides(override, overridesMap, result)
+		if err != nil {
+			return err
+		}
+		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
 		if err != nil {
 			return err
 		}
@@ -232,44 +242,49 @@ func PlacementUpdateNeeded(names, newNames []string) bool {
 	return !reflect.DeepEqual(names, newNames)
 }
 
-func setOverrideSpec(obj *unstructured.Unstructured, result map[string]int64) {
-	overrides := []interface{}{}
-	for clusterName, replicas := range result {
-		overridesMap := map[string]interface{}{
-			util.ClusterNameField: clusterName,
-			replicasField:         replicas,
-		}
-		overrides = append(overrides, overridesMap)
+func setOverrides(obj *unstructured.Unstructured, overridesMap util.OverridesMap, replicasMap map[string]int64) error {
+	if overridesMap == nil {
+		overridesMap = make(util.OverridesMap)
 	}
-	obj.Object[util.SpecField] = map[string]interface{}{
-		util.OverridesField: overrides,
+	updateOverridesMap(overridesMap, replicasMap)
+	return util.SetOverrides(obj, overridesMap)
+}
+
+func updateOverridesMap(overridesMap util.OverridesMap, replicasMap map[string]int64) {
+	// Remove replicas override for clusters that are not scheduled
+	for clusterName, clusterOverridesMap := range overridesMap {
+		if _, ok := replicasMap[clusterName]; !ok {
+			delete(clusterOverridesMap, replicasPath)
+		}
+	}
+	// Add/update replicas override for clusters that are scheduled
+	for clusterName, replicas := range replicasMap {
+		clusterOverridesMap, ok := overridesMap[clusterName]
+		if !ok {
+			clusterOverridesMap = make(util.ClusterOverridesMap)
+			overridesMap[clusterName] = clusterOverridesMap
+		}
+		clusterOverridesMap[replicasPath] = replicas
 	}
 }
 
-func OverrideUpdateNeeded(typeConfig typeconfig.Interface, obj *unstructured.Unstructured, result map[string]int64) bool {
-	kind := typeConfig.GetOverride().Kind
-	qualifiedName := util.NewQualifiedName(obj)
-
-	overrides, err := util.GetClusterOverrides(typeConfig, obj)
-	if err != nil {
-		wrappedErr := fmt.Errorf("Error reading cluster overrides for %s %q: %v", kind, qualifiedName, err)
-		runtime.HandleError(wrappedErr)
-		// Updating the overrides should hopefully fix the above problem
-		return true
-	}
-
+func OverrideUpdateNeeded(overridesMap util.OverridesMap, result map[string]int64) bool {
 	resultLen := len(result)
 	checkLen := 0
-	for clusterName, clusterOverrides := range overrides {
-		for _, override := range clusterOverrides {
-			if strings.Join(override.Path, ".") == replicasPath {
-				value, ok := override.FieldValue.(int64)
-				replicas, ok := result[clusterName]
-				if !ok || value != int64(replicas) {
-					return true
-				}
-				checkLen += 1
+	for clusterName, clusterOverridesMap := range overridesMap {
+		for path, rawValue := range clusterOverridesMap {
+			if path != replicasPath {
+				continue
 			}
+			value, ok := rawValue.(int64)
+			if !ok {
+				return true
+			}
+			replicas, ok := result[clusterName]
+			if !ok || value != int64(replicas) {
+				return true
+			}
+			checkLen += 1
 		}
 	}
 

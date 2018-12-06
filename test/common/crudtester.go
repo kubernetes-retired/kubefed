@@ -19,6 +19,7 @@ package common
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
@@ -113,8 +114,9 @@ func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desi
 	name := placement.GetName()
 
 	var override *unstructured.Unstructured
-	if overrideAPIResource := c.typeConfig.GetOverride(); overrideAPIResource != nil {
+	if desiredOverride != nil {
 		desiredOverride.SetName(name)
+		overrideAPIResource := c.typeConfig.GetOverride()
 		override = c.createFedResource(*overrideAPIResource, desiredOverride)
 	}
 
@@ -341,9 +343,10 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		return
 	}
 
-	clusterOverrides, err := util.GetClusterOverrides(c.typeConfig, override)
+	overridesMap, err := util.GetOverrides(override)
 	if err != nil {
-		c.tl.Fatalf("Error marshalling cluster overrides for %s %q: %v", targetKind, qualifiedName, err)
+		overrideKind := c.typeConfig.GetOverride().Kind
+		c.tl.Fatalf("Error reading cluster overrides for %s %q: %v", overrideKind, qualifiedName, err)
 	}
 
 	overrideVersion := ""
@@ -362,7 +365,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 		c.tl.Logf("Waiting for %s %q %s cluster %q", targetKind, qualifiedName, operation, clusterName)
 
 		if objExpected {
-			err := c.waitForResource(testCluster.Client, qualifiedName, clusterOverrides[clusterName], func() string {
+			err := c.waitForResource(testCluster.Client, qualifiedName, overridesMap[clusterName], func() string {
 				version, _ := c.expectedVersion(qualifiedName, overrideVersion, clusterName)
 				return version
 			})
@@ -391,7 +394,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides []util.ClusterOverride, expectedVersion func() string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverridesMap, expectedVersion func() string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		expectedVersion := expectedVersion()
 		if len(expectedVersion) == 0 {
@@ -402,17 +405,17 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 		if err == nil && c.comparisonHelper.GetVersion(clusterObj) == expectedVersion {
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
-				for _, expectedOverride := range expectedOverrides {
-					path := expectedOverride.Path
-					value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, path...)
+				for path, expectedValue := range expectedOverrides {
+					pathEntries := strings.Split(path, ".")
+					value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, pathEntries...)
 					if err != nil {
 						c.tl.Fatalf("Error retrieving overridden path: %v", err)
 					}
 					if !ok {
 						c.tl.Fatalf("Missing overridden path %s", path)
 					}
-					if !reflect.DeepEqual(expectedOverride.FieldValue, value) {
-						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedOverride.FieldValue, value)
+					if !reflect.DeepEqual(expectedValue, value) {
+						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedValue, value)
 						return false, nil
 					}
 				}

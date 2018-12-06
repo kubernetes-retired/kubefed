@@ -54,9 +54,6 @@ type FederatedTypeConfigSpec struct {
 	// provided for the template resource.
 	// +optional
 	Override *APIResource `json:"override,omitempty"`
-	// The list of name:path pairs of the fields to override in target template.
-	// +optional
-	OverridePaths []OverridePath `json:"overridePaths,omitempty"`
 	// Configuration for the status type that holds information about which type
 	// holds the status of the federated resource. If not provided, the group
 	// and version will default to those provided for the template resource.
@@ -82,17 +79,6 @@ type APIResource struct {
 	// not provided, it will be computed by lower-casing the kind and
 	// suffixing an 's'.
 	PluralName string `json:"pluralName,omitempty"`
-}
-
-// OverridePath is the name:path pair of the field to override in target template.
-type OverridePath struct {
-	// Name of the override field in the override spec.
-	// If left empty, Defaults to the last (. separated) portion of the
-	// Path string.
-	Name string `json:"name,omitempty"`
-	// The . separated complete path (in target template spec) of the
-	// field to override. For example 'spec.replicas' for ReplicaSets.
-	Path string `json:"path"`
 }
 
 // ControllerStatus defines the current state of the controller
@@ -160,10 +146,6 @@ func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 		setStringDefault(&obj.Spec.Override.PluralName, PluralName(obj.Spec.Override.Kind))
 		setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
 		setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
-		for index, overridePath := range obj.Spec.OverridePaths {
-			splitPath := strings.Split(overridePath.Path, ".")
-			setStringDefault(&obj.Spec.OverridePaths[index].Name, splitPath[len(splitPath)-1])
-		}
 	}
 	if obj.Spec.Status != nil {
 		setStringDefault(&obj.Spec.Status.PluralName, PluralName(obj.Spec.Status.Kind))
@@ -241,18 +223,6 @@ func (f *FederatedTypeConfig) GetOverride() *metav1.APIResource {
 	}
 	metaAPIResource := apiResourceToMeta(*f.Spec.Override, f.Spec.Namespaced)
 	return &metaAPIResource
-}
-
-func (f *FederatedTypeConfig) GetOverridePaths() map[string][]string {
-	if len(f.Spec.OverridePaths) == 0 {
-		return nil
-	}
-
-	overridePaths := make(map[string][]string, len(f.Spec.OverridePaths))
-	for _, overridePath := range f.Spec.OverridePaths {
-		overridePaths[overridePath.Name] = strings.Split(overridePath.Path, ".")
-	}
-	return overridePaths
 }
 
 func (f *FederatedTypeConfig) GetStatus() *metav1.APIResource {

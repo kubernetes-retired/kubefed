@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 )
 
 // FederateDirectiveSpec defines the desired state of FederateDirective.
@@ -40,10 +39,6 @@ type FederateDirectiveSpec struct {
 	// The API version to use for generated federation primitives.
 	// +optional
 	PrimitiveVersion string `json:"primitiveVersion,omitempty"`
-
-	// The list of name:path pairs of the fields to override in target template.
-	// +optional
-	OverridePaths []fedv1a1.OverridePath `json:"overridePaths,omitempty"`
 }
 
 // TODO(marun) This should become a proper API type and drive enabling
