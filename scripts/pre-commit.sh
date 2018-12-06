@@ -159,11 +159,18 @@ join-cluster-list > /dev/null
 echo "Deploying federation-v2"
 ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
 
-echo "Checking sync up status of helm chart"
-PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
+# TODO(marun) Ensure that contributors can consistently update the
+# helm chart crds.  Requiring that a specific version of kubernetes be
+# deployed seems onerous, and a preferable solution would be a script
+# that launched the version of kubernetes-apiserver that is downloaded
+# for testing (currently as part of kubebuilder) and runs kubefed
+# federate against it.
 
-echo "Checking helm chart state of working tree"
-check-git-state
+# echo "Checking sync up status of helm chart"
+# PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
+
+# echo "Checking helm chart state of working tree"
+# check-git-state
 
 echo "Running go e2e tests with unmanaged fixture"
 run-e2e-tests-with-unmanaged-fixture
