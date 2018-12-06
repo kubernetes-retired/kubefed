@@ -429,7 +429,7 @@ examples considers 3 federated clusters `A`, `B` and `C`.
 
 #### Distribute total replicas evenly in all available clusters
 
-```bash
+```yaml
 apiVersion: scheduling.federation.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
@@ -442,7 +442,7 @@ spec:
 
 or
 
-```bash
+```yaml
 apiVersion: scheduling.federation.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
@@ -460,7 +460,7 @@ A, B and C get 3 replicas each.
 
 #### Distribute total replicas in weighted proportions
 
-```bash
+```yaml
 apiVersion: scheduling.federation.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
@@ -481,7 +481,7 @@ any replica as missing weight preference is considered as weight=0.
 
 #### Distribute replicas in weighted proportions, also enforcing replica limits per cluster
 
-```bash
+```yaml
 apiVersion: scheduling.federation.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
@@ -505,7 +505,7 @@ A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas
 
 #### Distribute replicas evenly in all clusters, however not more then 20 in C
 
-```bash
+```yaml
 apiVersion: scheduling.federation.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
