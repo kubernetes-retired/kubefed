@@ -27,6 +27,12 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - primitives.federation.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
   - clusterregistry.k8s.io
   resources:
   - '*'
