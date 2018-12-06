@@ -120,9 +120,9 @@ func RoleName(serviceAccountName string) string {
 	return fmt.Sprintf("federation-controller-manager:%s", serviceAccountName)
 }
 
-// CommonClusterRoleName returns the name of a ClusterRole and its
+// HealthCheckRoleName returns the name of a ClusterRole and its
 // associated ClusterRoleBinding that is used to allow the service
 // account to check the health of the cluster and list nodes.
-func CommonClusterRoleName(serviceAccountName string) string {
-	return fmt.Sprintf("federation-controller-manager:common-%s", serviceAccountName)
+func HealthCheckRoleName(serviceAccountName string) string {
+	return fmt.Sprintf("federation-controller-manager:healthcheck-%s", serviceAccountName)
 }
