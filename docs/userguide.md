@@ -125,6 +125,50 @@ Status:
     Type:                  Ready
 ```
 
+## Enabling federation of an API type
+
+It is possible to enable federation of any Kubernetes API type (including CRDs) using the
+`kubefed2` command:
+
+```bash
+kubefed2 federate enable <target API type>
+```
+
+The `<target API type>` above may identified by the Kind (e.g. `Deployment`), plural name
+(e.g. `deployments`), group-qualified plural name (e.g `deployment.apps`), or short name
+(e.g. `deploy`) of the intended target API type.
+
+The command will create CRDs for the primitives (template, placement, override) needed to
+federate the type, with names of the form `Federated<Kind>`, `Federated<Kind>Placement`, and
+`Federated<Kind>Override`.  The command will also create a `FederatedTypeConfig` in the
+federation system namespace with the group-qualified plural name of the target type.  A
+`FederatedTypeConfig` associates the primitive CRD types with the target type, and enables the
+primitive types to be propagated as the target type to member clusters.
+
+**NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
+the CRD is not installed on a member cluster, propagation to that cluster will fail.
+
+## Disabling federation of an API type
+
+It is possible to disable propagation of a type that is configured for propagation using the
+`kubefed2` command:
+
+```bash
+kubefed2 federate disable <FederatedTypeConfig name>
+```
+
+This command will set the `propagationEnabled` field in the `FederatedTypeConfig` to `false`,
+which will prompt the sync controller for the type to be stopped.
+
+If the goal is to permanently disable federation of a type, passing the `--delete-from-api`
+flag will remove the `FederatedTypeConfig` and the primitive CRDS created by `enable`:
+
+```bash
+kubefed2 federate disable <FederatedTypeConfig name> --delete-from-api
+```
+
+**WARNING: All primitive custom resources for the type will be removed by this command**
+
 ## Example
 
 Follow these instructions for running an example to verify your deployment is
@@ -246,10 +290,6 @@ done
 
 If you were able to verify the resources removed and added back then you have
 successfully verified a working federation-v2 deployment.
-
-### Example: federating a CRD
-
-Please use this [guide](./federating_crds.md) to federate a CRD in the target cluster.
 
 ### Example Cleanup
 
