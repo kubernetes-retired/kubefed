@@ -5,9 +5,16 @@ help you get started.
 
 ## Prerequisites
 
+### kubernetes
+
 The federation v2 deployment requires kubernetes version >= 1.11. To see a
 detailed list of binaries required, [see the prerequisites section in the
 user guide](userguide.md#prerequisites).
+
+### docker
+
+This repo depends on `docker` >= 1.12 to do the docker build work. 
+Set up your [Docker environment](https://docs.docker.com/install/)
 
 ## Adding a new API type
 
