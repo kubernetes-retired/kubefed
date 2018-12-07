@@ -6,4 +6,6 @@ metadata:
 spec:
   overrides:
   - clusterName: cluster2
-    replicas: 5
+    clusterOverrides:
+    - path: spec.replicas
+      value: 5
