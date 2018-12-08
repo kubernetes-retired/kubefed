@@ -5,5 +5,7 @@ metadata:
   namespace: test-namespace
 spec:
   overrides:
-    - clusterName: cluster2
-      parallelism: 2
+  - clusterName: cluster2
+    clusterOverrides:
+    - path: spec.parallelism
+      value: 2

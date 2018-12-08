@@ -6,5 +6,7 @@ metadata:
 spec:
   overrides:
   - clusterName: cluster2
-    data:
-      foo: bar
+    clusterOverrides:
+    - path: data
+      value:
+        foo: bar
