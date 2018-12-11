@@ -226,6 +226,13 @@ func (in *FederatedClusterSpec) DeepCopyInto(out *FederatedClusterSpec) {
 			**out = **in
 		}
 	}
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]v1.Taint, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
