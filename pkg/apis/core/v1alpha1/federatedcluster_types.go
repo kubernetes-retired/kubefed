@@ -44,6 +44,8 @@ type FederatedClusterSpec struct {
 	// This can be left empty if the cluster allows insecure access.
 	// +optional
 	SecretRef *apiv1.LocalObjectReference `json:"secretRef,omitempty"`
+
+	Taints []apiv1.Taint `json:"taints,omitempty"`
 }
 
 // FederatedClusterStatus contains information about the current status of a
