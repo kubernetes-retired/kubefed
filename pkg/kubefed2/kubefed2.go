@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/taint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
 
@@ -56,6 +57,7 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	rootCmd.AddCommand(federate.NewCmdFederate(out, fedConfig))
 	rootCmd.AddCommand(NewCmdJoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdUnjoin(out, fedConfig))
+	rootCmd.AddCommand(taint.NewCmdTaint(out, fedConfig))
 	rootCmd.AddCommand(NewCmdVersion(out))
 
 	return rootCmd
