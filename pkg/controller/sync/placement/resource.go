@@ -83,9 +83,18 @@ func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.Qual
 		return nil, nil, false, err
 	}
 
+	toleratedNames, err := toleratedClusterNames(unstructuredObj, clusters)
+	if err != nil {
+		return nil, nil, false, err
+	}
+
 	clusterSet := sets.NewString(clusterNames...)
 	selectedSet := sets.NewString(selectedNames...)
-	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), true, nil
+	toleratedSet := sets.NewString(toleratedNames...)
+
+	finalSet := clusterSet.Intersection(selectedSet).Intersection(toleratedSet)
+
+	return finalSet.List(), clusterSet.Difference(finalSet).List(), true, nil
 }
 
 func getClusterNames(clusters []*fedv1a1.FederatedCluster) []string {
@@ -113,4 +122,37 @@ func selectedClusterNames(rawPlacement *unstructured.Unstructured, clusters []*f
 		}
 	}
 	return selectedNames, nil
+}
+
+func toleratedClusterNames(rawPlacement *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) ([]string, error) {
+	directive, err := util.GetPlacementDirective(rawPlacement)
+	if err != nil {
+		return nil, err
+	}
+
+	tolerations := directive.Tolerations
+	toleratedClusters := []string{}
+
+	skipCluster:
+	for _, cluster := range clusters {
+		for _, taint := range cluster.Spec.Taints {
+			if taint.Effect != "NoSchedule" {
+				// Ignore other taints for now
+				continue
+			}
+			canTolerate := false
+			for _, toleration := range tolerations {
+				if toleration.ToleratesTaint(&taint) {
+					canTolerate = true
+				}
+			}
+			if !canTolerate {
+				// Cluster has a taint that the placement cannot tolerate, skipping
+				continue skipCluster
+			}
+		}
+		toleratedClusters = append(toleratedClusters, cluster.Name)
+	}
+
+	return toleratedClusters, nil
 }
