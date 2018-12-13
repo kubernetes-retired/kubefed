@@ -125,6 +125,10 @@ spec:
               type: object
             secretRef:
               type: object
+            taints:
+              items:
+                type: object
+              type: array
           type: object
         status:
           properties:
