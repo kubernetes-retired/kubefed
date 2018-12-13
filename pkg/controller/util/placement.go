@@ -19,6 +19,7 @@ package util
 import (
 	"encoding/json"
 
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -27,6 +28,7 @@ import (
 type GenericPlacementSpec struct {
 	ClusterNames    []string              `json:"clusterNames,omitempty"`
 	ClusterSelector *metav1.LabelSelector `json:"clusterSelector"`
+	Tolerations     []apiv1.Toleration    `json:"tolerations"`
 }
 
 type GenericPlacement struct {
@@ -39,6 +41,7 @@ type GenericPlacement struct {
 type PlacementDirective struct {
 	ClusterNames    []string
 	ClusterSelector labels.Selector
+	Tolerations     []apiv1.Toleration
 }
 
 func GetPlacementDirective(rawPlacement *unstructured.Unstructured) (*PlacementDirective, error) {
@@ -58,6 +61,7 @@ func GetPlacementDirective(rawPlacement *unstructured.Unstructured) (*PlacementD
 	return &PlacementDirective{
 		ClusterNames:    placement.Spec.ClusterNames,
 		ClusterSelector: selector,
+		Tolerations:     placement.Spec.Tolerations,
 	}, nil
 }
 
