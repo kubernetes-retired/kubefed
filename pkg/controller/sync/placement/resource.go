@@ -19,6 +19,7 @@ package placement
 import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -136,7 +137,7 @@ func toleratedClusterNames(rawPlacement *unstructured.Unstructured, clusters []*
 	skipCluster:
 	for _, cluster := range clusters {
 		for _, taint := range cluster.Spec.Taints {
-			if taint.Effect != "NoSchedule" {
+			if taint.Effect != corev1.TaintEffectNoSchedule {
 				// Ignore other taints for now
 				continue
 			}

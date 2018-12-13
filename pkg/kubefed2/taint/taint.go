@@ -55,14 +55,14 @@ type taintCluster struct {
 }
 
 type taintClusterOptions struct {
-	overwrite bool
-	taintsToAdd []corev1.Taint
+	overwrite      bool
+	taintsToAdd    []corev1.Taint
 	taintsToRemove []corev1.Taint
 }
 
 func (o *taintClusterOptions) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.overwrite, "overwrite", false,
-		"Allow taints to be updated with new values.")
+		"Allow pre-existing taints to be updated with new values.")
 }
 
 func NewCmdTaint(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
@@ -126,7 +126,6 @@ func (t *taintCluster) Complete(args []string) error {
 
 	return nil
 }
-
 
 func (t *taintCluster) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(t.HostClusterContext, t.Kubeconfig)
