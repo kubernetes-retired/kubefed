@@ -92,6 +92,28 @@ func placementValidationSchema() *v1beta1.CustomResourceValidation {
 					},
 				},
 			},
+			"tolerations": {
+				Type: "array",
+				Items: &v1beta1.JSONSchemaPropsOrArray{
+					Schema: &v1beta1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]v1beta1.JSONSchemaProps{
+							"key": {
+								Type: "string",
+							},
+							"operator": {
+								Type: "string",
+							},
+							"value": {
+								Type: "string",
+							},
+							"effect": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
 		},
 	})
 }
