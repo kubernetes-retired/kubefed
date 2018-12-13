@@ -116,7 +116,7 @@ func applyTaints(currentTaints, addTaints, removeTaints []corev1.Taint) ([]corev
 
 	var numAdded, numUpdated, numRemoved int
 
-	newTaintsLoop:
+newTaintsLoop:
 	for _, addTaint := range addTaints {
 		for i, taint := range currentTaints {
 			if addTaint.Key == taint.Key && addTaint.Effect == taint.Effect {
@@ -131,7 +131,7 @@ func applyTaints(currentTaints, addTaints, removeTaints []corev1.Taint) ([]corev
 
 	newTaints := []corev1.Taint{}
 
-	removeTaintsLoop:
+removeTaintsLoop:
 	for _, taint := range currentTaints {
 		for _, removeTaint := range removeTaints {
 			if len(removeTaint.Effect) == 0 {

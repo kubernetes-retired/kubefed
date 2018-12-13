@@ -134,7 +134,7 @@ func toleratedClusterNames(rawPlacement *unstructured.Unstructured, clusters []*
 	tolerations := directive.Tolerations
 	toleratedClusters := []string{}
 
-	skipCluster:
+skipCluster:
 	for _, cluster := range clusters {
 		for _, taint := range cluster.Spec.Taints {
 			if taint.Effect != corev1.TaintEffectNoSchedule {
