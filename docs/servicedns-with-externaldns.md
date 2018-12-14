@@ -85,7 +85,7 @@ metadata:
   name: test-domain
   # The namespace running federation-controller-manager.
   namespace: federation-system
-# The domain/subdomain that is setup in your externl-dns provider.
+# The domain/subdomain that is setup in your external-dns provider.
 domain: your.domain.name
 ---
 apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
