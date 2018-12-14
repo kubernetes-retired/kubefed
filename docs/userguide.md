@@ -324,6 +324,9 @@ kubectl logs -f federation-controller-manager-0 -n federation-system
 
 ### Deployment Cleanup
 
+Resources such as `namespaces` associated with a `FederatedNamespacePlacement` or `FederatedClusterRoles`
+should be deleted before cleaning up the deployment, otherwise, the process will fail.
+
 Run the following command to perform a cleanup of the cluster registry and
 federation deployments:
 
