@@ -54,6 +54,8 @@ Kubernetes environments that have been tested and are supported by the Federatio
 
 - [Google Kubernetes Engine (GKE)](./environments/gke.md)
 
+- [IBM Cloud Private](./environments/icp.md)
+
 After completing the steps in one of the above guides, return here to continue the Federation v2 deployment.
 
 **NOTE:** You must set the correct context using the command below as this guide depends on it.
