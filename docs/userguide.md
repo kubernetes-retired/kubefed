@@ -145,6 +145,12 @@ federation system namespace with the group-qualified plural name of the target t
 `FederatedTypeConfig` associates the primitive CRD types with the target type, and enables the
 primitive types to be propagated as the target type to member clusters.
 
+It is also possible to output the yaml to `stdout` instead of applying it to the API Server:
+
+```bash
+kubefed2 federate enable <target API type> --output=yaml
+```
+
 **NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
 the CRD is not installed on a member cluster, propagation to that cluster will fail.
 
@@ -167,7 +173,7 @@ flag will remove the `FederatedTypeConfig` and the primitive CRDS created by `en
 kubefed2 federate disable <FederatedTypeConfig name> --delete-from-api
 ```
 
-**WARNING: All primitive custom resources for the type will be removed by this command**
+**WARNING: All primitive custom resources for the type will be removed by this command.**
 
 ## Example
 
