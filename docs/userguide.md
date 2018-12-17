@@ -533,14 +533,18 @@ Federation V2.
 ### Multi-Cluster Ingress DNS
 
 Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
-[Multi-Cluster Ingress DNS with ExternalDNS Guide](./ingressdns-with-externaldns.md) to learn more.
+through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the guides below for
+different DNS provider to learn more.
+- [Multi-Cluster Ingress DNS with ExternalDNS Guide for Google Cloud DNS](./ingressdns-with-externaldns.md)
+- [Multi-Cluster Ingress DNS with ExternalDNS Guide for CoreDNS in miniube](./dns-minikube.md)
 
 ### Multi-Cluster Service DNS
 
 Multi-Cluster Service DNS provides the ability to programmatically manage DNS resource records of Service objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
-[Multi-Cluster Service DNS with ExternalDNS Guide](./servicedns-with-externaldns.md) to learn more.
+through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the guides below for
+different DNS provider to learn more.
+- [Multi-Cluster Service DNS with ExternalDNS Guide for Google Cloud DNS](./servicedns-with-externaldns.md)
+- [Multi-Cluster Service DNS with ExternalDNS Guide for CoreDNS in miniube](./dns-minikube.md)
 
 ### ReplicaSchedulingPreference
 
