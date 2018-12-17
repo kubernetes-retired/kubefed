@@ -412,15 +412,7 @@ func (in *FederatedTypeConfigSpec) DeepCopyInto(out *FederatedTypeConfigSpec) {
 	out.Target = in.Target
 	out.Template = in.Template
 	out.Placement = in.Placement
-	if in.Override != nil {
-		in, out := &in.Override, &out.Override
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(APIResource)
-			**out = **in
-		}
-	}
+	out.Override = in.Override
 	if in.Status != nil {
 		in, out := &in.Status, &out.Status
 		if *in == nil {

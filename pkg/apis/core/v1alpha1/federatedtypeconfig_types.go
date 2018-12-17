@@ -52,8 +52,7 @@ type FederatedTypeConfigSpec struct {
 	// resource should be changed from the template when in certain member
 	// clusters. If not provided, the group and version will default to those
 	// provided for the template resource.
-	// +optional
-	Override *APIResource `json:"override,omitempty"`
+	Override APIResource `json:"override"`
 	// Configuration for the status type that holds information about which type
 	// holds the status of the federated resource. If not provided, the group
 	// and version will default to those provided for the template resource.
@@ -142,11 +141,9 @@ func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 	setStringDefault(&obj.Spec.Placement.PluralName, PluralName(obj.Spec.Placement.Kind))
 	setStringDefault(&obj.Spec.Placement.Group, obj.Spec.Template.Group)
 	setStringDefault(&obj.Spec.Placement.Version, obj.Spec.Template.Version)
-	if obj.Spec.Override != nil {
-		setStringDefault(&obj.Spec.Override.PluralName, PluralName(obj.Spec.Override.Kind))
-		setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
-		setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
-	}
+	setStringDefault(&obj.Spec.Override.PluralName, PluralName(obj.Spec.Override.Kind))
+	setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
+	setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
 	if obj.Spec.Status != nil {
 		setStringDefault(&obj.Spec.Status.PluralName, PluralName(obj.Spec.Status.Kind))
 		setStringDefault(&obj.Spec.Status.Group, obj.Spec.Template.Group)
@@ -204,25 +201,13 @@ func (f *FederatedTypeConfig) GetTemplate() metav1.APIResource {
 }
 
 func (f *FederatedTypeConfig) GetPlacement() metav1.APIResource {
-	// Special-case namespace placement scope since it will hopefully
-	// be the only instance of the scope of a federation primitive
-	// differing from the scope of its target.
-	namespaced := f.Spec.Namespaced
-	if f.Name == "namespaces" {
-		// Namespace placement is namespaced to allow the control
-		// plane to run with only namespace-scoped permissions.
-		namespaced = true
-	}
-
+	namespaced := f.isPrimitiveNamespaced()
 	return apiResourceToMeta(f.Spec.Placement, namespaced)
 }
 
-func (f *FederatedTypeConfig) GetOverride() *metav1.APIResource {
-	if f.Spec.Override == nil {
-		return nil
-	}
-	metaAPIResource := apiResourceToMeta(*f.Spec.Override, f.Spec.Namespaced)
-	return &metaAPIResource
+func (f *FederatedTypeConfig) GetOverride() metav1.APIResource {
+	namespaced := f.isPrimitiveNamespaced()
+	return apiResourceToMeta(f.Spec.Override, namespaced)
 }
 
 func (f *FederatedTypeConfig) GetStatus() *metav1.APIResource {
@@ -235,6 +220,20 @@ func (f *FederatedTypeConfig) GetStatus() *metav1.APIResource {
 
 func (f *FederatedTypeConfig) GetEnableStatus() bool {
 	return f.Spec.EnableStatus
+}
+
+func (f *FederatedTypeConfig) isPrimitiveNamespaced() bool {
+	// Special-case the scope of namespace primitives since it will
+	// hopefully be the only instance of the scope of a federation
+	// primitive differing from the scope of its target.
+
+	// TODO(marun) Use the constant in pkg/controller/util
+	if f.Name == "namespaces" {
+		// Namespace placement is namespaced to allow the control
+		// plane to run with only namespace-scoped permissions.
+		return true
+	}
+	return f.Spec.Namespaced
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {

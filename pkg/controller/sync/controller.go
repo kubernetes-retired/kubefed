@@ -157,13 +157,12 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 
 	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, targetNamespace, enqueueObj)
 
-	if overrideAPIResource := typeConfig.GetOverride(); overrideAPIResource != nil {
-		client, err := util.NewResourceClient(pool, overrideAPIResource)
-		if err != nil {
-			return nil, err
-		}
-		s.overrideStore, s.overrideController = util.NewResourceInformer(client, targetNamespace, enqueueObj)
+	overrideAPIResource := typeConfig.GetOverride()
+	overrideClient, err := util.NewResourceClient(pool, &overrideAPIResource)
+	if err != nil {
+		return nil, err
 	}
+	s.overrideStore, s.overrideController = util.NewResourceInformer(overrideClient, targetNamespace, enqueueObj)
 
 	placementAPIResource := typeConfig.GetPlacement()
 	placementClient, err := util.NewResourceClient(pool, &placementAPIResource)

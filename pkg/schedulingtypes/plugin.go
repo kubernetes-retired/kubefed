@@ -97,7 +97,8 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 	}
 	p.placementStore, p.placementController = util.NewResourceInformer(p.placementClient, targetNamespace, federationEventHandler)
 
-	p.overrideClient, err = util.NewResourceClient(pool, typeConfig.GetOverride())
+	overrideAPIResource := typeConfig.GetOverride()
+	p.overrideClient, err = util.NewResourceClient(pool, &overrideAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -190,8 +191,7 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		if !errors.IsNotFound(err) {
 			return err
 		}
-		apiResource := p.typeConfig.GetOverride()
-		newOverride := newUnstructured(*apiResource, qualifiedName)
+		newOverride := newUnstructured(p.typeConfig.GetOverride(), qualifiedName)
 		err := setOverrides(newOverride, nil, result)
 		if err != nil {
 			return err
