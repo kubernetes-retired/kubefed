@@ -299,6 +299,74 @@ done
 If you were able to verify the resources removed and added back then you have
 successfully verified a working federation-v2 deployment.
 
+#### Using Cluster Selector
+
+In addition to specifying an explicit list of clusters that a resource should be
+propagated to via the `spec.clusterNames` field of a placement resource, it is possible
+to use the `spec.clusterSelector` field to provide a label selector that determines
+that list of clusters at runtime.
+
+If the goal is to select a subset of member clusters, make sure that the `FederatedCluster`
+resources that are intended to be selected have the appropriate labels applied.
+
+The following command is an example to label a `FederatedCluster`:
+
+```bash
+kubectl label federatedclusters -n federation-system cluster1 foo=bar
+```
+
+Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)
+to get more detail for how `kubectl label` works.
+
+The following sections detail how `spec.clusterNames` and `spec.clusterSelector` are
+used in determining the clusters that a federated resource should be propagated to.
+
+##### Neither `spec.clusterNames` nor `spec.clusterSelector` is provided
+
+```yaml
+spec: {}
+```
+
+In this case, you can either set `spec: {}` as above or remove `spec` field from your
+placement policy. The resource will not be propagated to member clusters.
+
+##### Both `spec.clusterNames` and `spec.clusterSelector` are provided
+
+```yaml
+spec:
+  clusterNames:
+    - cluster2
+    - cluster1
+  clusterSelector:
+    matchLabels:
+      foo: bar
+```
+
+For this case, `spec.clusterSelector` will be ignored as `spec.clusterNames` is provided. This
+ensures that the results of runtime scheduling have priority over manual definition of a
+cluster selector.
+
+##### `spec.clusterNames` is not provided, `spec.clusterSelector` is provided but empty
+
+```yaml
+spec:
+  clusterSelector: {}
+```
+
+In this case, the resource will be propagated to all member clusters.
+
+##### `spec.clusterNames` is not provided, `spec.clusterSelector` is provided and not empty
+
+```yaml
+spec:
+  clusterSelector:
+    matchLabels:
+      foo: bar
+```
+
+In this case, the resource will only be propagated to member clusters that are labeled
+with `foo: bar`.
+
 ### Example Cleanup
 
 To cleanup the example simply delete the namespace:
