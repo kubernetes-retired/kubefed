@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -27,10 +28,19 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/api/core/v1"
 	extv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
+	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
@@ -104,38 +114,98 @@ func Run(opts *options.Options) error {
 		glog.Info("Federation will target all namespaces")
 	}
 
-	federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod)
+	run := func(ctx context.Context) {
+		federatedcluster.StartClusterController(opts.Config, ctx.Done(), opts.ClusterMonitorPeriod)
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		schedulingmanager.StartSchedulerController(opts.Config, stopChan)
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		if err := servicedns.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting dns controller: %v", err)
+		if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
+			schedulingmanager.StartSchedulerController(opts.Config, ctx.Done())
 		}
 
-		if err := dnsendpoint.StartServiceDNSEndpointController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting dns endpoint controller: %v", err)
+		if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
+			if err := servicedns.StartController(opts.Config, ctx.Done()); err != nil {
+				glog.Fatalf("Error starting dns controller: %v", err)
+			}
+
+			if err := dnsendpoint.StartServiceDNSEndpointController(opts.Config, ctx.Done()); err != nil {
+				glog.Fatalf("Error starting dns endpoint controller: %v", err)
+			}
 		}
+
+		if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
+			if err := ingressdns.StartController(opts.Config, ctx.Done()); err != nil {
+				glog.Fatalf("Error starting ingress dns controller: %v", err)
+			}
+
+			if err := dnsendpoint.StartIngressDNSEndpointController(opts.Config, ctx.Done()); err != nil {
+				glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
+			}
+		}
+
+		if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
+			federatedtypeconfig.StartController(opts.Config, ctx.Done())
+		}
+
+		// Blockforever
+		select {}
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
-		if err := ingressdns.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting ingress dns controller: %v", err)
-		}
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
 
-		if err := dnsendpoint.StartIngressDNSEndpointController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
+	go func() {
+		select {
+		case <-stopChan:
+			cancel()
+		case <-ctx.Done():
 		}
+	}()
+
+	if !opts.LeaderElection.LeaderElect {
+		run(ctx)
+		glog.Fatalf("finished without leader elect")
+	}
+	restclient.AddUserAgent(opts.Config.KubeConfig, "leader-election")
+	leaderElectionClient := clientset.NewForConfigOrDie(opts.Config.KubeConfig)
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		glog.Fatalf("unable to get hostname: %v", err)
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		federatedtypeconfig.StartController(opts.Config, stopChan)
+	// Prepare event clients.
+	broadcaster := record.NewBroadcaster()
+	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: leaderElectionClient.CoreV1().Events(opts.Config.FederationNamespace)})
+	eventRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "federation-controller"})
+
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id := hostname + "_" + string(uuid.NewUUID())
+	rl, err := resourcelock.New(opts.LeaderElection.ResourceLock,
+		opts.Config.FederationNamespace,
+		"federation-controller",
+		leaderElectionClient.CoreV1(),
+		resourcelock.ResourceLockConfig{
+			Identity:      id,
+			EventRecorder: eventRecorder,
+		})
+	if err != nil {
+		glog.Fatalf("couldn't create resource lock: %v", err)
 	}
 
-	// Blockforever
-	select {}
+	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
+		Lock:          rl,
+		LeaseDuration: opts.LeaderElection.LeaseDuration,
+		RenewDeadline: opts.LeaderElection.RenewDeadline,
+		RetryPeriod:   opts.LeaderElection.RetryPeriod,
+		Callbacks: leaderelection.LeaderCallbacks{
+			OnStartedLeading: run,
+			OnStoppedLeading: func() {
+				glog.Fatalf("leaderelection lost")
+			},
+		},
+	})
+	glog.Errorf("lost lease")
+
+	return fmt.Errorf("lost lease")
 }
 
 type InstallStrategy struct {

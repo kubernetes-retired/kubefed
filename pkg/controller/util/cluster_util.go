@@ -44,6 +44,12 @@ const (
 	KubeAPIBurst            = 30
 	KubeconfigSecretDataKey = "kubeconfig"
 	getSecretTimeout        = 1 * time.Minute
+
+	EnableLeaderElection = true
+	LeaseDuration        = 15 * time.Second
+	RenewDeadline        = 10 * time.Second
+	RetryPeriod          = 5 * time.Second
+	ResourceLock         = "configmaps"
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
