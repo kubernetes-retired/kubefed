@@ -86,7 +86,7 @@ spec:
   names:
     kind: FederatedNamespaceOverride
     plural: federatednamespaceoverrides
-  scope: Cluster
+  scope: Namespaced
   validation:
     openAPIV3Schema:
       properties:

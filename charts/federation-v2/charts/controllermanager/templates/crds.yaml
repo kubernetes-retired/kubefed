@@ -270,6 +270,7 @@ spec:
           - propagationEnabled
           - template
           - placement
+          - override
           type: object
         status:
           properties:

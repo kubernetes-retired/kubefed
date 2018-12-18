@@ -217,6 +217,13 @@ Follow the [cleanup instructions in the user guide](userguide.md#cleanup).
 In order to test your changes on your kubernetes cluster, you'll need
 to build an image and a deployment config.
 
+**NOTE:** When federation CRDs are changed, you need to run:
+```bash
+./scripts/sync-up-helm-chart.sh
+```
+This script ensures that the CRD resources in helm chart can be synced.
+Ensure binaries from kubebuilder for `etcd` and `kube-apiserver` are in the path (see [prerequisites](#prerequisites)).
+
 ### Automated Deployment
 
 If you just want to have this automated, then run the following command
