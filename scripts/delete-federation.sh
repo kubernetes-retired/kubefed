@@ -23,6 +23,46 @@ set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
+function delete-script-deployment() {
+  # Remove cluster registry CRD
+  ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+
+  # Remove public namespace
+  if [[ ! "${NAMESPACED}" ]]; then
+    ${KCD} namespace ${PUBLIC_NS}
+  fi
+
+  # Disable federation of all types
+  for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
+    ./bin/kubefed2 federate disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
+  done
+
+  # Remove federation CRDs, namespace, RBAC and deployment resources.
+  if [[ ! "${USE_LATEST}" ]]; then
+    if [[ "${NAMESPACED}" ]]; then
+      ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+    else
+      ${KCD} -f hack/install.yaml
+    fi
+  else
+    ${KCD} -f hack/install-latest.yaml
+  fi
+}
+
+function delete-helm-deployment() {
+  # Clean cluster registry
+  ${KCD} crd clusters.clusterregistry.k8s.io
+  if [[ ! "${NAMESPACED}" ]]; then
+      ${KCD} namespace ${PUBLIC_NS}
+  fi
+
+  # Clean federation resources
+  ${KCD} -n "${NS}" FederatedTypeConfig --all
+  ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+
+  helm delete --purge federation-v2
+}
+
 KCD="kubectl --ignore-not-found=true delete"
 NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
@@ -48,28 +88,12 @@ for c in ${JOINED_CLUSTERS}; do
   ./bin/kubefed2 unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2 ${KF_NS_ARG}
 done
 
-# Remove cluster registry CRD
-${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
-
-# Remove public namespace
-if [[ ! "${NAMESPACED}" ]]; then
-  ${KCD} namespace ${PUBLIC_NS}
-fi
-
-# Disable federation of all types
-for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
-  ./bin/kubefed2 federate disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
-done
-
-# Remove federation CRDs, namespace, RBAC and deployment resources.
-if [[ ! "${USE_LATEST}" ]]; then
-  if [[ "${NAMESPACED}" ]]; then
-    ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
-  else
-    ${KCD} -f hack/install.yaml
-  fi
+# Deploy federation resources
+USE_CHART=${USE_CHART:-false}
+if [[ ${USE_CHART} == true ]]; then
+  delete-helm-deployment
 else
-  ${KCD} -f hack/install-latest.yaml
+  delete-script-deployment
 fi
 
 ${KCD} ns "${NS}"

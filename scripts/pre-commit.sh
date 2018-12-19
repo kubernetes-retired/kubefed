@@ -165,14 +165,32 @@ PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
 echo "Checking helm chart state of working tree"
 check-git-state
 
-echo "Running go e2e tests with unmanaged fixture"
+echo "Running go e2e tests with unmanaged fixture deployed by script"
 run-e2e-tests-with-unmanaged-fixture
 
 echo "Deleting federation-v2"
 ./scripts/delete-federation.sh
 
+echo "Deploying federation-v2 with helm chart"
+USE_CHART=true ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
+
+echo "Running go e2e tests with unmanaged fixture deployed by helm chart"
+run-e2e-tests-with-unmanaged-fixture
+
+echo "Deleting federation-v2 with helm chart"
+USE_CHART=true ./scripts/delete-federation.sh
+
 echo "Deploying namespaced federation-v2"
 FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
 
-echo "Running go e2e tests with unmanaged fixture"
+echo "Running go e2e tests with unmanaged fixture deployed by script"
+run-namespaced-e2e-tests-with-unmanaged-fixture
+
+echo "Deleting namespaced federation-v2"
+FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/delete-federation.sh
+
+echo "Deploying federation-v2 with helm chart"
+FEDERATION_NAMESPACE=foo NAMESPACED=y USE_CHART=true ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
+
+echo "Running go e2e tests with unmanaged fixture deployed by helm chart"
 run-namespaced-e2e-tests-with-unmanaged-fixture
