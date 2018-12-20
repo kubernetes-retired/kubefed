@@ -1,3 +1,49 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [User Guide](#user-guide)
+  - [Prerequisites](#prerequisites)
+    - [Binaries](#binaries)
+      - [kubebuilder](#kubebuilder)
+    - [Deployment Image](#deployment-image)
+    - [Create Clusters](#create-clusters)
+  - [Helm Chart Deployment](#helm-chart-deployment)
+  - [Automated Deployment](#automated-deployment)
+  - [Operations](#operations)
+    - [Join Clusters](#join-clusters)
+    - [Check Status of Joined Clusters](#check-status-of-joined-clusters)
+  - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
+  - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
+  - [Example](#example)
+    - [Create the Test Namespace](#create-the-test-namespace)
+    - [Create Test Resources](#create-test-resources)
+    - [Check Status of Resources](#check-status-of-resources)
+    - [Update FederatedNamespacePlacement](#update-federatednamespaceplacement)
+      - [Using Cluster Selector](#using-cluster-selector)
+        - [Neither `spec.clusterNames` nor `spec.clusterSelector` is provided](#neither-specclusternames-nor-specclusterselector-is-provided)
+        - [Both `spec.clusterNames` and `spec.clusterSelector` are provided](#both-specclusternames-and-specclusterselector-are-provided)
+        - [`spec.clusterNames` is not provided, `spec.clusterSelector` is provided but empty](#specclusternames-is-not-provided-specclusterselector-is-provided-but-empty)
+        - [`spec.clusterNames` is not provided, `spec.clusterSelector` is provided and not empty](#specclusternames-is-not-provided-specclusterselector-is-provided-and-not-empty)
+    - [Example Cleanup](#example-cleanup)
+    - [Troubleshooting](#troubleshooting)
+  - [Cleanup](#cleanup)
+    - [Deployment Cleanup](#deployment-cleanup)
+  - [Namespaced Federation](#namespaced-federation)
+    - [Automated Deployment](#automated-deployment-1)
+    - [Joining Clusters](#joining-clusters)
+    - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
+    - [Multi-Cluster Service DNS](#multi-cluster-service-dns)
+    - [Deployment Cleanup](#deployment-cleanup-1)
+  - [Higher order behaviour](#higher-order-behaviour)
+    - [ReplicaSchedulingPreference](#replicaschedulingpreference)
+      - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
+      - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
+      - [Distribute replicas in weighted proportions, also enforcing replica limits per cluster](#distribute-replicas-in-weighted-proportions-also-enforcing-replica-limits-per-cluster)
+      - [Distribute replicas evenly in all clusters, however not more then 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-then-20-in-c)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # User Guide
 
 If you are looking to use federation v2, you've come to the right place. Below

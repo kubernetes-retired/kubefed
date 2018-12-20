@@ -1,3 +1,15 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Kubernetes Federation V2](#kubernetes-federation-v2)
+  - [Prerequisites](#prerequisites)
+  - [Installing the Chart](#installing-the-chart)
+  - [Uninstalling the Chart](#uninstalling-the-chart)
+  - [Configuration](#configuration)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Kubernetes Federation V2
 
 Kubernetes Federation V2 is a Kubernetes Incubator project. It builds on the sync controller
