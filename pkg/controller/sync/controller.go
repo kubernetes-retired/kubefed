@@ -498,7 +498,11 @@ func (s *FederationSyncController) syncToClusters(selectedClusters, unselectedCl
 	// TODO(marun) raise the visibility of operationErrors to aid in debugging
 	versionMap, operationErrors := s.updater.Update(operations)
 
-	s.versionManager.Update(template, override, selectedClusters, versionMap)
+	err = s.versionManager.Update(template, override, selectedClusters, versionMap)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("Failed to update version status for %s %q: %v", templateKind, key, err))
+		return util.StatusError
+	}
 
 	if len(operationErrors) > 0 {
 		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", templateKind,
@@ -522,7 +526,10 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		return nil, fmt.Errorf("Error reading cluster overrides for %s %q: %v", overrideKind, key, err)
 	}
 
-	versionMap := s.versionManager.Get(template, override)
+	versionMap, err := s.versionManager.Get(template, override)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving version map: %v", err)
+	}
 
 	targetKind := s.typeConfig.GetTarget().Kind
 	for _, clusterName := range selectedClusters {

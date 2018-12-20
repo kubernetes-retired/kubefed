@@ -274,8 +274,12 @@ var _ = Describe("VersionManager", func() {
 					versionMap[name] = name
 				}
 
+				templateHash, err := version.GetTemplateHash(template)
+				if err != nil {
+					tl.Fatalf("Failed to compute template hash: %v", err)
+				}
 				expectedStatus = fedv1a1.PropagatedVersionStatus{
-					TemplateVersion: template.GetResourceVersion(),
+					TemplateVersion: templateHash,
 					OverrideVersion: "",
 					ClusterVersions: version.VersionMapToClusterVersions(versionMap),
 				}
@@ -308,12 +312,18 @@ var _ = Describe("VersionManager", func() {
 			})
 
 			inSupportedScopeIt("should create a new version in the API", namespaced, func() {
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 			})
 
 			inSupportedScopeIt("should load versions from the API on sync", namespaced, func() {
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Create a second manager and sync it
@@ -322,7 +332,10 @@ var _ = Describe("VersionManager", func() {
 
 				// Ensure that the second manager loaded the version
 				// written by the first manager.
-				retrievedVersionMap := otherManager.Get(template, override)
+				retrievedVersionMap, err := otherManager.Get(template, override)
+				if err != nil {
+					tl.Fatalf("Error retrieving version map: %v", err)
+				}
 				if !reflect.DeepEqual(versionMap, retrievedVersionMap) {
 					tl.Fatalf("Sync failed to load version from api")
 				}
@@ -332,18 +345,27 @@ var _ = Describe("VersionManager", func() {
 				// Create a second manager and use it to write a version to the api
 				otherManager := version.NewVersionManager(fedClient, namespaced, templateKind, targetKind, namespace)
 				otherManager.Sync(stopChan)
-				otherManager.Update(template, override, clusterNames, versionMap)
+				err := otherManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Ensure that an updated version is written successfully
 				clusterNames, versionMap = removeOneCluster(clusterNames, versionMap)
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err = versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				expectedStatus.ClusterVersions = version.VersionMapToClusterVersions(versionMap)
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 			})
 
 			inSupportedScopeIt("should refresh and update after out-of-band update", namespaced, func() {
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Update an annotation out-of-band to ensure a conflict
@@ -363,24 +385,33 @@ var _ = Describe("VersionManager", func() {
 
 				// Ensure that an updated version is written successfully
 				clusterNames, versionMap = removeOneCluster(clusterNames, versionMap)
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err = versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				expectedStatus.ClusterVersions = version.VersionMapToClusterVersions(versionMap)
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 			})
 
 			inSupportedScopeIt("should recreate after out-of-band deletion", namespaced, func() {
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Delete the written version out-of-band
-				err := adapter.Delete(versionName)
+				err = adapter.Delete(versionName)
 				if err != nil {
 					tl.Fatalf("Error deleting %s %q: %v", versionType, versionName, err)
 				}
 
 				// Ensure a modified version is written successfully
 				clusterNames, versionMap = removeOneCluster(clusterNames, versionMap)
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err = versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				expectedStatus.ClusterVersions = version.VersionMapToClusterVersions(versionMap)
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 			})
@@ -391,13 +422,16 @@ var _ = Describe("VersionManager", func() {
 					framework.Skipf("Validation of garbage collection is not supported for test-managed federation.")
 				}
 
-				versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(template, override, clusterNames, versionMap)
+				if err != nil {
+					tl.Fatalf("Error updating version status: %v", err)
+				}
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Removal of the template should prompt the garbage
 				// collection of the associated version resource due to
 				// the owner reference added by the version manager.
-				err := adapter.DeleteTemplate(templateName)
+				err = adapter.DeleteTemplate(templateName)
 				if err != nil {
 					tl.Fatalf("Error deleting %s %q: %v", adapter.TemplateType(), templateName, err)
 				}
