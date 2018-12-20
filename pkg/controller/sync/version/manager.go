@@ -329,15 +329,16 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 		// from the API
 		return util.StatusNeedsRecheck
 	}
-	runtime.HandleError(fmt.Errorf("Failed to update status of %s %q: %v", adapterType, key, err))
 	if !errors.IsConflict(err) {
+		runtime.HandleError(fmt.Errorf("Failed to update status of %s %q: %v", adapterType, key, err))
 		return util.StatusError
 	}
+	glog.Warningf("Error indicating conflict occurred on status update of %s %q: %v", adapterType, key, err)
 
 	// Version has been updated or deleted since the last version
 	// manager write.  Attempt to refresh and retry.
 
-	glog.V(4).Infof("Refreshing %s %q from the API due to conflict", adapterType, key)
+	glog.V(4).Infof("Refreshing %s %q from the API", adapterType, key)
 	err = m.refreshVersion(obj)
 	if err == nil {
 		return util.StatusNeedsRecheck
