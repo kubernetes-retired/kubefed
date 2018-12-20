@@ -36,7 +36,6 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -120,9 +119,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	// Initialize non-dynamic clients first to avoid polluting config
 	fedClient, kubeClient, crClient := controllerConfig.AllClients(userAgent)
 
-	pool := dynamic.NewDynamicClientPool(controllerConfig.KubeConfig)
-
-	templateClient, err := util.NewResourceClient(pool, &templateAPIResource)
+	templateClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &templateAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -158,14 +155,14 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, targetNamespace, enqueueObj)
 
 	overrideAPIResource := typeConfig.GetOverride()
-	overrideClient, err := util.NewResourceClient(pool, &overrideAPIResource)
+	overrideClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &overrideAPIResource)
 	if err != nil {
 		return nil, err
 	}
 	s.overrideStore, s.overrideController = util.NewResourceInformer(overrideClient, targetNamespace, enqueueObj)
 
 	placementAPIResource := typeConfig.GetPlacement()
-	placementClient, err := util.NewResourceClient(pool, &placementAPIResource)
+	placementClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &placementAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +171,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		defaultAll := targetAPIResource.Kind == util.NamespaceKind
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj, defaultAll)
 	} else {
-		namespacePlacementClient, err := util.NewResourceClient(pool, namespacePlacement)
+		namespacePlacementClient, err := util.NewResourceClient(controllerConfig.KubeConfig, namespacePlacement)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +214,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	s.updater = util.NewFederatedUpdater(s.informer, targetAPIResource.Kind, s.updateTimeout, s.eventRecorder,
 		func(client util.ResourceClient, rawObj pkgruntime.Object) (string, error) {
 			obj := rawObj.(*unstructured.Unstructured)
-			createdObj, err := client.Resources(obj.GetNamespace()).Create(obj)
+			createdObj, err := client.Resources(obj.GetNamespace()).Create(obj, metav1.CreateOptions{})
 			if err != nil {
 				return "", err
 			}
@@ -225,7 +222,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		},
 		func(client util.ResourceClient, rawObj pkgruntime.Object) (string, error) {
 			obj := rawObj.(*unstructured.Unstructured)
-			updatedObj, err := client.Resources(obj.GetNamespace()).Update(obj)
+			updatedObj, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 			if err != nil {
 				return "", err
 			}
@@ -243,7 +240,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		// updateObjFunc
 		func(rawObj pkgruntime.Object) (pkgruntime.Object, error) {
 			obj := rawObj.(*unstructured.Unstructured)
-			return templateClient.Resources(obj.GetNamespace()).Update(obj)
+			return templateClient.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		},
 		// objNameFunc
 		func(obj pkgruntime.Object) string {

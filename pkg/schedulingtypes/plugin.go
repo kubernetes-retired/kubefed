@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -78,27 +77,25 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 		typeConfig: typeConfig,
 	}
 
-	pool := dynamic.NewDynamicClientPool(controllerConfig.KubeConfig)
-
 	targetNamespace := controllerConfig.TargetNamespace
 	federationEventHandler := eventHandlers.FederationEventHandler
 
 	templateAPIResource := typeConfig.GetTemplate()
-	templateClient, err := util.NewResourceClient(pool, &templateAPIResource)
+	templateClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &templateAPIResource)
 	if err != nil {
 		return nil, err
 	}
 	p.templateStore, p.templateController = util.NewResourceInformer(templateClient, targetNamespace, federationEventHandler)
 
 	placementAPIResource := typeConfig.GetPlacement()
-	p.placementClient, err = util.NewResourceClient(pool, &placementAPIResource)
+	p.placementClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &placementAPIResource)
 	if err != nil {
 		return nil, err
 	}
 	p.placementStore, p.placementController = util.NewResourceInformer(p.placementClient, targetNamespace, federationEventHandler)
 
 	overrideAPIResource := typeConfig.GetOverride()
-	p.overrideClient, err = util.NewResourceClient(pool, &overrideAPIResource)
+	p.overrideClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &overrideAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +163,7 @@ func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newCluster
 		}
 		newPlacement := newUnstructured(p.typeConfig.GetPlacement(), qualifiedName)
 		setPlacementSpec(newPlacement, newClusterNames)
-		_, err := p.placementClient.Resources(qualifiedName.Namespace).Create(newPlacement)
+		_, err := p.placementClient.Resources(qualifiedName.Namespace).Create(newPlacement, metav1.CreateOptions{})
 		return err
 	}
 
@@ -176,7 +173,7 @@ func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newCluster
 	}
 	if PlacementUpdateNeeded(clusterNames, newClusterNames) {
 		setPlacementSpec(placement, newClusterNames)
-		_, err := p.placementClient.Resources(qualifiedName.Namespace).Update(placement)
+		_, err := p.placementClient.Resources(qualifiedName.Namespace).Update(placement, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -196,7 +193,7 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		if err != nil {
 			return err
 		}
-		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride)
+		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride, metav1.CreateOptions{})
 		return err
 	}
 
@@ -210,7 +207,7 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 		if err != nil {
 			return err
 		}
-		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Update(override)
+		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Update(override, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

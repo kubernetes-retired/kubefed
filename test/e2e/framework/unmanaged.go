@@ -194,7 +194,7 @@ func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	testClusters := make(map[string]common.TestCluster)
 	for clusterName, clusterConfig := range f.ClusterConfigs(userAgent) {
-		client, err := util.NewResourceClientFromConfig(clusterConfig.Config, apiResource)
+		client, err := util.NewResourceClient(clusterConfig.Config, apiResource)
 		if err != nil {
 			Failf("Error creating a resource client in cluster %q for kind %q: %v", clusterName, apiResource.Kind, err)
 		}
