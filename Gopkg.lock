@@ -820,7 +820,7 @@
   revision = "92634e4423af1b6ad84ab94b43948b0e504a3edd"
 
 [[projects]]
-  digest = "1:addfc3c6bb0d4ae12969be0bf5b1ebf9cc1f81fda6b526a9692b9af01a7fbfe4"
+  digest = "1:b619f9388b3b3f7ce5364c18995e45c951c50946f072bbafda2d17c9645755df"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -942,6 +942,7 @@
     "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
+    "restmapper",
     "testing",
     "third_party/forked/golang/template",
     "tools/auth",
@@ -1012,15 +1013,15 @@
   revision = "a45bc6067dfdd3d84ec6d0993c141170c04f7f37"
 
 [[projects]]
-  digest = "1:fa80fa28e164e6d7ff550ca665d3b676372b25c310e3123a1f63f3ea432373cf"
+  digest = "1:744e92fc72882b22ae2add854ee1841f95fc5148baaeda2a244e621ad0995d97"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/client",
     "pkg/client/apiutil",
   ]
   pruneopts = "NUT"
-  revision = "67e28744a963c78a34108c3b52aadbc5e02f4384"
-  version = "v0.1.1"
+  revision = "f6f0bc9611363b43664d08fb097ab13243ef621d"
+  version = "v0.1.9"
 
 [[projects]]
   digest = "1:873ba447c3808a29ddf32e8e069631073e28daa486dde311ee654bf6d948fcd2"
