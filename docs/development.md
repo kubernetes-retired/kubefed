@@ -78,11 +78,11 @@ The read operation is implicit.
 
 #### Managed
 
-The E2E managed tests will spin up the same environment as the
-[Integration](development.md#integration) tests described above and run [CRUD
-(create-read-update-delete)
-checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/e2e/crud.go) for
-federated types against that federation. To run:
+The E2E managed tests will spin up a federation consisting of kube
+api + cluster registry api + federation api + 2 member clusters and
+run [CRUD (create-read-update-delete)
+checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/e2e/crud.go)
+for federated types against that federation. To run:
 
 - ensure the same binaries are available as described in the
   [Environment Setup](development.md#environment-setup) section.
