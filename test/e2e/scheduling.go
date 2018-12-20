@@ -222,7 +222,7 @@ func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeCon
 	if err != nil {
 		return "", err
 	}
-	createdTemplate, err := templateClient.Resources(namespace).Create(template)
+	createdTemplate, err := templateClient.Resources(namespace).Create(template, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}

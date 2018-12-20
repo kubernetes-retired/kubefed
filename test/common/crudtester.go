@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
 
@@ -50,7 +49,7 @@ type FederatedTypeCrudTester struct {
 	typeConfig       typeconfig.Interface
 	comparisonHelper util.ComparisonHelper
 	fedClient        clientset.Interface
-	pool             dynamic.ClientPool
+	kubeConfig       *rest.Config
 	testClusters     map[string]TestCluster
 	waitInterval     time.Duration
 	// Federation operations will use wait.ForeverTestTimeout.  Any
@@ -80,7 +79,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 		typeConfig:         typeConfig,
 		comparisonHelper:   compare,
 		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
-		pool:               dynamic.NewDynamicClientPool(kubeConfig),
+		kubeConfig:         kubeConfig,
 		testClusters:       testClusters,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
@@ -136,7 +135,7 @@ func (c *FederatedTypeCrudTester) createFedResource(apiResource metav1.APIResour
 	c.tl.Logf("Creating new %s", resourceMsg)
 
 	client := c.fedResourceClient(apiResource)
-	obj, err := client.Resources(namespace).Create(desiredObj)
+	obj, err := client.Resources(namespace).Create(desiredObj, metav1.CreateOptions{})
 	if err != nil {
 		c.tl.Fatalf("Error creating %s: %v", resourceMsg, err)
 	}
@@ -148,7 +147,7 @@ func (c *FederatedTypeCrudTester) createFedResource(apiResource metav1.APIResour
 }
 
 func (c *FederatedTypeCrudTester) fedResourceClient(apiResource metav1.APIResource) util.ResourceClient {
-	client, err := util.NewResourceClient(c.pool, &apiResource)
+	client, err := util.NewResourceClient(c.kubeConfig, &apiResource)
 	if err != nil {
 		c.tl.Fatalf("Error creating resource client: %v", err)
 	}
@@ -456,7 +455,7 @@ func (c *FederatedTypeCrudTester) updateFedObject(apiResource metav1.APIResource
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		mutateResourceFunc(obj)
 
-		_, err := client.Resources(obj.GetNamespace()).Update(obj)
+		_, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		if errors.IsConflict(err) {
 			// The resource was updated by the federation controller.
 			// Get the latest version and retry.
