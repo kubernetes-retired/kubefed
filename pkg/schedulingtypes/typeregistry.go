@@ -18,6 +18,8 @@ package schedulingtypes
 
 import (
 	"fmt"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type SchedulingType struct {
@@ -51,4 +53,21 @@ func GetSchedulingType(kind string) *SchedulingType {
 		return &schedulingType
 	}
 	return nil
+}
+
+func GetSameSchedulingKindResources(kind string) sets.String {
+	result := sets.String{}
+
+	schedulingType, ok := typeRegistry[kind]
+	if !ok {
+		return result
+	}
+
+	for key, value := range typeRegistry {
+		if value.Kind == schedulingType.Kind {
+			result.Insert(key)
+		}
+	}
+
+	return result
 }

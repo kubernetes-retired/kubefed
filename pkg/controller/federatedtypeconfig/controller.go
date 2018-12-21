@@ -129,7 +129,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
-	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)
+	glog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 
 	cachedObj, exist, err := c.store.GetByKey(key)
 	if err != nil {

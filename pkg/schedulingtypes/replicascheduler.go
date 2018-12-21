@@ -56,7 +56,8 @@ type ReplicaScheduler struct {
 
 	eventHandlers SchedulerEventHandlers
 
-	plugins map[string]*Plugin
+	plugins      map[string]*Plugin
+	stopChannels map[string]chan struct{}
 
 	fedClient   fedclientset.Interface
 	podInformer FederatedInformer
@@ -66,6 +67,7 @@ func NewReplicaScheduler(controllerConfig *ControllerConfig, eventHandlers Sched
 	fedClient, kubeClient, crClient := controllerConfig.AllClients("replica-scheduler")
 	scheduler := &ReplicaScheduler{
 		plugins:          make(map[string]*Plugin),
+		stopChannels:     make(map[string]chan struct{}),
 		controllerConfig: controllerConfig,
 		eventHandlers:    eventHandlers,
 		fedClient:        fedClient,
@@ -92,7 +94,7 @@ func (s *ReplicaScheduler) Kind() string {
 	return RSPKind
 }
 
-func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface, stopChan <-chan struct{}) error {
+func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface, stopChan chan struct{}) error {
 	kind := typeConfig.GetTemplate().Kind
 	// TODO(marun) Return an error if the kind is not supported
 
@@ -100,10 +102,24 @@ func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface, stopChan
 	if err != nil {
 		return fmt.Errorf("Failed to initialize replica scheduling plugin for %q: %v", kind, err)
 	}
+
 	plugin.Start(stopChan)
 	s.plugins[kind] = plugin
+	s.stopChannels[kind] = stopChan
 
 	return nil
+}
+func (s *ReplicaScheduler) StopPlugin(kind string) {
+	plugin, ok := s.plugins[kind]
+	if !ok {
+		return
+	}
+
+	close(s.stopChannels[kind])
+	plugin.Stop()
+
+	delete(s.stopChannels, kind)
+	delete(s.plugins, kind)
 }
 
 func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {

@@ -35,7 +35,8 @@ type Scheduler interface {
 	Stop()
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
 
-	StartPlugin(typeConfig typeconfig.Interface, stopChan <-chan struct{}) error
+	StartPlugin(typeConfig typeconfig.Interface, stopChan chan struct{}) error
+	StopPlugin(kind string)
 }
 
 type SchedulerEventHandlers struct {
