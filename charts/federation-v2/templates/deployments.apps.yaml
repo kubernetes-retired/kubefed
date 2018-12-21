@@ -1007,8 +1007,6 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
-                                      procMount:
-                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -1499,8 +1497,6 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
-                                      procMount:
-                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -1590,8 +1586,6 @@ spec:
                                 type: object
                               type: array
                             restartPolicy:
-                              type: string
-                            runtimeClassName:
                               type: string
                             schedulerName:
                               type: string
