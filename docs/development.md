@@ -98,7 +98,7 @@ To run tests for a single type:
 
 ```bash
 cd test/e2e
-go test -args -v=4 -test.v --ginkgo.focus='"FederatedSecret"'
+go test -args -v=4 -test.v --ginkgo.focus='Federated "secrets"'
 ```
 
 It may be helpful to use the [delve
@@ -107,7 +107,7 @@ the components involved in the test:
 
 ```bash
 cd test/e2e
-dlv test -- -v=4 -test.v --ginkgo.focus='"FederatedSecret"'
+dlv test -- -v=4 -test.v --ginkgo.focus='Federated "secrets"'
 ```
 
 #### Unmanaged and Hybrid Cluster Setup
@@ -154,7 +154,7 @@ To run E2E tests for a single type:
 ```bash
 cd test/e2e
 go test -args -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
-    --ginkgo.focus='"FederatedSecret" resources'
+    --ginkgo.focus='Federated "secrets"'
 ```
 
 It may be helpful to use the [delve
@@ -164,7 +164,7 @@ the components involved in the test:
 ```bash
 cd test/e2e
 dlv test -- -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
-    --ginkgo.focus='"FederatedSecret"'
+    --ginkgo.focus='Federated "secrets"'
 ```
 
 ##### Hybrid
@@ -197,7 +197,7 @@ these steps:
    ```bash
    cd test/e2e
    go test -args -kubeconfig=/path/to/kubeconfig -in-memory-controllers=true \
-       --v=4 -test.v --ginkgo.focus='"FederatedSecret" resources'
+       --v=4 -test.v --ginkgo.focus='Federated "secrets"'
    ```
 
    Additionally, you can run delve to debug the test:
@@ -205,7 +205,7 @@ these steps:
    ```bash
    cd test/e2e
    dlv test -- -kubeconfig=/path/to/kubeconfig -in-memory-controllers=true \
-       -v=4 -test.v --ginkgo.focus='"FederatedSecret" resources'
+       -v=4 -test.v --ginkgo.focus='Federated "secrets"'
    ```
 
 ##### Unmanaged and Hybrid Cleanup
