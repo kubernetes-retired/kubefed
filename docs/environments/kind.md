@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [`kind` - `k`ubernetes `in` `d`ocker](#kind---kubernetes-in-docker)
+  - [Download and Install kind](#download-and-install-kind)
+  - [Create Clusters](#create-clusters)
+    - [Create Insecure Container Registry](#create-insecure-container-registry)
+    - [Configure Insecure Container Registry](#configure-insecure-container-registry)
+    - [Run Script](#run-script)
+  - [Delete Clusters](#delete-clusters)
+    - [Delete Insecure Container Registry](#delete-insecure-container-registry)
+    - [Run Script](#run-script-1)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # `kind` - `k`ubernetes `in` `d`ocker
 
 [kind](https://github.com/kubernetes-sigs/kind) provides the quickest way to

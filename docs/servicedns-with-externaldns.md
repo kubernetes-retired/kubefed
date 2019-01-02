@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Multi-Cluster Service DNS with ExternalDNS Guide](#multi-cluster-service-dns-with-externaldns-guide)
+  - [Concepts](#concepts)
+  - [User Guide](#user-guide)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Multi-Cluster Service DNS with ExternalDNS Guide
 
 Multi-Cluster Service DNS (MCSDNS) provides the ability to programmatically manage DNS resource records of Kubernetes

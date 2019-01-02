@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [IBM Cloud Private Deployment Guide](#ibm-cloud-private-deployment-guide)
+  - [Install IBM Cloud Private](#install-ibm-cloud-private)
+  - [Post Install Configuration](#post-install-configuration)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # IBM Cloud Private Deployment Guide
 
 Federation v2 can be deployed to and manage [IBM Cloud Private](https://www.ibm.com/cloud/private) clusters.

@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Development Guide](#development-guide)
+  - [Prerequisites](#prerequisites)
+    - [kubernetes](#kubernetes)
+    - [docker](#docker)
+  - [Adding a new API type](#adding-a-new-api-type)
+  - [Running Tests](#running-tests)
+    - [Environment Setup](#environment-setup)
+    - [E2E](#e2e)
+      - [Managed](#managed)
+      - [Unmanaged and Hybrid Cluster Setup](#unmanaged-and-hybrid-cluster-setup)
+        - [Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
+        - [Unmanaged](#unmanaged)
+        - [Hybrid](#hybrid)
+        - [Unmanaged and Hybrid Cleanup](#unmanaged-and-hybrid-cleanup)
+  - [Test Your Changes](#test-your-changes)
+    - [Automated Deployment](#automated-deployment)
+    - [Manual Deployment](#manual-deployment)
+      - [Build Federation Container Image](#build-federation-container-image)
+      - [Create Deployment Config](#create-deployment-config)
+  - [Test Latest Master Changes (`canary`)](#test-latest-master-changes-canary)
+  - [Test Latest Stable Version (`latest`)](#test-latest-stable-version-latest)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Development Guide
 
 If you would like to contribute to the federation v2 project, this guide will

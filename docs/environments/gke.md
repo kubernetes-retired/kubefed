@@ -1,3 +1,12 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Google Kubernetes Engine (GKE) Deployment Guide](#google-kubernetes-engine-gke-deployment-guide)
+  - [RBAC Workaround](#rbac-workaround)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Google Kubernetes Engine (GKE) Deployment Guide
 
 Federation v2 can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters running

@@ -1,3 +1,11 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Federation V2 Concepts](#federation-v2-concepts)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ### Federation V2 Concepts
 
 | Concept              | Description                                                                                                                                                                                                                                                                                                         |
