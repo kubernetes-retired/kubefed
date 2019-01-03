@@ -55,7 +55,7 @@ func GetSchedulingType(kind string) *SchedulingType {
 	return nil
 }
 
-func GetSameSchedulingKindResources(kind string) sets.String {
+func GetSchedulingKinds(kind string) sets.String {
 	result := sets.String{}
 
 	schedulingType, ok := typeRegistry[kind]

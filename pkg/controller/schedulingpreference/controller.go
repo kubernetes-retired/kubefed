@@ -67,10 +67,12 @@ type SchedulingPreferenceController struct {
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
 	updateTimeout           time.Duration
+
+	stopChannel chan struct{}
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType, stopChan <-chan struct{}) (schedulingtypes.Scheduler, error) {
+func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType) (schedulingtypes.Scheduler, error) {
 	userAgent := fmt.Sprintf("%s-controller", schedulingType.Kind)
 	fedClient, kubeClient, crClient := config.AllClients(userAgent)
 	controller, err := newSchedulingPreferenceController(config, schedulingType.SchedulerFactory, fedClient, kubeClient, crClient)
@@ -81,7 +83,7 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 		controller.minimizeLatency()
 	}
 	glog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
-	controller.Run(stopChan)
+	controller.Run(controller.stopChannel)
 	return controller.scheduler, nil
 }
 
@@ -97,6 +99,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, schedulerF
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
+		stopChannel:             make(chan struct{}),
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -157,7 +160,7 @@ func (s *SchedulingPreferenceController) minimizeLatency() {
 
 func (s *SchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	go s.controller.Run(stopChan)
-	s.scheduler.Start(stopChan)
+	s.scheduler.Start()
 
 	s.clusterDeliverer.StartWithHandler(func(_ *util.DelayingDelivererItem) {
 		s.reconcileOnClusterChange()
@@ -171,6 +174,10 @@ func (s *SchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 		s.clusterDeliverer.Stop()
 		s.scheduler.Stop()
 	}()
+}
+
+func (s *SchedulingPreferenceController) Stop(stopChan <-chan struct{}) {
+	close(s.stopChannel)
 }
 
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet

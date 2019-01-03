@@ -30,12 +30,12 @@ type Scheduler interface {
 	FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
 	FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
 
-	Start(stopChan <-chan struct{})
+	Start()
 	HasSynced() bool
 	Stop()
 	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
 
-	StartPlugin(typeConfig typeconfig.Interface, stopChan chan struct{}) error
+	StartPlugin(typeConfig typeconfig.Interface) error
 	StopPlugin(kind string)
 }
 

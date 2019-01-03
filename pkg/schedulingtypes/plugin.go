@@ -60,6 +60,8 @@ type Plugin struct {
 	placementClient util.ResourceClient
 
 	typeConfig typeconfig.Interface
+
+	stopChannel chan struct{}
 }
 
 func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface) (*Plugin, error) {
@@ -75,7 +77,8 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 			eventHandlers.ClusterEventHandler,
 			eventHandlers.ClusterLifecycleHandlers,
 		),
-		typeConfig: typeConfig,
+		typeConfig:  typeConfig,
+		stopChannel: make(chan struct{}),
 	}
 
 	pool := dynamic.NewDynamicClientPool(controllerConfig.KubeConfig)
@@ -107,15 +110,17 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 	return p, nil
 }
 
-func (p *Plugin) Start(stopChan <-chan struct{}) {
+func (p *Plugin) Start() {
 	p.targetInformer.Start()
-	go p.templateController.Run(stopChan)
-	go p.overrideController.Run(stopChan)
-	go p.placementController.Run(stopChan)
+
+	go p.templateController.Run(p.stopChannel)
+	go p.overrideController.Run(p.stopChannel)
+	go p.placementController.Run(p.stopChannel)
 }
 
 func (p *Plugin) Stop() {
 	p.targetInformer.Stop()
+	close(p.stopChannel)
 }
 
 func (p *Plugin) HasSynced() bool {

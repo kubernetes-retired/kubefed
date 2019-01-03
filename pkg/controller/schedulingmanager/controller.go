@@ -45,8 +45,7 @@ type SchedulerController struct {
 
 	worker util.ReconcileWorker
 
-	scheduler    map[string]schedulingtypes.Scheduler
-	stopChannels map[string]chan struct{}
+	scheduler map[string]schedulingtypes.Scheduler
 
 	config *util.ControllerConfig
 
@@ -71,7 +70,6 @@ func newController(config *util.ControllerConfig, client corev1alpha1client.Core
 	c := &SchedulerController{
 		config:         config,
 		scheduler:      make(map[string]schedulingtypes.Scheduler),
-		stopChannels:   make(map[string]chan struct{}),
 		runningPlugins: sets.String{},
 		templateKinds:  make(map[string]string),
 	}
@@ -110,15 +108,6 @@ func (c *SchedulerController) Run(stopChan <-chan struct{}) {
 	}
 
 	c.worker.Run(stopChan)
-
-	// Ensure all goroutines are cleaned up when the stop channel closes
-	go func() {
-		<-stopChan
-
-		for _, stopChannel := range c.stopChannels {
-			close(stopChannel)
-		}
-	}()
 }
 
 func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
@@ -170,21 +159,18 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 	if !ok {
 		var err error
 
-		stopChan := make(chan struct{})
-		scheduler, err = schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType, stopChan)
+		scheduler, err = schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType)
 		if err != nil {
 			runtime.HandleError(fmt.Errorf("Error starting schedulingpreference controller for %q : %v", schedulingKind, err))
 			return util.StatusError
 		}
 		c.scheduler[schedulingKind] = scheduler
-		c.stopChannels[schedulingKind] = stopChan
 	}
 
 	templateKind := typeConfig.GetTemplate().Kind
-	glog.Infof("Start plugin kind %s for scheduling type %s", templateKind, schedulingKind)
+	glog.Infof("Starting plugin kind %s for scheduling type %s", templateKind, schedulingKind)
 
-	stopChan := make(chan struct{})
-	err = scheduler.StartPlugin(typeConfig, stopChan)
+	err = scheduler.StartPlugin(typeConfig)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Error starting plugin for %q : %v", templateKind, err))
 		return util.StatusError
@@ -205,21 +191,19 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 		return
 	}
 
-	glog.Infof("Stop plugin for %q with kind %q", qualifiedName.Name, c.templateKinds[qualifiedName.Name])
+	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.templateKinds[qualifiedName.Name])
 
 	scheduler.StopPlugin(c.templateKinds[qualifiedName.Name])
 	c.runningPlugins.Delete(qualifiedName.Name)
 	delete(c.templateKinds, qualifiedName.Name)
 
 	// if all resources registered to same scheduler are deleted, the scheduler should be stopped
-	resources := schedulingtypes.GetSameSchedulingKindResources(qualifiedName.Name)
+	resources := schedulingtypes.GetSchedulingKinds(qualifiedName.Name)
 	result := c.runningPlugins.Intersection(resources)
 	if result.Len() == 0 {
-		glog.Infof("Stop scheduler schedulingpreference controller for %q", schedulingKind)
-
-		close(c.stopChannels[schedulingKind])
+		glog.Infof("Stopping scheduler schedulingpreference controller for %q", schedulingKind)
+		scheduler.Stop()
 
 		delete(c.scheduler, schedulingKind)
-		delete(c.stopChannels, schedulingKind)
 	}
 }
