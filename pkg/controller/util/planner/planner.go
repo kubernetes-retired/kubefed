@@ -116,7 +116,7 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 	// distribution code.
 	preallocated := make(map[string]int64)
 
-	if p.preferences.Spec.Rebalance == false {
+	if !p.preferences.Spec.Rebalance {
 		for _, preference := range preferences {
 			planned := plan[preference.clusterName]
 			count, hasSome := currentReplicaCount[preference.clusterName]

@@ -182,9 +182,9 @@ func TestGetEndpointsForIngressDNSObject(t *testing.T) {
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
 			endpoints, err := getIngressDNSEndpoints(&tc.dnsObject)
-			if tc.expectError == false && err != nil {
+			if !tc.expectError && err != nil {
 				t.Fatalf("Unexpected error: %v", err)
-			} else if tc.expectError == true && err == nil {
+			} else if tc.expectError && err == nil {
 				t.Fatalf("Expected to fail, but got success")
 			}
 			sort.Slice(tc.expectEndpoints, func(i, j int) bool {

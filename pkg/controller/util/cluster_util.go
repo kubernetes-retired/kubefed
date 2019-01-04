@@ -74,7 +74,7 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 			return nil, err
 		}
 		myaddr := net.ParseIP(hostIP.String())
-		if cidrnet.Contains(myaddr) == true {
+		if cidrnet.Contains(myaddr) {
 			serverAddress = item.ServerAddress
 			break
 		}
