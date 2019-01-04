@@ -176,7 +176,7 @@ func (s *SchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	}()
 }
 
-func (s *SchedulingPreferenceController) Stop(stopChan <-chan struct{}) {
+func (s *SchedulingPreferenceController) Stop() {
 	close(s.stopChannel)
 }
 

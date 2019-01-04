@@ -50,7 +50,8 @@ type SchedulerController struct {
 	config *util.ControllerConfig
 
 	runningPlugins sets.String
-	templateKinds  map[string]string
+	// mapping qualifiedname to template kind for managing plugins in scheduler
+	templateKindMap map[string]string
 }
 
 func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) {
@@ -68,10 +69,10 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 
 func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) *SchedulerController {
 	c := &SchedulerController{
-		config:         config,
-		scheduler:      make(map[string]schedulingtypes.Scheduler),
-		runningPlugins: sets.String{},
-		templateKinds:  make(map[string]string),
+		config:          config,
+		scheduler:       make(map[string]schedulingtypes.Scheduler),
+		runningPlugins:  sets.String{},
+		templateKindMap: make(map[string]string),
 	}
 
 	fedNamespace := config.FederationNamespace
@@ -176,7 +177,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 		return util.StatusError
 	}
 	c.runningPlugins.Insert(qualifiedName.Name)
-	c.templateKinds[qualifiedName.Name] = templateKind
+	c.templateKindMap[qualifiedName.Name] = templateKind
 
 	return util.StatusAllOK
 }
@@ -191,11 +192,11 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 		return
 	}
 
-	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.templateKinds[qualifiedName.Name])
+	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.templateKindMap[qualifiedName.Name])
 
-	scheduler.StopPlugin(c.templateKinds[qualifiedName.Name])
+	scheduler.StopPlugin(c.templateKindMap[qualifiedName.Name])
 	c.runningPlugins.Delete(qualifiedName.Name)
-	delete(c.templateKinds, qualifiedName.Name)
+	delete(c.templateKindMap, qualifiedName.Name)
 
 	// if all resources registered to same scheduler are deleted, the scheduler should be stopped
 	resources := schedulingtypes.GetSchedulingKinds(qualifiedName.Name)
