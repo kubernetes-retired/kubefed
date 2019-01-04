@@ -214,7 +214,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	glog.V(2).Infof("Starting to reconcile IngressDNS resource: %v", key)
 	startTime := time.Now()
-	defer glog.V(2).Infof("Finished reconciling IngressDNS resource %v (duration: %v)", key, time.Now().Sub(startTime))
+	defer glog.V(2).Infof("Finished reconciling IngressDNS resource %v (duration: %v)", key, time.Since(startTime))
 
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
 	if err != nil {
