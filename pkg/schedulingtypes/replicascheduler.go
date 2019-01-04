@@ -92,7 +92,7 @@ func (s *ReplicaScheduler) Kind() string {
 	return RSPKind
 }
 
-func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface, stopChan <-chan struct{}) error {
+func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface) error {
 	kind := typeConfig.GetTemplate().Kind
 	// TODO(marun) Return an error if the kind is not supported
 
@@ -100,10 +100,21 @@ func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface, stopChan
 	if err != nil {
 		return fmt.Errorf("Failed to initialize replica scheduling plugin for %q: %v", kind, err)
 	}
-	plugin.Start(stopChan)
+
+	plugin.Start()
 	s.plugins[kind] = plugin
 
 	return nil
+}
+func (s *ReplicaScheduler) StopPlugin(kind string) {
+	plugin, ok := s.plugins[kind]
+	if !ok {
+		return
+	}
+
+	plugin.Stop()
+
+	delete(s.plugins, kind)
 }
 
 func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
@@ -118,7 +129,7 @@ func (s *ReplicaScheduler) FedWatch(namespace string, options metav1.ListOptions
 	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(s.controllerConfig.TargetNamespace).Watch(options)
 }
 
-func (s *ReplicaScheduler) Start(stopChan <-chan struct{}) {
+func (s *ReplicaScheduler) Start() {
 	s.podInformer.Start()
 }
 

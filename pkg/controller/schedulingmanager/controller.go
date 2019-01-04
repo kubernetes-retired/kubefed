@@ -47,10 +47,11 @@ type SchedulerController struct {
 
 	scheduler map[string]schedulingtypes.Scheduler
 
-	config   *util.ControllerConfig
-	stopChan <-chan struct{}
+	config *util.ControllerConfig
 
 	runningPlugins sets.String
+	// mapping qualifiedname to template kind for managing plugins in scheduler
+	templateKindMap map[string]string
 }
 
 func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) {
@@ -60,18 +61,18 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 	restclient.AddUserAgent(kubeConfig, userAgent)
 	client := fedclientset.NewForConfigOrDie(kubeConfig).CoreV1alpha1()
 
-	controller := newController(config, client, stopChan)
+	controller := newController(config, client)
 
 	glog.Infof("Starting scheduler controller")
 	controller.Run(stopChan)
 }
 
-func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface, stopChan <-chan struct{}) *SchedulerController {
+func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) *SchedulerController {
 	c := &SchedulerController{
-		scheduler:      make(map[string]schedulingtypes.Scheduler),
-		config:         config,
-		stopChan:       stopChan,
-		runningPlugins: sets.String{},
+		config:          config,
+		scheduler:       make(map[string]schedulingtypes.Scheduler),
+		runningPlugins:  sets.String{},
+		templateKindMap: make(map[string]string),
 	}
 
 	fedNamespace := config.FederationNamespace
@@ -113,15 +114,11 @@ func (c *SchedulerController) Run(stopChan <-chan struct{}) {
 func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
-	glog.Infof("Running reconcile FederatedTypeConfig for %q", key)
+	glog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 
 	schedulingType := schedulingtypes.GetSchedulingType(qualifiedName.Name)
 	if schedulingType == nil {
 		// No scheduler supported for this resource
-		return util.StatusAllOK
-	}
-	if c.runningPlugins.Has(qualifiedName.Name) {
-		// Scheduler and plugin are already running
 		return util.StatusAllOK
 	}
 
@@ -130,14 +127,20 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 		runtime.HandleError(fmt.Errorf("Failed to query FederatedTypeConfig store for %q: %v", key, err))
 		return util.StatusError
 	}
+
 	if !exist {
+		c.stopScheduler(schedulingType.Kind, qualifiedName)
 		return util.StatusAllOK
 	}
-	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 
-	deleted := typeConfig.DeletionTimestamp != nil
-	if deleted {
-		// Do not support deletion yet
+	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
+	if typeConfig.Spec.PropagationEnabled == false || typeConfig.DeletionTimestamp != nil {
+		c.stopScheduler(schedulingType.Kind, qualifiedName)
+		return util.StatusAllOK
+	}
+
+	if c.runningPlugins.Has(qualifiedName.Name) {
+		// Scheduler and plugin are already running
 		return util.StatusAllOK
 	}
 
@@ -156,7 +159,8 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 	scheduler, ok := c.scheduler[schedulingKind]
 	if !ok {
 		var err error
-		scheduler, err = schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType, c.stopChan)
+
+		scheduler, err = schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType)
 		if err != nil {
 			runtime.HandleError(fmt.Errorf("Error starting schedulingpreference controller for %q : %v", schedulingKind, err))
 			return util.StatusError
@@ -165,13 +169,42 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 	}
 
 	templateKind := typeConfig.GetTemplate().Kind
-	glog.Infof("Start plugin with kind %s for scheduling type %s", templateKind, schedulingKind)
-	err = scheduler.StartPlugin(typeConfig, c.stopChan)
+	glog.Infof("Starting plugin kind %s for scheduling type %s", templateKind, schedulingKind)
+
+	err = scheduler.StartPlugin(typeConfig)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Error starting plugin for %q : %v", templateKind, err))
 		return util.StatusError
 	}
 	c.runningPlugins.Insert(qualifiedName.Name)
+	c.templateKindMap[qualifiedName.Name] = templateKind
 
 	return util.StatusAllOK
+}
+
+func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName util.QualifiedName) {
+	scheduler, ok := c.scheduler[schedulingKind]
+	if !ok {
+		return
+	}
+
+	if !c.runningPlugins.Has(qualifiedName.Name) {
+		return
+	}
+
+	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.templateKindMap[qualifiedName.Name])
+
+	scheduler.StopPlugin(c.templateKindMap[qualifiedName.Name])
+	c.runningPlugins.Delete(qualifiedName.Name)
+	delete(c.templateKindMap, qualifiedName.Name)
+
+	// if all resources registered to same scheduler are deleted, the scheduler should be stopped
+	resources := schedulingtypes.GetSchedulingKinds(qualifiedName.Name)
+	result := c.runningPlugins.Intersection(resources)
+	if result.Len() == 0 {
+		glog.Infof("Stopping scheduler schedulingpreference controller for %q", schedulingKind)
+		scheduler.Stop()
+
+		delete(c.scheduler, schedulingKind)
+	}
 }
