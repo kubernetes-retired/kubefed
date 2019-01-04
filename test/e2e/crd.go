@@ -22,15 +22,15 @@ import (
 
 	"github.com/pborman/uuid"
 
-	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 
+	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
@@ -103,21 +103,18 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 
 	// Create the target crd in all clusters
-	var pools []dynamic.ClientPool
-	var hostPool dynamic.ClientPool
+	var configs []*rest.Config
+	var hostConfig *rest.Config
 	for clusterName, clusterConfig := range f.ClusterConfigs(userAgent) {
-		pool := dynamic.NewDynamicClientPool(clusterConfig.Config)
-		pools = append(pools, pool)
+		configs = append(configs, clusterConfig.Config)
 		crdClient := apiextv1b1client.NewForConfigOrDie(clusterConfig.Config)
 		if clusterConfig.IsPrimary {
-			hostPool = pool
+			hostConfig = clusterConfig.Config
 			createCrdForHost(tl, crdClient, targetCrd)
 		} else {
 			createCrd(tl, crdClient, targetCrd, clusterName)
 		}
 	}
-
-	hostConfig := f.KubeConfig()
 
 	targetName := targetAPIResource.Name
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
@@ -167,11 +164,11 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	})
 
 	// Wait for the CRDs to become available in the API
-	for _, pool := range pools {
-		waitForCrd(pool, tl, typeConfig.GetTarget())
+	for _, c := range configs {
+		waitForCrd(c, tl, typeConfig.GetTarget())
 	}
-	waitForCrd(hostPool, tl, typeConfig.GetTemplate())
-	waitForCrd(hostPool, tl, typeConfig.GetPlacement())
+	waitForCrd(hostConfig, tl, typeConfig.GetTemplate())
+	waitForCrd(hostConfig, tl, typeConfig.GetPlacement())
 
 	// TODO(marun) If not using in-memory controllers, wait until the
 	// controller has started.
@@ -203,8 +200,8 @@ overrides:
 
 }
 
-func waitForCrd(pool dynamic.ClientPool, tl common.TestLogger, apiResource metav1.APIResource) {
-	client, err := util.NewResourceClient(pool, &apiResource)
+func waitForCrd(config *rest.Config, tl common.TestLogger, apiResource metav1.APIResource) {
+	client, err := util.NewResourceClient(config, &apiResource)
 	if err != nil {
 		tl.Fatalf("Error creating client for crd %q: %v", apiResource.Kind, err)
 	}

@@ -255,7 +255,7 @@ func (f *FederationFixture) ClusterConfigs(tl common.TestLogger, userAgent strin
 func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster {
 	clientMap := make(map[string]common.TestCluster)
 	for name, clusterConfig := range f.ClusterConfigs(tl, userAgent) {
-		client, err := util.NewResourceClientFromConfig(clusterConfig.Config, apiResource)
+		client, err := util.NewResourceClient(clusterConfig.Config, apiResource)
 		if err != nil {
 			tl.Fatalf("Error creating a resource client in cluster %q for kind %q: %v", name, apiResource.Kind, err)
 		}
@@ -350,7 +350,7 @@ func waitForCrd(tl common.TestLogger, config *rest.Config, crd *apiextv1b1.Custo
 		Namespaced: crd.Spec.Scope == apiextv1b1.NamespaceScoped,
 	}
 
-	client, err := util.NewResourceClientFromConfig(config, apiResource)
+	client, err := util.NewResourceClient(config, apiResource)
 	if err != nil {
 		tl.Fatalf("Error creating client for crd %q: %v", apiResource.Kind, err)
 	}

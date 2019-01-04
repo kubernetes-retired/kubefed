@@ -128,7 +128,7 @@ var _ = Describe("Placement", func() {
 		targetKind := targetAPIResource.Kind
 		qualifiedName := util.NewQualifiedName(template)
 		for clusterName, testCluster := range crudTester.TestClusters() {
-			client, err := util.NewResourceClientFromConfig(testCluster.Config, &targetAPIResource)
+			client, err := util.NewResourceClient(testCluster.Config, &targetAPIResource)
 			if err != nil {
 				tl.Fatalf("Error creating resource client for %q: %v", targetKind, err)
 			}

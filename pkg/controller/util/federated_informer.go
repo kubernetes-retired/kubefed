@@ -160,7 +160,7 @@ func NewFederatedInformer(
 			}
 
 			restclient.AddUserAgent(config, userAgentName)
-			return NewResourceClientFromConfig(config, apiResource)
+			return NewResourceClient(config, apiResource)
 		},
 		targetInformers: make(map[string]informer),
 		fedNamespace:    namespaces.FederationNamespace,
