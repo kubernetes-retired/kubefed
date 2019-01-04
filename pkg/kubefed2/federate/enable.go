@@ -203,12 +203,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	err = CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace)
 }
 
 type typeResources struct {

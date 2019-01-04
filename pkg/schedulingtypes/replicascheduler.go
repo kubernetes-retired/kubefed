@@ -223,12 +223,7 @@ func (s *ReplicaScheduler) ReconcileFederationTargets(qualifiedName QualifiedNam
 		return err
 	}
 
-	err = s.plugins[kind].ReconcileOverride(qualifiedName, result)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.plugins[kind].ReconcileOverride(qualifiedName, result)
 }
 
 func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName QualifiedName, clusterNames []string) (map[string]int64, error) {
