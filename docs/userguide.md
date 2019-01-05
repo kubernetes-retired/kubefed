@@ -32,10 +32,10 @@
   - [Namespaced Federation](#namespaced-federation)
     - [Automated Deployment](#automated-deployment-1)
     - [Joining Clusters](#joining-clusters)
-    - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
-    - [Multi-Cluster Service DNS](#multi-cluster-service-dns)
     - [Deployment Cleanup](#deployment-cleanup-1)
   - [Higher order behaviour](#higher-order-behaviour)
+    - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
+    - [Multi-Cluster Service DNS](#multi-cluster-service-dns)
     - [ReplicaSchedulingPreference](#replicaschedulingpreference)
       - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
@@ -513,18 +513,6 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
     --limited-scope=true
 ```
 
-### Multi-Cluster Ingress DNS
-
-Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
-[Multi-Cluster Ingress DNS with ExternalDNS Guide](./ingressdns-with-externaldns.md) to learn more.
-
-### Multi-Cluster Service DNS
-
-Multi-Cluster Service DNS provides the ability to programmatically manage DNS resource records of Service objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
-[Multi-Cluster Service DNS with ExternalDNS Guide](./servicedns-with-externaldns.md) to learn more.
-
 ### Deployment Cleanup
 
 Cleanup similarly requires the use of the same environment variables
@@ -541,6 +529,18 @@ constructed using the mechanics provided by the core API types (`template`,
 `placement` and `override`) and associated controllers for a given resource.
 Further sections describe few of higher level APIs implemented as part of
 Federation V2.
+
+### Multi-Cluster Ingress DNS
+
+Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
+through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
+[Multi-Cluster Ingress DNS with ExternalDNS Guide](./ingressdns-with-externaldns.md) to learn more.
+
+### Multi-Cluster Service DNS
+
+Multi-Cluster Service DNS provides the ability to programmatically manage DNS resource records of Service objects
+through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the
+[Multi-Cluster Service DNS with ExternalDNS Guide](./servicedns-with-externaldns.md) to learn more.
 
 ### ReplicaSchedulingPreference
 
