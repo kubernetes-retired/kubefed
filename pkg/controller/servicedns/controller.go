@@ -270,7 +270,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	glog.V(4).Infof("Starting to reconcile ServiceDNS resource: %v", key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling ServiceDNS resource %v (duration: %v)", key, time.Now().Sub(startTime))
+	defer glog.V(4).Infof("Finished reconciling ServiceDNS resource %v (duration: %v)", key, time.Since(startTime))
 
 	cachedObj, exist, err := c.serviceDNSStore.GetByKey(key)
 	if err != nil {

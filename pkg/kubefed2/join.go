@@ -168,13 +168,8 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	err = JoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
+	return JoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
 		j.HostClusterContext, j.ClusterName, j.secretName, j.addToRegistry, j.limitedScope, j.DryRun)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // JoinCluster performs all the necessary steps to join a cluster to the
@@ -354,12 +349,7 @@ func registerCluster(crClientset *crclient.Clientset, clusterNamespace, host, jo
 		return cluster, nil
 	}
 
-	cluster, err := crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Create(cluster)
-	if err != nil {
-		return cluster, err
-	}
-
-	return cluster, nil
+	return crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Create(cluster)
 }
 
 // createFederatedCluster creates a federated cluster resource that associates
@@ -384,13 +374,7 @@ func createFederatedCluster(fedClientset *fedclient.Clientset, joiningClusterNam
 		return fedCluster, nil
 	}
 
-	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Create(fedCluster)
-
-	if err != nil {
-		return fedCluster, err
-	}
-
-	return fedCluster, nil
+	return fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Create(fedCluster)
 }
 
 // createFederationNamespace creates the federation namespace in the cluster

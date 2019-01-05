@@ -132,13 +132,8 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	err = UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
+	return UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
 		j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // UnjoinCluster performs all the necessary steps to unjoin a cluster from the
@@ -218,13 +213,8 @@ func unregisterCluster(crClientset *crclient.Clientset, clusterNamespace, host, 
 		return nil
 	}
 
-	err := crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Delete(unjoiningClusterName,
+	return crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Delete(unjoiningClusterName,
 		&metav1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // deleteFederatedClusterAndSecret deletes a federated cluster resource that associates
@@ -325,13 +315,8 @@ func deleteServiceAccount(clusterClientset client.Interface, saName,
 	}
 
 	// Delete a service account.
-	err := clusterClientset.CoreV1().ServiceAccounts(namespace).Delete(saName,
+	return clusterClientset.CoreV1().ServiceAccounts(namespace).Delete(saName,
 		&metav1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // deleteClusterRoleAndBinding deletes an RBAC cluster role and binding that

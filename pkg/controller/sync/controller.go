@@ -365,7 +365,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	glog.V(4).Infof("Starting to reconcile %v %v", templateKind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %v %v (duration: %v)", templateKind, key, time.Now().Sub(startTime))
+	defer glog.V(4).Infof("Finished reconciling %v %v (duration: %v)", templateKind, key, time.Since(startTime))
 
 	template, err := s.objFromCache(s.templateStore, templateKind, key)
 	if err != nil {

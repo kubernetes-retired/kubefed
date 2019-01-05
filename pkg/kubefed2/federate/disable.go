@@ -121,12 +121,7 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      j.targetName,
 	}
 
-	err = DisableFederation(cmdOut, hostConfig, typeConfigName, j.delete, j.DryRun)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return DisableFederation(cmdOut, hostConfig, typeConfigName, j.delete, j.DryRun)
 }
 
 func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
