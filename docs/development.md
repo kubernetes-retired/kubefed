@@ -23,6 +23,7 @@
       - [Create Deployment Config](#create-deployment-config)
   - [Test Latest Master Changes (`canary`)](#test-latest-master-changes-canary)
   - [Test Latest Stable Version (`latest`)](#test-latest-stable-version-latest)
+  - [Updating Document](#updating-document)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -333,3 +334,8 @@ In order to test the latest stable released version (tagged as `latest`) on
 your kubernetes cluster, follow the
 [automated](userguide.md#automated-deployment) or
 [manual](userguide.md#manual-deployment) instructions from the user guide.
+
+## Updating Document
+
+If you are going to add some new sections for the document, make sure to update the table
+of contents. This can be done manually or with [doctoc](https://github.com/thlorenz/doctoc).
