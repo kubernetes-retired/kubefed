@@ -29,8 +29,10 @@
 #   $ minikube start
 #
 # This script depends on kubectl and kubebuilder being installed in
-# the path.  These and other test binaries can be installed via the
-# download-binaries.sh script, which downloads to ./bin:
+# the path.  If you want to install Federation via helm chart, you may
+# also need to install helm in the path. These and other test binaries
+# can be installed via the download-binaries.sh script, which downloads
+# to ./bin:
 #
 #   $ ./scripts/download-binaries.sh
 #   $ export PATH=$(pwd)/bin:${PATH}
@@ -46,6 +48,71 @@ set -o nounset
 set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
+
+function deploy-with-script() {
+  if [[ ! "${USE_LATEST}" ]]; then
+    if [[ "${NAMESPACED}" ]]; then
+      INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-namespaced-install-yaml.sh
+    else
+      INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" FEDERATION_NAMESPACE="${NS}" scripts/generate-install-yaml.sh
+    fi
+  fi
+
+  # TODO(marun) kubebuilder-generated installation yaml fails validation
+  # for seemingly harmless reasons on kube >= 1.11.  Ignore validation
+  # until the generated crd yaml can pass it.
+  kubectl -n "${NS}" apply --validate=false -f "${INSTALL_YAML}"
+  kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+
+  # TODO(marun) Ensure federatdtypeconfig is available before creating instances
+  # TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
+
+  # Enable available types
+  for filename in ./config/federatedirectives/*.yaml; do
+    ./bin/kubefed2 federate enable -f "${filename}" --federation-namespace="${NS}"
+  done
+}
+
+function deploy-with-helm() {
+  # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
+  cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tiller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tiller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: tiller
+    namespace: kube-system
+EOF
+
+  helm init --service-account tiller
+  util::wait-for-condition "Tiller is ready" "helm version --server &> /dev/null" 120
+
+  REPOSITORY=${IMAGE_NAME%/*}
+  IMAGE_TAG=${IMAGE_NAME##*/}
+  IMAGE=${IMAGE_TAG%:*}
+  TAG=${IMAGE_TAG#*:}
+
+  if [[ "${NAMESPACED}" ]]; then
+      helm install charts/federation-v2 --name federation-v2 --namespace ${NS} \
+          --set controllermanager.repository=${REPOSITORY} --set controllermanager.image=${IMAGE} --set controllermanager.tag=${TAG} \
+          --set controllermanager.limitedScope=true
+  else
+      helm install charts/federation-v2 --name federation-v2 --namespace ${NS} \
+          --set controllermanager.repository=${REPOSITORY} --set controllermanager.image=${IMAGE} --set controllermanager.tag=${TAG}
+  fi
+}
 
 NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
@@ -98,6 +165,7 @@ if [[ "${DOCKER_PUSH}" == false ]]; then
     DOCKER_PUSH_CMD=
 fi
 
+# Build federation binaries and image
 if [[ ! "${USE_LATEST}" ]]; then
   base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
   dockerfile_dir="${base_dir}/images/federation-v2"
@@ -105,6 +173,7 @@ if [[ ! "${USE_LATEST}" ]]; then
   docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
   ${DOCKER_PUSH_CMD}
 fi
+go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
 
 if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
   kubectl create ns "${NS}"
@@ -125,29 +194,13 @@ else
   kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
 fi
 
-if [[ ! "${USE_LATEST}" ]]; then
-  if [[ "${NAMESPACED}" ]]; then
-    INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-namespaced-install-yaml.sh
-  else
-    INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" FEDERATION_NAMESPACE="${NS}" scripts/generate-install-yaml.sh
-  fi
+# Deploy federation resources
+USE_CHART=${USE_CHART:-false}
+if [[ ${USE_CHART} == true ]]; then
+  deploy-with-helm
+else
+  deploy-with-script
 fi
-
-# TODO(marun) kubebuilder-generated installation yaml fails validation
-# for seemingly harmless reasons on kube >= 1.11.  Ignore validation
-# until the generated crd yaml can pass it.
-kubectl -n "${NS}" apply --validate=false -f "${INSTALL_YAML}"
-kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
-
-# TODO(marun) Ensure federatdtypeconfig is available before creating instances
-# TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
-
-go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
-
-# Enable available types
-for filename in ./config/federatedirectives/*.yaml; do
-  ./bin/kubefed2 federate enable -f "${filename}" --federation-namespace="${NS}"
-done
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
@@ -155,5 +208,4 @@ CONTEXT="$(kubectl config current-context)"
 
 for c in ${JOIN_CLUSTERS}; do
   ./bin/kubefed2 join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
-
 done

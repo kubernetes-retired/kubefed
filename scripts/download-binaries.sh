@@ -48,6 +48,13 @@ curl "${curl_args}O" "${kb_url}" \
   && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
   && rm "${kb_tgz}"
 
+helm_version="2.11.0"
+helm_tgz="helm-v${helm_version}-linux-amd64.tar.gz"
+helm_url="https://storage.googleapis.com/kubernetes-helm/$helm_tgz"
+curl "${curl_args}O" "${helm_url}" \
+    && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 linux-amd64/helm \
+    && rm "${helm_tgz}"
+
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
@@ -55,3 +62,4 @@ echo -n "#   etcd:           "; "${dest_dir}/etcd" --version | head -n 1
 echo -n "#   kube-apiserver: "; "${dest_dir}/kube-apiserver" --version
 echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
+echo -n "#   helm:           "; "${dest_dir}/helm" version --client --short
