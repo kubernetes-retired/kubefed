@@ -28,11 +28,8 @@ type Interface interface {
 	GetNamespaced() bool
 	GetComparisonField() common.VersionComparisonField
 	GetPropagationEnabled() bool
-	GetTemplate() metav1.APIResource
-	GetPlacement() metav1.APIResource
-	GetOverride() metav1.APIResource
+	GetFederatedType() metav1.APIResource
 	GetStatus() *metav1.APIResource
 	GetEnableStatus() bool
 	GetFederatedNamespaced() bool
-	GetFederatedKind() string
 }

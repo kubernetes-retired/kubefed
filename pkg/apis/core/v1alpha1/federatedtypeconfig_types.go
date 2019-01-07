@@ -31,31 +31,27 @@ type FederatedTypeConfigSpec struct {
 	// groupName fields will be set from the metadata.name of this resource. The
 	// kind field must be set.
 	Target APIResource `json:"target"`
-	// Whether or not the target type is namespaced. The federation types
-	// (template, placement, overrides) for the type will share this
+	// Whether or not the target type is namespaced. The federation
+	// types (FederatedType, Status) for the type will share this
 	// characteristic.
+	//
+	// TODO(marun) Remove in favor of using the value from Target and
+	// FederatedType (depending on context).
 	Namespaced bool `json:"namespaced"`
 	// Which field of the target type determines whether federation
 	// considers two resources to be equal.
+	//
+	// TODO(marun) Remove and discover the field to use at runtime.
 	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 	// Whether or not propagation to member clusters should be enabled.
 	PropagationEnabled bool `json:"propagationEnabled"`
-	// Configuration for the template type that holds the base definition of
-	// a federated resource.
-	Template APIResource `json:"template"`
-	// Configuration for the placement type that holds information about which
-	// member clusters the resource should be federated to. If not provided, the
-	// group and version will default to those provided for the template
-	// resource.
-	Placement APIResource `json:"placement"`
-	// Configuration for the override type that holds information about how the
-	// resource should be changed from the template when in certain member
-	// clusters. If not provided, the group and version will default to those
-	// provided for the template resource.
-	Override APIResource `json:"override"`
+	// Configuration for the federated type that defines how the target
+	// type should be propagated to multiple clusters.
+	FederatedType APIResource `json:"federatedType"`
 	// Configuration for the status type that holds information about which type
 	// holds the status of the federated resource. If not provided, the group
-	// and version will default to those provided for the template resource.
+	// and version will default to those provided for the federated type api
+	// resource.
 	// +optional
 	Status *APIResource `json:"status,omitempty"`
 	// Whether or not Status object should be populated.
@@ -108,14 +104,13 @@ type FederatedTypeConfigStatus struct {
 
 // FederatedTypeConfig programs federation to know about a single API type - the
 // "target type" - that a user wants to federate. For each target type, there is
-// a set of API types that capture the information required to federate that
-// type:
+// a corresponding FederatedType that has the following fields:
 //
-// - A "template" type specifies the basic definition of a federated resource
-// - A "placement" type specifies the placement information for the federated
+// - The "template" field specifies the basic definition of a federated resource
+// - The "placement" field specifies the placement information for the federated
 //   resource
-// - (optional) A "override" type specifies how the target resource should
-//   vary across clusters.
+// - The "overrides" field specifies how the target resource should vary across
+//   clusters.
 //
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=federatedtypeconfigs
@@ -131,23 +126,17 @@ type FederatedTypeConfig struct {
 func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 	// TODO(marun) will name always be populated?
 	nameParts := strings.SplitN(obj.Name, ".", 2)
-	templatePluralName := nameParts[0]
-	setStringDefault(&obj.Spec.Target.PluralName, templatePluralName)
+	targetPluralName := nameParts[0]
+	setStringDefault(&obj.Spec.Target.PluralName, targetPluralName)
 	if len(nameParts) > 1 {
 		group := nameParts[1]
 		setStringDefault(&obj.Spec.Target.Group, group)
 	}
-	setStringDefault(&obj.Spec.Template.PluralName, PluralName(obj.Spec.Template.Kind))
-	setStringDefault(&obj.Spec.Placement.PluralName, PluralName(obj.Spec.Placement.Kind))
-	setStringDefault(&obj.Spec.Placement.Group, obj.Spec.Template.Group)
-	setStringDefault(&obj.Spec.Placement.Version, obj.Spec.Template.Version)
-	setStringDefault(&obj.Spec.Override.PluralName, PluralName(obj.Spec.Override.Kind))
-	setStringDefault(&obj.Spec.Override.Group, obj.Spec.Template.Group)
-	setStringDefault(&obj.Spec.Override.Version, obj.Spec.Template.Version)
+	setStringDefault(&obj.Spec.FederatedType.PluralName, PluralName(obj.Spec.FederatedType.Kind))
 	if obj.Spec.Status != nil {
 		setStringDefault(&obj.Spec.Status.PluralName, PluralName(obj.Spec.Status.Kind))
-		setStringDefault(&obj.Spec.Status.Group, obj.Spec.Template.Group)
-		setStringDefault(&obj.Spec.Status.Version, obj.Spec.Template.Version)
+		setStringDefault(&obj.Spec.Status.Group, obj.Spec.FederatedType.Group)
+		setStringDefault(&obj.Spec.Status.Version, obj.Spec.FederatedType.Version)
 	}
 }
 
@@ -196,18 +185,8 @@ func (f *FederatedTypeConfig) GetPropagationEnabled() bool {
 	return f.Spec.PropagationEnabled
 }
 
-func (f *FederatedTypeConfig) GetTemplate() metav1.APIResource {
-	return apiResourceToMeta(f.Spec.Template, f.Spec.Namespaced)
-}
-
-func (f *FederatedTypeConfig) GetPlacement() metav1.APIResource {
-	namespaced := f.GetFederatedNamespaced()
-	return apiResourceToMeta(f.Spec.Placement, namespaced)
-}
-
-func (f *FederatedTypeConfig) GetOverride() metav1.APIResource {
-	namespaced := f.GetFederatedNamespaced()
-	return apiResourceToMeta(f.Spec.Override, namespaced)
+func (f *FederatedTypeConfig) GetFederatedType() metav1.APIResource {
+	return apiResourceToMeta(f.Spec.FederatedType, f.GetFederatedNamespaced())
 }
 
 func (f *FederatedTypeConfig) GetStatus() *metav1.APIResource {
@@ -222,6 +201,8 @@ func (f *FederatedTypeConfig) GetEnableStatus() bool {
 	return f.Spec.EnableStatus
 }
 
+// TODO(marun) Remove in favor of using 'true' for namespaces and the
+// value from target otherwise.
 func (f *FederatedTypeConfig) GetFederatedNamespaced() bool {
 	// Special-case the scope of namespace primitives since it will
 	// hopefully be the only instance of the scope of a federation
@@ -234,16 +215,6 @@ func (f *FederatedTypeConfig) GetFederatedNamespaced() bool {
 		return true
 	}
 	return f.Spec.Namespaced
-}
-
-func (f *FederatedTypeConfig) GetFederatedKind() string {
-	// TODO(marun) Use the constant in pkg/controller/util
-	if f.Name == "namespaces" {
-		// The template type is 'Namespace', so return
-		// 'FederatedNamespace' for consistency with other types.
-		return "FederatedNamespace"
-	}
-	return f.GetTemplate().Kind
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {
