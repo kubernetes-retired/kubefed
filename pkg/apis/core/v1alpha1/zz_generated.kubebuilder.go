@@ -343,47 +343,28 @@ var (
 								"enableStatus": v1beta1.JSONSchemaProps{
 									Type: "boolean",
 								},
+								"federatedType": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"group": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+										"kind": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+										"pluralName": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+										"version": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+									},
+									Required: []string{
+										"kind",
+									}},
 								"namespaced": v1beta1.JSONSchemaProps{
 									Type: "boolean",
 								},
-								"override": v1beta1.JSONSchemaProps{
-									Type: "object",
-									Properties: map[string]v1beta1.JSONSchemaProps{
-										"group": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"kind": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"pluralName": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"version": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-									},
-									Required: []string{
-										"kind",
-									}},
-								"placement": v1beta1.JSONSchemaProps{
-									Type: "object",
-									Properties: map[string]v1beta1.JSONSchemaProps{
-										"group": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"kind": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"pluralName": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"version": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-									},
-									Required: []string{
-										"kind",
-									}},
 								"propagationEnabled": v1beta1.JSONSchemaProps{
 									Type: "boolean",
 								},
@@ -425,34 +406,13 @@ var (
 									Required: []string{
 										"kind",
 									}},
-								"template": v1beta1.JSONSchemaProps{
-									Type: "object",
-									Properties: map[string]v1beta1.JSONSchemaProps{
-										"group": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"kind": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"pluralName": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-										"version": v1beta1.JSONSchemaProps{
-											Type: "string",
-										},
-									},
-									Required: []string{
-										"kind",
-									}},
 							},
 							Required: []string{
 								"target",
 								"namespaced",
 								"comparisonField",
 								"propagationEnabled",
-								"template",
-								"placement",
-								"override",
+								"federatedType",
 							}},
 						"status": v1beta1.JSONSchemaProps{
 							Type: "object",
