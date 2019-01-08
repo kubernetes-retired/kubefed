@@ -25,12 +25,14 @@ import (
 
 type ResourceClient interface {
 	Resources(namespace string) dynamic.ResourceInterface
+	Kind() string
 }
 
 type resourceClient struct {
 	client      dynamic.Interface
 	apiResource schema.GroupVersionResource
 	namespaced  bool
+	kind        string
 }
 
 func NewResourceClient(config *rest.Config, apiResource *metav1.APIResource) (ResourceClient, error) {
@@ -48,6 +50,7 @@ func NewResourceClient(config *rest.Config, apiResource *metav1.APIResource) (Re
 		client:      client,
 		apiResource: resource,
 		namespaced:  apiResource.Namespaced,
+		kind:        apiResource.Kind,
 	}, nil
 }
 
@@ -60,4 +63,8 @@ func (c *resourceClient) Resources(namespace string) dynamic.ResourceInterface {
 		return c.client.Resource(c.apiResource).Namespace(namespace)
 	}
 	return c.client.Resource(c.apiResource)
+}
+
+func (c *resourceClient) Kind() string {
+	return c.kind
 }

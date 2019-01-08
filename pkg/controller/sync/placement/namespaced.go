@@ -17,9 +17,12 @@ limitations under the License.
 package placement
 
 import (
+	"fmt"
+
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -87,4 +90,8 @@ func (p *namespacedPlacementPlugin) ComputePlacement(qualifiedName util.Qualifie
 	selectedSet := resourceClusterSet.Intersection(namespaceClusterSet)
 
 	return selectedSet.List(), clusterSet.Difference(selectedSet).List(), nil
+}
+
+func (p *namespacedPlacementPlugin) GetPlacement(key string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("Not implemented")
 }

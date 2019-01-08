@@ -26,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -291,7 +292,9 @@ func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.In
 func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	orphanDependents := false
 	if err := client.Core().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
-		Failf("Error while deleting namespace %s: %s", namespaceName, err)
+		if !errors.IsNotFound(err) {
+			Failf("Error while deleting namespace %s: %s", namespaceName, err)
+		}
 	}
 	// TODO(marun) Check namespace deletion at the end of the test run.
 	return

@@ -17,8 +17,12 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 )
@@ -37,4 +41,28 @@ func NewResourceInformer(client ResourceClient, namespace string, triggerFunc fu
 		NoResyncPeriod,
 		NewTriggerOnAllChanges(triggerFunc),
 	)
+}
+
+func ObjFromCache(store cache.Store, kind, key string) (*unstructured.Unstructured, error) {
+	obj, err := rawObjFromCache(store, kind, key)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.(*unstructured.Unstructured), nil
+}
+
+func rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
+	cachedObj, exist, err := store.GetByKey(key)
+	if err != nil {
+		wrappedErr := fmt.Errorf("Failed to query %s store for %q: %v", kind, key, err)
+		runtime.HandleError(wrappedErr)
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
 }

@@ -31,6 +31,8 @@ type ResourcePlacementPlugin struct {
 	store cache.Store
 	// Informer controller for placement directives of the federated type
 	controller cache.Controller
+
+	kind string
 }
 
 func NewResourcePlacementPlugin(client util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
@@ -42,6 +44,7 @@ func newResourcePlacementPluginWithOk(client util.ResourceClient, targetNamespac
 	return &ResourcePlacementPlugin{
 		store:      store,
 		controller: controller,
+		kind:       client.Kind(),
 	}
 }
 
@@ -58,17 +61,19 @@ func (p *ResourcePlacementPlugin) ComputePlacement(qualifiedName util.QualifiedN
 	return selectedClusters, unselectedClusters, err
 }
 
+func (p *ResourcePlacementPlugin) GetPlacement(key string) (*unstructured.Unstructured, error) {
+	return util.ObjFromCache(p.store, p.kind, key)
+}
+
 func (p *ResourcePlacementPlugin) computePlacementWithOk(qualifiedName util.QualifiedName, clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, ok bool, err error) {
-	key := qualifiedName.String()
-	cachedObj, _, err := p.store.GetByKey(key)
+	unstructuredObj, err := p.GetPlacement(qualifiedName.String())
 	if err != nil {
 		return nil, nil, false, err
 	}
 	clusterNames := getClusterNames(clusters)
-	if cachedObj == nil {
+	if unstructuredObj == nil {
 		return []string{}, clusterNames, false, nil
 	}
-	unstructuredObj := cachedObj.(*unstructured.Unstructured)
 
 	selectedNames, err := selectedClusterNames(unstructuredObj, clusters)
 	if err != nil {

@@ -30,7 +30,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -233,13 +232,21 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			return "", client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 		})
 
-	// TODO(marun) - need to add finalizers to placement and overrides, too
+	// Most types apply the finalizer to the template
+	finalizerClient := templateClient
+	// But for namespaces the finalizer is applied to the placement to
+	// ensure that deletion of namespaces in member clusters only
+	// occurs after a namespace has been configured to be propagated
+	// to those clusters.
+	if templateAPIResource.Kind == util.NamespaceKind {
+		finalizerClient = placementClient
+	}
 
 	s.deletionHelper = deletionhelper.NewDeletionHelper(
 		// updateObjFunc
 		func(rawObj pkgruntime.Object) (pkgruntime.Object, error) {
 			obj := rawObj.(*unstructured.Unstructured)
-			return templateClient.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+			return finalizerClient.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		},
 		// objNameFunc
 		func(obj pkgruntime.Object) string {
@@ -366,7 +373,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	startTime := time.Now()
 	defer glog.V(4).Infof("Finished reconciling %v %v (duration: %v)", templateKind, key, time.Since(startTime))
 
-	template, err := s.objFromCache(s.templateStore, templateKind, key)
+	template, err := util.ObjFromCache(s.templateStore, templateKind, key)
 	if err != nil {
 		return util.StatusError
 	}
@@ -375,25 +382,78 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusAllOK
 	}
 
-	if template.GetDeletionTimestamp() != nil {
-		err := s.delete(template, templateKind, qualifiedName)
+	// A placement resource determines whether a resource should exist
+	// in member clusters. If a template exists but the associated
+	// placement does not, then the resource represented by the
+	// template should be removed from all member clusters.  That
+	// suggests that finalization could as well be performed on the
+	// placement as the template.
+	//
+	// Adding a finalizer to a namespace resource is problematic
+	// because it has the potential to try to delete namespaces in
+	// member clusters when a namespace in the host cluster is
+	// deleted.  This could occur even if a namespace was never
+	// intended to be federated.  Adding the finalizer to the
+	// namespace placement resource will still ensure cleanup of
+	// resources in member clusters (since deletion of the namespace
+	// will trigger finalization of its placement resource) but ensure
+	// that cleanup is only attempted for namespaces that have been
+	// explicitly targeted for propagation.
+	//
+	// TODO(marun) Consider performing finalization on the placement
+	// resource for other types.
+	//
+	// TODO(marun) Encapsulate the differences between namespaces and
+	// other types to simplify maintenance.
+	//
+	finalizationTarget := template
+	finalizationKind := templateKind
+	finalizationName := qualifiedName
+	if targetKind == util.NamespaceKind {
+		finalizationKind = s.typeConfig.GetPlacement().Kind
+		finalizationName = placementName
+
+		placement, err := s.placementPlugin.GetPlacement(placementName.String())
+		if err != nil {
+			runtime.HandleError(fmt.Errorf("Failed to retrieve %s %q: %v", finalizationKind, finalizationName, err))
+			return util.StatusError
+		}
+		if placement == nil {
+			// No propagation without placement, and finalization
+			// ensures that the absence of placement indicates removal
+			// of target resources from member clusters.
+			return util.StatusAllOK
+		}
+		finalizationTarget = placement
+	}
+
+	if finalizationTarget.GetDeletionTimestamp() != nil {
+		glog.V(3).Infof("Handling deletion of %s %q", finalizationKind, finalizationName)
+		s.versionManager.Delete(qualifiedName)
+		// The template kind is provided to the handler to allow
+		// special-casing of namespace removal in the primary cluster.
+		_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(finalizationTarget, templateKind)
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
-			args := []interface{}{templateKind, qualifiedName, err}
+			args := []interface{}{finalizationKind, finalizationName, err}
 			runtime.HandleError(fmt.Errorf(msg, args...))
 			s.eventRecorder.Eventf(template, corev1.EventTypeWarning, "DeleteFailed", msg, args...)
 			return util.StatusError
 		}
+		// It should now be possible to garbage collect the finalization target.
 		return util.StatusAllOK
 	}
 
-	glog.V(3).Infof("Ensuring finalizers exist on %s %q", templateKind, key)
-	finalizedTemplate, err := s.deletionHelper.EnsureFinalizers(template)
+	glog.V(3).Infof("Ensuring finalizers exist on %s %q", finalizationKind, finalizationName)
+	finalizedTemplate, err := s.deletionHelper.EnsureFinalizers(finalizationTarget)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to ensure finalizers for %s %q: %v", templateKind, key, err))
+		runtime.HandleError(fmt.Errorf("Failed to ensure finalizers for %s %q: %v", finalizationKind, finalizationName, err))
 		return util.StatusError
 	}
-	template = finalizedTemplate.(*unstructured.Unstructured)
+
+	if targetKind != util.NamespaceKind {
+		template = finalizedTemplate.(*unstructured.Unstructured)
+	}
 
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
@@ -409,67 +469,13 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	var override *unstructured.Unstructured
 	if s.overrideStore != nil {
-		override, err = s.objFromCache(s.overrideStore, s.typeConfig.GetOverride().Kind, key)
+		override, err = util.ObjFromCache(s.overrideStore, s.typeConfig.GetOverride().Kind, key)
 		if err != nil {
 			return util.StatusError
 		}
 	}
 
 	return s.syncToClusters(selectedClusters, unselectedClusters, template, override)
-}
-
-func (s *FederationSyncController) rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
-	cachedObj, exist, err := store.GetByKey(key)
-	if err != nil {
-		wrappedErr := fmt.Errorf("Failed to query %s store for %q: %v", kind, key, err)
-		runtime.HandleError(wrappedErr)
-		return nil, err
-	}
-	if !exist {
-		return nil, nil
-	}
-	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
-}
-
-func (s *FederationSyncController) objFromCache(store cache.Store, kind, key string) (*unstructured.Unstructured, error) {
-	obj, err := s.rawObjFromCache(store, kind, key)
-	if err != nil {
-		return nil, err
-	}
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.(*unstructured.Unstructured), nil
-}
-
-// delete deletes the given resource or returns error if the deletion was not complete.
-func (s *FederationSyncController) delete(template pkgruntime.Object,
-	kind string, qualifiedName util.QualifiedName) error {
-	glog.V(3).Infof("Handling deletion of %s %q", kind, qualifiedName)
-
-	_, err := s.deletionHelper.HandleObjectInUnderlyingClusters(template, kind)
-	if err != nil {
-		return err
-	}
-
-	if kind == util.NamespaceKind {
-		// Return immediately if we are a namespace as it will be deleted
-		// simply by removing its finalizers.
-		return nil
-	}
-
-	s.versionManager.Delete(qualifiedName)
-
-	err = s.templateClient.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, nil)
-	if err != nil {
-		// Its all good if the error is not found error. That means it is deleted already and we do not have to do anything.
-		// This is expected when we are processing an update as a result of finalizer deletion.
-		// The process that deleted the last finalizer is also going to delete the resource and we do not have to do anything.
-		if !errors.IsNotFound(err) {
-			return err
-		}
-	}
-	return nil
 }
 
 // syncToClusters ensures that the state of the given object is synchronized to
