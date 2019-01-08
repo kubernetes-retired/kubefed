@@ -87,9 +87,11 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	// Initialize in-memory controllers if configuration requires
 	fixture := f.SetUpSyncControllerFixture(typeConfig)
 	f.RegisterFixture(fixture)
-	// Avoid running more than one sync controller for namespaces
-	if typeConfig.GetTarget().Kind != util.NamespaceKind {
-		f.SetUpNamespaceSyncControllerFixture()
+
+	if typeConfig.GetNamespaced() {
+		// Propagation of namespaced types to member clusters depends on
+		// their containing namespace being propagated.
+		f.EnsureTestNamespacePropagation()
 	}
 
 	templateKind := typeConfig.GetTemplate().Kind
@@ -104,11 +106,18 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
 	}
 
+	namespace := ""
+	// A test namespace is only required for namespaced resources or
+	// namespaces themselves.
+	if typeConfig.GetNamespaced() || typeConfig.GetTarget().Name == util.NamespaceName {
+		namespace = f.TestNamespaceName()
+	}
+
 	clusterNames := []string{}
 	for name := range testClusters {
 		clusterNames = append(clusterNames, name)
 	}
-	template, placement, override, err = testObjectFunc(f.TestNamespaceName(), clusterNames)
+	template, placement, override, err = testObjectFunc(namespace, clusterNames)
 	if err != nil {
 		tl.Fatalf("Error creating test objects: %v", err)
 	}

@@ -27,7 +27,10 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -76,15 +79,18 @@ type FederationFramework interface {
 	// current test has executed.
 	RegisterFixture(fixture managed.TestFixture)
 
-	NamespaceTypeConfigOrDie() typeconfig.Interface
-
 	// Setup a sync controller if necessary and return the fixture.
 	// This is implemented commonly to support running a sync
 	// controller for tests that require it.
 	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture
 
-	// Start a namespace sync controller fixture
-	SetUpNamespaceSyncControllerFixture()
+	// Ensure propagation of the test namespace to member clusters
+	EnsureTestNamespacePropagation()
+
+	// Ensure a placement resource for the test namespace exists so
+	// that the namespace will be propagated to either all or no
+	// member clusters.
+	EnsureTestNamespacePlacement(allClusters bool) *unstructured.Unstructured
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -199,7 +205,7 @@ func (f *frameworkWrapper) setUpSyncControllerFixture(typeConfig typeconfig.Inte
 }
 
 func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
-	namespaceTypeConfig := f.NamespaceTypeConfigOrDie()
+	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
 	placement := namespaceTypeConfig.GetPlacement()
 	return f.framework().setUpSyncControllerFixture(typeConfig, &placement)
 }
@@ -210,20 +216,71 @@ func (f *frameworkWrapper) RegisterFixture(fixture managed.TestFixture) {
 	}
 }
 
-func (f *frameworkWrapper) SetUpNamespaceSyncControllerFixture() {
-	// When targeting a single namespace the namespace controller is not required.
+func (f *frameworkWrapper) EnsureTestNamespacePropagation() {
+	// When targeting a single namespace, the test namespace will
+	// already exist in member clusters.
 	if TestContext.LimitedScope {
 		return
 	}
-	// The namespace controller is required to ensure namespaces
-	// are created as needed in member clusters in advance of
-	// propagation of other namespaced types.
-	namespaceTypeConfig := f.NamespaceTypeConfigOrDie()
+
+	// Ensure placement selecting all clusters exists for the test
+	// namespace.
+	f.EnsureTestNamespacePlacement(true)
+
+	// Start the namespace sync controller to propagate the namespace
+	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
 	fixture := f.framework().setUpSyncControllerFixture(namespaceTypeConfig, nil)
 	f.RegisterFixture(fixture)
 }
 
-func (f *frameworkWrapper) NamespaceTypeConfigOrDie() typeconfig.Interface {
+func (f *frameworkWrapper) EnsureTestNamespacePlacement(allClusters bool) *unstructured.Unstructured {
+	tl := f.Logger()
+
+	dynclient, err := client.New(f.KubeConfig(), client.Options{})
+	if err != nil {
+		tl.Fatalf("Error initializing dynamic client: %v", err)
+	}
+
+	apiResource := f.namespaceTypeConfigOrDie().GetPlacement()
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   apiResource.Group,
+		Kind:    apiResource.Kind,
+		Version: apiResource.Version,
+	})
+
+	namespace := f.TestNamespaceName()
+
+	// Return an existing namespace placement if it already exists.
+	key := client.ObjectKey{Namespace: namespace, Name: namespace}
+	err = dynclient.Get(context.Background(), key, obj)
+	if err == nil {
+		return obj
+	}
+	if err != nil && !errors.IsNotFound(err) {
+		tl.Fatalf("Error retrieving %s %q: %v", apiResource.Kind, err)
+	}
+
+	// Othewise create it.
+	obj.SetName(namespace)
+	obj.SetNamespace(namespace)
+	if allClusters {
+		// An empty cluster selector field selects all clusters
+		obj.Object[util.SpecField] = map[string]interface{}{
+			util.ClusterSelectorField: map[string]interface{}{},
+		}
+	}
+
+	err = dynclient.Create(context.Background(), obj)
+	if err != nil {
+		tl.Fatalf("Error creating %s %q: %v", apiResource.Kind, key, err)
+	}
+	tl.Logf("Created new %s %q", apiResource.Kind, key)
+
+	return obj
+}
+
+func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
 	if f.namespaceTypeConfig == nil {
 		tl := f.Logger()
 		dynClient, err := client.New(f.KubeConfig(), client.Options{})
