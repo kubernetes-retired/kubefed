@@ -19,19 +19,36 @@ package placement
 import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+// namespacedPlacementPlugin determines placement for namespaced
+// resources (e.g. ConfigMap).
+//
+// If federation is deployed cluster-wide, placement is the
+// intersection of the placement for the resource and the placement of
+// the namespace containing the resource.
+//
+// If federation is limited to a single namespace, placement is
+// determined as the intersection of resource and namespace placement
+// if namespace placement exists.  If namespace placement does not
+// exist, resource placement will be used verbatim.  This is possible
+// because the single namespace by definition must exist on member
+// clusters, so namespace placement becomes a mechanism for limiting
+// rather than allowing propagation.
 type namespacedPlacementPlugin struct {
+	targetNamespace string
 	resourcePlugin  PlacementPlugin
 	namespacePlugin *ResourcePlacementPlugin
 }
 
 func NewNamespacedPlacementPlugin(resourceClient, namespaceClient util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
 	return &namespacedPlacementPlugin{
-		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc, false),
-		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc, false),
+		targetNamespace: targetNamespace,
+		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc),
+		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc),
 	}
 }
 
@@ -55,9 +72,9 @@ func (p *namespacedPlacementPlugin) ComputePlacement(qualifiedName util.Qualifie
 	if err != nil {
 		return nil, nil, err
 	}
-	if !ok {
+	if !ok && p.targetNamespace != metav1.NamespaceAll {
 		// Use the resource placement if no namespace placement is
-		// available.
+		// available and federation is targeting a single namespace.
 		return selectedClusters, unselectedClusters, nil
 	}
 

@@ -167,15 +167,14 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		return nil, err
 	}
 	targetAPIResource := typeConfig.GetTarget()
-	if targetNamespace == metav1.NamespaceAll {
-		defaultAll := targetAPIResource.Kind == util.NamespaceKind
-		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj, defaultAll)
-	} else {
+	if typeConfig.GetNamespaced() {
 		namespacePlacementClient, err := util.NewResourceClient(controllerConfig.KubeConfig, namespacePlacement)
 		if err != nil {
 			return nil, err
 		}
 		s.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj)
+	} else {
+		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
 	}
 
 	s.versionManager = version.NewVersionManager(
@@ -769,7 +768,7 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 // configurable.
 func isSystemNamespace(fedNamespace, namespace string) bool {
 	switch namespace {
-	case "kube-system", fedNamespace:
+	case "kube-system", "kube-public", "default", fedNamespace:
 		return true
 	default:
 		return false
