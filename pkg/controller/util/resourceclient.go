@@ -30,6 +30,7 @@ type ResourceClient interface {
 type resourceClient struct {
 	client      dynamic.Interface
 	apiResource schema.GroupVersionResource
+	namespaced  bool
 }
 
 func NewResourceClient(config *rest.Config, apiResource *metav1.APIResource) (ResourceClient, error) {
@@ -46,9 +47,17 @@ func NewResourceClient(config *rest.Config, apiResource *metav1.APIResource) (Re
 	return &resourceClient{
 		client:      client,
 		apiResource: resource,
+		namespaced:  apiResource.Namespaced,
 	}, nil
 }
 
 func (c *resourceClient) Resources(namespace string) dynamic.ResourceInterface {
-	return c.client.Resource(c.apiResource).Namespace(namespace)
+	// TODO(marun) Consider returning Interface instead of
+	// ResourceInterface to allow callers to decide if they want to
+	// invoke Namespace().  Either that, or replace the use of
+	// ResourceClient with the controller-runtime generic client.
+	if c.namespaced {
+		return c.client.Resource(c.apiResource).Namespace(namespace)
+	}
+	return c.client.Resource(c.apiResource)
 }
