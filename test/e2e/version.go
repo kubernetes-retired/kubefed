@@ -408,10 +408,6 @@ var _ = Describe("VersionManager", func() {
 				if err != nil {
 					tl.Fatalf("Error deleting %s %q: %v", adapter.TemplateType(), templateName, err)
 				}
-
-				// The removal of the ConfigMap instance is the
-				// precondition for the garbage collection of the version
-				// resource.
 				checkForDeletion(tl, adapter.TemplateType(), templateName, func() error {
 					_, err := adapter.GetTemplate(templateName)
 					return err
