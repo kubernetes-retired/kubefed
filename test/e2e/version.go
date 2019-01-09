@@ -390,6 +390,13 @@ var _ = Describe("VersionManager", func() {
 					// Test-managed fixture does not run the garbage collector.
 					framework.Skipf("Validation of garbage collection is not supported for test-managed federation.")
 				}
+				if framework.TestContext.LimitedScope {
+					// Garbage collection of a namespaced resource
+					// takes an arbitrary amount of time and
+					// attempting to verify it in an e2e test is
+					// unlikely to be reliable.
+					framework.Skipf("Full coverage of owner reference addition is already achieved by testing with cluster-scoped resources")
+				}
 
 				versionManager.Update(template, override, clusterNames, versionMap)
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
@@ -401,10 +408,6 @@ var _ = Describe("VersionManager", func() {
 				if err != nil {
 					tl.Fatalf("Error deleting %s %q: %v", adapter.TemplateType(), templateName, err)
 				}
-
-				// The removal of the ConfigMap instance is the
-				// precondition for the garbage collection of the version
-				// resource.
 				checkForDeletion(tl, adapter.TemplateType(), templateName, func() error {
 					_, err := adapter.GetTemplate(templateName)
 					return err
