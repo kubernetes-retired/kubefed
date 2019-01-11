@@ -47,6 +47,7 @@ const (
 	PlacementField       = "placement"
 	ClusterNamesField    = "clusterNames"
 	ClusterSelectorField = "clusterSelector"
+	MatchLabelsField     = "matchLabels"
 
 	// Override fields
 	OverridesField        = "overrides"

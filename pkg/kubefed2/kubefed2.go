@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
 
@@ -55,6 +56,7 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	fedConfig := util.NewFedConfig(clientcmd.NewDefaultPathOptions())
 	rootCmd.AddCommand(enable.NewCmdTypeEnable(out, fedConfig))
 	rootCmd.AddCommand(NewCmdTypeDisable(out, fedConfig))
+	rootCmd.AddCommand(federate.NewCmdFederateResource(out, fedConfig))
 	rootCmd.AddCommand(NewCmdJoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdUnjoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdVersion(out))

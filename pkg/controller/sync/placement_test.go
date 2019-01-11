@@ -83,7 +83,7 @@ func TestSelectedClusterNames(t *testing.T) {
 				unstructured.SetNestedStringSlice(obj.Object, testCase.clusterNames, util.SpecField, util.PlacementField, util.ClusterNamesField)
 			}
 			if testCase.clusterSelector != nil {
-				unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, "matchLabels")
+				unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, util.MatchLabelsField)
 			}
 
 			selectedNames, err := selectedClusterNames(obj, clusters)
