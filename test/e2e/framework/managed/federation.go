@@ -371,7 +371,7 @@ func waitForCrd(tl common.TestLogger, config *rest.Config, crd *apiextv1b1.Custo
 
 func federateCoreTypes(tl common.TestLogger, config *rest.Config, namespace string) []*apiextv1b1.CustomResourceDefinition {
 	crds := []*apiextv1b1.CustomResourceDefinition{}
-	for _, enableTypeDirective := range loadEnableTypeDirectives(tl) {
+	for _, enableTypeDirective := range LoadEnableTypeDirectives(tl) {
 		resources, err := federate.GetResources(config, enableTypeDirective)
 		if err != nil {
 			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
@@ -384,7 +384,7 @@ func federateCoreTypes(tl common.TestLogger, config *rest.Config, namespace stri
 	}
 	return crds
 }
-func loadEnableTypeDirectives(tl common.TestLogger) []*federate.EnableTypeDirective {
+func LoadEnableTypeDirectives(tl common.TestLogger) []*federate.EnableTypeDirective {
 	path := enableTypeDirectivesPath(tl)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {

@@ -49,7 +49,7 @@ type SchedulerController struct {
 	federatedKindMap map[string]string
 }
 
-func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) (*SchedulerController, error) {
 
 	userAgent := "SchedulerController"
 	kubeConfig := config.KubeConfig
@@ -57,12 +57,12 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 
 	controller, err := newController(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	glog.Infof("Starting scheduler controller")
 	controller.Run(stopChan)
-	return nil
+	return controller, nil
 }
 
 func newController(config *util.ControllerConfig) (*SchedulerController, error) {
@@ -199,4 +199,16 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 
 		delete(c.scheduler, schedulingKind)
 	}
+}
+
+func (c *SchedulerController) HasSchedulerPlugin(name string) bool {
+	return c.runningPlugins.Has(name)
+}
+
+func (c *SchedulerController) HasScheduler(name string) bool {
+	_, ok := c.scheduler[name]
+	if !ok {
+		return false
+	}
+	return true
 }

@@ -109,7 +109,7 @@ func Run(opts *options.Options) error {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		if err := schedulingmanager.StartSchedulerController(opts.Config, stopChan); err != nil {
+		if _, err := schedulingmanager.StartSchedulerController(opts.Config, stopChan); err != nil {
 			glog.Fatalf("Error starting scheduler controller: %v", err)
 		}
 	}
