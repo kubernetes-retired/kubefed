@@ -157,9 +157,13 @@ func (c *FederatedTypeCrudTester) fedResourceClient(apiResource metav1.APIResour
 func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (*unstructured.Unstructured, *unstructured.Unstructured, *unstructured.Unstructured) {
 	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
 
-	msg := fmt.Sprintf("Resource versions for %s: template %q, placement %q",
+	templateHash, err := versionmanager.GetTemplateHash(template)
+	if err != nil {
+		c.tl.Fatalf("Failed to compute template hash: %v", err)
+	}
+	msg := fmt.Sprintf("Versions for %s: template %q, placement %q",
 		util.NewQualifiedName(template),
-		template.GetResourceVersion(),
+		templateHash,
 		placement.GetResourceVersion(),
 	)
 	if override != nil {
@@ -515,11 +519,15 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 		return "", false
 	}
 
-	matchedVersions := (version.TemplateVersion == template.GetResourceVersion() &&
+	templateHash, err := versionmanager.GetTemplateHash(template)
+	if err != nil {
+		c.tl.Fatalf("Failed to compute template hash: %v", err)
+	}
+	matchedVersions := (version.TemplateVersion == templateHash &&
 		version.OverrideVersion == overrideVersion)
 	if !matchedVersions {
 		c.tl.Logf("Expected template and override versions (%q, %q), got (%q, %q)",
-			template.GetResourceVersion(), overrideVersion,
+			templateHash, overrideVersion,
 			version.TemplateVersion, version.OverrideVersion,
 		)
 		return "", false

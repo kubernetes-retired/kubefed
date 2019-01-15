@@ -17,6 +17,8 @@ limitations under the License.
 package version
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -102,7 +104,7 @@ func (m *VersionManager) HasSynced() bool {
 
 // Get retrieves a mapping of cluster names to versions for the given
 // template and override.
-func (m *VersionManager) Get(template, override *unstructured.Unstructured) map[string]string {
+func (m *VersionManager) Get(template, override *unstructured.Unstructured) (map[string]string, error) {
 	versionMap := make(map[string]string)
 
 	qualifiedName := m.versionQualifiedName(util.NewQualifiedName(template))
@@ -111,11 +113,14 @@ func (m *VersionManager) Get(template, override *unstructured.Unstructured) map[
 	obj, ok := m.versions[key]
 	m.RUnlock()
 	if !ok {
-		return versionMap
+		return versionMap, nil
 	}
 	status := m.adapter.GetStatus(obj)
 
-	templateVersion := template.GetResourceVersion()
+	templateVersion, err := GetTemplateHash(template)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to compute template hash: %v", err)
+	}
 	overrideVersion := ""
 	if override != nil {
 		overrideVersion = override.GetResourceVersion()
@@ -127,15 +132,18 @@ func (m *VersionManager) Get(template, override *unstructured.Unstructured) map[
 		}
 	}
 
-	return versionMap
+	return versionMap, nil
 }
 
 // Update ensures that the propagated version for the given template
 // and override is recorded.
 func (m *VersionManager) Update(template, override *unstructured.Unstructured,
-	selectedClusters []string, versionMap map[string]string) {
+	selectedClusters []string, versionMap map[string]string) error {
 
-	templateVersion := template.GetResourceVersion()
+	templateVersion, err := GetTemplateHash(template)
+	if err != nil {
+		return fmt.Errorf("Failed to compute template hash: %v", err)
+	}
 
 	overrideVersion := ""
 	if override != nil {
@@ -182,6 +190,8 @@ func (m *VersionManager) Update(template, override *unstructured.Unstructured,
 	m.Unlock()
 
 	m.worker.Enqueue(qualifiedName)
+
+	return nil
 }
 
 // Delete removes the named propagated version from the manager.
@@ -440,4 +450,31 @@ func VersionMapToClusterVersions(versionMap map[string]string) []fedv1a1.Cluster
 	}
 	util.SortClusterVersions(clusterVersions)
 	return clusterVersions
+}
+
+func GetTemplateHash(template *unstructured.Unstructured) (string, error) {
+	// A namespace resource is the template and the lack of status
+	// updates to namespaces means the resource version is a good
+	// indicator of changes the sync controller needs to consider.
+	if template.GetKind() == util.NamespaceKind {
+		return template.GetResourceVersion(), nil
+	}
+
+	obj := &unstructured.Unstructured{}
+	templateMap, ok, err := unstructured.NestedMap(template.Object, "spec", "template")
+	if err != nil {
+		return "", fmt.Errorf("Error retrieving template body: %s", err)
+	}
+	if !ok {
+		return "", nil
+	}
+	obj.Object = templateMap
+
+	jsonBytes, err := obj.MarshalJSON()
+	if err != nil {
+		return "", fmt.Errorf("Failed to marshal template body to json: %v", err)
+	}
+	hash := md5.New()
+	hash.Write(jsonBytes)
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
