@@ -17,8 +17,6 @@ limitations under the License.
 package version
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -41,12 +39,21 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
+// VersionedResource defines the methods a federated resource must
+// implement to allow versions to be tracked by the VersionManager.
+type VersionedResource interface {
+	FederatedName() util.QualifiedName
+	Object() *unstructured.Unstructured
+	TemplateVersion() (string, error)
+	OverrideVersion() (string, error)
+}
+
 type VersionManager struct {
 	sync.RWMutex
 
 	targetKind string
 
-	templateKind string
+	federatedKind string
 
 	// Namespace to source propagated versions from
 	namespace string
@@ -60,13 +67,13 @@ type VersionManager struct {
 	versions map[string]pkgruntime.Object
 }
 
-func NewVersionManager(client fedclientset.Interface, namespaced bool, templateKind, targetKind, namespace string) *VersionManager {
+func NewVersionManager(client fedclientset.Interface, namespaced bool, federatedKind, targetKind, namespace string) *VersionManager {
 	v := &VersionManager{
-		targetKind:   targetKind,
-		templateKind: templateKind,
-		namespace:    namespace,
-		adapter:      NewVersionAdapter(client, namespaced),
-		versions:     make(map[string]pkgruntime.Object),
+		targetKind:    targetKind,
+		federatedKind: federatedKind,
+		namespace:     namespace,
+		adapter:       NewVersionAdapter(client, namespaced),
+		versions:      make(map[string]pkgruntime.Object),
 	}
 
 	v.worker = util.NewReconcileWorker(v.writeVersion, util.WorkerTiming{
@@ -103,11 +110,11 @@ func (m *VersionManager) HasSynced() bool {
 }
 
 // Get retrieves a mapping of cluster names to versions for the given
-// template and override.
-func (m *VersionManager) Get(template, override *unstructured.Unstructured) (map[string]string, error) {
+// versioned resource.
+func (m *VersionManager) Get(resource VersionedResource) (map[string]string, error) {
 	versionMap := make(map[string]string)
 
-	qualifiedName := m.versionQualifiedName(util.NewQualifiedName(template))
+	qualifiedName := m.versionQualifiedName(resource.FederatedName())
 	key := qualifiedName.String()
 	m.RLock()
 	obj, ok := m.versions[key]
@@ -117,13 +124,13 @@ func (m *VersionManager) Get(template, override *unstructured.Unstructured) (map
 	}
 	status := m.adapter.GetStatus(obj)
 
-	templateVersion, err := GetTemplateHash(template)
+	templateVersion, err := resource.TemplateVersion()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to compute template hash: %v", err)
+		return nil, fmt.Errorf("Failed to determine template version: %v", err)
 	}
-	overrideVersion := ""
-	if override != nil {
-		overrideVersion = override.GetResourceVersion()
+	overrideVersion, err := resource.OverrideVersion()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to determine override version: %v", err)
 	}
 	if templateVersion == status.TemplateVersion &&
 		overrideVersion == status.OverrideVersion {
@@ -135,23 +142,20 @@ func (m *VersionManager) Get(template, override *unstructured.Unstructured) (map
 	return versionMap, nil
 }
 
-// Update ensures that the propagated version for the given template
-// and override is recorded.
-func (m *VersionManager) Update(template, override *unstructured.Unstructured,
+// Update ensures that the propagated version for the given versioned
+// resource is recorded.
+func (m *VersionManager) Update(resource VersionedResource,
 	selectedClusters []string, versionMap map[string]string) error {
 
-	templateVersion, err := GetTemplateHash(template)
+	templateVersion, err := resource.TemplateVersion()
 	if err != nil {
-		return fmt.Errorf("Failed to compute template hash: %v", err)
+		return fmt.Errorf("Failed to determine template version: %v", err)
 	}
-
-	overrideVersion := ""
-	if override != nil {
-		overrideVersion = override.GetResourceVersion()
+	overrideVersion, err := resource.OverrideVersion()
+	if err != nil {
+		return fmt.Errorf("Failed to determine override version: %v", err)
 	}
-
-	templateQualifiedName := util.NewQualifiedName(template)
-	qualifiedName := m.versionQualifiedName(templateQualifiedName)
+	qualifiedName := m.versionQualifiedName(resource.FederatedName())
 	key := qualifiedName.String()
 
 	m.Lock()
@@ -180,7 +184,7 @@ func (m *VersionManager) Update(template, override *unstructured.Unstructured,
 	if oldStatus != nil && util.PropagatedVersionStatusEquivalent(oldStatus, status) {
 		glog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
 	} else if obj == nil {
-		ownerReference := ownerReferenceForUnstructured(template)
+		ownerReference := ownerReferenceForUnstructured(resource.Object())
 		obj = m.adapter.NewVersion(qualifiedName, ownerReference, status)
 		m.versions[key] = obj
 	} else {
@@ -196,8 +200,8 @@ func (m *VersionManager) Update(template, override *unstructured.Unstructured,
 
 // Delete removes the named propagated version from the manager.
 // Versions are written to the API with an owner reference to the
-// template, and they should be removed by the garbage collector on
-// template removal.
+// versioned resource, and they should be removed by the garbage
+// collector when the resource is removed.
 func (m *VersionManager) Delete(qualifiedName util.QualifiedName) {
 	versionQualifiedName := m.versionQualifiedName(qualifiedName)
 	m.Lock()
@@ -219,7 +223,7 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 		var err error
 		versionList, err = m.adapter.List(m.namespace)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to list propagated versions for %q: %v", m.templateKind, err))
+			runtime.HandleError(fmt.Errorf("Failed to list propagated versions for %q: %v", m.federatedKind, err))
 			// Do not return the error to allow the operation to be retried.
 			return false, nil
 		}
@@ -258,19 +262,15 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 	m.Lock()
 	m.hasSynced = true
 	m.Unlock()
-	glog.V(4).Infof("Version manager for %q synced", m.templateKind)
+	glog.V(4).Infof("Version manager for %q synced", m.federatedKind)
 	return true
 }
 
 // versionQualifiedName derives the qualified name of a version
 // resource from the qualified name of a template or target resource.
 func (m *VersionManager) versionQualifiedName(qualifiedName util.QualifiedName) util.QualifiedName {
-	namespace := qualifiedName.Namespace
-	if m.targetKind == util.NamespaceKind {
-		namespace = qualifiedName.Name
-	}
 	versionName := common.PropagatedVersionName(m.targetKind, qualifiedName.Name)
-	return util.QualifiedName{Name: versionName, Namespace: namespace}
+	return util.QualifiedName{Name: versionName, Namespace: qualifiedName.Namespace}
 }
 
 // writeVersion serializes the current state of the named propagated version to the API.
@@ -372,7 +372,7 @@ func (m *VersionManager) refreshVersion(obj pkgruntime.Object) error {
 	// resource being immutable.
 	qualifiedName := util.NewQualifiedName(obj)
 
-	glog.V(4).Infof("Refreshing %s version %q from the API", m.templateKind, qualifiedName)
+	glog.V(4).Infof("Refreshing %s version %q from the API", m.federatedKind, qualifiedName)
 	refreshedObj, err := m.adapter.Get(qualifiedName)
 	if err != nil {
 		return err
@@ -450,31 +450,4 @@ func VersionMapToClusterVersions(versionMap map[string]string) []fedv1a1.Cluster
 	}
 	util.SortClusterVersions(clusterVersions)
 	return clusterVersions
-}
-
-func GetTemplateHash(template *unstructured.Unstructured) (string, error) {
-	// A namespace resource is the template and the lack of status
-	// updates to namespaces means the resource version is a good
-	// indicator of changes the sync controller needs to consider.
-	if template.GetKind() == util.NamespaceKind {
-		return template.GetResourceVersion(), nil
-	}
-
-	obj := &unstructured.Unstructured{}
-	templateMap, ok, err := unstructured.NestedMap(template.Object, "spec", "template")
-	if err != nil {
-		return "", fmt.Errorf("Error retrieving template body: %s", err)
-	}
-	if !ok {
-		return "", nil
-	}
-	obj.Object = templateMap
-
-	jsonBytes, err := obj.MarshalJSON()
-	if err != nil {
-		return "", fmt.Errorf("Failed to marshal template body to json: %v", err)
-	}
-	hash := md5.New()
-	hash.Write(jsonBytes)
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }

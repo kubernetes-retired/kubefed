@@ -38,6 +38,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	corev1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
@@ -155,6 +156,28 @@ func (a *testClusterVersionAdapter) TemplateInstance() pkgruntime.Object {
 	return &rbacv1.ClusterRole{}
 }
 
+type testVersionedResource struct {
+	federatedName   util.QualifiedName
+	object          *unstructured.Unstructured
+	templateVersion string
+	overrideVersion string
+}
+
+func (r *testVersionedResource) FederatedName() util.QualifiedName {
+	return r.federatedName
+}
+
+func (r *testVersionedResource) Object() *unstructured.Unstructured {
+	return r.object
+}
+
+func (r *testVersionedResource) TemplateVersion() (string, error) {
+	return r.templateVersion, nil
+}
+func (r *testVersionedResource) OverrideVersion() (string, error) {
+	return r.overrideVersion, nil
+}
+
 func newTestVersionAdapter(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, namespaced bool) testVersionAdapter {
 	adapter := version.NewVersionAdapter(fedClient, namespaced)
 	coreClient := fedClient.CoreV1alpha1()
@@ -175,7 +198,8 @@ var _ = Describe("VersionManager", func() {
 
 	var targetKind string
 	var namespace string
-	var template, override *unstructured.Unstructured
+	var template *unstructured.Unstructured
+	var versionedResource *testVersionedResource
 	var versionManager *version.VersionManager
 	var expectedStatus fedv1a1.PropagatedVersionStatus
 	var clusterNames []string
@@ -262,6 +286,17 @@ var _ = Describe("VersionManager", func() {
 				template.SetResourceVersion(metaAccessor.GetResourceVersion())
 				templateName = util.NewQualifiedName(template)
 
+				templateVersion, err := sync.GetTemplateHash(template)
+				if err != nil {
+					tl.Fatalf("Failed to determine template version: %v", err)
+				}
+
+				versionedResource = &testVersionedResource{
+					federatedName:   templateName,
+					object:          template,
+					templateVersion: templateVersion,
+				}
+
 				propVerName := apicommon.PropagatedVersionName(targetKind, template.GetName())
 				versionNamespace := namespace
 				if !namespaced {
@@ -274,7 +309,7 @@ var _ = Describe("VersionManager", func() {
 					versionMap[name] = name
 				}
 
-				templateHash, err := version.GetTemplateHash(template)
+				templateHash, err := sync.GetTemplateHash(template)
 				if err != nil {
 					tl.Fatalf("Failed to compute template hash: %v", err)
 				}
@@ -312,7 +347,7 @@ var _ = Describe("VersionManager", func() {
 			})
 
 			inSupportedScopeIt("should create a new version in the API", namespaced, func() {
-				err := versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -320,7 +355,7 @@ var _ = Describe("VersionManager", func() {
 			})
 
 			inSupportedScopeIt("should load versions from the API on sync", namespaced, func() {
-				err := versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -332,7 +367,7 @@ var _ = Describe("VersionManager", func() {
 
 				// Ensure that the second manager loaded the version
 				// written by the first manager.
-				retrievedVersionMap, err := otherManager.Get(template, override)
+				retrievedVersionMap, err := otherManager.Get(versionedResource)
 				if err != nil {
 					tl.Fatalf("Error retrieving version map: %v", err)
 				}
@@ -345,7 +380,7 @@ var _ = Describe("VersionManager", func() {
 				// Create a second manager and use it to write a version to the api
 				otherManager := version.NewVersionManager(fedClient, namespaced, templateKind, targetKind, namespace)
 				otherManager.Sync(stopChan)
-				err := otherManager.Update(template, override, clusterNames, versionMap)
+				err := otherManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -353,7 +388,7 @@ var _ = Describe("VersionManager", func() {
 
 				// Ensure that an updated version is written successfully
 				clusterNames, versionMap = removeOneCluster(clusterNames, versionMap)
-				err = versionManager.Update(template, override, clusterNames, versionMap)
+				err = versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -362,7 +397,7 @@ var _ = Describe("VersionManager", func() {
 			})
 
 			inSupportedScopeIt("should refresh and update after out-of-band update", namespaced, func() {
-				err := versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -385,7 +420,7 @@ var _ = Describe("VersionManager", func() {
 
 				// Ensure that an updated version is written successfully
 				clusterNames, versionMap = removeOneCluster(clusterNames, versionMap)
-				err = versionManager.Update(template, override, clusterNames, versionMap)
+				err = versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -394,7 +429,7 @@ var _ = Describe("VersionManager", func() {
 			})
 
 			inSupportedScopeIt("should recreate after out-of-band deletion", namespaced, func() {
-				err := versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -408,7 +443,7 @@ var _ = Describe("VersionManager", func() {
 
 				// Ensure a modified version is written successfully
 				clusterNames, versionMap = removeOneCluster(clusterNames, versionMap)
-				err = versionManager.Update(template, override, clusterNames, versionMap)
+				err = versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}
@@ -429,7 +464,7 @@ var _ = Describe("VersionManager", func() {
 					framework.Skipf("Full coverage of owner reference addition is already achieved by testing with cluster-scoped resources")
 				}
 
-				err := versionManager.Update(template, override, clusterNames, versionMap)
+				err := versionManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
 					tl.Fatalf("Error updating version status: %v", err)
 				}

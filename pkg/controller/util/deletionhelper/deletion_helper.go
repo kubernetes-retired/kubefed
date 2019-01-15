@@ -78,14 +78,14 @@ func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (
 	finalizers := sets.String{}
 	hasFinalizer, err := finalizersutil.HasFinalizer(obj, FinalizerDeleteFromUnderlyingClusters)
 	if err != nil {
-		return obj, err
+		return nil, err
 	}
 	if !hasFinalizer {
 		finalizers.Insert(FinalizerDeleteFromUnderlyingClusters)
 	}
 	hasFinalizer, err = finalizersutil.HasFinalizer(obj, metav1.FinalizerOrphanDependents)
 	if err != nil {
-		return obj, err
+		return nil, err
 	}
 	if !hasFinalizer {
 		finalizers.Insert(metav1.FinalizerOrphanDependents)
@@ -94,7 +94,7 @@ func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (
 		glog.V(2).Infof("Adding finalizers %v to %s", finalizers.List(), dh.objNameFunc(obj))
 		return dh.addFinalizers(obj, finalizers)
 	}
-	return obj, nil
+	return nil, nil
 }
 
 // Deletes the resources corresponding to the given federated resource from
@@ -103,7 +103,7 @@ func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (
 // when done.
 // Callers are expected to keep calling this (with appropriate backoff) until
 // it succeeds.
-func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, kind string) (
+func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, skipDelete func(runtime.Object) bool) (
 	runtime.Object, error) {
 	objName := dh.objNameFunc(obj)
 	glog.V(2).Infof("Handling deletion of federated dependents for object: %s", objName)
@@ -145,13 +145,9 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, k
 	}
 	operations := make([]util.FederatedOperation, 0)
 	for _, clusterNsObj := range clusterNsObjs {
-		// Skip the update if this object is for the primary cluster as that
-		// namespace will simply be removed after removing its finalizers.
 		clusterObj := clusterNsObj.Object.(runtime.Object)
-		if kind == util.NamespaceKind {
-			if util.IsPrimaryCluster(obj, clusterObj) {
-				continue
-			}
+		if skipDelete(clusterObj) {
+			continue
 		}
 		operations = append(operations, util.FederatedOperation{
 			Type:        util.OperationTypeDelete,
@@ -193,7 +189,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, k
 func (dh *DeletionHelper) addFinalizers(obj runtime.Object, finalizers sets.String) (runtime.Object, error) {
 	isUpdated, err := finalizersutil.AddFinalizers(obj, finalizers)
 	if err != nil || !isUpdated {
-		return obj, err
+		return nil, err
 	}
 	// Send the update to apiserver.
 	updatedObj, err := dh.updateObjFunc(obj)

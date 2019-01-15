@@ -33,4 +33,6 @@ type Interface interface {
 	GetOverride() metav1.APIResource
 	GetStatus() *metav1.APIResource
 	GetEnableStatus() bool
+	GetFederatedNamespaced() bool
+	GetFederatedKind() string
 }

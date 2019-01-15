@@ -201,12 +201,12 @@ func (f *FederatedTypeConfig) GetTemplate() metav1.APIResource {
 }
 
 func (f *FederatedTypeConfig) GetPlacement() metav1.APIResource {
-	namespaced := f.isPrimitiveNamespaced()
+	namespaced := f.GetFederatedNamespaced()
 	return apiResourceToMeta(f.Spec.Placement, namespaced)
 }
 
 func (f *FederatedTypeConfig) GetOverride() metav1.APIResource {
-	namespaced := f.isPrimitiveNamespaced()
+	namespaced := f.GetFederatedNamespaced()
 	return apiResourceToMeta(f.Spec.Override, namespaced)
 }
 
@@ -222,7 +222,7 @@ func (f *FederatedTypeConfig) GetEnableStatus() bool {
 	return f.Spec.EnableStatus
 }
 
-func (f *FederatedTypeConfig) isPrimitiveNamespaced() bool {
+func (f *FederatedTypeConfig) GetFederatedNamespaced() bool {
 	// Special-case the scope of namespace primitives since it will
 	// hopefully be the only instance of the scope of a federation
 	// primitive differing from the scope of its target.
@@ -234,6 +234,16 @@ func (f *FederatedTypeConfig) isPrimitiveNamespaced() bool {
 		return true
 	}
 	return f.Spec.Namespaced
+}
+
+func (f *FederatedTypeConfig) GetFederatedKind() string {
+	// TODO(marun) Use the constant in pkg/controller/util
+	if f.Name == "namespaces" {
+		// The template type is 'Namespace', so return
+		// 'FederatedNamespace' for consistency with other types.
+		return "FederatedNamespace"
+	}
+	return f.GetTemplate().Kind
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {
