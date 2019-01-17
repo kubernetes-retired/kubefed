@@ -101,25 +101,42 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlaceme
 	c.CheckDelete(template, &orphanDependents)
 }
 
-func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (*unstructured.Unstructured, *unstructured.Unstructured, *unstructured.Unstructured) {
+func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (template *unstructured.Unstructured, placement *unstructured.Unstructured, override *unstructured.Unstructured) {
+	isFederatedNamespace := c.typeConfig.GetTarget().Kind == util.NamespaceKind
+
+	if isFederatedNamespace {
+		// Namespace placement needs to have the same name as its namespace.
+		desiredPlacement.SetName(desiredPlacement.GetNamespace())
+	}
+
 	// Create placement and overrides first to ensure the sync
 	// controller will propagate the complete object the first time it
 	// sees the template.
 
-	placement := c.createFedResource(c.typeConfig.GetPlacement(), desiredPlacement)
+	placement = c.createFedResource(c.typeConfig.GetPlacement(), desiredPlacement)
 
 	// Test objects may use GenerateName.  Use the name of the
 	// placement resource for the other resources.
 	name := placement.GetName()
 
-	var override *unstructured.Unstructured
 	if desiredOverride != nil {
 		desiredOverride.SetName(name)
 		override = c.createFedResource(c.typeConfig.GetOverride(), desiredOverride)
 	}
 
-	desiredTemplate.SetName(name)
-	template := c.createFedResource(c.typeConfig.GetTemplate(), desiredTemplate)
+	if isFederatedNamespace {
+		// The test namespace already exists and need only be retrieved.
+		// TODO(marun) Consider removing the fixture for namespaces.
+		client := c.fedResourceClient(c.typeConfig.GetTemplate())
+		var err error
+		template, err = client.Resources("").Get(name, metav1.GetOptions{})
+		if err != nil {
+			c.tl.Fatalf("Unable to retrieve Namespace %q: %v", name, err)
+		}
+	} else {
+		desiredTemplate.SetName(name)
+		template = c.createFedResource(c.typeConfig.GetTemplate(), desiredTemplate)
+	}
 
 	return template, placement, override
 }

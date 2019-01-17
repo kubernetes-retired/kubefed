@@ -57,8 +57,8 @@ var _ = Describe("IngressDNS", func() {
 		if framework.TestContext.RunControllers() {
 			fixture := managed.NewIngressDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
-			f.SetUpNamespaceSyncControllerFixture()
 		}
+		f.EnsureTestNamespacePropagation()
 		namespace = f.TestNamespaceName()
 		dnsClient = fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(namespace)
 	})

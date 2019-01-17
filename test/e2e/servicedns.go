@@ -75,8 +75,8 @@ var _ = Describe("ServiceDNS", func() {
 		if framework.TestContext.RunControllers() {
 			fixture := managed.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
-			f.SetUpNamespaceSyncControllerFixture()
 		}
+		f.EnsureTestNamespacePropagation()
 		domainObj := common.NewDomainObject(federation, Domain)
 		_, err = domainClient.Create(domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")

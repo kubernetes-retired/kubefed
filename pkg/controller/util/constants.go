@@ -36,7 +36,8 @@ const (
 	SpecField = "spec"
 
 	// Placement fields
-	ClusterNamesField = "clusterNames"
+	ClusterNamesField    = "clusterNames"
+	ClusterSelectorField = "clusterSelector"
 
 	// Override fields
 	OverridesField        = "overrides"

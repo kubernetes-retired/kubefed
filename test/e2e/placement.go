@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -99,21 +98,10 @@ var _ = Describe("Placement", func() {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
 
-		namespacePlacement := &unstructured.Unstructured{}
-		placementAPIResource := f.NamespaceTypeConfigOrDie().GetPlacement()
-		namespacePlacement.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   placementAPIResource.Group,
-			Kind:    placementAPIResource.Kind,
-			Version: placementAPIResource.Version,
-		})
-		namespacePlacement.SetNamespace(namespace)
-		namespacePlacement.SetName(namespace)
+		// Ensure namespace placement selecting no clusters exist for
+		// the test namespace.
+		namespacePlacement := f.EnsureTestNamespacePlacement(false)
 		placementKey := util.NewQualifiedName(namespacePlacement).String()
-		err = dynclient.Create(context.Background(), namespacePlacement)
-		if err != nil {
-			tl.Fatalf("Error creating FederatedNamespacePlacement %q: %v", placementKey, err)
-		}
-		tl.Logf("Created new FederatedNamespacePlacement %q", placementKey)
 		// Ensure the removal of the namespace placement to avoid affecting other tests.
 		defer func() {
 			err := dynclient.Delete(context.Background(), namespacePlacement)

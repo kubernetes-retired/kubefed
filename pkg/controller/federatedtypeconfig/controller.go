@@ -327,11 +327,6 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 }
 
 func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
-	// Namespace placement is only required if running namespaced.
-	if c.controllerConfig.TargetNamespace == metav1.NamespaceAll {
-		return nil, nil
-	}
-
 	// TODO(marun) Document the requirement to restart the controller
 	// manager if the namespace placement resource changes.
 
@@ -343,7 +338,7 @@ func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
 	}
 
 	qualifiedName := util.QualifiedName{
-		Namespace: c.controllerConfig.TargetNamespace,
+		Namespace: c.controllerConfig.FederationNamespace,
 		Name:      util.NamespaceName,
 	}
 	key := qualifiedName.String()
