@@ -88,7 +88,7 @@ After creating the `IngressDNSRecord`, the DNS Endpoint controller uses the IP a
 populate the `targets` field of the `DNSEndpoint` resource. For example:
 
 ```bash
-$ kubectl get dnsendpoints -o yaml
+$ kubectl -n test-namespace get dnsendpoints -o yaml
 apiVersion: v1
 items:
 - apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
