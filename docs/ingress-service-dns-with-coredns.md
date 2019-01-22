@@ -31,8 +31,7 @@ Install Federation-v2 with minikube in [User Guide](https://github.com/kubernete
 
 ## Installing ExternalDNS
 
-Install ExternalDNS with CoreDNS as backend in your host cluster. You can follow the [tutorial](https://github.com/kubernetes-incubator/external-dns/blob/master/docs/tutorials/coredns.md).  
-**Note**: You should replace parameter of `parameters: example.org` with `parameters: example.com` when [Installing CoreDNS](https://github.com/kubernetes-incubator/external-dns/blob/master/docs/tutorials/coredns.md#installing-coredns)
+Install ExternalDNS with CoreDNS as backend in your host cluster. You can follow the [tutorial](https://github.com/kubernetes-incubator/external-dns/blob/master/docs/tutorials/coredns.md).
 
 To make it work for federation resources, you need to use below ExternalDNS deployment instead of the one in the tutorial.
 **Note**: You should replace value of `ETCD_URLS` with your own etcd client service IP address.
