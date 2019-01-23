@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/pkg/errors"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -292,7 +293,7 @@ func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.In
 func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	orphanDependents := false
 	if err := client.Core().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			Failf("Error while deleting namespace %s: %s", namespaceName, err)
 		}
 	}
@@ -330,7 +331,7 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 	Logf(">>> kubeConfig: %s", configPath)
 	c, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error loading kubeConfig %s: %v", configPath, err.Error())
+		return nil, nil, errors.Errorf("error loading kubeConfig %s: %v", configPath, err.Error())
 	}
 	if context != "" {
 		Logf(">>> kubeContext: %s", context)
@@ -338,7 +339,7 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 	}
 	cfg, err := clientcmd.NewDefaultClientConfig(*c, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating default client config: %v", err.Error())
+		return nil, nil, errors.Errorf("error creating default client config: %v", err.Error())
 	}
 	return cfg, c, nil
 }

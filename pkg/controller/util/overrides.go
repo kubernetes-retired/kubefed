@@ -19,6 +19,8 @@ package util
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -71,10 +73,10 @@ func GetOverrides(override *unstructured.Unstructured) (OverridesMap, error) {
 
 	rawOverrides, ok, err := unstructured.NestedSlice(override.Object, SpecField, OverridesField)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve %s: %v", overridesPath, err)
+		return nil, errors.Wrapf(err, "unable to retrieve %s", overridesPath)
 	}
 	if !ok {
-		return nil, fmt.Errorf("%s not found", overridesPath)
+		return nil, errors.Errorf("%s not found", overridesPath)
 	}
 
 	for i, overrideInterface := range rawOverrides {
@@ -82,17 +84,17 @@ func GetOverrides(override *unstructured.Unstructured) (OverridesMap, error) {
 
 		rawClusterName, ok := rawOverride[ClusterNameField]
 		if !ok {
-			return nil, fmt.Errorf("%s not found for %s[%d]", ClusterNameField, overridesPath, i)
+			return nil, errors.Errorf("%s not found for %s[%d]", ClusterNameField, overridesPath, i)
 		}
 		clusterName := rawClusterName.(string)
 		if _, ok := overridesMap[clusterName]; ok {
-			return nil, fmt.Errorf("cluster %q appears more than once in %s", clusterName, overridesPath)
+			return nil, errors.Errorf("cluster %q appears more than once in %s", clusterName, overridesPath)
 		}
 		overridesMap[clusterName] = make(ClusterOverridesMap)
 
 		rawClusterOverrides, ok := rawOverride[ClusterOverridesField]
 		if !ok {
-			return nil, fmt.Errorf("%s not found for %s[%s]", ClusterOverridesField, overridesPath, clusterName)
+			return nil, errors.Errorf("%s not found for %s[%s]", ClusterOverridesField, overridesPath, clusterName)
 		}
 		clusterOverrides := rawClusterOverrides.([]interface{})
 
@@ -101,19 +103,19 @@ func GetOverrides(override *unstructured.Unstructured) (OverridesMap, error) {
 
 			rawPath, ok := clusterOverride[PathField]
 			if !ok {
-				return nil, fmt.Errorf("%s not found for %s[%s].%s[%d]", PathField, overridesPath, clusterName, ClusterOverridesField, j)
+				return nil, errors.Errorf("%s not found for %s[%s].%s[%d]", PathField, overridesPath, clusterName, ClusterOverridesField, j)
 			}
 			path := rawPath.(string)
 			if invalidPaths.Has(path) {
-				return nil, fmt.Errorf("%s %q is invalid for %s[%s].%s[%d]", PathField, path, overridesPath, clusterName, ClusterOverridesField, j)
+				return nil, errors.Errorf("%s %q is invalid for %s[%s].%s[%d]", PathField, path, overridesPath, clusterName, ClusterOverridesField, j)
 			}
 			if _, ok := overridesMap[clusterName][path]; ok {
-				return nil, fmt.Errorf("%s %q appears more than once for %s[%s]", PathField, path, overridesPath, clusterName)
+				return nil, errors.Errorf("%s %q appears more than once for %s[%s]", PathField, path, overridesPath, clusterName)
 			}
 
 			value, ok := clusterOverride[ValueField]
 			if !ok {
-				return nil, fmt.Errorf("%s for %q not found for %s[%s].%s[%d]", ValueField, path, overridesPath, clusterName, ClusterOverridesField, j)
+				return nil, errors.Errorf("%s for %q not found for %s[%s].%s[%d]", ValueField, path, overridesPath, clusterName, ClusterOverridesField, j)
 			}
 
 			overridesMap[clusterName][path] = value
@@ -134,7 +136,7 @@ func SetOverrides(override *unstructured.Unstructured, overridesMap OverridesMap
 
 	spec, ok := rawSpec.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("Unable to set overrides since %q is not an object: %T", SpecField, rawSpec)
+		return errors.Errorf("Unable to set overrides since %q is not an object: %T", SpecField, rawSpec)
 	}
 	spec[OverridesField] = overridesMap.ToUnstructuredSlice()
 	return nil

@@ -17,9 +17,9 @@ limitations under the License.
 package schedulingmanager
 
 import (
-	"fmt"
-
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -104,7 +104,7 @@ func (c *SchedulerController) Run(stopChan <-chan struct{}) {
 
 	// wait for the caches to synchronize before starting the worker
 	if !cache.WaitForCacheSync(stopChan, c.controller.HasSynced) {
-		runtime.HandleError(fmt.Errorf("Timed out waiting for cache to sync"))
+		runtime.HandleError(errors.New("Timed out waiting for cache to sync"))
 		return
 	}
 
@@ -124,7 +124,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 	cachedObj, exist, err := c.store.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query FederatedTypeConfig store for %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key))
 		return util.StatusError
 	}
 
@@ -162,7 +162,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 		scheduler, err = schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Error starting schedulingpreference controller for %q : %v", schedulingKind, err))
+			runtime.HandleError(errors.Wrapf(err, "Error starting schedulingpreference controller for %q", schedulingKind))
 			return util.StatusError
 		}
 		c.scheduler[schedulingKind] = scheduler
@@ -173,7 +173,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 
 	err = scheduler.StartPlugin(typeConfig)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Error starting plugin for %q : %v", templateKind, err))
+		runtime.HandleError(errors.Wrapf(err, "Error starting plugin for %q", templateKind))
 		return util.StatusError
 	}
 	c.runningPlugins.Insert(qualifiedName.Name)

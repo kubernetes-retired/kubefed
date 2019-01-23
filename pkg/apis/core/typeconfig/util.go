@@ -19,6 +19,8 @@ package typeconfig
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,7 +30,7 @@ func CheckTypeConfigName(typeConfig Interface) error {
 	expectedName := GroupQualifiedName(typeConfig.GetTarget())
 	name := typeConfig.GetObjectMeta().Name
 	if expectedName != name {
-		return fmt.Errorf("Expected name of FederatedTypeConfig to be %q but got: %q",
+		return errors.Errorf("Expected name of FederatedTypeConfig to be %q but got: %q",
 			expectedName, name)
 	}
 	return nil

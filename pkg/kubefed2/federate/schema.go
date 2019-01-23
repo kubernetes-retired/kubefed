@@ -19,9 +19,11 @@ package federate
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -58,15 +60,15 @@ func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (
 	// Check whether the target resource is a crd
 	crdClient, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create crd clientset: %v", err)
+		return nil, errors.Wrap(err, "Failed to create crd clientset")
 	}
 	crdName := fmt.Sprintf("%s.%s", apiResource.Name, apiResource.Group)
 	crd, err := crdClient.CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("Error attempting retrieval of crd %q: %v", crdName, err)
+		return nil, errors.Wrapf(err, "Error attempting retrieval of crd %q", crdName)
 	}
 	return &crdSchemaAccessor{validation: crd.Spec.Validation}, nil
 }
@@ -85,11 +87,11 @@ type openAPISchemaAccessor struct {
 func newOpenAPISchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (schemaAccessor, error) {
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating discovery client: %v", err)
+		return nil, errors.Wrap(err, "Error creating discovery client")
 	}
 	resources, err := openapi.NewOpenAPIGetter(client).Get()
 	if err != nil {
-		return nil, fmt.Errorf("Error loading openapi schema: %v", err)
+		return nil, errors.Wrap(err, "Error loading openapi schema")
 	}
 	gvk := schema.GroupVersionKind{
 		Group:   apiResource.Group,
@@ -98,7 +100,7 @@ func newOpenAPISchemaAccessor(config *rest.Config, apiResource metav1.APIResourc
 	}
 	targetResource := resources.LookupResource(gvk)
 	if targetResource == nil {
-		return nil, fmt.Errorf("Unable to find openapi schema for %q", gvk)
+		return nil, errors.Errorf("Unable to find openapi schema for %q", gvk)
 	}
 	return &openAPISchemaAccessor{
 		targetResource: targetResource,

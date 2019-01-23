@@ -22,6 +22,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -34,8 +37,6 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -98,7 +99,7 @@ func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface) error {
 
 	plugin, err := NewPlugin(s.controllerConfig, s.eventHandlers, typeConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to initialize replica scheduling plugin for %q: %v", kind, err)
+		return errors.Wrapf(err, "Failed to initialize replica scheduling plugin for %q", kind)
 	}
 
 	plugin.Start()
@@ -146,7 +147,7 @@ func (s *ReplicaScheduler) HasSynced() bool {
 	}
 	clusters, err := s.podInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 	return s.podInformer.GetTargetStore().ClustersSynced(clusters)
@@ -163,13 +164,13 @@ func (s *ReplicaScheduler) Stop() {
 func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus {
 	rsp, ok := obj.(*fedschedulingv1a1.ReplicaSchedulingPreference)
 	if !ok {
-		runtime.HandleError(fmt.Errorf("Incorrect runtime object for RSP: %v", rsp))
+		runtime.HandleError(errors.Errorf("Incorrect runtime object for RSP: %v", rsp))
 		return StatusError
 	}
 
 	clusterNames, err := s.clusterNames()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get cluster list"))
 		return StatusError
 	}
 	if len(clusterNames) == 0 {
@@ -179,7 +180,7 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName Qualif
 
 	kind := rsp.Spec.TargetKind
 	if kind != "FederatedDeployment" && kind != "FederatedReplicaSet" {
-		runtime.HandleError(fmt.Errorf("RSP target kind: %s is incorrect: %v", kind, err))
+		runtime.HandleError(errors.Wrapf(err, "RSP target kind: %s is incorrect", kind))
 		return StatusNeedsRecheck
 	}
 
@@ -196,13 +197,13 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName Qualif
 	key := qualifiedName.String()
 	result, err := s.GetSchedulingResult(rsp, qualifiedName, clusterNames)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to compute the schedule information while reconciling RSP named %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to compute the schedule information while reconciling RSP named %q", key))
 		return StatusError
 	}
 
 	err = s.ReconcileFederationTargets(qualifiedName, kind, result)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to reconcile Federation Targets for RSP named %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to reconcile Federation Targets for RSP named %q", key))
 		return StatusError
 	}
 
@@ -250,15 +251,15 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 		selectorLabels, ok, err := unstructured.NestedStringMap(unstructuredObj.Object, "spec", "selector", "matchLabels")
 		if !ok {
-			return nil, fmt.Errorf("missing selector on object")
+			return nil, errors.New("missing selector on object")
 		}
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving selector from object: %v", err)
+			return nil, errors.Wrap(err, "error retrieving selector from object")
 		}
 
 		label := labels.SelectorFromSet(labels.Set(selectorLabels))
 		if err != nil {
-			return nil, fmt.Errorf("invalid selector: %v", err)
+			return nil, errors.Wrap(err, "invalid selector")
 		}
 		unstructuredPodList, err := client.Resources(unstructuredObj.GetNamespace()).List(metav1.ListOptions{LabelSelector: label.String()})
 		if err != nil || unstructuredPodList == nil {
@@ -343,14 +344,14 @@ func clustersReplicaState(
 		unstructuredObj := obj.(*unstructured.Unstructured)
 		replicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
 		if err != nil {
-			return nil, nil, fmt.Errorf("Error retrieving 'replicas' field: %v", err)
+			return nil, nil, errors.Wrap(err, "Error retrieving 'replicas' field")
 		}
 		if !ok {
 			replicas = int64(0)
 		}
 		readyReplicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
 		if err != nil {
-			return nil, nil, fmt.Errorf("Error retrieving 'readyreplicas' field: %v", err)
+			return nil, nil, errors.Wrap(err, "Error retrieving 'readyreplicas' field")
 		}
 		if !ok {
 			readyReplicas = int64(0)

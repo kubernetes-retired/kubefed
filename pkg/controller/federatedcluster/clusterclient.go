@@ -17,10 +17,10 @@ limitations under the License.
 package federatedcluster
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -147,7 +147,7 @@ func getZoneNameForNode(node corev1.Node) (string, error) {
 			return value, nil
 		}
 	}
-	return "", fmt.Errorf("Zone name for node %s not found. No label with key %s",
+	return "", errors.Errorf("Zone name for node %s not found. No label with key %s",
 		node.Name, LabelZoneFailureDomain)
 }
 
@@ -158,6 +158,6 @@ func getRegionNameForNode(node corev1.Node) (string, error) {
 			return value, nil
 		}
 	}
-	return "", fmt.Errorf("Region name for node %s not found. No label with key %s",
+	return "", errors.Errorf("Region name for node %s not found. No label with key %s",
 		node.Name, LabelZoneRegion)
 }

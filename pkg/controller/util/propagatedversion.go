@@ -17,10 +17,11 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
+
+	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -42,7 +43,7 @@ func NewComparisonHelper(comparisonField common.VersionComparisonField) (Compari
 	case common.GenerationField:
 		return &GenerationHelper{}, nil
 	default:
-		return nil, fmt.Errorf("Unrecognized version comparison field %v", comparisonField)
+		return nil, errors.Errorf("Unrecognized version comparison field %v", comparisonField)
 	}
 }
 

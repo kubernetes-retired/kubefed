@@ -18,8 +18,9 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
+
+	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,12 +127,12 @@ func MetaAccessor(obj pkgruntime.Object) metav1.Object {
 func GetUnstructured(resource interface{}) (*unstructured.Unstructured, error) {
 	content, err := json.Marshal(resource)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to JSON Marshal: %v", err)
+		return nil, errors.Wrap(err, "Failed to JSON Marshal")
 	}
 	unstructuredResource := &unstructured.Unstructured{}
 	err = unstructuredResource.UnmarshalJSON(content)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to UnmarshalJSON into unstructured content: %v", err)
+		return nil, errors.Wrap(err, "Failed to UnmarshalJSON into unstructured content")
 	}
 	return unstructuredResource, nil
 }

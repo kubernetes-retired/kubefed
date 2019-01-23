@@ -17,9 +17,10 @@ limitations under the License.
 package common
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
+
+	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -52,7 +53,7 @@ func NewTestTemplate(apiResource metav1.APIResource, namespace string, fixture *
 
 	template, ok, err := unstructured.NestedFieldCopy(fixture.Object, "template")
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving template field: %v", err)
+		return nil, errors.Wrap(err, "Error retrieving template field")
 	}
 	if ok {
 		err := unstructured.SetNestedField(obj.Object, template, "spec", "template")
@@ -69,7 +70,7 @@ func newTestOverride(apiResource metav1.APIResource, namespace string, clusterNa
 
 	overridesSlice, ok, err := unstructured.NestedSlice(fixture.Object, "overrides")
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving overrides field: %v", err)
+		return nil, errors.Wrap(err, "Error retrieving overrides field")
 	}
 	if !ok {
 		return nil, nil

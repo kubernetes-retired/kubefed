@@ -17,11 +17,12 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
 	"net"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,7 +81,7 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 		}
 	}
 	if serverAddress == "" {
-		return nil, fmt.Errorf("Unable to find address for cluster %s for host ip %s", clusterName, hostIP.String())
+		return nil, errors.Errorf("Unable to find address for cluster %s for host ip %s", clusterName, hostIP.String())
 	}
 
 	secretRef := fedCluster.Spec.SecretRef
@@ -93,7 +94,7 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 		}
 	} else {
 		if secretRef.Name == "" {
-			return nil, fmt.Errorf("found secretRef but no secret name for cluster %s", clusterName)
+			return nil, errors.Errorf("found secretRef but no secret name for cluster %s", clusterName)
 		}
 		secret, err := kubeClient.CoreV1().Secrets(fedNamespace).Get(secretRef.Name, metav1.GetOptions{})
 		if err != nil {
@@ -111,7 +112,7 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 		// have to rely on the legacy method to allow integration tests to
 		// pass.
 		if tokenFound != caFound {
-			return nil, fmt.Errorf("secret should have values for either both 'ca.crt' and 'token' in its Data, or neither: %v", secret)
+			return nil, errors.Errorf("secret should have values for either both 'ca.crt' and 'token' in its Data, or neither: %v", secret)
 		} else if tokenFound && caFound {
 			clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
 			clusterConfig.CAData = ca
@@ -140,7 +141,7 @@ var KubeconfigGetterForSecret = func(secret *apiv1.Secret) clientcmd.KubeconfigG
 	return func() (*clientcmdapi.Config, error) {
 		data, ok := secret.Data[KubeconfigSecretDataKey]
 		if !ok {
-			return nil, fmt.Errorf("secret does not have data with key %s", KubeconfigSecretDataKey)
+			return nil, errors.Errorf("secret does not have data with key %s", KubeconfigSecretDataKey)
 		}
 		return clientcmd.Load(data)
 	}

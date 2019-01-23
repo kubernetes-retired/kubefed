@@ -18,12 +18,12 @@ package servicedns
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sort"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,7 +227,7 @@ func (c *Controller) isSynced() bool {
 	}
 	clusters, err := c.serviceInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 	if !c.serviceInformer.GetTargetStore().ClustersSynced(clusters) {
@@ -240,7 +240,7 @@ func (c *Controller) isSynced() bool {
 	}
 	clusters, err = c.endpointInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 	if !c.endpointInformer.GetTargetStore().ClustersSynced(clusters) {
@@ -274,7 +274,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	cachedObj, exist, err := c.serviceDNSStore.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query ServiceDNS store for %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to query ServiceDNS store for %q", key))
 		return util.StatusError
 	}
 	if !exist {
@@ -285,7 +285,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	domainKey := util.QualifiedName{Namespace: c.fedNamespace, Name: cachedDNS.Spec.DomainRef}.String()
 	cachedDomain, exist, err := c.domainStore.GetByKey(domainKey)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query Domain store for %q: %v", domainKey, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to query Domain store for %q", domainKey))
 		return util.StatusError
 	}
 	if !exist {
@@ -300,7 +300,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	clusters, err := c.serviceInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready cluster list: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready cluster list"))
 		return util.StatusError
 	}
 
@@ -336,7 +336,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	// service in online clusters.
 	offlineClusters, err := c.serviceInformer.GetUnreadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get unready cluster list: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get unready cluster list"))
 		return util.StatusError
 	}
 	for _, cluster := range offlineClusters {
@@ -360,7 +360,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	if !reflect.DeepEqual(cachedDNS.Status, fedDNS.Status) {
 		_, err = c.fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(fedDNS.Namespace).UpdateStatus(fedDNS)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Error updating the ServiceDNS object %s: %v", key, err))
+			runtime.HandleError(errors.Wrapf(err, "Error updating the ServiceDNS object %s", key))
 			return util.StatusError
 		}
 	}
@@ -374,19 +374,19 @@ func (c *Controller) getServiceStatusInCluster(cluster, key string) (*corev1.Loa
 
 	clusterServiceObj, serviceFound, err := c.serviceInformer.GetTargetStore().GetByKey(cluster, key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get %s service from %s: %v", key, cluster, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to get %s service from %s", key, cluster))
 		return lbStatus, err
 	}
 	if serviceFound {
 		//TODO(shashi): Find better alternative to convert Unstructured to a given type
 		clusterService, ok := clusterServiceObj.(*unstructured.Unstructured)
 		if !ok {
-			runtime.HandleError(fmt.Errorf("Failed to cast the object to unstructured object: %v", clusterServiceObj))
+			runtime.HandleError(errors.Errorf("Failed to cast the object to unstructured object: %v", clusterServiceObj))
 			return lbStatus, err
 		}
 		content, err := clusterService.MarshalJSON()
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to marshall the unstructured object: %v", clusterService))
+			runtime.HandleError(errors.Errorf("Failed to marshall the unstructured object: %v", clusterService))
 			return lbStatus, err
 		}
 		service := corev1.Service{}
@@ -412,19 +412,19 @@ func (c *Controller) serviceBackedByEndpointsInCluster(cluster, key string) (boo
 
 	clusterEndpointObj, endpointFound, err := c.endpointInformer.GetTargetStore().GetByKey(cluster, key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get %s endpoint from %s: %v", key, cluster, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to get %s endpoint from %s", key, cluster))
 		return false, err
 	}
 	if endpointFound {
 		//TODO(shashi): Find better alternative to convert Unstructured to a given type
 		clusterEndpoints, ok := clusterEndpointObj.(*unstructured.Unstructured)
 		if !ok {
-			runtime.HandleError(fmt.Errorf("Failed to cast the object to unstructured object: %v", clusterEndpointObj))
+			runtime.HandleError(errors.Errorf("Failed to cast the object to unstructured object: %v", clusterEndpointObj))
 			return false, err
 		}
 		content, err := clusterEndpoints.MarshalJSON()
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to marshall the unstructured object: %v", clusterEndpoints))
+			runtime.HandleError(errors.Errorf("Failed to marshall the unstructured object: %v", clusterEndpoints))
 			return false, err
 		}
 		endpoints := corev1.Endpoints{}

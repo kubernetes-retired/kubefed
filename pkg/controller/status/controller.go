@@ -24,6 +24,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -205,7 +207,7 @@ func (s *FederationStatusController) isSynced() bool {
 
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 	if !s.informer.GetTargetStore().ClustersSynced(clusters) {
@@ -251,7 +253,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 
 	clusterNames, err := s.clusterNames()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get cluster list"))
 		return util.StatusNotSynced
 	}
 
@@ -294,14 +296,14 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	if existingStatus == nil {
 		_, err = s.statusClient.Resources(qualifiedName.Namespace).Create(status, metav1.CreateOptions{})
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to create status object for federated type %s %q: %v", statusKind, key, err))
+			runtime.HandleError(errors.Wrapf(err, "Failed to create status object for federated type %s %q", statusKind, key))
 			return util.StatusNeedsRecheck
 		}
 	} else if !reflect.DeepEqual(existingStatus.Object["clusterStatus"], status.Object["clusterStatus"]) {
 		existingStatus.Object["clusterStatus"] = status.Object["clusterStatus"]
 		_, err = s.statusClient.Resources(qualifiedName.Namespace).Update(existingStatus, metav1.UpdateOptions{})
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to update status object for federated type %s %q: %v", statusKind, key, err))
+			runtime.HandleError(errors.Wrapf(err, "Failed to update status object for federated type %s %q", statusKind, key))
 			return util.StatusNeedsRecheck
 		}
 	}
@@ -312,7 +314,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 func (s *FederationStatusController) rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
-		wrappedErr := fmt.Errorf("Failed to query %s store for %q: %v", kind, key, err)
+		wrappedErr := errors.Wrapf(err, "Failed to query %s store for %q", kind, key)
 		runtime.HandleError(wrappedErr)
 		return nil, err
 	}
@@ -354,7 +356,7 @@ func (s *FederationStatusController) clusterStatuses(clusterNames []string, key 
 	for _, clusterName := range clusterNames {
 		clusterObj, exist, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
-			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", targetKind, key, clusterName, err)
+			wrappedErr := errors.Wrapf(err, "Failed to get %s %q from cluster %q", targetKind, key, clusterName)
 			runtime.HandleError(wrappedErr)
 			return nil, wrappedErr
 		}
@@ -366,7 +368,7 @@ func (s *FederationStatusController) clusterStatuses(clusterNames []string, key 
 			var found bool
 			status, found, err = unstructured.NestedMap(clusterObj.Object, "status")
 			if err != nil || !found {
-				wrappedErr := fmt.Errorf("Failed to get status of cluster resource object %s %q for cluster %q: %v", targetKind, key, clusterName, err)
+				wrappedErr := errors.Wrapf(err, "Failed to get status of cluster resource object %s %q for cluster %q", targetKind, key, clusterName)
 				runtime.HandleError(wrappedErr)
 			}
 		}

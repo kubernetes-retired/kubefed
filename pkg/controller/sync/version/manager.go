@@ -17,14 +17,14 @@ limitations under the License.
 package version
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -126,11 +126,11 @@ func (m *VersionManager) Get(resource VersionedResource) (map[string]string, err
 
 	templateVersion, err := resource.TemplateVersion()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to determine template version: %v", err)
+		return nil, errors.Wrap(err, "Failed to determine template version")
 	}
 	overrideVersion, err := resource.OverrideVersion()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to determine override version: %v", err)
+		return nil, errors.Wrap(err, "Failed to determine override version")
 	}
 	if templateVersion == status.TemplateVersion &&
 		overrideVersion == status.OverrideVersion {
@@ -149,11 +149,11 @@ func (m *VersionManager) Update(resource VersionedResource,
 
 	templateVersion, err := resource.TemplateVersion()
 	if err != nil {
-		return fmt.Errorf("Failed to determine template version: %v", err)
+		return errors.Wrap(err, "Failed to determine template version")
 	}
 	overrideVersion, err := resource.OverrideVersion()
 	if err != nil {
-		return fmt.Errorf("Failed to determine override version: %v", err)
+		return errors.Wrap(err, "Failed to determine override version")
 	}
 	qualifiedName := m.versionQualifiedName(resource.FederatedName())
 	key := qualifiedName.String()
@@ -216,14 +216,14 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 		select {
 		case <-stopChan:
 			glog.V(4).Infof("Halting version manager list due to closed stop channel")
-			return false, fmt.Errorf("")
+			return false, errors.New("")
 		default:
 		}
 
 		var err error
 		versionList, err = m.adapter.List(m.namespace)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to list propagated versions for %q: %v", m.federatedKind, err))
+			runtime.HandleError(errors.Wrapf(err, "Failed to list propagated versions for %q", m.federatedKind))
 			// Do not return the error to allow the operation to be retried.
 			return false, nil
 		}
@@ -242,7 +242,7 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 	typePrefix := common.PropagatedVersionPrefix(m.targetKind)
 	items, err := meta.ExtractList(versionList)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to understand list result for %q: %v", m.adapter.TypeName(), err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to understand list result for %q", m.adapter.TypeName()))
 		return false
 	}
 	for _, obj := range items {
@@ -291,7 +291,7 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 	// changing.
 	metaAccessor, err := meta.Accessor(obj)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to retrieve meta accessor for %s %q: %s", adapterType, key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to retrieve meta accessor for %s %q", adapterType, key))
 		return util.StatusError
 	}
 
@@ -302,18 +302,18 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 
 	if creationNeeded {
 		createdObj, err := m.adapter.Create(obj)
-		if errors.IsAlreadyExists(err) {
+		if apierrors.IsAlreadyExists(err) {
 			// Version was written to the API after the version manager loaded
 			glog.V(4).Infof("Refreshing %s %q from the API due to already existing", adapterType, key)
 			err := m.refreshVersion(obj)
 			if err != nil {
-				runtime.HandleError(fmt.Errorf("Failed to refresh existing %s %q from the API: %v", adapterType, key, err))
+				runtime.HandleError(errors.Wrapf(err, "Failed to refresh existing %s %q from the API", adapterType, key))
 				return util.StatusError
 			}
 			return util.StatusNeedsRecheck
 		}
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to create version %s %q: %s", adapterType, key, err))
+			runtime.HandleError(errors.Wrapf(err, "Failed to create version %s %q", adapterType, key))
 			return util.StatusError
 		}
 
@@ -339,8 +339,8 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 		// from the API
 		return util.StatusNeedsRecheck
 	}
-	if !errors.IsConflict(err) {
-		runtime.HandleError(fmt.Errorf("Failed to update status of %s %q: %v", adapterType, key, err))
+	if !apierrors.IsConflict(err) {
+		runtime.HandleError(errors.Wrapf(err, "Failed to update status of %s %q", adapterType, key))
 		return util.StatusError
 	}
 	glog.Warningf("Error indicating conflict occurred on status update of %s %q: %v", adapterType, key, err)
@@ -353,17 +353,17 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 	if err == nil {
 		return util.StatusNeedsRecheck
 	}
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		// Version has been deleted from the API since the last version manager write.
 		// Clear the resource version to prompt creation.
 		err := m.clearResourceVersion(key)
 		if err == nil {
 			return util.StatusNeedsRecheck
 		}
-		runtime.HandleError(fmt.Errorf("Failed to clear resource version for %s %q: %s", adapterType, key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to clear resource version for %s %q", adapterType, key))
 		return util.StatusError
 	}
-	runtime.HandleError(fmt.Errorf("Failed to refresh conflicted %s %q from the API: %v", adapterType, key, err))
+	runtime.HandleError(errors.Wrapf(err, "Failed to refresh conflicted %s %q from the API", adapterType, key))
 	return util.StatusError
 }
 

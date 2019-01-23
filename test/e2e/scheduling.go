@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -221,7 +223,7 @@ func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeCon
 	typeConfigName := typeConfig.GetObjectMeta().Name
 	fixture, ok := typeConfigFixtures[typeConfigName]
 	if !ok {
-		return "", fmt.Errorf("Unable to find fixture for %q", typeConfigName)
+		return "", errors.Errorf("Unable to find fixture for %q", typeConfigName)
 	}
 	template, err := common.NewTestTemplate(typeConfig.GetTemplate(), namespace, fixture)
 	if err != nil {
@@ -279,7 +281,7 @@ func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interf
 	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		placement, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
-			if !errors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) {
 				tl.Errorf("An error occurred while polling for %s %s/%s: %v", placementKind, namespace, name, err)
 			}
 			return false, nil
@@ -307,7 +309,7 @@ func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interfa
 	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		override, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
-			if !errors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) {
 				tl.Errorf("An error occurred while polling for %s %s/%s: %v", overrideKind, namespace, name, err)
 			}
 			return false, nil

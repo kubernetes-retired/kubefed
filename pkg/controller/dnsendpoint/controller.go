@@ -17,13 +17,13 @@ limitations under the License.
 package dnsendpoint
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -116,7 +116,7 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 
 	// wait for the caches to synchronize before starting the worker
 	if !cache.WaitForCacheSync(stopCh, d.dnsObjectController.HasSynced) {
-		runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+		runtime.HandleError(errors.New("Timed out waiting for caches to sync"))
 		return
 	}
 
@@ -188,7 +188,7 @@ func (d *controller) processItem(key string) error {
 
 	obj, exists, err := d.dnsObjectStore.GetByKey(key)
 	if err != nil {
-		return fmt.Errorf("error fetching object with key %s from store: %v", key, err)
+		return errors.Wrapf(err, "error fetching object with key %s from store", key)
 	}
 
 	if !exists {
@@ -203,7 +203,7 @@ func (d *controller) processItem(key string) error {
 
 	dnsEndpointObject, err := d.client.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			newDNSEndpointObject := &feddnsv1a1.DNSEndpoint{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,

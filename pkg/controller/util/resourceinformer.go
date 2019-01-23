@@ -17,8 +17,7 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -57,7 +56,7 @@ func ObjFromCache(store cache.Store, kind, key string) (*unstructured.Unstructur
 func rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
-		wrappedErr := fmt.Errorf("Failed to query %s store for %q: %v", kind, key, err)
+		wrappedErr := errors.Wrapf(err, "Failed to query %s store for %q", kind, key)
 		runtime.HandleError(wrappedErr)
 		return nil, err
 	}

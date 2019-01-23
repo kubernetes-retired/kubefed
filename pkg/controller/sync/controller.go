@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -216,7 +218,7 @@ func (s *FederationSyncController) isSynced() bool {
 	// TODO(marun) set clusters as ready in the test fixture?
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 	if !s.informer.GetTargetStore().ClustersSynced(clusters) {
@@ -263,7 +265,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
 			args := []interface{}{finalizationKind, key, err}
-			runtime.HandleError(fmt.Errorf(msg, args...))
+			runtime.HandleError(errors.Errorf(msg, args...))
 			s.eventRecorder.Eventf(fedResource.Object(), corev1.EventTypeWarning, "DeleteFailed", msg, args...)
 			return util.StatusError
 		}
@@ -273,7 +275,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	glog.V(3).Infof("Ensuring finalizers exist on %s %q", finalizationKind, key)
 	err = fedResource.EnsureFinalizers()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to ensure finalizers for %s %q: %v", finalizationKind, key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizers for %s %q", finalizationKind, key))
 		return util.StatusError
 	}
 
@@ -288,13 +290,13 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource)
 
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get cluster list: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get cluster list"))
 		return util.StatusNotSynced
 	}
 
 	selectedClusters, unselectedClusters, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to compute placement for %s %q: %v", kind, key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to compute placement for %s %q", kind, key))
 		return util.StatusError
 	}
 
@@ -317,14 +319,14 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource)
 
 	err = fedResource.UpdateVersions(selectedClusters, versionMap)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to update version status for %s %q: %v", kind, key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to update version status for %s %q", kind, key))
 		// Versioning of federated resources is an optimization to
 		// avoid unnecessary updates, and failure to record version
 		// information does not indicate a failure of propagation.
 	}
 
 	if len(operationErrors) > 0 {
-		runtime.HandleError(fmt.Errorf("Failed to execute updates for %s %q: %v", kind,
+		runtime.HandleError(errors.Errorf("Failed to execute updates for %s %q: %v", kind,
 			key, operationErrors))
 		return util.StatusError
 	}
@@ -345,7 +347,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 	versionMap, err := fedResource.GetVersions()
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving version map for %s %q: %v", kind, key, err)
+		return nil, errors.Wrapf(err, "Error retrieving version map for %s %q", kind, key)
 	}
 
 	for _, clusterName := range selectedClusters {
@@ -361,7 +363,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		// will fail with AlreadyExists.
 		clusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
-			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, clusterName, err)
+			wrappedErr := errors.Wrapf(err, "Failed to get %s %q from cluster %q", kind, key, clusterName)
 			runtime.HandleError(wrappedErr)
 			return nil, wrappedErr
 		}
@@ -377,7 +379,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 
 			desiredObj, err = s.objectForUpdateOp(desiredObj, clusterObj)
 			if err != nil {
-				wrappedErr := fmt.Errorf("Failed to determine desired object %s %q for cluster %q: %v", kind, key, clusterName, err)
+				wrappedErr := errors.Wrapf(err, "Failed to determine desired object %s %q for cluster %q", kind, key, clusterName)
 				runtime.HandleError(wrappedErr)
 				return nil, wrappedErr
 			}
@@ -422,7 +424,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 	for _, clusterName := range unselectedClusters {
 		rawClusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
-			wrappedErr := fmt.Errorf("Failed to get %s %q from cluster %q: %v", kind, key, clusterName, err)
+			wrappedErr := errors.Wrapf(err, "Failed to get %s %q from cluster %q", kind, key, clusterName)
 			runtime.HandleError(wrappedErr)
 			return nil, wrappedErr
 		}
@@ -460,20 +462,20 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 	// Retain clusterip
 	clusterIP, ok, err := unstructured.NestedString(clusterObj.Object, "spec", "clusterIP")
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving clusterIP from cluster service: %v", err)
+		return nil, errors.Wrap(err, "Error retrieving clusterIP from cluster service")
 	}
 	// !ok could indicate that a cluster ip was not assigned
 	if ok && clusterIP != "" {
 		err := unstructured.SetNestedField(desiredObj.Object, clusterIP, "spec", "clusterIP")
 		if err != nil {
-			return nil, fmt.Errorf("Error setting clusterIP for service: %v", err)
+			return nil, errors.Wrap(err, "Error setting clusterIP for service")
 		}
 	}
 
 	// Retain nodeports
 	clusterPorts, ok, err := unstructured.NestedSlice(clusterObj.Object, "spec", "ports")
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving ports from cluster service: %v", err)
+		return nil, errors.Wrap(err, "Error retrieving ports from cluster service")
 	}
 	if !ok {
 		return desiredObj, nil
@@ -481,7 +483,7 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 	var desiredPorts []interface{}
 	desiredPorts, ok, err = unstructured.NestedSlice(desiredObj.Object, "spec", "ports")
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving ports from service: %v", err)
+		return nil, errors.Wrap(err, "Error retrieving ports from service")
 	}
 	if !ok {
 		desiredPorts = []interface{}{}
@@ -501,7 +503,7 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 	}
 	err = unstructured.SetNestedSlice(desiredObj.Object, desiredPorts, "spec", "ports")
 	if err != nil {
-		return nil, fmt.Errorf("Error setting ports for service: %v", err)
+		return nil, errors.Wrap(err, "Error setting ports for service")
 	}
 
 	return desiredObj, nil

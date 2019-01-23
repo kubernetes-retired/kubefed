@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -147,10 +149,10 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	if r.targetIsNamespace {
 		metadata, ok, err := unstructured.NestedMap(r.template.Object, "metadata")
 		if err != nil {
-			return nil, fmt.Errorf("Error retrieving namespace metadata: %s", err)
+			return nil, errors.Wrap(err, "Error retrieving namespace metadata")
 		}
 		if !ok {
-			return nil, fmt.Errorf("Unable to retrieve namespace metadata")
+			return nil, errors.New("Unable to retrieve namespace metadata")
 		}
 		// Retain only the target fields from the template
 		targetFields := sets.NewString("name", "namespace", "labels", "annotations")
@@ -166,10 +168,10 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 		var err error
 		obj.Object, ok, err = unstructured.NestedMap(r.template.Object, "spec", "template")
 		if err != nil {
-			return nil, fmt.Errorf("Error retrieving template body: %v", err)
+			return nil, errors.Wrap(err, "Error retrieving template body")
 		}
 		if !ok {
-			return nil, fmt.Errorf("Unable to retrieve template body")
+			return nil, errors.New("Unable to retrieve template body")
 		}
 		// Avoid having to duplicate these details in the template or have
 		// the name/namespace vary between the federation api and member
@@ -266,7 +268,7 @@ func (r *federatedResource) overridesForCluster(clusterName string) (util.Cluste
 		r.overridesMap, err = util.GetOverrides(override)
 		if err != nil {
 			overrideKind := r.typeConfig.GetOverride().Kind
-			return nil, fmt.Errorf("Error reading cluster overrides for %s %q: %v", overrideKind, r.federatedName, err)
+			return nil, errors.Wrapf(err, "Error reading cluster overrides for %s %q", overrideKind, r.federatedName)
 		}
 	}
 	return r.overridesMap[clusterName], nil
@@ -295,7 +297,7 @@ func GetTemplateHash(template *unstructured.Unstructured) (string, error) {
 	obj := &unstructured.Unstructured{}
 	templateMap, ok, err := unstructured.NestedMap(template.Object, "spec", "template")
 	if err != nil {
-		return "", fmt.Errorf("Error retrieving template body: %s", err)
+		return "", errors.Wrap(err, "Error retrieving template body")
 	}
 	if !ok {
 		return "", nil
@@ -304,7 +306,7 @@ func GetTemplateHash(template *unstructured.Unstructured) (string, error) {
 
 	jsonBytes, err := obj.MarshalJSON()
 	if err != nil {
-		return "", fmt.Errorf("Failed to marshal template body to json: %v", err)
+		return "", errors.Wrap(err, "Failed to marshal template body to json")
 	}
 	hash := md5.New()
 	hash.Write(jsonBytes)
