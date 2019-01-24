@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,6 +91,16 @@ var _ = Describe("Placement", func() {
 			orphanDependents := false
 			crudTester.CheckDelete(template, &orphanDependents)
 		}()
+
+		// Wait until pending events for the templates have cleared
+		// from the controller queue to ensure that event handling for
+		// namespace placement is tested.  If a reconcile event
+		// remains in the queue a resource may be reconciled even in
+		// the absence of reconcile events being queued by a namespace
+		// placement event.
+		//
+		// TODO(marun) This is non-deterministic, revisit if it ends up being flakey.
+		time.Sleep(5 * time.Second)
 
 		namespace := f.TestNamespaceName()
 
