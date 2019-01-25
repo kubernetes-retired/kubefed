@@ -65,3 +65,7 @@ version="v1.4.7"
 [[constraint]]
   branch = "master"
   name = "k8s.io/kubectl"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.1"
