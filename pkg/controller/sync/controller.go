@@ -758,7 +758,7 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 			}
 			nodePort, ok := cPort["nodePort"]
 			if ok {
-				cPort["nodePort"] = nodePort
+				fPort["nodePort"] = nodePort
 			}
 		}
 	}
