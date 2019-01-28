@@ -47,11 +47,11 @@ type namespacedPlacementPlugin struct {
 	namespacePlugin *ResourcePlacementPlugin
 }
 
-func NewNamespacedPlacementPlugin(resourceClient, namespaceClient util.ResourceClient, targetNamespace string, triggerFunc func(pkgruntime.Object)) PlacementPlugin {
+func NewNamespacedPlacementPlugin(resourceClient, namespaceClient util.ResourceClient, targetNamespace string, resourceTriggerFunc, namespaceTriggerFunc func(pkgruntime.Object)) PlacementPlugin {
 	return &namespacedPlacementPlugin{
 		targetNamespace: targetNamespace,
-		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, triggerFunc),
-		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, triggerFunc),
+		resourcePlugin:  NewResourcePlacementPlugin(resourceClient, targetNamespace, resourceTriggerFunc),
+		namespacePlugin: newResourcePlacementPluginWithOk(namespaceClient, targetNamespace, namespaceTriggerFunc),
 	}
 }
 

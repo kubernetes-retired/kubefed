@@ -171,7 +171,18 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		if err != nil {
 			return nil, err
 		}
-		s.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj)
+		namespacePlacementEnqueue := func(placementObj pkgruntime.Object) {
+			// When namespace placement changes, every resource in the
+			// namespace needs to be reconciled.
+			placementNamespace := util.NewQualifiedName(placementObj).Namespace
+			for _, templateObj := range s.templateStore.List() {
+				qualifiedName := util.NewQualifiedName(templateObj.(pkgruntime.Object))
+				if qualifiedName.Namespace == placementNamespace {
+					s.worker.Enqueue(qualifiedName)
+				}
+			}
+		}
+		s.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj, namespacePlacementEnqueue)
 	} else {
 		s.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
 	}
