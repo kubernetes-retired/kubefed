@@ -71,7 +71,7 @@ func (o *disableTypeOptions) Bind(flags *pflag.FlagSet) {
 
 // NewCmdFederateDisable defines the `federate disable` command that
 // disables federation of a Kubernetes API type.
-func NewCmdFederateDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
+func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &disableType{}
 
 	cmd := &cobra.Command{

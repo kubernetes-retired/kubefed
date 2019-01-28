@@ -53,7 +53,8 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	flag.CommandLine.Parse(nil)
 
 	fedConfig := util.NewFedConfig(clientcmd.NewDefaultPathOptions())
-	rootCmd.AddCommand(federate.NewCmdFederate(out, fedConfig))
+	rootCmd.AddCommand(federate.NewCmdTypeEnable(out, fedConfig))
+	rootCmd.AddCommand(federate.NewCmdTypeDisable(out, fedConfig))
 	rootCmd.AddCommand(NewCmdJoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdUnjoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdVersion(out))
