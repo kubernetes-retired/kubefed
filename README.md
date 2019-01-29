@@ -15,7 +15,7 @@ Access to both documents is available to members of the
 [kubernetes-sig-multicluster google
 group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
-# Concepts
+## Concepts
 
 <p align="center"><img src="docs/images/concepts.png" width="711"></p>
 
@@ -48,14 +48,25 @@ higher-level APIs:
   workloads should be spread across different clusters similar to how a human
   operator would
 
-# Guides
+## Features
 
-## User Guide
+| Feature | Maturity |
+|---------|----------|
+| [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#example) | Alpha |
+| [CLI utility (`kubefed2`)](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#operations) | Alpha |
+| [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha |
+| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/servicedns-with-externaldns.md) | Alpha |
+| [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md) | Alpha |
+| [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha |
+
+## Guides
+
+### User Guide
 
 Take a look at our [user guide](docs/userguide.md) if you are interested in
 using Federation v2.
 
-## Development Guide
+### Development Guide
 
 Take a look at our [development guide](docs/development.md) if you are
 interested in contributing.
