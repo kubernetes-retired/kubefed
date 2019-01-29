@@ -127,6 +127,9 @@ check-git-state
 echo "Verifying Gofmt"
 ./hack/go-tools/verify-gofmt.sh
 
+echo "Checking that correct Error Package is used."
+./hack/verify-errpkg.sh
+
 echo "Checking that 'kubebuilder generate' is up-to-date"
 check-kubebuilder-output
 
