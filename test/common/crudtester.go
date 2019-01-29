@@ -26,6 +26,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -174,7 +175,7 @@ func (c *FederatedTypeCrudTester) fedResourceClient(apiResource metav1.APIResour
 func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (*unstructured.Unstructured, *unstructured.Unstructured, *unstructured.Unstructured) {
 	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
 
-	templateHash, err := versionmanager.GetTemplateHash(template)
+	templateHash, err := sync.GetTemplateHash(template)
 	if err != nil {
 		c.tl.Fatalf("Failed to compute template hash: %v", err)
 	}
@@ -504,7 +505,7 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 	}
 
 	loggedWaiting := false
-	adapter := versionmanager.NewVersionAdapter(c.fedClient, c.typeConfig.GetNamespaced())
+	adapter := versionmanager.NewVersionAdapter(c.fedClient, c.typeConfig.GetFederatedNamespaced())
 	var version *fedv1a1.PropagatedVersionStatus
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		versionObj, err := adapter.Get(versionName)
@@ -536,7 +537,7 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 		return "", false
 	}
 
-	templateHash, err := versionmanager.GetTemplateHash(template)
+	templateHash, err := sync.GetTemplateHash(template)
 	if err != nil {
 		c.tl.Fatalf("Failed to compute template hash: %v", err)
 	}

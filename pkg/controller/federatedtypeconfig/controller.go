@@ -256,6 +256,8 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 }
 
 func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error {
+	// TODO(marun) Consider creating a placement plugin that can be
+	// shared between all controllers.
 	namespacePlacement, err := c.getNamespacePlacement()
 	if err != nil {
 		return err
