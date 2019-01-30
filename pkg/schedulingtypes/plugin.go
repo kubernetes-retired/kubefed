@@ -279,10 +279,13 @@ func OverrideUpdateNeeded(overridesMap util.OverridesMap, result map[string]int6
 			if path != replicasPath {
 				continue
 			}
-			value, ok := rawValue.(int64)
+			// The type of the value will be float64 due to how json
+			// marshalling works for interfaces.
+			floatValue, ok := rawValue.(float64)
 			if !ok {
 				return true
 			}
+			value := int64(floatValue)
 			replicas, ok := result[clusterName]
 			if !ok || value != int64(replicas) {
 				return true

@@ -17,13 +17,35 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
+
+type ClusterOverride struct {
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
+}
+
+type GenericOverrideItem struct {
+	ClusterName      string            `json:"clusterName"`
+	ClusterOverrides []ClusterOverride `json:"clusterOverrides,omitempty"`
+}
+
+type GenericOverrideSpec struct {
+	Overrides []GenericOverrideItem `json:"overrides,omitempty"`
+}
+
+type GenericOverride struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec *GenericOverrideSpec `json:"spec,omitempty"`
+}
 
 // Namespace and name may not be overridden since these fields are the
 // primary mechanism of association between a federated resource in
@@ -63,62 +85,43 @@ func (m OverridesMap) ToUnstructuredSlice() []interface{} {
 
 // GetOverrides returns a map of overrides populated from the given
 // unstructured object.
-func GetOverrides(override *unstructured.Unstructured) (OverridesMap, error) {
+func GetOverrides(rawObj *unstructured.Unstructured) (OverridesMap, error) {
 	overridesMap := make(OverridesMap)
-	if override == nil {
+
+	if rawObj == nil {
 		return overridesMap, nil
 	}
 
-	overridesPath := fmt.Sprintf("%s.%s", SpecField, OverridesField)
-
-	rawOverrides, ok, err := unstructured.NestedSlice(override.Object, SpecField, OverridesField)
+	override := GenericOverride{}
+	err := unstructuredToInterface(rawObj, &override)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to retrieve %s", overridesPath)
-	}
-	if !ok {
-		return nil, errors.Errorf("%s not found", overridesPath)
+		return nil, err
 	}
 
-	for i, overrideInterface := range rawOverrides {
-		rawOverride := overrideInterface.(map[string]interface{})
+	if override.Spec == nil || override.Spec.Overrides == nil {
+		// No overrides defined for the federated type
+		return overridesMap, nil
+	}
 
-		rawClusterName, ok := rawOverride[ClusterNameField]
-		if !ok {
-			return nil, errors.Errorf("%s not found for %s[%d]", ClusterNameField, overridesPath, i)
-		}
-		clusterName := rawClusterName.(string)
+	for _, overrideItem := range override.Spec.Overrides {
+		clusterName := overrideItem.ClusterName
 		if _, ok := overridesMap[clusterName]; ok {
-			return nil, errors.Errorf("cluster %q appears more than once in %s", clusterName, overridesPath)
+			return nil, errors.Errorf("cluster %q appears more than once", clusterName)
 		}
 		overridesMap[clusterName] = make(ClusterOverridesMap)
 
-		rawClusterOverrides, ok := rawOverride[ClusterOverridesField]
-		if !ok {
-			return nil, errors.Errorf("%s not found for %s[%s]", ClusterOverridesField, overridesPath, clusterName)
-		}
-		clusterOverrides := rawClusterOverrides.([]interface{})
+		clusterOverrides := overrideItem.ClusterOverrides
 
-		for j, rawClusterOverride := range clusterOverrides {
-			clusterOverride := rawClusterOverride.(map[string]interface{})
-
-			rawPath, ok := clusterOverride[PathField]
-			if !ok {
-				return nil, errors.Errorf("%s not found for %s[%s].%s[%d]", PathField, overridesPath, clusterName, ClusterOverridesField, j)
-			}
-			path := rawPath.(string)
+		for i, clusterOverride := range clusterOverrides {
+			path := clusterOverride.Path
 			if invalidPaths.Has(path) {
-				return nil, errors.Errorf("%s %q is invalid for %s[%s].%s[%d]", PathField, path, overridesPath, clusterName, ClusterOverridesField, j)
+				return nil, errors.Errorf("override[%d] for cluster %q has an invalid path: %s", i, clusterName, path)
 			}
 			if _, ok := overridesMap[clusterName][path]; ok {
-				return nil, errors.Errorf("%s %q appears more than once for %s[%s]", PathField, path, overridesPath, clusterName)
+				return nil, errors.Errorf("path %q appears more than once for cluster %q", path, clusterName)
 			}
 
-			value, ok := clusterOverride[ValueField]
-			if !ok {
-				return nil, errors.Errorf("%s for %q not found for %s[%s].%s[%d]", ValueField, path, overridesPath, clusterName, ClusterOverridesField, j)
-			}
-
-			overridesMap[clusterName][path] = value
+			overridesMap[clusterName][path] = clusterOverride.Value
 		}
 	}
 
@@ -140,4 +143,14 @@ func SetOverrides(override *unstructured.Unstructured, overridesMap OverridesMap
 	}
 	spec[OverridesField] = overridesMap.ToUnstructuredSlice()
 	return nil
+}
+
+// unstructuredToInterface converts an unstructured object to the
+// provided interface by json marshalling/unmarshalling.
+func unstructuredToInterface(rawObj *unstructured.Unstructured, obj interface{}) error {
+	content, err := rawObj.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(content, obj)
 }
