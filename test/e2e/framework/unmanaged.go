@@ -44,6 +44,11 @@ import (
 var (
 	clusterControllerFixture *managed.ControllerFixture
 	args                     util.ControllerConfig
+	// The client and set of deleted namespaces is used on suite
+	// teardown to ensure namespaces are deleted before finalizing
+	// controllers can be shutdown.
+	hostClusterClient kubeclientset.Interface
+	deletedNamespaces []string
 )
 
 func SetUpUnmanagedFederation() {
@@ -64,9 +69,18 @@ func SetUpUnmanagedFederation() {
 }
 
 func TearDownUnmanagedFederation() {
-	if clusterControllerFixture != nil {
-		clusterControllerFixture.TearDown(NewE2ELogger())
-		clusterControllerFixture = nil
+	if TestContext.InMemoryControllers {
+		if clusterControllerFixture != nil {
+			clusterControllerFixture.TearDown(NewE2ELogger())
+			clusterControllerFixture = nil
+		}
+	} else if TestContext.WaitForFinalization {
+		for _, namespace := range deletedNamespaces {
+			err := waitForNamespaceDeletion(hostClusterClient, namespace)
+			if err != nil {
+				Errorf("%s", err)
+			}
+		}
 	}
 }
 
@@ -297,34 +311,46 @@ func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 			Failf("Error while deleting namespace %s: %s", namespaceName, err)
 		}
 	}
-	// TODO(marun) Check namespace deletion at the end of the test run.
-	return
 
-	// TODO(marun) Deletion handling of namespaces in fedv1 relied on
-	// a strict separation between a federated namespace and the
-	// namespace in a federated cluster.  In fedv2 this distinction
-	// has been lost where the host cluster is also a member cluster.
-	// Deletion of a namespace cannot strictly depend on namespaces in
-	// nested clusters having been removed.  It will be necessary to
-	// identify that a given namespace is in the hosting cluster and
-	// therefore does not have to be deleted before finalizer removal.
+	if TestContext.InMemoryControllers {
+		if !TestContext.WaitForFinalization {
+			// Skip waiting for namespace deletion so that tests run
+			// as fast as possible (with the potential cost of leaving
+			// wedged resources).
+			return
+		}
+		// Wait for namespace deletion to ensure that in-memory
+		// controllers have a chance to remove finalizers that could
+		// block deletion of federated resources and their containing
+		// namespace.
+		err := waitForNamespaceDeletion(client, namespaceName)
+		if err != nil {
+			Failf("%s", err)
+		}
+	} else {
+		if hostClusterClient == nil {
+			hostClusterClient = client
+		}
+		// Track the namespace to allow deletion to be verified on
+		// suite teardown.
+		deletedNamespaces = append(deletedNamespaces, namespaceName)
+	}
+}
+
+func waitForNamespaceDeletion(client kubeclientset.Interface, namespace string) error {
 	err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
-		if _, err := client.Core().Namespaces().Get(namespaceName, metav1.GetOptions{}); err != nil {
+		if _, err := client.Core().Namespaces().Get(namespace, metav1.GetOptions{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true, nil
 			}
-			Logf("Error while waiting for namespace to be removed: %v", err)
-			return false, nil
+			Errorf("Error while waiting for namespace to be removed: %v", err)
 		}
 		return false, nil
 	})
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			Failf("Couldn't delete ns %q: %s", namespaceName, err)
-		} else {
-			Logf("Namespace %v was already deleted", namespaceName)
-		}
+		return fmt.Errorf("Namespace %q was not deleted after %v", namespace, TestContext.SingleCallTimeout)
 	}
+	return nil
 }
 
 func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.Config, error) {
