@@ -34,7 +34,7 @@ function delete-script-deployment() {
 
   # Disable federation of all types
   for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
-    ./bin/kubefed2 federate disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
+    ./bin/kubefed2 disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
   done
 
   # Remove federation CRDs, namespace, RBAC and deployment resources.

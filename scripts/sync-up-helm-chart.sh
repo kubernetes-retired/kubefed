@@ -61,7 +61,7 @@ util::wait-for-condition 'ok' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --cont
 
 # Generate YAML templates to enable resource propagation for helm chart.
 for filename in ./config/federatedirectives/*.yaml; do
-  ./bin/kubefed2 --kubeconfig ${WORKDIR}/kubeconfig federate enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
+  ./bin/kubefed2 --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
 done
 
 # Clean kube-apiserver daemons and temporary files
