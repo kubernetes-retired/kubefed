@@ -17,8 +17,9 @@ limitations under the License.
 package util
 
 import (
-	"fmt"
 	"reflect"
+
+	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -54,7 +55,7 @@ func NewTriggerOnMetaAndSpecChanges(triggerFunc func(pkgruntime.Object)) *cache.
 		if val.IsValid() {
 			return val.Interface()
 		}
-		panic(fmt.Errorf("field not found: %s", fieldName))
+		panic(errors.Errorf("field not found: %s", fieldName))
 	}
 	return &cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(old interface{}) {
@@ -86,7 +87,7 @@ func NewTriggerOnMetaAndFieldChanges(field string, triggerFunc func(pkgruntime.O
 		if val.IsValid() {
 			return val.Interface()
 		}
-		panic(fmt.Errorf("field not found: %s", fieldName))
+		panic(errors.Errorf("field not found: %s", fieldName))
 	}
 	return &cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(old interface{}) {

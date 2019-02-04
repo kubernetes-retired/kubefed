@@ -17,10 +17,11 @@ limitations under the License.
 package common
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -43,7 +44,7 @@ func typeConfigFixtures() (map[string]*unstructured.Unstructured, error) {
 	path := fixturePath()
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading fixture from path %q: %v", path, err)
+		return nil, errors.Wrapf(err, "Error reading fixture from path %q", path)
 	}
 
 	fixtures := make(map[string]*unstructured.Unstructured)
@@ -59,7 +60,7 @@ func typeConfigFixtures() (map[string]*unstructured.Unstructured, error) {
 		fixture := &unstructured.Unstructured{}
 		err := federate.DecodeYAMLFromFile(filename, fixture)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading fixture for %q: %v", typeConfigName, err)
+			return nil, errors.Wrapf(err, "Error reading fixture for %q", typeConfigName)
 		}
 		fixtures[typeConfigName] = fixture
 	}

@@ -21,8 +21,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	apiv1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -132,7 +134,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 				fu.recordEvent(op.Obj, apiv1.EventTypeNormal, eventType, "Deleting", eventArgs...)
 				_, err = fu.deleteFunction(client, op.Obj)
 				// IsNotFound error is fine since that means the object is deleted already.
-				if errors.IsNotFound(err) {
+				if apierrors.IsNotFound(err) {
 					err = nil
 				}
 			}
@@ -141,7 +143,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 				eventType := eventType + "Failed"
 				messageFmt := "Failed to " + baseEventType + " %s %q in cluster %s: %v"
 				eventArgs = append(eventArgs, err)
-				err = fmt.Errorf(messageFmt, eventArgs...)
+				err = errors.Errorf(messageFmt, eventArgs...)
 				fu.recordEvent(op.Obj, apiv1.EventTypeWarning, eventType, messageFmt, eventArgs...)
 			}
 
@@ -154,7 +156,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 	}
 
 	versions := make(map[string]string)
-	errors := []error{}
+	updateErrs := []error{}
 	timedOut := false
 
 	start := time.Now()
@@ -167,7 +169,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 		select {
 		case result := <-done:
 			if result.err != nil {
-				errors = append(errors, result.err)
+				updateErrs = append(updateErrs, result.err)
 				break
 			}
 			versions[result.clusterName] = result.version
@@ -178,8 +180,8 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 	}
 
 	if timedOut {
-		errors = append(errors, fmt.Errorf("Failed to finish all operations in %v", fu.timeout))
+		updateErrs = append(updateErrs, errors.Errorf("Failed to finish all operations in %v", fu.timeout))
 	}
 
-	return versions, errors
+	return versions, updateErrs
 }

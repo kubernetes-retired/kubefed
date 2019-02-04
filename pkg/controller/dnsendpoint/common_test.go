@@ -16,9 +16,7 @@ limitations under the License.
 
 package dnsendpoint
 
-import (
-	"fmt"
-)
+import "github.com/pkg/errors"
 
 const (
 	name      = "nginx"
@@ -42,7 +40,7 @@ func (mock *NetWrapperMock) LookupHost(host string) (addrs []string, err error) 
 
 	// If nothing to return, return empty list
 	if mock.result == nil || len(mock.result) == 0 {
-		return make([]string, 0), fmt.Errorf("Mock error response")
+		return make([]string, 0), errors.New("Mock error response")
 	}
 
 	return mock.result[host], nil

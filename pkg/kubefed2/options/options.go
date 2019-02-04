@@ -17,10 +17,10 @@ limitations under the License.
 package options
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/spf13/pflag"
 )
 
 // SubcommandOptions holds the configuration required by the subcommands of
@@ -50,7 +50,7 @@ func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
 // argument.
 func (o *SubcommandOptions) SetName(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("NAME is required")
+		return errors.New("NAME is required")
 	}
 
 	o.ClusterName = args[0]

@@ -17,13 +17,13 @@ limitations under the License.
 package federate
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -134,13 +134,13 @@ func (j *enableType) Complete(args []string) error {
 	if j.output == "yaml" {
 		j.outputYAML = true
 	} else if len(j.output) > 0 {
-		return fmt.Errorf("Invalid value for --output: %s", j.output)
+		return errors.Errorf("Invalid value for --output: %s", j.output)
 	}
 
 	if len(j.filename) > 0 {
 		err := DecodeYAMLFromFile(j.filename, fd)
 		if err != nil {
-			return fmt.Errorf("Failed to load yaml from file %q: %v", j.filename, err)
+			return errors.Wrapf(err, "Failed to load yaml from file %q", j.filename)
 		}
 		return nil
 	}
@@ -155,7 +155,7 @@ func (j *enableType) Complete(args []string) error {
 
 		fd.Spec.ComparisonField = apicommon.VersionComparisonField(j.rawComparisonField)
 	} else {
-		return fmt.Errorf("comparison field must be %q or %q",
+		return errors.Errorf("comparison field must be %q or %q",
 			apicommon.ResourceVersionField, apicommon.GenerationField,
 		)
 	}
@@ -176,7 +176,7 @@ func (j *enableType) Complete(args []string) error {
 func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
-		return fmt.Errorf("Failed to get host cluster config: %v", err)
+		return errors.Wrap(err, "Failed to get host cluster config")
 	}
 
 	resources, err := GetResources(hostConfig, j.federateDirective)
@@ -192,7 +192,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		}
 		err := writeObjectsToYAML(objects, cmdOut)
 		if err != nil {
-			return fmt.Errorf("Failed to write objects to YAML: %v", err)
+			return errors.Wrap(err, "Failed to write objects to YAML")
 		}
 		// -o yaml implies dry run
 		return nil
@@ -222,7 +222,7 @@ func GetResources(config *rest.Config, federateDirective *FederateDirective) (*t
 
 	accessor, err := newSchemaAccessor(config, *apiResource)
 	if err != nil {
-		return nil, fmt.Errorf("Error initializing validation schema accessor: %v", err)
+		return nil, errors.Wrap(err, "Error initializing validation schema accessor")
 	}
 	crds, err := primitiveCRDs(typeConfig, accessor)
 	if err != nil {
@@ -247,24 +247,24 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 
 	crdClient, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Failed to create crd clientset: %v", err)
+		return errors.Wrap(err, "Failed to create crd clientset")
 	}
 	for _, crd := range resources.CRDs {
 		_, err := crdClient.CustomResourceDefinitions().Create(crd)
 		if err != nil {
-			return fmt.Errorf("Error creating CRD %q: %v", crd.Name, err)
+			return errors.Wrapf(err, "Error creating CRD %q", crd.Name)
 		}
 		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", crd.Name))
 	}
 
 	fedClient, err := util.FedClientset(config)
 	if err != nil {
-		return fmt.Errorf("Failed to get federation clientset: %v", err)
+		return errors.Wrap(err, "Failed to get federation clientset")
 	}
 	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
 	_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(namespace).Create(concreteTypeConfig)
 	if err != nil {
-		return fmt.Errorf("Error creating FederatedTypeConfig %q: %v", concreteTypeConfig.Name, err)
+		return errors.Wrapf(err, "Error creating FederatedTypeConfig %q", concreteTypeConfig.Name)
 	}
 	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s created in namespace %s\n", concreteTypeConfig.Name, namespace))
 
@@ -346,7 +346,7 @@ func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
 		w.Write([]byte("---\n"))
 		err := writeObjectToYAML(obj, w)
 		if err != nil {
-			return fmt.Errorf("Error encoding resource to yaml: %v ", err)
+			return errors.Wrap(err, "Error encoding resource to yaml")
 		}
 	}
 	return nil

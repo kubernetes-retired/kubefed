@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -224,7 +226,7 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 func (s *SchedulingPreferenceController) objFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
-		wrappedErr := fmt.Errorf("Failed to query store while reconciling RSP controller, triggered by %s named %q: %v", kind, key, err)
+		wrappedErr := errors.Wrapf(err, "Failed to query store while reconciling RSP controller, triggered by %s named %q", kind, key)
 		runtime.HandleError(wrappedErr)
 		return nil, err
 	}

@@ -21,11 +21,12 @@ import (
 	"io"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
@@ -102,7 +103,7 @@ func NewCmdFederateDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Comma
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *disableType) Complete(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("NAME is required")
+		return errors.New("NAME is required")
 	}
 	j.targetName = args[0]
 
@@ -113,7 +114,7 @@ func (j *disableType) Complete(args []string) error {
 func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
-		return fmt.Errorf("Failed to get host cluster config: %v", err)
+		return errors.Wrap(err, "Failed to get host cluster config")
 	}
 
 	typeConfigName := ctlutil.QualifiedName{
@@ -127,11 +128,11 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
 	fedClient, err := util.FedClientset(config)
 	if err != nil {
-		return fmt.Errorf("Failed to get federation clientset: %v", err)
+		return errors.Wrap(err, "Failed to get federation clientset")
 	}
 	typeConfig, err := fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfigName.Namespace).Get(typeConfigName.Name, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("Error retrieving FederatedTypeConfig %q: %v", typeConfigName, err)
+		return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeConfigName)
 	}
 
 	if dryRun {
@@ -148,7 +149,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 		typeConfig.Spec.PropagationEnabled = false
 		_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfig.Namespace).Update(typeConfig)
 		if err != nil {
-			return fmt.Errorf("Error disabling propagation for FederatedTypeConfig %q: %v", typeConfigName, err)
+			return errors.Wrapf(err, "Error disabling propagation for FederatedTypeConfig %q", typeConfigName)
 		}
 		write(fmt.Sprintf("Disabled propagation for FederatedTypeConfig %q\n", typeConfigName))
 	} else {
@@ -162,7 +163,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	deletePrimitives(config, typeConfig, write)
 	err = fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfigName.Namespace).Delete(typeConfigName.Name, nil)
 	if err != nil {
-		return fmt.Errorf("Error deleting FederatedTypeConfig %q: %v", typeConfigName, err)
+		return errors.Wrapf(err, "Error deleting FederatedTypeConfig %q", typeConfigName)
 	}
 	write(fmt.Sprintf("federatedtypeconfig %q deleted\n", typeConfigName))
 
@@ -172,14 +173,14 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 func deletePrimitives(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
 	client, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("Error creating crd client: %v", err)
+		return errors.Wrap(err, "Error creating crd client")
 	}
 
 	failedDeletion := []string{}
 	crdNames := primitiveCRDNames(typeConfig)
 	for _, crdName := range crdNames {
 		err := client.CustomResourceDefinitions().Delete(crdName, nil)
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to delete crd %q: %v", crdName, err)
 			failedDeletion = append(failedDeletion, crdName)
 			continue
@@ -187,7 +188,7 @@ func deletePrimitives(config *rest.Config, typeConfig typeconfig.Interface, writ
 		write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	}
 	if len(failedDeletion) > 0 {
-		return fmt.Errorf("The following crds were not deleted successfully (see error log for details): %v", failedDeletion)
+		return errors.Errorf("The following crds were not deleted successfully (see error log for details): %v", failedDeletion)
 	}
 
 	return nil

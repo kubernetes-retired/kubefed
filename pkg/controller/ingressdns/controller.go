@@ -18,12 +18,12 @@ package ingressdns
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sort"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	extv1b1 "k8s.io/api/extensions/v1beta1"
@@ -184,7 +184,7 @@ func (c *Controller) isSynced() bool {
 	}
 	clusters, err := c.ingressFederatedInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 	if !c.ingressFederatedInformer.GetTargetStore().ClustersSynced(clusters) {
@@ -218,7 +218,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query IngressDNS store for %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to query IngressDNS store for %q: ", key))
 		return util.StatusError
 	}
 	if !exist {
@@ -234,7 +234,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	clusters, err := c.ingressFederatedInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready cluster list: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready cluster list"))
 		return util.StatusError
 	}
 
@@ -259,7 +259,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	if !reflect.DeepEqual(cachedIngressDNS.Status, newIngressDNS.Status) {
 		_, err = c.fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(newIngressDNS.Namespace).UpdateStatus(newIngressDNS)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Error updating the IngressDNS object %s: %v", key, err))
+			runtime.HandleError(errors.Wrapf(err, "Error updating the IngressDNS object %s", key))
 			return util.StatusError
 		}
 	}
@@ -273,19 +273,19 @@ func (c *Controller) getIngressStatusInCluster(cluster, key string) (*corev1.Loa
 
 	clusterIngressObj, ingressFound, err := c.ingressFederatedInformer.GetTargetStore().GetByKey(cluster, key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get %s ingress from %s: %v", key, cluster, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to get %s ingress from %s", key, cluster))
 		return lbStatus, err
 	}
 	if ingressFound {
 		//TODO(shashi): Find better alternative to convert Unstructured to a given type
 		clusterIngress, ok := clusterIngressObj.(*unstructured.Unstructured)
 		if !ok {
-			runtime.HandleError(fmt.Errorf("Failed to cast the object to unstructured object: %v", clusterIngressObj))
+			runtime.HandleError(errors.Errorf("Failed to cast the object to unstructured object: %v", clusterIngressObj))
 			return lbStatus, err
 		}
 		content, err := clusterIngress.MarshalJSON()
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to marshall the unstructured object: %v", clusterIngress))
+			runtime.HandleError(errors.Wrapf(err, "Failed to marshall the unstructured object: %v", clusterIngress))
 			return lbStatus, err
 		}
 		ingress := extv1b1.Ingress{}

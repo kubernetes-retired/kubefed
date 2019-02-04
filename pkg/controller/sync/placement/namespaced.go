@@ -17,7 +17,7 @@ limitations under the License.
 package placement
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -93,5 +93,5 @@ func (p *namespacedPlacementPlugin) ComputePlacement(qualifiedName util.Qualifie
 }
 
 func (p *namespacedPlacementPlugin) GetPlacement(key string) (*unstructured.Unstructured, error) {
-	return nil, fmt.Errorf("Not implemented")
+	return nil, errors.New("Not implemented")
 }

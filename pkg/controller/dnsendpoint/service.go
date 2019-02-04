@@ -17,8 +17,9 @@ limitations under the License.
 package dnsendpoint
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -59,7 +60,7 @@ func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 
 	dnsObject, ok := obj.(*feddnsv1a1.ServiceDNSRecord)
 	if !ok {
-		return nil, fmt.Errorf("received event for unknown object %v", obj)
+		return nil, errors.Errorf("received event for unknown object %v", obj)
 	}
 
 	if dnsObject.Spec.ExternalName != "" {

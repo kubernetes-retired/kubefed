@@ -22,6 +22,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -33,8 +36,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -156,7 +157,7 @@ func NewFederatedInformer(
 				return nil, err
 			}
 			if config == nil {
-				return nil, fmt.Errorf("Unable to load configuration for cluster %q", cluster.Name)
+				return nil, errors.Errorf("Unable to load configuration for cluster %q", cluster.Name)
 			}
 
 			restclient.AddUserAgent(config, userAgentName)
@@ -343,7 +344,7 @@ func (f *federatedInformerImpl) getClientForClusterUnlocked(clusterName string) 
 			return nil, err
 		}
 	}
-	return nil, fmt.Errorf("cluster %q not found", clusterName)
+	return nil, errors.Errorf("cluster %q not found", clusterName)
 }
 
 func (f *federatedInformerImpl) GetUnreadyClusters() ([]*fedv1a1.FederatedCluster, error) {
@@ -358,7 +359,7 @@ func (f *federatedInformerImpl) GetUnreadyClusters() ([]*fedv1a1.FederatedCluste
 				result = append(result, cluster)
 			}
 		} else {
-			return nil, fmt.Errorf("wrong data in FederatedInformerImpl cluster store: %v", item)
+			return nil, errors.Errorf("wrong data in FederatedInformerImpl cluster store: %v", item)
 		}
 	}
 	return result, nil
@@ -377,7 +378,7 @@ func (f *federatedInformerImpl) GetReadyClusters() ([]*fedv1a1.FederatedCluster,
 				result = append(result, cluster)
 			}
 		} else {
-			return nil, fmt.Errorf("wrong data in FederatedInformerImpl cluster store: %v", item)
+			return nil, errors.Errorf("wrong data in FederatedInformerImpl cluster store: %v", item)
 		}
 	}
 	return result, nil
@@ -400,7 +401,7 @@ func (f *federatedInformerImpl) getReadyClusterUnlocked(name string) (*fedv1a1.F
 			return nil, false, nil
 
 		}
-		return nil, false, fmt.Errorf("wrong data in FederatedInformerImpl cluster store: %v", obj)
+		return nil, false, errors.Errorf("wrong data in FederatedInformerImpl cluster store: %v", obj)
 
 	} else {
 		return nil, false, err

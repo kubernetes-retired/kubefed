@@ -20,16 +20,16 @@ limitations under the License.
 package deletionhelper
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -132,7 +132,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 	// Else, we need to delete the obj from all underlying clusters.
 	unreadyClusters, err := dh.informer.GetUnreadyClusters()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get a list of unready clusters: %v", err)
+		return nil, errors.Wrap(err, "failed to get a list of unready clusters")
 	}
 	// TODO: Handle the case when cluster resource is watched after this is executed.
 	// This can happen if a namespace is deleted before its creation had been
@@ -141,7 +141,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 	clusterNsObjs, err := dh.informer.GetTargetStore().GetFromAllClusters(storeKey)
 	glog.V(3).Infof("Found %d objects in underlying clusters", len(clusterNsObjs))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get object %s from underlying clusters: %v", objName, err)
+		return nil, errors.Wrapf(err, "failed to get object %s from underlying clusters", objName)
 	}
 	operations := make([]util.FederatedOperation, 0)
 	for _, clusterNsObj := range clusterNsObjs {
@@ -156,9 +156,9 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 			Key:         objName,
 		})
 	}
-	_, errors := dh.updater.Update(operations)
-	if len(errors) > 0 {
-		return nil, fmt.Errorf("failed to execute deletions for obj %s: %v", objName, errors)
+	_, operationalErrors := dh.updater.Update(operations)
+	if len(operationalErrors) > 0 {
+		return nil, errors.Errorf("failed to execute deletions for obj %s: %v", objName, operationalErrors)
 	}
 	if len(operations) > 0 {
 		// We have deleted a bunch of resources.
@@ -167,7 +167,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 		for _, op := range operations {
 			clusterNames = append(clusterNames, op.ClusterName)
 		}
-		return nil, fmt.Errorf("waiting for object %s to be deleted from clusters: %s", objName, strings.Join(clusterNames, ", "))
+		return nil, errors.Errorf("waiting for object %s to be deleted from clusters: %s", objName, strings.Join(clusterNames, ", "))
 	}
 
 	// We have now deleted the object from all *ready* clusters.
@@ -178,7 +178,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 		for _, cluster := range unreadyClusters {
 			clusterNames = append(clusterNames, cluster.Name)
 		}
-		return nil, fmt.Errorf("waiting for clusters %s to become ready to verify that obj %s has been deleted", strings.Join(clusterNames, ", "), objName)
+		return nil, errors.Errorf("waiting for clusters %s to become ready to verify that obj %s has been deleted", strings.Join(clusterNames, ", "), objName)
 	}
 
 	// All done. Just remove the finalizer.
@@ -194,7 +194,7 @@ func (dh *DeletionHelper) addFinalizers(obj runtime.Object, finalizers sets.Stri
 	// Send the update to apiserver.
 	updatedObj, err := dh.updateObjFunc(obj)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add finalizers %v to object %s: %v", finalizers, dh.objNameFunc(obj), err)
+		return nil, errors.Wrapf(err, "failed to add finalizers %v to object %s", finalizers, dh.objNameFunc(obj))
 	}
 	return updatedObj, nil
 }
@@ -208,7 +208,7 @@ func (dh *DeletionHelper) removeFinalizers(obj runtime.Object, finalizers sets.S
 	// Send the update to apiserver.
 	updatedObj, err := dh.updateObjFunc(obj)
 	if err != nil {
-		return nil, fmt.Errorf("failed to remove finalizers %v from object %s: %v", finalizers, dh.objNameFunc(obj), err)
+		return nil, errors.Wrapf(err, "failed to remove finalizers %v from object %s", finalizers, dh.objNameFunc(obj))
 	}
 	return updatedObj, nil
 }

@@ -25,7 +25,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -138,7 +139,7 @@ func (p *Plugin) HasSynced() bool {
 
 	clusters, err := p.targetInformer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to get ready clusters: %v", err))
+		runtime.HandleError(errors.Wrap(err, "Failed to get ready clusters"))
 		return false
 	}
 
@@ -153,7 +154,7 @@ func (p *Plugin) TemplateExists(key string) bool {
 	_, exist, err := p.templateStore.GetByKey(key)
 	if err != nil {
 		glog.Errorf("Failed to query store while reconciling RSP controller for key %q: %v", key, err)
-		wrappedErr := fmt.Errorf("Failed to query store while reconciling RSP controller for key %q: %v", key, err)
+		wrappedErr := errors.Wrapf(err, "Failed to query store while reconciling RSP controller for key %q", key)
 		runtime.HandleError(wrappedErr)
 		return false
 	}
@@ -163,7 +164,7 @@ func (p *Plugin) TemplateExists(key string) bool {
 func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newClusterNames []string) error {
 	placement, err := p.placementClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		newPlacement := newUnstructured(p.typeConfig.GetPlacement(), qualifiedName)
@@ -190,7 +191,7 @@ func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newCluster
 func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[string]int64) error {
 	override, err := p.overrideClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		newOverride := newUnstructured(p.typeConfig.GetOverride(), qualifiedName)
@@ -204,7 +205,7 @@ func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[
 
 	overridesMap, err := util.GetOverrides(override)
 	if err != nil {
-		return fmt.Errorf("Error reading cluster overrides for %s %q: %v", p.typeConfig.GetOverride().Kind, qualifiedName, err)
+		return errors.Wrapf(err, "Error reading cluster overrides for %s %q", p.typeConfig.GetOverride().Kind, qualifiedName)
 	}
 
 	if OverrideUpdateNeeded(overridesMap, result) {

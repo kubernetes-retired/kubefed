@@ -17,11 +17,11 @@ limitations under the License.
 package kubefed2
 
 import (
-	"fmt"
 	"io"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	client "k8s.io/client-go/kubernetes"
@@ -260,12 +260,12 @@ func performPreflightChecks(clusterClientset client.Interface, name, hostCluster
 	sa, err := clusterClientset.CoreV1().ServiceAccounts(federationNamespace).Get(saName,
 		metav1.GetOptions{})
 
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		return nil
 	} else if err != nil {
 		return err
 	} else if sa != nil {
-		return fmt.Errorf("service account: %s already exists in joining cluster: %s", saName, name)
+		return errors.Errorf("service account: %s already exists in joining cluster: %s", saName, name)
 	}
 
 	return nil
@@ -311,8 +311,8 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, jo
 	_, err = crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Get(joiningClusterName,
 		metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return fmt.Errorf("Cluster %s does not exist in the cluster registry.",
+		if apierrors.IsNotFound(err) {
+			return errors.Errorf("Cluster %s does not exist in the cluster registry.",
 				joiningClusterName)
 		}
 
@@ -392,7 +392,7 @@ func createFederationNamespace(clusterClientset client.Interface, federationName
 	}
 
 	_, err := clusterClientset.CoreV1().Namespaces().Create(federationNS)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		glog.V(2).Infof("Could not create %s namespace: %v", federationNamespace, err)
 		return nil, err
 	}

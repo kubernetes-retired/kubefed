@@ -22,6 +22,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -78,12 +80,12 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.APIResource, error) {
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating discovery client: %v", err)
+		return nil, errors.Wrap(err, "Error creating discovery client")
 	}
 
 	resourceLists, err := client.ServerPreferredResources()
 	if err != nil {
-		return nil, fmt.Errorf("Error listing api resources: %v", err)
+		return nil, errors.Wrap(err, "Error listing api resources")
 	}
 
 	// TODO(marun) Consider using a caching scheme ala kubectl
@@ -93,7 +95,7 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 		// The list holds the GroupVersion for its list of APIResources
 		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing GroupVersion: %v", err)
+			return nil, errors.Wrap(err, "Error parsing GroupVersion")
 		}
 		if len(targetVersion) > 0 && gv.Version != targetVersion {
 			continue
@@ -127,7 +129,7 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 	if targetResource != nil {
 		return targetResource, nil
 	}
-	return nil, fmt.Errorf("Unable to find api resource named %q.", key)
+	return nil, errors.Errorf("Unable to find api resource named %q.", key)
 }
 
 func resourceKey(apiResource metav1.APIResource) string {

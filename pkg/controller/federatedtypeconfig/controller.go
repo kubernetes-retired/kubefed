@@ -17,10 +17,10 @@ limitations under the License.
 package federatedtypeconfig
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,7 +113,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 
 	// wait for the caches to synchronize before starting the worker
 	if !cache.WaitForCacheSync(stopChan, c.controller.HasSynced) {
-		runtime.HandleError(fmt.Errorf("Timed out waiting for cache to sync"))
+		runtime.HandleError(errors.New("Timed out waiting for cache to sync"))
 		return
 	}
 
@@ -133,7 +133,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	cachedObj, exist, err := c.store.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to query FederatedTypeConfig store for %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key))
 		return util.StatusError
 	}
 	if !exist {
@@ -163,7 +163,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
 		_, err = c.client.FederatedTypeConfigs(typeConfig.Namespace).UpdateStatus(typeConfig)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Could not update status fields of the CRD: %q: %v", key, err))
+			runtime.HandleError(errors.Wrapf(err, "Could not update status fields of the CRD: %q", key))
 			return util.StatusError
 		}
 		return util.StatusAllOK
@@ -184,7 +184,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 		err := c.removeFinalizer(typeConfig)
 		if err != nil {
-			runtime.HandleError(fmt.Errorf("Failed to remove finalizer from FederatedTypeConfig %q: %v", key, err))
+			runtime.HandleError(errors.Wrapf(err, "Failed to remove finalizer from FederatedTypeConfig %q", key))
 			return util.StatusError
 		}
 		return util.StatusAllOK
@@ -192,7 +192,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	err = c.ensureFinalizer(typeConfig)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Failed to ensure finalizer for FederatedTypeConfig %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizer for FederatedTypeConfig %q", key))
 		return util.StatusError
 	}
 
@@ -231,7 +231,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	}
 	_, err = c.client.FederatedTypeConfigs(typeConfig.Namespace).UpdateStatus(typeConfig)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("Could not update status fields of the CRD: %q: %v", key, err))
+		runtime.HandleError(errors.Wrapf(err, "Could not update status fields of the CRD: %q", key))
 		return util.StatusError
 	}
 	return util.StatusAllOK
@@ -267,7 +267,7 @@ func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error
 	err = synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc, namespacePlacement)
 	if err != nil {
 		close(stopChan)
-		return fmt.Errorf("Error starting sync controller for %q: %v", kind, err)
+		return errors.Wrapf(err, "Error starting sync controller for %q", kind)
 	}
 	glog.Infof("Started sync controller for %q", kind)
 	c.lock.Lock()
@@ -282,7 +282,7 @@ func (c *Controller) startStatusController(statusKey string, tc *corev1a1.Federa
 	err := statuscontroller.StartFederationStatusController(c.controllerConfig, stopChan, tc)
 	if err != nil {
 		close(stopChan)
-		return fmt.Errorf("Error starting status controller for %q: %v", kind, err)
+		return errors.Wrapf(err, "Error starting status controller for %q", kind)
 	}
 	glog.Infof("Started status controller for %q", kind)
 	c.lock.Lock()
@@ -346,10 +346,10 @@ func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
 	key := qualifiedName.String()
 	cachedObj, exists, err := c.store.GetByKey(key)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving %q from the informer cache: %v", key, err)
+		return nil, errors.Wrapf(err, "Error retrieving %q from the informer cache", key)
 	}
 	if !exists {
-		return nil, fmt.Errorf("Unable to find %q in the informer cache", key)
+		return nil, errors.Errorf("Unable to find %q in the informer cache", key)
 	}
 	namespaceTypeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 	placement := namespaceTypeConfig.GetPlacement()
