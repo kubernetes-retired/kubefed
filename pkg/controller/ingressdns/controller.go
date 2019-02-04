@@ -218,7 +218,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to query IngressDNS store for %q: ", key))
+		runtime.HandleError(errors.Wrapf(err, "Failed to query IngressDNS store for %q", key))
 		return util.StatusError
 	}
 	if !exist {

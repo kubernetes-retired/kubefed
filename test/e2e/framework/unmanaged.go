@@ -348,7 +348,7 @@ func waitForNamespaceDeletion(client kubeclientset.Interface, namespace string) 
 		return false, nil
 	})
 	if err != nil {
-		return fmt.Errorf("Namespace %q was not deleted after %v", namespace, TestContext.SingleCallTimeout)
+		return errors.Errorf("Namespace %q was not deleted after %v", namespace, TestContext.SingleCallTimeout)
 	}
 	return nil
 }
