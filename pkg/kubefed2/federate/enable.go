@@ -98,7 +98,7 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 
 // NewCmdFederateEnable defines the `federate enable` command that
 // enables federation of a Kubernetes API type.
-func NewCmdFederateEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
+func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &enableType{}
 
 	cmd := &cobra.Command{

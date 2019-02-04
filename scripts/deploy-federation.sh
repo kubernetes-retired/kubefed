@@ -69,7 +69,7 @@ function deploy-with-script() {
 
   # Enable available types
   for filename in ./config/federatedirectives/*.yaml; do
-    ./bin/kubefed2 federate enable -f "${filename}" --federation-namespace="${NS}"
+    ./bin/kubefed2 enable -f "${filename}" --federation-namespace="${NS}"
   done
 }
 
