@@ -70,15 +70,15 @@ type enableType struct {
 }
 
 type enableTypeOptions struct {
-	targetName         string
-	targetVersion      string
-	rawComparisonField string
-	primitiveVersion   string
-	primitiveGroup     string
-	output             string
-	outputYAML         bool
-	filename           string
-	federateDirective  *FederateDirective
+	targetName          string
+	targetVersion       string
+	rawComparisonField  string
+	primitiveVersion    string
+	primitiveGroup      string
+	output              string
+	outputYAML          bool
+	filename            string
+	enableTypeDirective *EnableTypeDirective
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
@@ -128,8 +128,8 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *enableType) Complete(args []string) error {
-	j.federateDirective = NewFederateDirective()
-	fd := j.federateDirective
+	j.enableTypeDirective = NewEnableTypeDirective()
+	fd := j.enableTypeDirective
 
 	if j.output == "yaml" {
 		j.outputYAML = true
@@ -179,7 +179,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return errors.Wrap(err, "Failed to get host cluster config")
 	}
 
-	resources, err := GetResources(hostConfig, j.federateDirective)
+	resources, err := GetResources(hostConfig, j.enableTypeDirective)
 	if err != nil {
 		return err
 	}
@@ -211,14 +211,14 @@ type typeResources struct {
 	CRDs       []*apiextv1b1.CustomResourceDefinition
 }
 
-func GetResources(config *rest.Config, federateDirective *FederateDirective) (*typeResources, error) {
-	apiResource, err := LookupAPIResource(config, federateDirective.Name, federateDirective.Spec.TargetVersion)
+func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective) (*typeResources, error) {
+	apiResource, err := LookupAPIResource(config, enableTypeDirective.Name, enableTypeDirective.Spec.TargetVersion)
 	if err != nil {
 		return nil, err
 	}
 	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
 
-	typeConfig := typeConfigForTarget(*apiResource, federateDirective)
+	typeConfig := typeConfigForTarget(*apiResource, enableTypeDirective)
 
 	accessor, err := newSchemaAccessor(config, *apiResource)
 	if err != nil {
@@ -271,8 +271,8 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	return nil
 }
 
-func typeConfigForTarget(apiResource metav1.APIResource, federateDirective *FederateDirective) typeconfig.Interface {
-	spec := federateDirective.Spec
+func typeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *EnableTypeDirective) typeconfig.Interface {
+	spec := enableTypeDirective.Spec
 	kind := apiResource.Kind
 	pluralName := apiResource.Name
 	typeConfig := &fedv1a1.FederatedTypeConfig{

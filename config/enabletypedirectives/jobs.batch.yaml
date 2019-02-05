@@ -1,6 +1,6 @@
 apiVersion: core.federation.k8s.io/v1alpha1
-kind: FederateDirective
+kind: EnableTypeDirective
 metadata:
-  name: replicasets.apps
+  name: jobs.batch
 spec:
   comparisonField: Generation

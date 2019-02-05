@@ -25,7 +25,7 @@ set -o pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 
 function check-directive-fixtures() {
-  local directives=( "${ROOT_DIR}/config/federatedirectives/"*.yaml )
+  local directives=( "${ROOT_DIR}/config/enabletypedirectives/"*.yaml )
   for file in "${directives[@]}"; do
     local filename="$(basename "${file}")"
     local expected_file="${ROOT_DIR}/test/common/fixtures/${filename}"

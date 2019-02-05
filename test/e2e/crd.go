@@ -129,11 +129,11 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		tl.Fatalf("Timed out waiting for target type %q to be published as an available resource", targetName)
 	}
 
-	federateDirective := &federate.FederateDirective{
+	enableTypeDirective := &federate.EnableTypeDirective{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: targetAPIResource.Name,
 		},
-		Spec: federate.FederateDirectiveSpec{
+		Spec: federate.EnableTypeDirectiveSpec{
 			TargetVersion:    targetAPIResource.Version,
 			PrimitiveGroup:   targetAPIResource.Group,
 			PrimitiveVersion: targetAPIResource.Version,
@@ -141,7 +141,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		},
 	}
 
-	resources, err := federate.GetResources(hostConfig, federateDirective)
+	resources, err := federate.GetResources(hostConfig, enableTypeDirective)
 	if err != nil {
 		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}

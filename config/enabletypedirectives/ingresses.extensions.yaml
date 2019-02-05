@@ -1,5 +1,5 @@
 apiVersion: core.federation.k8s.io/v1alpha1
-kind: FederateDirective
+kind: EnableTypeDirective
 metadata:
   name: ingresses.extensions
 spec:
