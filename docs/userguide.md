@@ -179,10 +179,10 @@ It is possible to enable federation of any Kubernetes API type (including CRDs) 
 `kubefed2` command:
 
 ```bash
-kubefed2 federate enable <target API type>
+kubefed2 enable <target kubernetes API type>
 ```
 
-The `<target API type>` above may identified by the Kind (e.g. `Deployment`), plural name
+The `<target kubernetes API type>` above can be the Kind (e.g. `Deployment`), plural name
 (e.g. `deployments`), group-qualified plural name (e.g `deployment.apps`), or short name
 (e.g. `deploy`) of the intended target API type.
 
@@ -190,13 +190,15 @@ The command will create CRDs for the primitives (template, placement, override) 
 federate the type, with names of the form `Federated<Kind>`, `Federated<Kind>Placement`, and
 `Federated<Kind>Override`.  The command will also create a `FederatedTypeConfig` in the
 federation system namespace with the group-qualified plural name of the target type.  A
-`FederatedTypeConfig` associates the primitive CRD types with the target type, and enables the
-primitive types to be propagated as the target type to member clusters.
+`FederatedTypeConfig` associates the primitive CRD types with the target kubernetes type, 
+enabling propagation of the federated resources of the given type to the member clusters.
+The format used to name the `FederatedTypeConfig` is `<target kubernetes API type name>.<group name>`
+except kubernetes `core` group types where the name format used is `<target kubernetes API type name>`.
 
 It is also possible to output the yaml to `stdout` instead of applying it to the API Server:
 
 ```bash
-kubefed2 federate enable <target API type> --output=yaml
+kubefed2 enable <target API type> --output=yaml
 ```
 
 **NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
@@ -208,17 +210,19 @@ It is possible to disable propagation of a type that is configured for propagati
 `kubefed2` command:
 
 ```bash
-kubefed2 federate disable <FederatedTypeConfig name>
+kubefed2 disable <FederatedTypeConfig Name>
 ```
 
-This command will set the `propagationEnabled` field in the `FederatedTypeConfig` to `false`,
-which will prompt the sync controller for the type to be stopped.
+This command will set the `propagationEnabled` field in the `FederatedTypeConfig` 
+associated with this target API type to `false`, which will prompt the sync 
+controller for the target API type to be stopped.
 
-If the goal is to permanently disable federation of a type, passing the `--delete-from-api`
-flag will remove the `FederatedTypeConfig` and the primitive CRDS created by `enable`:
+If the goal is to permanently disable federation of the target API type, passing the 
+`--delete-from-api` flag will remove the `FederatedTypeConfig` and the associated 
+primitive CRDS, created by `enable`:
 
 ```bash
-kubefed2 federate disable <FederatedTypeConfig name> --delete-from-api
+kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
 ```
 
 **WARNING: All primitive custom resources for the type will be removed by this command.**
