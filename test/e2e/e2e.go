@@ -84,7 +84,7 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 	framework.Logf("Running AfterSuite actions on node 1")
 	if framework.TestContext.TestManagedFederation {
 		framework.TearDownManagedFederation()
-	} else if framework.TestContext.InMemoryControllers {
+	} else {
 		framework.TearDownUnmanagedFederation()
 	}
 })

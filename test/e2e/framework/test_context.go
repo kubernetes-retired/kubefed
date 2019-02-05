@@ -37,6 +37,7 @@ type TestContextType struct {
 	SingleCallTimeout               time.Duration
 	LimitedScope                    bool
 	LimitedScopeInMemoryControllers bool
+	WaitForFinalization             bool
 }
 
 func (t *TestContextType) RunControllers() bool {
@@ -63,6 +64,8 @@ func registerFlags(t *TestContextType) {
 	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the federation namespace (configurable via --federation-namespace) will be the only target for federation.")
 	flag.BoolVar(&t.LimitedScopeInMemoryControllers, "limited-scope-in-memory-controllers", true,
 		"Whether federation controllers started in memory should target only the test namespace.  If debugging cluster-scoped federation outside of a test namespace, this should be set to false.")
+	flag.BoolVar(&t.WaitForFinalization, "wait-for-finalization", true,
+		"Whether the test suite should wait for finalization before stopping fixtures or exiting.  Setting this to false will speed up test execution but likely result in wedged namespaces and is only recommended for disposeable clusters.")
 }
 
 func validateFlags(t *TestContextType) {
