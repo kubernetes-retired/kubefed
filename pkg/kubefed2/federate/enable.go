@@ -61,7 +61,7 @@ var (
 
 	enable_example = `
 		# Enable federation of Services with service type overrideable
-		kubefed2 federate enable Service --override-paths=spec.type --host-cluster-context=cluster1`
+		kubefed2 enable Service --override-paths=spec.type --host-cluster-context=cluster1`
 )
 
 type enableType struct {
@@ -96,7 +96,7 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output wll be accepted from the command line")
 }
 
-// NewCmdFederateEnable defines the `federate enable` command that
+// NewCmdTypeEnable defines the `enable` command that
 // enables federation of a Kubernetes API type.
 func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &enableType{}
@@ -172,7 +172,7 @@ func (j *enableType) Complete(args []string) error {
 	return nil
 }
 
-// Run is the implementation of the `federate enable` command.
+// Run is the implementation of the `enable` command.
 func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
