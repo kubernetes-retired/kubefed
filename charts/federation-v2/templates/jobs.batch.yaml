@@ -5,28 +5,18 @@ metadata:
   name: jobs.batch
 spec:
   comparisonField: Generation
+  federatedType:
+    group: primitives.federation.k8s.io
+    kind: FederatedJob
+    pluralName: federatedjobs
+    version: v1alpha1
   namespaced: true
-  override:
-    group: primitives.federation.k8s.io
-    kind: FederatedJobOverride
-    pluralName: federatedjoboverrides
-    version: v1alpha1
-  placement:
-    group: primitives.federation.k8s.io
-    kind: FederatedJobPlacement
-    pluralName: federatedjobplacements
-    version: v1alpha1
   propagationEnabled: true
   target:
     group: batch
     kind: Job
     pluralName: jobs
     version: v1
-  template:
-    group: primitives.federation.k8s.io
-    kind: FederatedJob
-    pluralName: federatedjobs
-    version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -49,6 +39,57 @@ spec:
           type: object
         spec:
           properties:
+            overrides:
+              items:
+                properties:
+                  clusterName:
+                    type: string
+                  clusterOverrides:
+                    items:
+                      properties:
+                        path:
+                          type: string
+                        value:
+                          anyOf:
+                          - type: string
+                          - type: integer
+                          - type: boolean
+                          - type: object
+                          - type: array
+                      type: object
+                    type: array
+                type: object
+              type: array
+            placement:
+              properties:
+                clusterNames:
+                  items:
+                    type: string
+                  type: array
+                clusterSelector:
+                  properties:
+                    matchExpressions:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          values:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+              type: object
             template:
               properties:
                 apiVersion:
@@ -2207,101 +2248,5 @@ spec:
                   - template
                   type: object
               type: object
-          type: object
-  version: v1alpha1
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: federatedjobplacements.primitives.federation.k8s.io
-spec:
-  group: primitives.federation.k8s.io
-  names:
-    kind: FederatedJobPlacement
-    plural: federatedjobplacements
-  scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          type: string
-        kind:
-          type: string
-        metadata:
-          type: object
-        spec:
-          properties:
-            clusterNames:
-              items:
-                type: string
-              type: array
-            clusterSelector:
-              properties:
-                matchExpressions:
-                  items:
-                    properties:
-                      key:
-                        type: string
-                      operator:
-                        type: string
-                      values:
-                        items:
-                          type: string
-                        type: array
-                    required:
-                    - key
-                    - operator
-                    type: object
-                  type: array
-                matchLabels:
-                  additionalProperties:
-                    type: string
-                  type: object
-              type: object
-          type: object
-  version: v1alpha1
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: federatedjoboverrides.primitives.federation.k8s.io
-spec:
-  group: primitives.federation.k8s.io
-  names:
-    kind: FederatedJobOverride
-    plural: federatedjoboverrides
-  scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          type: string
-        kind:
-          type: string
-        metadata:
-          type: object
-        spec:
-          properties:
-            overrides:
-              items:
-                properties:
-                  clusterName:
-                    type: string
-                  clusterOverrides:
-                    items:
-                      properties:
-                        path:
-                          type: string
-                        value:
-                          anyOf:
-                          - type: string
-                          - type: integer
-                          - type: boolean
-                          - type: object
-                          - type: array
-                      type: object
-                    type: array
-                type: object
-              type: array
           type: object
   version: v1alpha1
