@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -28,7 +30,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -36,22 +38,19 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const (
-	AnnotationTestFederationCrudUpdate string = "federation.kubernetes.io/test-federation-crud-update"
-)
-
 // FederatedTypeCrudTester exercises Create/Read/Update/Delete operations for
 // federated types via the Federation API and validates that the
 // results of those operations are propagated to clusters that are
 // members of a federation.
 type FederatedTypeCrudTester struct {
-	tl               TestLogger
-	typeConfig       typeconfig.Interface
-	comparisonHelper util.ComparisonHelper
-	fedClient        clientset.Interface
-	kubeConfig       *rest.Config
-	testClusters     map[string]TestCluster
-	waitInterval     time.Duration
+	tl                TestLogger
+	typeConfig        typeconfig.Interface
+	targetIsNamespace bool
+	comparisonHelper  util.ComparisonHelper
+	fedClient         clientset.Interface
+	kubeConfig        *rest.Config
+	testClusters      map[string]TestCluster
+	waitInterval      time.Duration
 	// Federation operations will use wait.ForeverTestTimeout.  Any
 	// operation that involves member clusters may take longer due to
 	// propagation latency.
@@ -77,6 +76,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
+		targetIsNamespace:  typeConfig.GetTarget().Kind == util.NamespaceKind,
 		comparisonHelper:   compare,
 		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
 		kubeConfig:         kubeConfig,
@@ -86,59 +86,25 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 	}, nil
 }
 
-func (c *FederatedTypeCrudTester) CheckLifecycle(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) {
-	template, placement, override := c.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
+func (c *FederatedTypeCrudTester) CheckLifecycle(desiredFedObject *unstructured.Unstructured) {
+	fedObject := c.CheckCreate(desiredFedObject)
 
-	c.CheckStatusCreated(util.NewQualifiedName(template))
+	c.CheckStatusCreated(util.NewQualifiedName(fedObject))
 
-	// TOOD(marun) Make sure these next steps work!!
-	c.CheckUpdate(template, placement, override)
-	c.CheckPlacementChange(template, placement, override)
+	c.CheckUpdate(fedObject)
+	c.CheckPlacementChange(fedObject)
 
 	// Validate the golden path - removal of dependents
 	orphanDependents := false
-	// TODO(marun) need to delete placement and overrides
-	c.CheckDelete(template, &orphanDependents)
+	c.CheckDelete(fedObject, &orphanDependents)
 }
 
-func (c *FederatedTypeCrudTester) Create(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (template *unstructured.Unstructured, placement *unstructured.Unstructured, override *unstructured.Unstructured) {
-	isFederatedNamespace := c.typeConfig.GetTarget().Kind == util.NamespaceKind
-
-	if isFederatedNamespace {
-		// Namespace placement needs to have the same name as its namespace.
-		desiredPlacement.SetName(desiredPlacement.GetNamespace())
+func (c *FederatedTypeCrudTester) Create(desiredFedObject *unstructured.Unstructured) *unstructured.Unstructured {
+	if c.targetIsNamespace {
+		// Federated namespace needs to have the same name as its namespace.
+		desiredFedObject.SetName(desiredFedObject.GetNamespace())
 	}
-
-	// Create placement and overrides first to ensure the sync
-	// controller will propagate the complete object the first time it
-	// sees the template.
-
-	placement = c.createFedResource(c.typeConfig.GetPlacement(), desiredPlacement)
-
-	// Test objects may use GenerateName.  Use the name of the
-	// placement resource for the other resources.
-	name := placement.GetName()
-
-	if desiredOverride != nil {
-		desiredOverride.SetName(name)
-		override = c.createFedResource(c.typeConfig.GetOverride(), desiredOverride)
-	}
-
-	if isFederatedNamespace {
-		// The test namespace already exists and need only be retrieved.
-		// TODO(marun) Consider removing the fixture for namespaces.
-		client := c.fedResourceClient(c.typeConfig.GetTemplate())
-		var err error
-		template, err = client.Resources("").Get(name, metav1.GetOptions{})
-		if err != nil {
-			c.tl.Fatalf("Unable to retrieve Namespace %q: %v", name, err)
-		}
-	} else {
-		desiredTemplate.SetName(name)
-		template = c.createFedResource(c.typeConfig.GetTemplate(), desiredTemplate)
-	}
-
-	return template, placement, override
+	return c.createFedResource(c.typeConfig.GetFederatedType(), desiredFedObject)
 }
 
 func (c *FederatedTypeCrudTester) createFedResource(apiResource metav1.APIResource, desiredObj *unstructured.Unstructured) *unstructured.Unstructured {
@@ -171,99 +137,84 @@ func (c *FederatedTypeCrudTester) fedResourceClient(apiResource metav1.APIResour
 	return client
 }
 
-func (c *FederatedTypeCrudTester) CheckCreate(desiredTemplate, desiredPlacement, desiredOverride *unstructured.Unstructured) (*unstructured.Unstructured, *unstructured.Unstructured, *unstructured.Unstructured) {
-	template, placement, override := c.Create(desiredTemplate, desiredPlacement, desiredOverride)
-
-	templateHash, err := sync.GetTemplateHash(template)
-	if err != nil {
-		c.tl.Fatalf("Failed to compute template hash: %v", err)
-	}
-	msg := fmt.Sprintf("Versions for %s: template %q, placement %q",
-		util.NewQualifiedName(template),
-		templateHash,
-		placement.GetResourceVersion(),
-	)
-	if override != nil {
-		msg = fmt.Sprintf("%s, override %q", msg, override.GetResourceVersion())
-	}
-	c.tl.Log(msg)
-
-	c.CheckPropagation(template, placement, override)
-
-	return template, placement, override
+func (c *FederatedTypeCrudTester) CheckCreate(desiredFedObject *unstructured.Unstructured) *unstructured.Unstructured {
+	fedObject := c.Create(desiredFedObject)
+	c.CheckPropagation(fedObject)
+	return fedObject
 }
 
-func (c *FederatedTypeCrudTester) CheckUpdate(template, placement, override *unstructured.Unstructured) {
-	templateAPIResource := c.typeConfig.GetTemplate()
-	templateKind := templateAPIResource.Kind
-	qualifiedName := util.NewQualifiedName(template)
+func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructured) {
+	apiResource := c.typeConfig.GetFederatedType()
+	kind := apiResource.Kind
+	qualifiedName := util.NewQualifiedName(fedObject)
 
-	var initialAnnotation string
-	annotations := template.GetAnnotations()
-	if annotations != nil {
-		initialAnnotation = annotations[AnnotationTestFederationCrudUpdate]
+	key := "metadata.labels"
+	value := map[string]interface{}{
+		"crudtester-operation": "update",
 	}
 
-	c.tl.Logf("Updating %s %q", templateKind, qualifiedName)
-	updatedTemplate, err := c.updateFedObject(templateAPIResource, template, func(template *unstructured.Unstructured) {
-		// Target the metadata for simplicity (it's type-agnostic)
-		annotations := template.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string)
+	c.tl.Logf("Updating %s %q", kind, qualifiedName)
+	updatedFedObject, err := c.updateFedObject(apiResource, fedObject, func(obj *unstructured.Unstructured) {
+		overrides, err := util.GetOverrides(obj)
+		if err != nil {
+			c.tl.Fatalf("Error retrieving overrides for %s %q: %v", kind, qualifiedName, err)
 		}
-		annotations[AnnotationTestFederationCrudUpdate] = "updated"
-		template.SetAnnotations(annotations)
+		for clusterName := range c.testClusters {
+			clusterOverrides, ok := overrides[clusterName]
+			if !ok {
+				clusterOverrides = make(util.ClusterOverridesMap)
+				overrides[clusterName] = clusterOverrides
+			}
+			_, ok = clusterOverrides[key]
+			if ok {
+				c.tl.Fatalf("An override for %q already exists for cluster %q", key, clusterName)
+			}
+			clusterOverrides[key] = value
+		}
+		util.SetOverrides(obj, overrides)
 	})
 	if err != nil {
-		c.tl.Fatalf("Error updating %s %q: %v", templateKind, qualifiedName, err)
+		c.tl.Fatalf("Error updating %s %q: %v", kind, qualifiedName, err)
 	}
 
-	// updateFedObject is expected to have changed the value of the annotation
-	updatedAnnotations := updatedTemplate.GetAnnotations()
-	updatedAnnotation := updatedAnnotations[AnnotationTestFederationCrudUpdate]
-	if updatedAnnotation == initialAnnotation {
-		c.tl.Fatalf("%s %q not mutated", templateKind, qualifiedName)
-	}
-
-	c.CheckPropagation(updatedTemplate, placement, override)
+	c.CheckPropagation(updatedFedObject)
 }
 
 // CheckPlacementChange verifies that a change in the list of clusters
 // in a placement resource has the desired impact on member cluster
 // state.
-func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, override *unstructured.Unstructured) {
-	placementAPIResource := c.typeConfig.GetPlacement()
-	placementKind := placementAPIResource.Kind
-	qualifiedName := util.NewQualifiedName(placement)
+func (c *FederatedTypeCrudTester) CheckPlacementChange(fedObject *unstructured.Unstructured) {
+	apiResource := c.typeConfig.GetFederatedType()
+	kind := apiResource.Kind
+	qualifiedName := util.NewQualifiedName(fedObject)
 
-	clusterNames, err := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(fedObject)
 	if err != nil {
 		c.tl.Fatalf("Error retrieving cluster names: %v", err)
 	}
 
-	targetIsNamespace := c.typeConfig.GetTarget().Kind == util.NamespaceKind
 	primaryClusterName := c.getPrimaryClusterName()
 
 	// Skip if we're a namespace, we only have one cluster, and it's the
 	// primary cluster. Skipping avoids deleting the namespace from the entire
 	// federation by removing this single cluster from the placement, because
 	// if deleted, this fails the next CheckDelete test.
-	if targetIsNamespace && len(clusterNames) == 1 && clusterNames[0] == primaryClusterName {
+	if c.targetIsNamespace && len(clusterNames) == 1 && clusterNames[0] == primaryClusterName {
 		c.tl.Logf("Skipping %s update for %q due to single primary cluster",
-			placementKind, qualifiedName)
+			kind, qualifiedName)
 		return
 	}
 
 	// Any cluster can be removed for non-namespace targets.
 	clusterNameToRetain := ""
-	if targetIsNamespace {
+	if c.targetIsNamespace {
 		// The primary cluster should not be removed for namespace targets.
 		clusterNameToRetain = primaryClusterName
 	}
 
-	c.tl.Logf("Updating %s %q", placementKind, qualifiedName)
-	updatedPlacement, err := c.updateFedObject(placementAPIResource, placement, func(placement *unstructured.Unstructured) {
-		clusterNames, err := util.GetClusterNames(placement)
+	c.tl.Logf("Updating %s %q", kind, qualifiedName)
+	updatedFedObject, err := c.updateFedObject(apiResource, fedObject, func(obj *unstructured.Unstructured) {
+		clusterNames, err := util.GetClusterNames(obj)
 		if err != nil {
 			c.tl.Fatalf("Error retrieving cluster names: %v", err)
 		}
@@ -275,32 +226,31 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(template, placement, over
 			// cluster whose name was removed.
 			c.tl.Fatalf("Expected %d cluster names, got %d", len(clusterNames)-1, len(updatedClusterNames))
 		}
-		err = util.SetClusterNames(placement, updatedClusterNames)
+		err = util.SetClusterNames(obj, updatedClusterNames)
 		if err != nil {
-			c.tl.Fatalf("Error setting cluster names for %s %q: %v", placementKind, qualifiedName, err)
+			c.tl.Fatalf("Error setting cluster names for %s %q: %v", kind, qualifiedName, err)
 		}
 	})
 	if err != nil {
-		c.tl.Fatalf("Error updating %s %q: %v", placementKind, qualifiedName, err)
+		c.tl.Fatalf("Error updating %s %q: %v", kind, qualifiedName, err)
 	}
 
-	c.CheckPropagation(template, updatedPlacement, override)
+	c.CheckPropagation(updatedFedObject)
 }
 
-func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructured, orphanDependents *bool) {
-	templateAPIResource := c.typeConfig.GetTemplate()
-	templateKind := templateAPIResource.Kind
-	qualifiedName := util.NewQualifiedName(template)
+func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructured, orphanDependents *bool) {
+	apiResource := c.typeConfig.GetFederatedType()
+	federatedKind := apiResource.Kind
+	qualifiedName := util.NewQualifiedName(fedObject)
 	name := qualifiedName.Name
 	namespace := qualifiedName.Namespace
 
-	client := c.fedResourceClient(templateAPIResource)
+	client := c.fedResourceClient(apiResource)
 
-	// TODO(marun) delete related resources?
-	c.tl.Logf("Deleting %s %q", templateKind, qualifiedName)
+	c.tl.Logf("Deleting %s %q", federatedKind, qualifiedName)
 	err := client.Resources(namespace).Delete(name, &metav1.DeleteOptions{OrphanDependents: orphanDependents})
 	if err != nil {
-		c.tl.Fatalf("Error deleting %s %q: %v", templateKind, qualifiedName, err)
+		c.tl.Fatalf("Error deleting %s %q: %v", federatedKind, qualifiedName, err)
 	}
 
 	deletingInCluster := (orphanDependents != nil && *orphanDependents == false)
@@ -315,66 +265,103 @@ func (c *FederatedTypeCrudTester) CheckDelete(template *unstructured.Unstructure
 	// completed or deemed unnecessary.
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		_, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
 		return false, err
 	})
 	if err != nil {
-		c.tl.Fatalf("Error deleting %s %q: %v", templateKind, qualifiedName, err)
+		c.tl.Fatalf("Error deleting %s %q: %v", federatedKind, qualifiedName, err)
+	}
+
+	if c.targetIsNamespace {
+		namespace = ""
+		qualifiedName = util.QualifiedName{Name: name}
 	}
 
 	targetKind := c.typeConfig.GetTarget().Kind
 
+	// TODO(marun) Consider using informer to detect expected deletion state.
 	var stateMsg string = "present"
 	if deletingInCluster {
 		stateMsg = "not present"
 	}
-	for _, testCluster := range c.testClusters {
-		_, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
-		switch {
-		case !deletingInCluster && errors.IsNotFound(err):
-			c.tl.Fatalf("%s %q was unexpectedly deleted from a member cluster", targetKind, qualifiedName)
-		case deletingInCluster && err == nil:
-			c.tl.Fatalf("%s %q was unexpectedly orphaned in a member cluster", targetKind, qualifiedName)
-		case err != nil && !errors.IsNotFound(err):
-			c.tl.Fatalf("Error while checking whether %s %q is %s in member clusters: %v", targetKind, qualifiedName, stateMsg, err)
+	for clusterName, testCluster := range c.testClusters {
+		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
+			_, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
+			switch {
+			case !deletingInCluster && apierrors.IsNotFound(err):
+				return false, errors.Errorf("%s %q was unexpectedly deleted from cluster %q", targetKind, qualifiedName, clusterName)
+			case deletingInCluster && err == nil:
+				// The namespace in the host cluster should not be removed.
+				if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
+					return true, nil
+				}
+				// Continue checking for deletion
+				return false, nil
+			case err != nil && !apierrors.IsNotFound(err):
+				c.tl.Errorf("Error while checking whether %s %q is %s in cluster %q: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
+				// This error may be recoverable
+				return false, nil
+			default:
+				return true, nil
+			}
+		})
+		if err != nil {
+			c.tl.Fatalf("Failed to confirm whether %s %q is %s in cluster: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
 		}
 	}
 }
 
 // CheckPropagation checks propagation for the crud tester's clients
-func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override *unstructured.Unstructured) {
-	targetKind := c.typeConfig.GetTarget().Kind
-	qualifiedName := util.NewQualifiedName(template)
+func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstructured) {
+	federatedKind := c.typeConfig.GetFederatedType().Kind
+	qualifiedName := util.NewQualifiedName(fedObject)
 
-	clusterNames, err := util.GetClusterNames(placement)
+	clusterNames, err := util.GetClusterNames(fedObject)
 	if err != nil {
-		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+		c.tl.Fatalf("Error retrieving cluster names for %s %q: %v", federatedKind, qualifiedName, err)
 	}
 	selectedClusters := sets.NewString(clusterNames...)
 
 	// If we are a namespace, there is only one cluster, and the cluster is the
 	// host cluster, then do not check for a propagated version as it will never
 	// be created.
-	if targetKind == util.NamespaceKind && len(clusterNames) == 1 &&
+	if c.targetIsNamespace && len(clusterNames) == 1 &&
 		clusterNames[0] == c.getPrimaryClusterName() {
 		return
 	}
 
-	overridesMap, err := util.GetOverrides(override)
+	templateFieldMap := fedObject.Object
+	if c.targetIsNamespace {
+		namespace := c.getNamespace(qualifiedName.Namespace)
+		templateFieldMap = namespace.Object
+	}
+	templateVersion, err := sync.GetTemplateHash(templateFieldMap, c.targetIsNamespace)
 	if err != nil {
-		overrideKind := c.typeConfig.GetOverride().Kind
-		c.tl.Fatalf("Error reading cluster overrides for %s %q: %v", overrideKind, qualifiedName, err)
+		c.tl.Fatalf("Error computing template hash for %s %q: %v", federatedKind, qualifiedName, err)
 	}
 
-	overrideVersion := ""
-	if override != nil {
-		overrideVersion = override.GetResourceVersion()
+	overrideVersion, err := sync.GetOverrideHash(fedObject)
+	if err != nil {
+		c.tl.Fatalf("Error computing override hash for %s %q: %v", federatedKind, qualifiedName, err)
 	}
+
+	overridesMap, err := util.GetOverrides(fedObject)
+	if err != nil {
+		c.tl.Fatalf("Error reading cluster overrides for %s %q: %v", federatedKind, qualifiedName, err)
+	}
+
+	targetKind := c.typeConfig.GetTarget().Kind
 
 	// TODO(marun) run checks in parallel
 	for clusterName, testCluster := range c.testClusters {
+		// The crudtester is not responsible for creating or deleting
+		// the namespace in the primary cluster.
+		if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
+			continue
+		}
+
 		objExpected := selectedClusters.Has(clusterName)
 
 		operation := "to be deleted from"
@@ -385,7 +372,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 
 		if objExpected {
 			err := c.waitForResource(testCluster.Client, qualifiedName, overridesMap[clusterName], func() string {
-				version, _ := c.expectedVersion(qualifiedName, overrideVersion, clusterName)
+				version, _ := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
 				return version
 			})
 			switch {
@@ -396,7 +383,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(template, placement, override
 			}
 		} else {
 			err := c.waitForResourceDeletion(testCluster.Client, qualifiedName, func() bool {
-				version, ok := c.expectedVersion(qualifiedName, overrideVersion, clusterName)
+				version, ok := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
 				return version == "" && ok
 			})
 			// Once resource deletion is complete, wait for the status to reflect the deletion
@@ -444,7 +431,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			}
 			return true, nil
 		}
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err
@@ -459,7 +446,7 @@ func (c *FederatedTypeCrudTester) TestClusters() map[string]TestCluster {
 func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName util.QualifiedName, versionRemoved func() bool) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			if !versionRemoved() {
 				c.tl.Logf("Removal of %q %s successful, but propagated version still exists", c.typeConfig.GetTarget().Kind, qualifiedName)
 				return false, nil
@@ -480,14 +467,14 @@ func (c *FederatedTypeCrudTester) updateFedObject(apiResource metav1.APIResource
 		mutateResourceFunc(obj)
 
 		_, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
-		if errors.IsConflict(err) {
+		if apierrors.IsConflict(err) {
 			// The resource was updated by the federation controller.
 			// Get the latest version and retry.
 			obj, err = client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
 			return false, err
 		}
 		// Be tolerant of a slow server
-		if errors.IsServerTimeout(err) {
+		if apierrors.IsServerTimeout(err) {
 			return false, nil
 		}
 		return (err == nil), err
@@ -496,13 +483,13 @@ func (c *FederatedTypeCrudTester) updateFedObject(apiResource metav1.APIResource
 }
 
 // expectedVersion retrieves the version of the resource expected in the named cluster
-func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedName, overrideVersion, clusterName string) (string, bool) {
+func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedName, templateVersion, overrideVersion, clusterName string) (string, bool) {
 	targetKind := c.typeConfig.GetTarget().Kind
 	versionName := util.QualifiedName{
 		Namespace: qualifiedName.Namespace,
 		Name:      common.PropagatedVersionName(targetKind, qualifiedName.Name),
 	}
-	if targetKind == util.NamespaceKind {
+	if c.targetIsNamespace {
 		versionName.Namespace = qualifiedName.Name
 	}
 
@@ -511,7 +498,7 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 	var version *fedv1a1.PropagatedVersionStatus
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		versionObj, err := adapter.Get(versionName)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			if !loggedWaiting {
 				loggedWaiting = true
 				c.tl.Logf("Waiting for %s %q", adapter.TypeName(), versionName)
@@ -530,24 +517,11 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 		return "", false
 	}
 
-	// The template version may have been updated if the
-	// controller added the deletion finalizer.
-	client := c.fedResourceClient(c.typeConfig.GetTemplate())
-	template, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-	if err != nil {
-		c.tl.Errorf("Error retrieving %s %q: %v", c.typeConfig.GetTemplate().Kind, qualifiedName, err)
-		return "", false
-	}
-
-	templateHash, err := sync.GetTemplateHash(template)
-	if err != nil {
-		c.tl.Fatalf("Failed to compute template hash: %v", err)
-	}
-	matchedVersions := (version.TemplateVersion == templateHash &&
+	matchedVersions := (version.TemplateVersion == templateVersion &&
 		version.OverrideVersion == overrideVersion)
 	if !matchedVersions {
 		c.tl.Logf("Expected template and override versions (%q, %q), got (%q, %q)",
-			templateHash, overrideVersion,
+			templateVersion, overrideVersion,
 			version.TemplateVersion, version.OverrideVersion,
 		)
 		return "", false
@@ -582,7 +556,7 @@ func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedV
 	// For namespaces, since we do not store the primary cluster's namespace
 	// version in PropagatedVersion's ClusterVersions slice, grab it from the
 	// TemplateVersion field instead.
-	if c.typeConfig.GetTarget().Kind == util.NamespaceKind && clusterName == c.getPrimaryClusterName() {
+	if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
 		return version.TemplateVersion
 	}
 
@@ -592,6 +566,15 @@ func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedV
 		}
 	}
 	return ""
+}
+
+func (c *FederatedTypeCrudTester) getNamespace(namespace string) *unstructured.Unstructured {
+	client := c.fedResourceClient(c.typeConfig.GetTarget())
+	obj, err := client.Resources("").Get(namespace, metav1.GetOptions{})
+	if err != nil {
+		c.tl.Errorf("An unexpected error occurred while retrieving the namespace for a federated namespace: %v", err)
+	}
+	return obj
 }
 
 func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.QualifiedName) {
@@ -607,7 +590,7 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 	client := c.fedResourceClient(*statusAPIResource)
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(err) {
 			c.tl.Errorf("An unexpected error occurred while polling for desired status: %v", err)
 		}
 		return (err == nil), nil

@@ -29,27 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func NewTestObjects(typeConfig typeconfig.Interface, namespace string, clusterNames []string, fixture *unstructured.Unstructured) (template, placement, override *unstructured.Unstructured, err error) {
-	template, err = NewTestTemplate(typeConfig.GetTemplate(), namespace, fixture)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	placement, err = newTestPlacement(typeConfig.GetPlacement(), namespace, clusterNames)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	override, err = newTestOverride(typeConfig.GetOverride(), namespace, clusterNames, fixture)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return template, placement, override, nil
-}
-
-func NewTestTemplate(apiResource metav1.APIResource, namespace string, fixture *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	obj := newTestUnstructured(apiResource, namespace)
+func NewTestObject(typeConfig typeconfig.Interface, namespace string, clusterNames []string, fixture *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	obj := newTestUnstructured(typeConfig.GetFederatedType(), namespace)
 
 	template, ok, err := unstructured.NestedFieldCopy(fixture.Object, "template")
 	if err != nil {
@@ -62,35 +43,21 @@ func NewTestTemplate(apiResource metav1.APIResource, namespace string, fixture *
 		}
 	}
 
-	return obj, nil
-}
-
-func newTestOverride(apiResource metav1.APIResource, namespace string, clusterNames []string, fixture *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	obj := newTestUnstructured(apiResource, namespace)
-
 	overridesSlice, ok, err := unstructured.NestedSlice(fixture.Object, "overrides")
 	if err != nil {
 		return nil, errors.Wrap(err, "Error retrieving overrides field")
 	}
-	if !ok {
-		return nil, nil
+	if ok && len(clusterNames) > 0 {
+		targetOverrides := overridesSlice[0].(map[string]interface{})
+		targetOverrides[util.ClusterNameField] = clusterNames[0]
+		overridesSlice[0] = targetOverrides
+		err = unstructured.SetNestedSlice(obj.Object, overridesSlice, "spec", "overrides")
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	targetOverrides := overridesSlice[0].(map[string]interface{})
-	targetOverrides[util.ClusterNameField] = clusterNames[0]
-	overridesSlice[0] = targetOverrides
-	err = unstructured.SetNestedSlice(obj.Object, overridesSlice, "spec", "overrides")
-	if err != nil {
-		return nil, err
-	}
-
-	return obj, nil
-}
-
-func newTestPlacement(apiResource metav1.APIResource, namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
-	obj := newTestUnstructured(apiResource, namespace)
-
-	err := util.SetClusterNames(obj, clusterNames)
+	err = util.SetClusterNames(obj, clusterNames)
 	if err != nil {
 		return nil, err
 	}

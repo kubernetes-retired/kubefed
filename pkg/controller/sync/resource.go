@@ -27,11 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/placement"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
@@ -50,25 +48,24 @@ type FederatedResource interface {
 	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, err error)
 	SkipClusterChange(clusterObj pkgruntime.Object) bool
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
-	FinalizationKind() string
 	MarkedForDeletion() bool
 	EnsureDeletion() error
 	EnsureFinalizers() error
 }
 
 type federatedResource struct {
+	limitedScope      bool
 	typeConfig        typeconfig.Interface
 	targetIsNamespace bool
 	targetName        util.QualifiedName
+	federatedKind     string
 	federatedName     util.QualifiedName
-	template          *unstructured.Unstructured
-	placement         *unstructured.Unstructured
-	placementPlugin   placement.PlacementPlugin
+	federatedResource *unstructured.Unstructured
 	versionManager    *version.VersionManager
 	deletionHelper    *deletionhelper.DeletionHelper
-	overrideStore     cache.Store
-	override          *unstructured.Unstructured
 	overridesMap      util.OverridesMap
+	namespace         *unstructured.Unstructured
+	fedNamespace      *unstructured.Unstructured
 }
 
 func (r *federatedResource) FederatedName() util.QualifiedName {
@@ -80,27 +77,21 @@ func (r *federatedResource) TargetName() util.QualifiedName {
 }
 
 func (r *federatedResource) Object() *unstructured.Unstructured {
-	if r.targetIsNamespace {
-		return r.placement
-	}
-	return r.template
+	return r.federatedResource
 }
 
 func (r *federatedResource) TemplateVersion() (string, error) {
-	return GetTemplateHash(r.template)
+	obj := r.federatedResource
+	if r.targetIsNamespace {
+		obj = r.namespace
+	}
+	return GetTemplateHash(obj.Object, r.targetIsNamespace)
 }
 
 func (r *federatedResource) OverrideVersion() (string, error) {
-	override, err := r.getOverride()
-	if err != nil {
-		return "", err
-	}
-	// Overrides are optional
-	if override == nil {
-		return "", nil
-	}
-	// TODO(marun) Hash the overrides
-	return override.GetResourceVersion(), nil
+	// TODO(marun) Consider hashing overrides per cluster to minimize
+	// unnecessary updates.
+	return GetOverrideHash(r.federatedResource)
 }
 
 func (r *federatedResource) GetVersions() (map[string]string, error) {
@@ -116,7 +107,10 @@ func (r *federatedResource) DeleteVersions() {
 }
 
 func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.FederatedCluster) ([]string, []string, error) {
-	return r.placementPlugin.ComputePlacement(r.federatedName, clusters)
+	if r.typeConfig.GetNamespaced() {
+		return computeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope)
+	}
+	return computePlacement(r.federatedResource, clusters)
 }
 
 func (r *federatedResource) SkipClusterChange(clusterObj pkgruntime.Object) bool {
@@ -129,7 +123,7 @@ func (r *federatedResource) SkipClusterChange(clusterObj pkgruntime.Object) bool
 	// separation between the template and target resources, but a
 	// namespace in the host cluster is necessarily both template and
 	// target.
-	return r.targetIsNamespace && util.IsPrimaryCluster(r.template, clusterObj)
+	return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
 }
 
 // TODO(marun) Marshall the template once per reconcile, not per-cluster
@@ -147,26 +141,15 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	// TODO(marun) Ensure this is reflected in documentation
 	obj := &unstructured.Unstructured{}
 	if r.targetIsNamespace {
-		metadata, ok, err := unstructured.NestedMap(r.template.Object, "metadata")
+		var err error
+		obj, err = namespaceFromTemplate(r.namespace.Object)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error retrieving namespace metadata")
+			return nil, err
 		}
-		if !ok {
-			return nil, errors.New("Unable to retrieve namespace metadata")
-		}
-		// Retain only the target fields from the template
-		targetFields := sets.NewString("name", "namespace", "labels", "annotations")
-		for key := range metadata {
-			if !targetFields.Has(key) {
-				delete(metadata, key)
-			}
-		}
-		obj.Object = make(map[string]interface{})
-		obj.Object["metadata"] = metadata
 	} else {
 		var ok bool
 		var err error
-		obj.Object, ok, err = unstructured.NestedMap(r.template.Object, "spec", "template")
+		obj.Object, ok, err = unstructured.NestedMap(r.federatedResource.Object, util.SpecField, util.TemplateField)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error retrieving template body")
 		}
@@ -178,8 +161,8 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 		// clusters.
 		//
 		// TODO(marun) this should be documented
-		obj.SetName(r.template.GetName())
-		obj.SetNamespace(r.template.GetNamespace())
+		obj.SetName(r.federatedResource.GetName())
+		obj.SetNamespace(r.federatedResource.GetNamespace())
 		targetApiResource := r.typeConfig.GetTarget()
 		obj.SetKind(targetApiResource.Kind)
 		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
@@ -199,114 +182,113 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	return obj, nil
 }
 
-func (r *federatedResource) FinalizationKind() string {
-	return r.finalizationTarget().GetKind()
-}
-
 func (r *federatedResource) MarkedForDeletion() bool {
-	return r.finalizationTarget().GetDeletionTimestamp() != nil
+	return r.federatedResource.GetDeletionTimestamp() != nil
 }
 
 func (r *federatedResource) EnsureDeletion() error {
 	r.DeleteVersions()
 	_, err := r.deletionHelper.HandleObjectInUnderlyingClusters(
-		r.finalizationTarget(),
+		r.federatedResource,
 		func(clusterObj pkgruntime.Object) bool {
 			// Skip deletion of a namespace in the host cluster as it will be
 			// removed by the garbage collector once its contents are removed.
-			return r.targetIsNamespace && util.IsPrimaryCluster(r.template, clusterObj)
+			return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
 		},
 	)
 	return err
 }
 
 func (r *federatedResource) EnsureFinalizers() error {
-	updatedObj, err := r.deletionHelper.EnsureFinalizers(r.finalizationTarget())
-	if updatedObj != nil && !r.targetIsNamespace {
+	updatedObj, err := r.deletionHelper.EnsureFinalizers(r.federatedResource)
+	if updatedObj != nil {
 		// Retain the updated template for use in future API calls.
-		// If the target is namespace, the placement resource is used
-		// for finalization and no updates are expected.
-		r.template = updatedObj.(*unstructured.Unstructured)
+		r.federatedResource = updatedObj.(*unstructured.Unstructured)
 	}
 	return err
 }
 
-func (r *federatedResource) finalizationTarget() *unstructured.Unstructured {
-	// A placement resource determines whether a resource should exist
-	// in member clusters. If a template exists but the associated
-	// placement does not, then the resource represented by the
-	// template should be removed from all member clusters.  That
-	// suggests that finalization could as well be performed on the
-	// placement as the template.
-	//
-	// Adding a finalizer to a namespace resource is problematic
-	// because it has the potential to try to delete namespaces in
-	// member clusters when a namespace in the host cluster is
-	// deleted.  This could occur even if a namespace was never
-	// intended to be federated.  Adding the finalizer to the
-	// namespace placement resource will still ensure cleanup of
-	// resources in member clusters (since deletion of the namespace
-	// will trigger deletion of its placement resource) but ensure
-	// that cleanup is only attempted for namespaces that have been
-	// explicitly targeted for propagation.
-	//
-	// TODO(marun) Consider performing finalization on the placement
-	// resource for other types.
-	//
-	if r.targetIsNamespace {
-		return r.placement
-	}
-	return r.template
-}
-
 func (r *federatedResource) overridesForCluster(clusterName string) (util.ClusterOverridesMap, error) {
 	if r.overridesMap == nil {
-		override, err := r.getOverride()
+		overridesMap, err := util.GetOverrides(r.federatedResource)
 		if err != nil {
-			return nil, err
+			return nil, errors.Errorf("Error reading cluster overrides for %s %q", r.federatedKind, r.federatedName)
 		}
-		r.overridesMap, err = util.GetOverrides(override)
-		if err != nil {
-			overrideKind := r.typeConfig.GetOverride().Kind
-			return nil, errors.Wrapf(err, "Error reading cluster overrides for %s %q", overrideKind, r.federatedName)
-		}
+		r.overridesMap = overridesMap
 	}
 	return r.overridesMap[clusterName], nil
 }
 
-func (r *federatedResource) getOverride() (*unstructured.Unstructured, error) {
-	if r.override == nil {
-		overrideKind := r.typeConfig.GetOverride().Kind
-		var err error
-		r.override, err = util.ObjFromCache(r.overrideStore, overrideKind, r.federatedName.String())
-		if err != nil {
-			return nil, err
-		}
-	}
-	return r.override, nil
-}
-
-func GetTemplateHash(template *unstructured.Unstructured) (string, error) {
-	// A namespace resource is the template and the lack of status
-	// updates to namespaces means the resource version is a good
-	// indicator of changes the sync controller needs to consider.
-	if template.GetKind() == util.NamespaceKind {
-		return template.GetResourceVersion(), nil
-	}
-
-	obj := &unstructured.Unstructured{}
-	templateMap, ok, err := unstructured.NestedMap(template.Object, "spec", "template")
+func namespaceFromTemplate(fieldMap map[string]interface{}) (*unstructured.Unstructured, error) {
+	metadata, ok, err := unstructured.NestedMap(fieldMap, "metadata")
 	if err != nil {
-		return "", errors.Wrap(err, "Error retrieving template body")
+		return nil, errors.Wrap(err, "Error retrieving namespace metadata")
 	}
 	if !ok {
-		return "", nil
+		return nil, errors.New("Unable to retrieve namespace metadata")
 	}
-	obj.Object = templateMap
+	// Retain only the target fields from the template
+	targetFields := sets.NewString("name", "labels", "annotations")
+	for key := range metadata {
+		if !targetFields.Has(key) {
+			delete(metadata, key)
+		}
+	}
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": metadata,
+		},
+	}
+	return obj, nil
+}
 
+func GetTemplateHash(fieldMap map[string]interface{}, namespaceIsTarget bool) (string, error) {
+	var obj *unstructured.Unstructured
+	var description string
+	if namespaceIsTarget {
+		var err error
+		obj, err = namespaceFromTemplate(fieldMap)
+		if err != nil {
+			return "", err
+		}
+		description = "namespace"
+	} else {
+		fields := []string{util.SpecField, util.TemplateField}
+		fieldMap, ok, err := unstructured.NestedMap(fieldMap, fields...)
+		if err != nil {
+			return "", errors.Wrapf(err, "Error retrieving %q", strings.Join(fields, "."))
+		}
+		if !ok {
+			return "", nil
+		}
+		obj = &unstructured.Unstructured{Object: fieldMap}
+		description = strings.Join(fields, ".")
+	}
+
+	return hashUnstructured(obj, description)
+}
+
+func GetOverrideHash(rawObj *unstructured.Unstructured) (string, error) {
+	override := util.GenericOverride{}
+	err := util.UnstructuredToInterface(rawObj, &override)
+	if err != nil {
+		return "", errors.Wrap(err, "Error retrieving overrides")
+	}
+	// Only hash the overrides
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"overrides": override.Spec.Overrides,
+		},
+	}
+
+	return hashUnstructured(obj, "overrides")
+}
+
+// TODO(marun) Investigate alternate ways of computing the hash of a field map.
+func hashUnstructured(obj *unstructured.Unstructured, description string) (string, error) {
 	jsonBytes, err := obj.MarshalJSON()
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to marshal template body to json")
+		return "", errors.Wrapf(err, "Failed to marshal %q to json", description)
 	}
 	hash := md5.New()
 	hash.Write(jsonBytes)

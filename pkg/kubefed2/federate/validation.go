@@ -20,86 +20,67 @@ import (
 	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
-func templateValidationSchema(accessor schemaAccessor) (*v1beta1.CustomResourceValidation, error) {
-	var properties map[string]v1beta1.JSONSchemaProps
-	if accessor != nil {
-		properties = accessor.templateSchema()
-	}
-	return ValidationSchema(v1beta1.JSONSchemaProps{
+func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
+	schema := ValidationSchema(v1beta1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]v1beta1.JSONSchemaProps{
-			"template": {
-				Type:       "object",
-				Properties: properties,
-			},
-		},
-	}), nil
-}
-
-func placementValidationSchema() *v1beta1.CustomResourceValidation {
-	return ValidationSchema(v1beta1.JSONSchemaProps{
-		Type: "object",
-		Properties: map[string]v1beta1.JSONSchemaProps{
-			// clusterName allows a scheduling mechanism to explicitly
-			// indicate placement. If clusterName is provided,
-			// labelSelector will be ignored.
-			"clusterNames": {
-				Type: "array",
-				Items: &v1beta1.JSONSchemaPropsOrArray{
-					Schema: &v1beta1.JSONSchemaProps{
-						Type: "string",
-					},
-				},
-			},
-			"clusterSelector": {
+			"placement": {
 				Type: "object",
 				Properties: map[string]v1beta1.JSONSchemaProps{
-					"matchExpressions": {
+					// clusterName allows a scheduling mechanism to explicitly
+					// indicate placement. If clusterName is provided,
+					// labelSelector will be ignored.
+					"clusterNames": {
 						Type: "array",
 						Items: &v1beta1.JSONSchemaPropsOrArray{
-							Schema: &v1beta1.JSONSchemaProps{
-								Type: "object",
-								Properties: map[string]v1beta1.JSONSchemaProps{
-									"key": {
-										Type: "string",
-									},
-									"operator": {
-										Type: "string",
-									},
-									"values": {
-										Type: "array",
-										Items: &v1beta1.JSONSchemaPropsOrArray{
-											Schema: &v1beta1.JSONSchemaProps{
-												Type: "string",
-											},
-										},
-									},
-								},
-								Required: []string{
-									"key",
-									"operator",
-								},
-							},
-						},
-					},
-					"matchLabels": {
-						Type: "object",
-						AdditionalProperties: &v1beta1.JSONSchemaPropsOrBool{
 							Schema: &v1beta1.JSONSchemaProps{
 								Type: "string",
 							},
 						},
 					},
+					"clusterSelector": {
+						Type: "object",
+						Properties: map[string]v1beta1.JSONSchemaProps{
+							"matchExpressions": {
+								Type: "array",
+								Items: &v1beta1.JSONSchemaPropsOrArray{
+									Schema: &v1beta1.JSONSchemaProps{
+										Type: "object",
+										Properties: map[string]v1beta1.JSONSchemaProps{
+											"key": {
+												Type: "string",
+											},
+											"operator": {
+												Type: "string",
+											},
+											"values": {
+												Type: "array",
+												Items: &v1beta1.JSONSchemaPropsOrArray{
+													Schema: &v1beta1.JSONSchemaProps{
+														Type: "string",
+													},
+												},
+											},
+										},
+										Required: []string{
+											"key",
+											"operator",
+										},
+									},
+								},
+							},
+							"matchLabels": {
+								Type: "object",
+								AdditionalProperties: &v1beta1.JSONSchemaPropsOrBool{
+									Schema: &v1beta1.JSONSchemaProps{
+										Type: "string",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-		},
-	})
-}
-
-func overrideValidationSchema() *v1beta1.CustomResourceValidation {
-	return ValidationSchema(v1beta1.JSONSchemaProps{
-		Type: "object",
-		Properties: map[string]v1beta1.JSONSchemaProps{
 			"overrides": {
 				Type: "array",
 				Items: &v1beta1.JSONSchemaPropsOrArray{
@@ -151,6 +132,13 @@ func overrideValidationSchema() *v1beta1.CustomResourceValidation {
 			},
 		},
 	})
+	if templateSchema != nil {
+		schema.OpenAPIV3Schema.Properties["spec"].Properties["template"] = v1beta1.JSONSchemaProps{
+			Type:       "object",
+			Properties: templateSchema,
+		}
+	}
+	return schema
 }
 
 func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {

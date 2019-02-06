@@ -35,7 +35,11 @@ const (
 	// Common fields
 	SpecField = "spec"
 
+	// Template fields
+	TemplateField = "template"
+
 	// Placement fields
+	PlacementField       = "placement"
 	ClusterNamesField    = "clusterNames"
 	ClusterSelectorField = "clusterSelector"
 

@@ -52,10 +52,10 @@ type FederationStatusController struct {
 	// Contains resources present in members of federation.
 	informer util.FederatedInformer
 
-	// Store for the templates of the federated type
-	templateStore cache.Store
-	// Informer for the templates of the federated type
-	templateController cache.Controller
+	// Store for the federated type
+	federatedStore cache.Store
+	// Informer for the federated type
+	federatedController cache.Controller
 
 	// Store for the status of the federated type
 	statusStore cache.Store
@@ -85,21 +85,21 @@ func StartFederationStatusController(controllerConfig *util.ControllerConfig, st
 	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting status controller for %q", typeConfig.GetTemplate().Kind))
+	glog.Infof(fmt.Sprintf("Starting status controller for %q", typeConfig.GetFederatedType().Kind))
 	controller.Run(stopChan)
 	return nil
 }
 
 // newFederationStatusController returns a new status controller for the federated type
 func newFederationStatusController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*FederationStatusController, error) {
-	templateAPIResource := typeConfig.GetTemplate()
+	federatedAPIResource := typeConfig.GetFederatedType()
 	statusAPIResource := typeConfig.GetStatus()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
 
 	// Initialize non-dynamic clients first to avoid polluting config
 	fedClient, kubeClient, crClient := controllerConfig.AllClients(userAgent)
 
-	templateClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &templateAPIResource)
+	federatedTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &federatedAPIResource)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 
 	targetNamespace := controllerConfig.TargetNamespace
 
-	s.templateStore, s.templateController = util.NewResourceInformer(templateClient, targetNamespace, enqueueObj)
+	s.federatedStore, s.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, enqueueObj)
 	s.statusStore, s.statusController = util.NewResourceInformer(statusClient, targetNamespace, enqueueObj)
 
 	targetAPIResource := typeConfig.GetTarget()
@@ -172,7 +172,7 @@ func (s *FederationStatusController) minimizeLatency() {
 
 // Run runs the status controller
 func (s *FederationStatusController) Run(stopChan <-chan struct{}) {
-	go s.templateController.Run(stopChan)
+	go s.federatedController.Run(stopChan)
 	go s.statusController.Run(stopChan)
 	s.informer.Start()
 	s.clusterDeliverer.StartWithHandler(func(_ *util.DelayingDelivererItem) {
@@ -196,8 +196,8 @@ func (s *FederationStatusController) isSynced() bool {
 		glog.V(2).Infof("Cluster list not synced")
 		return false
 	}
-	if !s.templateController.HasSynced() {
-		glog.V(2).Infof("Template not synced")
+	if !s.federatedController.HasSynced() {
+		glog.V(2).Infof("Federated type not synced")
 		return false
 	}
 	if !s.statusController.HasSynced() {
@@ -221,7 +221,7 @@ func (s *FederationStatusController) reconcileOnClusterChange() {
 	if !s.isSynced() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
-	for _, obj := range s.templateStore.List() {
+	for _, obj := range s.federatedStore.List() {
 		qualifiedName := util.NewQualifiedName(obj.(pkgruntime.Object))
 		s.worker.EnqueueWithDelay(qualifiedName, s.smallDelay)
 	}
@@ -232,7 +232,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 		return util.StatusNotSynced
 	}
 
-	templateKind := s.typeConfig.GetTemplate().Kind
+	federatedKind := s.typeConfig.GetFederatedType().Kind
 	statusKind := s.typeConfig.GetStatus().Kind
 	key := qualifiedName.String()
 
@@ -240,13 +240,13 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	startTime := time.Now()
 	defer glog.V(4).Infof("Finished reconciling %v %v (duration: %v)", statusKind, key, time.Since(startTime))
 
-	template, err := s.objFromCache(s.templateStore, templateKind, key)
+	fedObject, err := s.objFromCache(s.federatedStore, federatedKind, key)
 	if err != nil {
 		return util.StatusError
 	}
 
-	if template == nil || template.GetDeletionTimestamp() != nil {
-		glog.V(4).Infof("No template for %v %v found", templateKind, key)
+	if fedObject == nil || fedObject.GetDeletionTimestamp() != nil {
+		glog.V(4).Infof("No federated type for %v %v found", federatedKind, key)
 		// Status object is removed by GC. So we don't have to do anything more here.
 		return util.StatusAllOK
 	}
@@ -276,13 +276,14 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      qualifiedName.Name,
 			Namespace: qualifiedName.Namespace,
-			// Add ownership of status object to corresponding template object,
-			// so that status object is deleted when template is deleted.
+			// Add ownership of status object to corresponding
+			// federated object, so that status object is deleted when
+			// the federated object is deleted.
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: template.GetAPIVersion(),
-				Kind:       template.GetKind(),
-				Name:       template.GetName(),
-				UID:        template.GetUID(),
+				APIVersion: fedObject.GetAPIVersion(),
+				Kind:       fedObject.GetKind(),
+				Name:       fedObject.GetName(),
+				UID:        fedObject.GetUID(),
 			}},
 		},
 		ClusterStatus: clusterStatus,

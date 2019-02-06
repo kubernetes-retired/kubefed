@@ -93,7 +93,7 @@ func GetOverrides(rawObj *unstructured.Unstructured) (OverridesMap, error) {
 	}
 
 	override := GenericOverride{}
-	err := unstructuredToInterface(rawObj, &override)
+	err := UnstructuredToInterface(rawObj, &override)
 	if err != nil {
 		return nil, err
 	}
@@ -130,11 +130,11 @@ func GetOverrides(rawObj *unstructured.Unstructured) (OverridesMap, error) {
 
 // SetOverrides sets the spec.overrides field of the unstructured
 // object from the provided overrides map.
-func SetOverrides(override *unstructured.Unstructured, overridesMap OverridesMap) error {
-	rawSpec := override.Object[SpecField]
+func SetOverrides(fedObject *unstructured.Unstructured, overridesMap OverridesMap) error {
+	rawSpec := fedObject.Object[SpecField]
 	if rawSpec == nil {
 		rawSpec = map[string]interface{}{}
-		override.Object[SpecField] = rawSpec
+		fedObject.Object[SpecField] = rawSpec
 	}
 
 	spec, ok := rawSpec.(map[string]interface{})
@@ -145,9 +145,9 @@ func SetOverrides(override *unstructured.Unstructured, overridesMap OverridesMap
 	return nil
 }
 
-// unstructuredToInterface converts an unstructured object to the
+// UnstructuredToInterface converts an unstructured object to the
 // provided interface by json marshalling/unmarshalling.
-func unstructuredToInterface(rawObj *unstructured.Unstructured, obj interface{}) error {
+func UnstructuredToInterface(rawObj *unstructured.Unstructured, obj interface{}) error {
 	content, err := rawObj.MarshalJSON()
 	if err != nil {
 		return err

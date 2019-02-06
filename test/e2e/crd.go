@@ -168,13 +168,12 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	for _, c := range configs {
 		waitForCrd(c, tl, typeConfig.GetTarget())
 	}
-	waitForCrd(hostConfig, tl, typeConfig.GetTemplate())
-	waitForCrd(hostConfig, tl, typeConfig.GetPlacement())
+	waitForCrd(hostConfig, tl, typeConfig.GetFederatedType())
 
 	// TODO(marun) If not using in-memory controllers, wait until the
 	// controller has started.
 
-	testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
+	testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
 		fixtureYAML := `
 kind: fixture
 template:
@@ -192,9 +191,9 @@ overrides:
 		fixture := &unstructured.Unstructured{}
 		err = federate.DecodeYAML(strings.NewReader(fixtureYAML), fixture)
 		if err != nil {
-			return nil, nil, nil, errors.Wrap(err, "Error reading test fixture")
+			return nil, errors.Wrap(err, "Error reading test fixture")
 		}
-		return common.NewTestObjects(typeConfig, namespace, clusterNames, fixture)
+		return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
 	}
 
 	validateCrud(f, tl, typeConfig, testObjectFunc)

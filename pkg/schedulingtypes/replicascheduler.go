@@ -94,7 +94,7 @@ func (s *ReplicaScheduler) Kind() string {
 }
 
 func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface) error {
-	kind := typeConfig.GetTemplate().Kind
+	kind := typeConfig.GetFederatedType().Kind
 	// TODO(marun) Return an error if the kind is not supported
 
 	plugin, err := NewPlugin(s.controllerConfig, s.eventHandlers, typeConfig)
@@ -189,8 +189,8 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName Qualif
 		return StatusAllOK
 	}
 
-	if !plugin.TemplateExists(qualifiedName.String()) {
-		// target FederatedTemplate does not exist, nothing to do
+	if !plugin.FederatedTypeExists(qualifiedName.String()) {
+		// target FederatedType does not exist, nothing to do
 		return StatusAllOK
 	}
 
@@ -201,7 +201,7 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName Qualif
 		return StatusError
 	}
 
-	err = s.ReconcileFederationTargets(qualifiedName, kind, result)
+	err = s.plugins[kind].Reconcile(qualifiedName, result)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to reconcile Federation Targets for RSP named %q", key))
 		return StatusError
@@ -222,20 +222,6 @@ func (s *ReplicaScheduler) clusterNames() ([]string, error) {
 	}
 
 	return clusterNames, nil
-}
-
-func (s *ReplicaScheduler) ReconcileFederationTargets(qualifiedName QualifiedName, kind string, result map[string]int64) error {
-	newClusterNames := []string{}
-	for name := range result {
-		newClusterNames = append(newClusterNames, name)
-	}
-
-	err := s.plugins[kind].ReconcilePlacement(qualifiedName, newClusterNames)
-	if err != nil {
-		return err
-	}
-
-	return s.plugins[kind].ReconcileOverride(qualifiedName, result)
 }
 
 func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName QualifiedName, clusterNames []string) (map[string]int64, error) {
@@ -288,7 +274,7 @@ func schedule(planner *planner.Planner, key string, clusterNames []string, curre
 
 	scheduleResult, overflow := planner.Plan(clusterNames, currentReplicasPerCluster, estimatedCapacity, key)
 
-	// TODO: Check if we really need to place the template in clusters
+	// TODO: Check if we really need to place the federated type in clusters
 	// with 0 replicas. Override replicas would be set to 0 in this case.
 	result := make(map[string]int64)
 	for clusterName := range currentReplicasPerCluster {

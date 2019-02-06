@@ -87,10 +87,10 @@ type FederationFramework interface {
 	// Ensure propagation of the test namespace to member clusters
 	EnsureTestNamespacePropagation()
 
-	// Ensure a placement resource for the test namespace exists so
-	// that the namespace will be propagated to either all or no
-	// member clusters.
-	EnsureTestNamespacePlacement(allClusters bool) *unstructured.Unstructured
+	// Ensure a federated namespace resource for the test namespace
+	// exists so that the namespace will be propagated to either all
+	// or no member clusters.
+	EnsureTestFederatedNamespace(allClusters bool) *unstructured.Unstructured
 }
 
 // A framework needs to be instantiated before tests are executed to
@@ -206,8 +206,8 @@ func (f *frameworkWrapper) setUpSyncControllerFixture(typeConfig typeconfig.Inte
 
 func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
 	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
-	placement := namespaceTypeConfig.GetPlacement()
-	return f.framework().setUpSyncControllerFixture(typeConfig, &placement)
+	fedNamespaceAPIResource := namespaceTypeConfig.GetFederatedType()
+	return f.framework().setUpSyncControllerFixture(typeConfig, &fedNamespaceAPIResource)
 }
 
 func (f *frameworkWrapper) RegisterFixture(fixture managed.TestFixture) {
@@ -223,9 +223,8 @@ func (f *frameworkWrapper) EnsureTestNamespacePropagation() {
 		return
 	}
 
-	// Ensure placement selecting all clusters exists for the test
-	// namespace.
-	f.EnsureTestNamespacePlacement(true)
+	// Ensure the test namespace is propagated to all clusters.
+	f.EnsureTestFederatedNamespace(true)
 
 	// Start the namespace sync controller to propagate the namespace
 	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
@@ -233,7 +232,7 @@ func (f *frameworkWrapper) EnsureTestNamespacePropagation() {
 	f.RegisterFixture(fixture)
 }
 
-func (f *frameworkWrapper) EnsureTestNamespacePlacement(allClusters bool) *unstructured.Unstructured {
+func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstructured.Unstructured {
 	tl := f.Logger()
 
 	dynclient, err := client.New(f.KubeConfig(), client.Options{})
@@ -241,7 +240,7 @@ func (f *frameworkWrapper) EnsureTestNamespacePlacement(allClusters bool) *unstr
 		tl.Fatalf("Error initializing dynamic client: %v", err)
 	}
 
-	apiResource := f.namespaceTypeConfigOrDie().GetPlacement()
+	apiResource := f.namespaceTypeConfigOrDie().GetFederatedType()
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   apiResource.Group,
@@ -251,7 +250,7 @@ func (f *frameworkWrapper) EnsureTestNamespacePlacement(allClusters bool) *unstr
 
 	namespace := f.TestNamespaceName()
 
-	// Return an existing namespace placement if it already exists.
+	// Return an existing federated namespace if it already exists.
 	key := client.ObjectKey{Namespace: namespace, Name: namespace}
 	err = dynclient.Get(context.Background(), key, obj)
 	if err == nil {
@@ -267,7 +266,9 @@ func (f *frameworkWrapper) EnsureTestNamespacePlacement(allClusters bool) *unstr
 	if allClusters {
 		// An empty cluster selector field selects all clusters
 		obj.Object[util.SpecField] = map[string]interface{}{
-			util.ClusterSelectorField: map[string]interface{}{},
+			util.PlacementField: map[string]interface{}{
+				util.ClusterSelectorField: map[string]interface{}{},
+			},
 		}
 	}
 

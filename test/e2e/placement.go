@@ -82,14 +82,14 @@ var _ = Describe("Placement", func() {
 		}
 
 		// Propagate a resource to member clusters
-		testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-			return common.NewTestObjects(selectedTypeConfig, namespace, clusterNames, fixture)
+		testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
+			return common.NewTestObject(selectedTypeConfig, namespace, clusterNames, fixture)
 		}
-		crudTester, desiredTemplate, desiredPlacement, desiredOverride := initCrudTest(f, tl, selectedTypeConfig, testObjectFunc)
-		template, _, _ := crudTester.CheckCreate(desiredTemplate, desiredPlacement, desiredOverride)
+		crudTester, desiredFedObject := initCrudTest(f, tl, selectedTypeConfig, testObjectFunc)
+		fedObject := crudTester.CheckCreate(desiredFedObject)
 		defer func() {
 			orphanDependents := false
-			crudTester.CheckDelete(template, &orphanDependents)
+			crudTester.CheckDelete(fedObject, &orphanDependents)
 		}()
 
 		// Wait until pending events for the templates have cleared
@@ -109,23 +109,23 @@ var _ = Describe("Placement", func() {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
 
-		// Ensure namespace placement selecting no clusters exist for
-		// the test namespace.
-		namespacePlacement := f.EnsureTestNamespacePlacement(false)
-		placementKey := util.NewQualifiedName(namespacePlacement).String()
+		// Ensure federated namespace with placement selecting no
+		// clusters exist for the test namespace.
+		fedNamespace := f.EnsureTestFederatedNamespace(false)
+		fedNamespaceKey := util.NewQualifiedName(fedNamespace).String()
 		// Ensure the removal of the namespace placement to avoid affecting other tests.
 		defer func() {
-			err := dynclient.Delete(context.Background(), namespacePlacement)
+			err := dynclient.Delete(context.Background(), fedNamespace)
 			if err != nil && !errors.IsNotFound(err) {
-				tl.Fatalf("Error deleting FederatedNamespacePlacement %q: %v", placementKey, err)
+				tl.Fatalf("Error deleting FederatedNamespace %q: %v", fedNamespaceKey, err)
 			}
-			tl.Logf("Deleted FederatedNamespacePlacement %q", placementKey)
+			tl.Logf("Deleted FederatedNamespace %q", fedNamespaceKey)
 		}()
 
 		// Check for removal of the propagated resource from all clusters
 		targetAPIResource := selectedTypeConfig.GetTarget()
 		targetKind := targetAPIResource.Kind
-		qualifiedName := util.NewQualifiedName(template)
+		qualifiedName := util.NewQualifiedName(fedObject)
 		for clusterName, testCluster := range crudTester.TestClusters() {
 			client, err := util.NewResourceClient(testCluster.Config, &targetAPIResource)
 			if err != nil {

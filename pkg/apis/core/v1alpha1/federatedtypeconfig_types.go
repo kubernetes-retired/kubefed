@@ -45,8 +45,9 @@ type FederatedTypeConfigSpec struct {
 	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 	// Whether or not propagation to member clusters should be enabled.
 	PropagationEnabled bool `json:"propagationEnabled"`
-	// Configuration for the federated type that defines how the target
-	// type should be propagated to multiple clusters.
+	// Configuration for the federated type that defines (via
+	// template, placement and overrides fields) how the target type
+	// should appear in multiple cluster.
 	FederatedType APIResource `json:"federatedType"`
 	// Configuration for the status type that holds information about which type
 	// holds the status of the federated resource. If not provided, the group

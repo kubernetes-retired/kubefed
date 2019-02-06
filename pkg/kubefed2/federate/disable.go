@@ -26,7 +26,6 @@ import (
 	"github.com/spf13/pflag"
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
@@ -163,7 +162,11 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	}
 
 	// TODO(marun) consider waiting for the sync controller to be stopped before attempting deletion
-	deletePrimitives(config, typeConfig, write)
+	err = deleteFederatedType(config, typeConfig, write)
+	if err != nil {
+		return err
+	}
+
 	err = fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfigName.Namespace).Delete(typeConfigName.Name, nil)
 	if err != nil {
 		return errors.Wrapf(err, "Error deleting FederatedTypeConfig %q", typeConfigName)
@@ -173,34 +176,17 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	return nil
 }
 
-func deletePrimitives(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
+func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
 	client, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Error creating crd client")
 	}
 
-	failedDeletion := []string{}
-	crdNames := primitiveCRDNames(typeConfig)
-	for _, crdName := range crdNames {
-		err := client.CustomResourceDefinitions().Delete(crdName, nil)
-		if err != nil && !apierrors.IsNotFound(err) {
-			glog.Errorf("Failed to delete crd %q: %v", crdName, err)
-			failedDeletion = append(failedDeletion, crdName)
-			continue
-		}
-		write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
+	crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
+	err = client.CustomResourceDefinitions().Delete(crdName, nil)
+	if err != nil {
+		return errors.Wrapf(err, "Error deleting crd %q", crdName)
 	}
-	if len(failedDeletion) > 0 {
-		return errors.Errorf("The following crds were not deleted successfully (see error log for details): %v", failedDeletion)
-	}
-
+	write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	return nil
-}
-
-func primitiveCRDNames(typeConfig typeconfig.Interface) []string {
-	return []string{
-		typeconfig.GroupQualifiedName(typeConfig.GetTemplate()),
-		typeconfig.GroupQualifiedName(typeConfig.GetPlacement()),
-		typeconfig.GroupQualifiedName(typeConfig.GetOverride()),
-	}
 }
