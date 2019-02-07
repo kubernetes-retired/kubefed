@@ -47,11 +47,14 @@ var (
 		--host-cluster-context flag otherwise.`
 
 	disable_example = `
-		# Disable propagation of the Service type
-		kubefed2 federate disable Service
+		# Disable propagation of the kubernetes API type 'Deployment', named
+		in FederatedTypeConfig as 'deployment.apps'
+		kubefed2 disable deployment.apps
 
-		# Disable propagation of the Service type and delete API resources
-		kubefed2 federate disable Service --delete-from-api`
+		# Disable propagation of the kubernetes API type 'Deployment', named
+		in FederatedTypeConfig as 'deployment.apps', and delete corresponding
+		Federated API resources
+		kubefed2 disable deployment.apps --delete-from-api`
 )
 
 type disableType struct {
@@ -70,7 +73,7 @@ func (o *disableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.delete, "delete-from-api", false, "Whether to remove the API resources added by 'enable'.")
 }
 
-// NewCmdFederateDisable defines the `federate disable` command that
+// NewCmdTypeDisable defines the `disable` command that
 // disables federation of a Kubernetes API type.
 func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &disableType{}
@@ -110,7 +113,7 @@ func (j *disableType) Complete(args []string) error {
 	return nil
 }
 
-// Run is the implementation of the `federate disable` command.
+// Run is the implementation of the `disable` command.
 func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
