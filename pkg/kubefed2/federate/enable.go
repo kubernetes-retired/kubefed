@@ -61,7 +61,7 @@ var (
 
 	enable_example = `
 		# Enable federation of Services with service type overrideable
-		kubefed2 federate enable Service --override-paths=spec.type --host-cluster-context=cluster1`
+		kubefed2 enable Service --override-paths=spec.type --host-cluster-context=cluster1`
 )
 
 type enableType struct {
