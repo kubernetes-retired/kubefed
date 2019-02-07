@@ -18,7 +18,6 @@ package common
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -434,7 +433,10 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 					if !ok {
 						c.tl.Fatalf("Missing overridden path %s", path)
 					}
-					if !reflect.DeepEqual(expectedValue, value) {
+					// Lacking type information for the override
+					// field, use string conversion as a cheap way to
+					// determine equality.
+					if fmt.Sprintf("%v", expectedValue) != fmt.Sprintf("%v", value) {
 						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedValue, value)
 						return false, nil
 					}
