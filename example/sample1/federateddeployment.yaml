@@ -21,3 +21,12 @@ spec:
           containers:
           - image: nginx
             name: nginx
+  placement:
+    clusterNames:
+    - cluster2
+    - cluster1
+  overrides:
+  - clusterName: cluster2
+    clusterOverrides:
+    - path: spec.replicas
+      value: 5
