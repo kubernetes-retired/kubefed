@@ -41,6 +41,10 @@ const (
 	// ServiceAccount fields
 	SecretsField = "secrets"
 
+	// Scale types
+	ReplicasField       = "replicas"
+	RetainReplicasField = "retainReplicas"
+
 	// Template fields
 	TemplateField = "template"
 

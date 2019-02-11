@@ -18,6 +18,8 @@ package enable
 
 import (
 	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
@@ -133,10 +135,23 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 		},
 	})
 	if templateSchema != nil {
-		schema.OpenAPIV3Schema.Properties["spec"].Properties["template"] = v1beta1.JSONSchemaProps{
+		specProperties := schema.OpenAPIV3Schema.Properties["spec"].Properties
+		specProperties["template"] = v1beta1.JSONSchemaProps{
 			Type:       "object",
 			Properties: templateSchema,
 		}
+		// Add retainReplicas field to types that exposes a replicas
+		// field that could be targeted by HPA.
+		if templateSpec, ok := templateSchema["spec"]; ok {
+			if replicasField, ok := templateSpec.Properties["replicas"]; ok {
+				if replicasField.Type == "integer" && replicasField.Format == "int32" {
+					specProperties[util.RetainReplicasField] = v1beta1.JSONSchemaProps{
+						Type: "bool",
+					}
+				}
+			}
+		}
+
 	}
 	return schema
 }
