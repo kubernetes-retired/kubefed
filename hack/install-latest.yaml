@@ -228,8 +228,6 @@ spec:
           type: object
         spec:
           properties:
-            comparisonField:
-              type: string
             enableStatus:
               type: boolean
             federatedType:
@@ -278,7 +276,6 @@ spec:
           required:
           - target
           - namespaced
-          - comparisonField
           - propagationEnabled
           - federatedType
           type: object
