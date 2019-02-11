@@ -4,7 +4,6 @@ kind: FederatedTypeConfig
 metadata:
   name: ingresses.extensions
 spec:
-  comparisonField: Generation
   federatedType:
     group: primitives.federation.k8s.io
     kind: FederatedIngress

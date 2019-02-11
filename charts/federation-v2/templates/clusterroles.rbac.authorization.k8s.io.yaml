@@ -4,7 +4,6 @@ kind: FederatedTypeConfig
 metadata:
   name: clusterroles.rbac.authorization.k8s.io
 spec:
-  comparisonField: ResourceVersion
   federatedType:
     group: primitives.federation.k8s.io
     kind: FederatedClusterRole

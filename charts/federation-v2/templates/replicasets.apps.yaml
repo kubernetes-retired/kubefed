@@ -4,7 +4,6 @@ kind: FederatedTypeConfig
 metadata:
   name: replicasets.apps
 spec:
-  comparisonField: Generation
   federatedType:
     group: primitives.federation.k8s.io
     kind: FederatedReplicaSet

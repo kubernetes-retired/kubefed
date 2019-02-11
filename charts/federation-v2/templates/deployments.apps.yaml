@@ -4,7 +4,6 @@ kind: FederatedTypeConfig
 metadata:
   name: deployments.apps
 spec:
-  comparisonField: Generation
   federatedType:
     group: primitives.federation.k8s.io
     kind: FederatedDeployment
