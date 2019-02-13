@@ -60,7 +60,7 @@ util::wait-for-condition 'ok' "curl http://127.0.0.1:2379/version &> /dev/null" 
 util::wait-for-condition 'ok' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --context federation get --raw=/healthz &> /dev/null" 60
 
 # Generate YAML templates to enable resource propagation for helm chart.
-for filename in ./config/federatedirectives/*.yaml; do
+for filename in ./config/enabletypedirectives/*.yaml; do
   ./bin/kubefed2 --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
 done
 

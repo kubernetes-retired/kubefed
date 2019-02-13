@@ -1,6 +1,6 @@
 apiVersion: core.federation.k8s.io/v1alpha1
-kind: FederateDirective
+kind: EnableTypeDirective
 metadata:
-  name: serviceaccounts
+  name: deployments.apps
 spec:
   comparisonField: Generation

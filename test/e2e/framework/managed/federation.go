@@ -370,47 +370,47 @@ func waitForCrd(tl common.TestLogger, config *rest.Config, crd *apiextv1b1.Custo
 
 func federateCoreTypes(tl common.TestLogger, config *rest.Config, namespace string) []*apiextv1b1.CustomResourceDefinition {
 	crds := []*apiextv1b1.CustomResourceDefinition{}
-	for _, federateDirective := range loadFederateDirectives(tl) {
-		resources, err := federate.GetResources(config, federateDirective)
+	for _, enableTypeDirective := range loadEnableTypeDirectives(tl) {
+		resources, err := federate.GetResources(config, enableTypeDirective)
 		if err != nil {
-			tl.Fatalf("Error retrieving resource definitions for FederateDirective %q: %v", federateDirective.Name, err)
+			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}
 		err = federate.CreateResources(nil, config, resources, namespace)
 		if err != nil {
-			tl.Fatalf("Error creating resources for FederateDirective %q: %v", federateDirective.Name, err)
+			tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}
 		crds = append(crds, resources.CRDs...)
 	}
 	return crds
 }
-func loadFederateDirectives(tl common.TestLogger) []*federate.FederateDirective {
-	path := federateDirectivesPath(tl)
+func loadEnableTypeDirectives(tl common.TestLogger) []*federate.EnableTypeDirective {
+	path := enableTypeDirectivesPath(tl)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		tl.Fatalf("Error reading FederateDirective resources from path %q: %v", path, err)
+		tl.Fatalf("Error reading EnableTypeDirective resources from path %q: %v", path, err)
 	}
-	federateDirectives := []*federate.FederateDirective{}
+	enableTypeDirectives := []*federate.EnableTypeDirective{}
 	suffix := ".yaml"
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), suffix) {
 			continue
 		}
 		filename := filepath.Join(path, file.Name())
-		obj := federate.NewFederateDirective()
+		obj := federate.NewEnableTypeDirective()
 		err := federate.DecodeYAMLFromFile(filename, obj)
 		if err != nil {
-			tl.Fatalf("Error loading FederateDirective from file %q: %v", filename, err)
+			tl.Fatalf("Error loading EnableTypeDirective from file %q: %v", filename, err)
 		}
-		federateDirectives = append(federateDirectives, obj)
+		enableTypeDirectives = append(enableTypeDirectives, obj)
 	}
-	return federateDirectives
+	return enableTypeDirectives
 }
 
-func federateDirectivesPath(tl common.TestLogger) string {
+func enableTypeDirectivesPath(tl common.TestLogger) string {
 	// Get the directory of the current executable
 	_, filename, _, _ := runtime.Caller(0)
 	managedPath := filepath.Dir(filename)
-	path, err := filepath.Abs(fmt.Sprintf("%s/../../../../config/federatedirectives", managedPath))
+	path, err := filepath.Abs(fmt.Sprintf("%s/../../../../config/enabletypedirectives", managedPath))
 	if err != nil {
 		tl.Fatalf("Error discovering the path to FederatedType resources: %v", err)
 	}

@@ -22,8 +22,8 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 )
 
-// FederateDirectiveSpec defines the desired state of FederateDirective.
-type FederateDirectiveSpec struct {
+// EnableTypeDirectiveSpec defines the desired state of EnableTypeDirective.
+type EnableTypeDirectiveSpec struct {
 	// The API version of the target type.
 	// +optional
 	TargetVersion string `json:"targetVersion,omitempty"`
@@ -44,21 +44,21 @@ type FederateDirectiveSpec struct {
 // TODO(marun) This should become a proper API type and drive enabling
 // type federation via a controller.  For now its only purpose is to
 // enable loading of configuration from disk.
-type FederateDirective struct {
+type EnableTypeDirective struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec FederateDirectiveSpec `json:"spec,omitempty"`
+	Spec EnableTypeDirectiveSpec `json:"spec,omitempty"`
 }
 
-func (ft *FederateDirective) SetDefaults() {
+func (ft *EnableTypeDirective) SetDefaults() {
 	ft.Spec.ComparisonField = defaultComparisonField
 	ft.Spec.PrimitiveGroup = defaultPrimitiveGroup
 	ft.Spec.PrimitiveVersion = defaultPrimitiveVersion
 }
 
-func NewFederateDirective() *FederateDirective {
-	ft := &FederateDirective{}
+func NewEnableTypeDirective() *EnableTypeDirective {
+	ft := &EnableTypeDirective{}
 	ft.SetDefaults()
 	return ft
 }
