@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/kubernetes-sigs/federation-v2.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/federation-v2 "Travis")
 [![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/federation-v2/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/federation-v2)
 
-## Summary
+## Summary of Federation V2 status
+
+Note, that we've changed quite a bit since V1, see the FAQ for salient details if your interested in planning a strategic direction around federation.
 
 This repo contains an in-progress prototype of some of the
 foundational aspects of V2 of Kubernetes Federation.  The prototype
