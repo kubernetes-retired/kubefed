@@ -92,7 +92,7 @@ func HostClientset(config *rest.Config) (*client.Clientset, error) {
 // ClusterClientset provides a kubernetes API compliant clientset to
 // communicate with the joining cluster's kubernetes API server.
 func ClusterClientset(config *rest.Config) (*client.Clientset, error) {
-	return client.NewForConfigOrDie(config), nil
+	return client.NewForConfig(config)
 }
 
 // ClusterRegistryClientset provides a cluster registry API compliant
