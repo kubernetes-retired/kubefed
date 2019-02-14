@@ -14,7 +14,9 @@ limitations under the License.
 package kubefed2
 
 import (
+	goerrors "errors"
 	"io"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -54,6 +56,7 @@ type unjoinFederation struct {
 }
 
 type unjoinFederationOptions struct {
+	hostClusterName    string
 	clusterContext     string
 	removeFromRegistry bool
 	forceDeletion      bool
@@ -68,6 +71,8 @@ func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Remove the cluster from the cluster registry running in the host cluster context.")
 	flags.BoolVar(&o.forceDeletion, "force", false,
 		"Delete federated cluster and secret resources even if resources in the cluster targeted for unjoin are not removed successfully.")
+	flags.StringVar(&o.hostClusterName, "host-cluster-name", "",
+		"If set, overrides the use of host-cluster-context name in resource names created in the target cluster. This option must be used when the context name has characters invalid for kubernetes resources like \"/\" and \":\".")
 }
 
 // NewCmdUnjoin defines the `unjoin` command that unjoins a cluster from a
@@ -112,6 +117,14 @@ func (j *unjoinFederation) Complete(args []string) error {
 		j.clusterContext = j.ClusterName
 	}
 
+	if j.hostClusterName != "" && strings.ContainsAny(j.hostClusterName, ":/") {
+		return goerrors.New("host-cluster-name may not contain \"/\" or \":\"")
+	}
+
+	if j.hostClusterName == "" && strings.ContainsAny(j.HostClusterContext, ":/") {
+		return goerrors.New("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
+	}
+
 	glog.V(2).Infof("Args and flags: name %s, host-cluster-context: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, dry-run: %v",
 		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.clusterContext, j.DryRun)
 
@@ -134,13 +147,18 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
+	hostClusterName := j.HostClusterContext
+	if j.hostClusterName != "" {
+		hostClusterName = j.hostClusterName
+	}
+
 	return UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
+		hostClusterName, j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
 }
 
 // UnjoinCluster performs all the necessary steps to unjoin a cluster from the
 // federation provided the required set of parameters are passed in.
-func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace, hostClusterContext,
+func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace, hostClusterName, hostClusterContext,
 	unjoiningClusterContext, unjoiningClusterName string, removeFromRegistry, forceDeletion, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
@@ -165,7 +183,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 		removeFromClusterRegistry(hostConfig, clusterNamespace, clusterConfig.Host, unjoiningClusterName, dryRun)
 	}
 
-	deletionSucceeded := deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterContext, dryRun)
+	deletionSucceeded := deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterName, dryRun)
 
 	err = deleteFedNSFromUnjoinCluster(hostClientset, clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
 	if err != nil {
