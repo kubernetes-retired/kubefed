@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/kubernetes-sigs/federation-v2.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/federation-v2 "Travis")
 [![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/federation-v2/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/federation-v2)
 
-# Kubernetes Federation v2
+## Summary
 
 This repo contains an in-progress prototype of some of the
 foundational aspects of V2 of Kubernetes Federation.  The prototype
@@ -64,3 +64,21 @@ interested in contributing.
 
 Participation in the Kubernetes community is governed by the
 [Kubernetes Code of Conduct](./code-of-conduct.md).
+
+## FAQ
+
+Some FAQ's about the future of federation and where its headed.
+
+### How do kuberenetes objects differe in federation V2, from standard objects ?
+
+- In the V1 implementation, federation actually federated core API objects across clusters.  This was very elegant
+but not scalable - all objects simply cant be federated in a transparent manner.
+
+- In V2, we move to a federated model where all cluster objects which are federated are a different type.  For example, there is a FederatedDeployment which is different from a Deployment.  we will provide tooling to automatically federate *certain* objects, and even possibly add support at the helm layer for federating entire namespaces in a user friendly manner.
+
+### How do kubernetes API versions get federated ?
+
+- The federation cluster which 'owns' the federation logic is a minimal api version, which is <= the version of the
+newest API version in a federated system.  This way, all valid API calls are known to the federation cluster. 
+
+
