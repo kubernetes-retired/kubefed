@@ -17,13 +17,15 @@ import (
 	"io"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	controllerutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	client "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -165,14 +167,10 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 	deletionSucceeded := deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterContext, dryRun)
 
-	if unjoiningClusterContext == hostClusterContext {
-		glog.V(2).Infof("Host cluster: %s and unjoin cluster: %s are same, no need to delete federation namespace: %s from unjoin cluster.",
-			hostClusterContext, unjoiningClusterContext, federationNamespace)
-	} else {
-		err = deleteFedNSFromUnjoinCluster(clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
-		if err != nil {
-			deletionSucceeded = false
-		}
+	err = deleteFedNSFromUnjoinCluster(hostClientset, clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
+	if err != nil {
+		glog.Errorf("Error deleting federation namespace from unjoin cluster: %v", err)
+		deletionSucceeded = false
 	}
 
 	// deletionSucceeded when all operations in deleteRBACResources and deleteFedNSFromUnjoinCluster succeed.
@@ -283,26 +281,42 @@ func deleteRBACResources(unjoiningClusterClientset client.Interface,
 	return deletionSucceeded
 }
 
-// deleteFedNSFromUnjoinCluster deletes the federation namespace and multi cluster
-// public namespace in the unjoining cluster.
-func deleteFedNSFromUnjoinCluster(unjoiningClusterClientset client.Interface,
+// deleteFedNSFromUnjoinCluster deletes the federation namespace from
+// the unjoining cluster so long as the unjoining cluster is not the
+// host cluster.
+func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset client.Interface,
 	federationNamespace, unjoiningClusterName string, dryRun bool) error {
 
 	if dryRun {
 		return nil
 	}
 
-	glog.V(2).Infof("Deleting federation namespace: %s from unjoin cluster: %s",
-		federationNamespace, unjoiningClusterName)
-	err := unjoiningClusterClientset.CoreV1().Namespaces().Delete(federationNamespace,
-		&metav1.DeleteOptions{})
+	hostClusterNamespace, err := hostClientset.CoreV1().Namespaces().Get(federationNamespace, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("Could not delete federation namespace: %s due to: %v", federationNamespace, err)
-	} else {
-		glog.V(2).Infof("Deleted federation namespace: %s from unjoin cluster: %s", federationNamespace, unjoiningClusterName)
+		return errors.Wrapf(err, "Error retrieving namespace %q from host cluster", federationNamespace)
 	}
 
-	return err
+	unjoiningClusterNamespace, err := unjoiningClusterClientset.CoreV1().Namespaces().Get(federationNamespace, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "Error retrieving namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+	}
+
+	if controllerutil.IsPrimaryCluster(hostClusterNamespace, unjoiningClusterNamespace) {
+		glog.V(2).Infof("The federation namespace %q does not need to be deleted from the host cluster by unjoin.", federationNamespace)
+		return nil
+	}
+
+	glog.V(2).Infof("Deleting federation namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+	err = unjoiningClusterClientset.CoreV1().Namespaces().Delete(federationNamespace, &metav1.DeleteOptions{})
+	if apierrors.IsNotFound(err) {
+		glog.V(2).Infof("The federation namespace %q no longer exists in unjoining cluster %q", federationNamespace, unjoiningClusterName)
+		return nil
+	}
+	if err != nil {
+		return errors.Wrapf(err, "Could not delete federation namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+	}
+	glog.V(2).Infof("Deleted federation namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+	return nil
 }
 
 // deleteServiceAccount deletes a service account in the cluster associated
@@ -337,27 +351,27 @@ func deleteClusterRoleAndBinding(clusterClientset client.Interface, saName, name
 
 	for _, name := range []string{roleName, healthCheckRoleName} {
 		err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(err) {
 			deletionSucceeded = false
 			glog.Errorf("Could not delete cluster role binding %q in unjoining cluster: %v", name, err)
 		}
 
 		err = clusterClientset.RbacV1().ClusterRoles().Delete(name, &metav1.DeleteOptions{})
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(err) {
 			deletionSucceeded = false
 			glog.Errorf("Could not delete cluster role %q in unjoining cluster: %v", name, err)
 		}
 	}
 
 	err := clusterClientset.RbacV1().RoleBindings(namespace).Delete(roleName, &metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		deletionSucceeded = false
 		glog.Errorf("Could not delete role binding for service account: %s in unjoining cluster: %v",
 			saName, err)
 	}
 
 	err = clusterClientset.RbacV1().Roles(namespace).Delete(roleName, &metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		deletionSucceeded = false
 		glog.Errorf("Could not delete role for service account: %s in unjoining cluster: %v",
 			saName, err)
