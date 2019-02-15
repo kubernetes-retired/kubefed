@@ -134,10 +134,10 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 			Name: targetAPIResource.Name,
 		},
 		Spec: federate.EnableTypeDirectiveSpec{
-			TargetVersion:    targetAPIResource.Version,
-			PrimitiveGroup:   targetAPIResource.Group,
-			PrimitiveVersion: targetAPIResource.Version,
-			ComparisonField:  apicommon.ResourceVersionField,
+			TargetVersion:     targetAPIResource.Version,
+			FederationGroup:   targetAPIResource.Group,
+			FederationVersion: targetAPIResource.Version,
+			ComparisonField:   apicommon.ResourceVersionField,
 		},
 	}
 

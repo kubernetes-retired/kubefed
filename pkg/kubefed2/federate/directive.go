@@ -32,13 +32,13 @@ type EnableTypeDirectiveSpec struct {
 	// considers two resources to be equal.
 	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 
-	// The name of the API group to use for generated federation primitives.
+	// The name of the API group to use for generated federation types.
 	// +optional
-	PrimitiveGroup string `json:"primitiveGroup,omitempty"`
+	FederationGroup string `json:"federationGroup,omitempty"`
 
-	// The API version to use for generated federation primitives.
+	// The API version to use for generated federation types.
 	// +optional
-	PrimitiveVersion string `json:"primitiveVersion,omitempty"`
+	FederationVersion string `json:"federationVersion,omitempty"`
 }
 
 // TODO(marun) This should become a proper API type and drive enabling
@@ -52,8 +52,8 @@ type EnableTypeDirective struct {
 }
 
 func (ft *EnableTypeDirective) SetDefaults() {
-	ft.Spec.PrimitiveGroup = defaultPrimitiveGroup
-	ft.Spec.PrimitiveVersion = defaultPrimitiveVersion
+	ft.Spec.FederationGroup = defaultFederationGroup
+	ft.Spec.FederationVersion = defaultFederationVersion
 }
 
 func NewEnableTypeDirective() *EnableTypeDirective {

@@ -194,9 +194,9 @@ func (f *FederatedTypeConfig) GetEnableStatus() bool {
 // TODO(marun) Remove in favor of using 'true' for namespaces and the
 // value from target otherwise.
 func (f *FederatedTypeConfig) GetFederatedNamespaced() bool {
-	// Special-case the scope of namespace primitives since it will
-	// hopefully be the only instance of the scope of a federation
-	// primitive differing from the scope of its target.
+	// Special-case the scope of federated namespace since it will
+	// hopefully be the only instance of the scope of a federated
+	// type differing from the scope of its target.
 
 	// TODO(marun) Use the constant in pkg/controller/util
 	if f.Name == "namespaces" {

@@ -42,16 +42,16 @@ import (
 )
 
 const (
-	defaultPrimitiveGroup   = "primitives.federation.k8s.io"
-	defaultPrimitiveVersion = "v1alpha1"
+	defaultFederationGroup   = "types.federation.k8s.io"
+	defaultFederationVersion = "v1alpha1"
 )
 
 var (
 	enable_long = `
 		Enables a Kubernetes API type (including a CRD) to be propagated
-		to members of a federation.  Federation primitives will be
-		generated as CRDs and a FederatedTypeConfig will be created to
-		configure a sync controller.
+		to members of a federation.  A CRD for the federated type will be
+		generated and a FederatedTypeConfig will be created to configure
+		a sync controller.
 
 		Current context is assumed to be a Kubernetes cluster hosting
 		the federation control plane. Please use the
@@ -70,8 +70,8 @@ type enableType struct {
 type enableTypeOptions struct {
 	targetName          string
 	targetVersion       string
-	primitiveVersion    string
-	primitiveGroup      string
+	federationVersion   string
+	federationGroup     string
 	output              string
 	outputYAML          bool
 	filename            string
@@ -82,8 +82,8 @@ type enableTypeOptions struct {
 // argument.
 func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.targetVersion, "version", "", "Optional, the API version of the target type.")
-	flags.StringVar(&o.primitiveGroup, "primitive-group", defaultPrimitiveGroup, "The name of the API group to use for generated federation primitives.")
-	flags.StringVar(&o.primitiveVersion, "primitive-version", defaultPrimitiveVersion, "The API version to use for generated federation primitives.")
+	flags.StringVar(&o.federationGroup, "federation-group", defaultFederationGroup, "The name of the API group to use for the generated federation type.")
+	flags.StringVar(&o.federationVersion, "federation-version", defaultFederationVersion, "The API version to use for the generated federation type.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that would be created in the API by the command are instead output to stdout in the provided format.  Valid values are ['yaml'].")
 	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output wll be accepted from the command line")
 }
@@ -145,11 +145,11 @@ func (j *enableType) Complete(args []string) error {
 	if len(j.targetVersion) > 0 {
 		fd.Spec.TargetVersion = j.targetVersion
 	}
-	if len(j.primitiveGroup) > 0 {
-		fd.Spec.PrimitiveGroup = j.primitiveGroup
+	if len(j.federationGroup) > 0 {
+		fd.Spec.FederationGroup = j.federationGroup
 	}
-	if len(j.primitiveVersion) > 0 {
-		fd.Spec.PrimitiveVersion = j.primitiveVersion
+	if len(j.federationVersion) > 0 {
+		fd.Spec.FederationVersion = j.federationVersion
 	}
 
 	return nil
@@ -268,8 +268,8 @@ func typeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *En
 			Namespaced:         apiResource.Namespaced,
 			PropagationEnabled: true,
 			FederatedType: fedv1a1.APIResource{
-				Group:      spec.PrimitiveGroup,
-				Version:    spec.PrimitiveVersion,
+				Group:      spec.FederationGroup,
+				Version:    spec.FederationVersion,
 				Kind:       fmt.Sprintf("Federated%s", kind),
 				PluralName: fmt.Sprintf("federated%s", pluralName),
 			},

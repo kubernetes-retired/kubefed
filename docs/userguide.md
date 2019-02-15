@@ -223,7 +223,7 @@ If the goal is to permanently disable federation of the target API type, passing
 kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
 ```
 
-**WARNING: All primitive custom resources for the type will be removed by this command.**
+**WARNING: All custom resources for the type will be removed by this command.**
 
 ## Example
 
@@ -253,7 +253,7 @@ kubectl apply -R -f example/sample1
 **NOTE:** If you get the following error while creating a test resource i.e.
 
 ```
-unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "primitives.federation.k8s.io/v1alpha1",
+unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.federation.k8s.io/v1alpha1",
 
 ```
 

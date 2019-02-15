@@ -135,8 +135,8 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	//
 	// Namespace is the only type that can contain other resources,
 	// and adding a federation-specific container type would be
-	// difficult or impossible. This implies that federation
-	// primitives need to exist in regular namespaces.
+	// difficult or impossible. This implies that federated types need
+	// to exist in regular namespaces.
 	//
 	// TODO(marun) Ensure this is reflected in documentation
 	obj := &unstructured.Unstructured{}
