@@ -34,6 +34,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
@@ -127,7 +128,7 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	// for which the corresponding target has been removed.
 	name := j.targetName
 	if !strings.Contains(j.targetName, ".") {
-		apiResource, err := LookupAPIResource(hostConfig, j.targetName, "")
+		apiResource, err := enable.LookupAPIResource(hostConfig, j.targetName, "")
 		if err != nil {
 			return err
 		}

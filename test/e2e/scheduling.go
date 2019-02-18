@@ -33,6 +33,7 @@ import (
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -383,13 +384,13 @@ func int32MapToInt64(original map[string]int32) map[string]int64 {
 
 func enableTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
 	for _, enableTypeDirective := range managed.LoadEnableTypeDirectives(tl) {
-		resources, err := federate.GetResources(config, enableTypeDirective)
+		resources, err := kfenable.GetResources(config, enableTypeDirective)
 		if err != nil {
 			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}
 
 		if enableTypeDirective.Name == name {
-			err = federate.CreateResources(nil, config, resources, namespace)
+			err = kfenable.CreateResources(nil, config, resources, namespace)
 			if err != nil {
 				tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 			}

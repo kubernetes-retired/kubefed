@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -58,7 +58,7 @@ func typeConfigFixtures() (map[string]*unstructured.Unstructured, error) {
 
 		filename := filepath.Join(path, file.Name())
 		fixture := &unstructured.Unstructured{}
-		err := federate.DecodeYAMLFromFile(filename, fixture)
+		err := kfenable.DecodeYAMLFromFile(filename, fixture)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error reading fixture for %q", typeConfigName)
 		}
