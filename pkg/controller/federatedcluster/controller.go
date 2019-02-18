@@ -210,7 +210,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 
 		zone, region, err := clusterClient.GetClusterZones()
 		if err != nil {
-			glog.Warningf("Failed to get zones and region for cluster with client %v: %v", clusterClient, err)
+			glog.Warningf("Failed to get zones and region for cluster %s: %v", cluster.Name, err)
 		} else {
 			if len(zone) == 0 {
 				zone = cluster.Status.Zone
