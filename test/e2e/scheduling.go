@@ -33,8 +33,8 @@ import (
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
 	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -400,7 +400,7 @@ func enableTypeConfigResource(name, namespace string, config *restclient.Config,
 
 func deleteTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
 	qualifiedName := util.QualifiedName{Namespace: namespace, Name: name}
-	err := federate.DisableFederation(nil, config, qualifiedName, true, false)
+	err := kubefed2.DisableFederation(nil, config, qualifiedName, true, false)
 	if err != nil {
 		tl.Fatalf("Error disabling federation of target type %q: %v", qualifiedName, err)
 	}
