@@ -86,7 +86,7 @@ func (a *fedConfig) getClientConfig(context, kubeconfigPath string) clientcmd.Cl
 // HostClientset provides a kubernetes API compliant clientset to
 // communicate with the host cluster's kubernetes API server.
 func HostClientset(config *rest.Config) (*client.Clientset, error) {
-	return client.NewForConfigOrDie(config), nil
+	return client.NewForConfig(config)
 }
 
 // ClusterClientset provides a kubernetes API compliant clientset to
@@ -98,13 +98,13 @@ func ClusterClientset(config *rest.Config) (*client.Clientset, error) {
 // ClusterRegistryClientset provides a cluster registry API compliant
 // clientset to communicate with the cluster registry.
 func ClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error) {
-	return crclient.NewForConfigOrDie(config), nil
+	return crclient.NewForConfig(config)
 }
 
 // FedClientset provides a federation API compliant clientset
 // to communicate with the federation API server.
 func FedClientset(config *rest.Config) (*fedclient.Clientset, error) {
-	return fedclient.NewForConfigOrDie(config), nil
+	return fedclient.NewForConfig(config)
 }
 
 // ClusterServiceAccountName returns the name of a service account whose
