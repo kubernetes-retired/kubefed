@@ -144,7 +144,13 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	clusterConfig, err := config.ClusterConfig(j.clusterContext, j.Kubeconfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get unjoining cluster config: %v", err)
-		return err
+
+		if !j.forceDeletion {
+			return err
+		}
+		// If configuration for the member cluster cannot be successfully loaded,
+		// forceDeletion indicates that resources associated with the member cluster
+		// should still be removed from the host cluster.
 	}
 
 	hostClusterName := j.HostClusterContext
@@ -167,10 +173,15 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 		return err
 	}
 
-	clusterClientset, err := util.ClusterClientset(clusterConfig)
-	if err != nil {
-		glog.V(2).Infof("Failed to get unjoining cluster clientset: %v", err)
-		return err
+	var clusterClientset *client.Clientset
+	if clusterConfig != nil {
+		clusterClientset, err = util.ClusterClientset(clusterConfig)
+		if err != nil {
+			glog.V(2).Infof("Failed to get unjoining cluster clientset: %v", err)
+			if !forceDeletion {
+				return err
+			}
+		}
 	}
 
 	fedClientset, err := util.FedClientset(hostConfig)
@@ -180,15 +191,18 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 	}
 
 	if removeFromRegistry {
-		removeFromClusterRegistry(hostConfig, clusterNamespace, clusterConfig.Host, unjoiningClusterName, dryRun)
+		removeFromClusterRegistry(hostConfig, clusterNamespace, unjoiningClusterName, dryRun)
 	}
 
-	deletionSucceeded := deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterName, dryRun)
+	var deletionSucceeded bool
+	if clusterClientset != nil {
+		deletionSucceeded = deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterName, dryRun)
 
-	err = deleteFedNSFromUnjoinCluster(hostClientset, clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
-	if err != nil {
-		glog.Errorf("Error deleting federation namespace from unjoin cluster: %v", err)
-		deletionSucceeded = false
+		err = deleteFedNSFromUnjoinCluster(hostClientset, clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
+		if err != nil {
+			glog.Errorf("Error deleting federation namespace from unjoin cluster: %v", err)
+			deletionSucceeded = false
+		}
 	}
 
 	// deletionSucceeded when all operations in deleteRBACResources and deleteFedNSFromUnjoinCluster succeed.
@@ -201,7 +215,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 // removeFromClusterRegistry handles removing the cluster from the cluster registry and
 // reports progress.
-func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, unjoiningClusterName string,
+func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, unjoiningClusterName string,
 	dryRun bool) {
 
 	// Get the cluster registry clientset using the host cluster config.
@@ -213,7 +227,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, 
 
 	glog.V(2).Infof("Removing cluster: %s from the cluster registry.", unjoiningClusterName)
 
-	err = unregisterCluster(crClientset, clusterNamespace, host, unjoiningClusterName, dryRun)
+	err = unregisterCluster(crClientset, clusterNamespace, unjoiningClusterName, dryRun)
 	if err != nil {
 		glog.Errorf("Could not remove cluster from the cluster registry: %v", err)
 		return
@@ -223,7 +237,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, 
 }
 
 // unregisterCluster removes a cluster from the cluster registry.
-func unregisterCluster(crClientset *crclient.Clientset, clusterNamespace, host, unjoiningClusterName string,
+func unregisterCluster(crClientset *crclient.Clientset, clusterNamespace, unjoiningClusterName string,
 	dryRun bool) error {
 	if dryRun {
 		return nil
