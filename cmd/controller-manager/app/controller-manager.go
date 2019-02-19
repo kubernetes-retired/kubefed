@@ -131,7 +131,9 @@ func Run(opts *options.Options) error {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		federatedtypeconfig.StartController(opts.Config, stopChan)
+		if err := federatedtypeconfig.StartController(opts.Config, stopChan); err != nil {
+			glog.Fatalf("Error starting federated type config controller: %v", err)
+		}
 	}
 
 	// Blockforever
