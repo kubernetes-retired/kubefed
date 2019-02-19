@@ -12,3 +12,7 @@ spec:
       ports:
         - name: http
           port: 80
+  placement:
+    clusterNames:
+    - cluster2
+    - cluster1

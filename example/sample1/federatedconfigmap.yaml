@@ -1,9 +1,16 @@
 apiVersion: primitives.federation.k8s.io/v1alpha1
-kind: FederatedConfigMapOverride
+kind: FederatedConfigMap
 metadata:
   name: test-configmap
   namespace: test-namespace
 spec:
+  template:
+    data:
+      A: ala ma kota
+  placement:
+    clusterNames:
+    - cluster2
+    - cluster1
   overrides:
   - clusterName: cluster2
     clusterOverrides:

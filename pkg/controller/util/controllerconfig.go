@@ -19,6 +19,7 @@ package util
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
@@ -50,4 +51,8 @@ func (c *ControllerConfig) AllClients(userAgent string) (fedclientset.Interface,
 	kubeClient := kubeclientset.NewForConfigOrDie(c.KubeConfig)
 	crClient := crclientset.NewForConfigOrDie(c.KubeConfig)
 	return fedClient, kubeClient, crClient
+}
+
+func (c *ControllerConfig) LimitedScope() bool {
+	return c.FederationNamespaces.TargetNamespace != metav1.NamespaceAll
 }

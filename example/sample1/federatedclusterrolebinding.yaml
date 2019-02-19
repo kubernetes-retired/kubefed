@@ -12,3 +12,7 @@ spec:
       kind: ClusterRole
       name: cluster-admin
       apiGroup: rbac.authorization.k8s.io
+  placement:
+    clusterNames:
+    - cluster2
+    - cluster1

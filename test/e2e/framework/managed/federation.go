@@ -379,7 +379,7 @@ func federateCoreTypes(tl common.TestLogger, config *rest.Config, namespace stri
 		if err != nil {
 			tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}
-		crds = append(crds, resources.CRDs...)
+		crds = append(crds, resources.CRD)
 	}
 	return crds
 }

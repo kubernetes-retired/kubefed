@@ -24,9 +24,15 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-type GenericPlacementSpec struct {
+type GenericPlacementFields struct {
 	ClusterNames    []string              `json:"clusterNames,omitempty"`
-	ClusterSelector *metav1.LabelSelector `json:"clusterSelector"`
+	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
+}
+
+// TODO(marun) Consider removing this intermediate field.  It is only
+// used for grouping.
+type GenericPlacementSpec struct {
+	Placement GenericPlacementFields `json:"placement,omitempty"`
 }
 
 type GenericPlacement struct {
@@ -41,8 +47,8 @@ type PlacementDirective struct {
 	ClusterSelector labels.Selector
 }
 
-func GetPlacementDirective(rawPlacement *unstructured.Unstructured) (*PlacementDirective, error) {
-	content, err := rawPlacement.MarshalJSON()
+func GetPlacementDirective(resource *unstructured.Unstructured) (*PlacementDirective, error) {
+	content, err := resource.MarshalJSON()
 	if err != nil {
 		return nil, err
 	}
@@ -51,21 +57,21 @@ func GetPlacementDirective(rawPlacement *unstructured.Unstructured) (*PlacementD
 	if err != nil {
 		return nil, err
 	}
-	selector, err := metav1.LabelSelectorAsSelector(placement.Spec.ClusterSelector)
+	selector, err := metav1.LabelSelectorAsSelector(placement.Spec.Placement.ClusterSelector)
 	if err != nil {
 		return nil, err
 	}
 	return &PlacementDirective{
-		ClusterNames:    placement.Spec.ClusterNames,
+		ClusterNames:    placement.Spec.Placement.ClusterNames,
 		ClusterSelector: selector,
 	}, nil
 }
 
-func GetClusterNames(placement *unstructured.Unstructured) ([]string, error) {
-	clusterNames, _, err := unstructured.NestedStringSlice(placement.Object, SpecField, ClusterNamesField)
+func GetClusterNames(fedObject *unstructured.Unstructured) ([]string, error) {
+	clusterNames, _, err := unstructured.NestedStringSlice(fedObject.Object, SpecField, PlacementField, ClusterNamesField)
 	return clusterNames, err
 }
 
-func SetClusterNames(placement *unstructured.Unstructured, clusterNames []string) error {
-	return unstructured.SetNestedStringSlice(placement.Object, clusterNames, SpecField, ClusterNamesField)
+func SetClusterNames(fedObject *unstructured.Unstructured, clusterNames []string) error {
+	return unstructured.SetNestedStringSlice(fedObject.Object, clusterNames, SpecField, PlacementField, ClusterNamesField)
 }

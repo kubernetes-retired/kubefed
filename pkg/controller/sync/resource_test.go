@@ -38,7 +38,7 @@ spec:
 	if err != nil {
 		t.Fatalf("An unexpected error occurred: %v", err)
 	}
-	hash, err := GetTemplateHash(template)
+	hash, err := GetTemplateHash(template.Object, false)
 	if err != nil {
 		t.Fatalf("An unexpected error occurred: %v", err)
 	}

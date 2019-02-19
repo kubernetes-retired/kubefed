@@ -1,9 +1,0 @@
-apiVersion: primitives.federation.k8s.io/v1alpha1
-kind: FederatedIngressPlacement
-metadata:
-  name: test-ingress
-  namespace: test-namespace
-spec:
-  clusterNames:
-  - cluster2
-  - cluster1

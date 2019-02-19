@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -41,23 +40,10 @@ const (
 type Plugin struct {
 	targetInformer util.FederatedInformer
 
-	templateStore cache.Store
-	// Informer for the templates of the federated type
-	templateController cache.Controller
+	federatedStore      cache.Store
+	federatedController cache.Controller
 
-	// Store for the override directives of the federated type
-	overrideStore cache.Store
-	// Informer controller for override directives of the federated type
-	overrideController cache.Controller
-	// Dynamic client for override type
-	overrideClient util.ResourceClient
-
-	// Store for the placements of the federated type
-	placementStore cache.Store
-	// Informer controller for placements of the federated type
-	placementController cache.Controller
-	// Dynamic client for placement type
-	placementClient util.ResourceClient
+	federatedTypeClient util.ResourceClient
 
 	typeConfig typeconfig.Interface
 
@@ -84,26 +70,13 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 	targetNamespace := controllerConfig.TargetNamespace
 	federationEventHandler := eventHandlers.FederationEventHandler
 
-	templateAPIResource := typeConfig.GetTemplate()
-	templateClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &templateAPIResource)
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	var err error
+	p.federatedTypeClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &federatedTypeAPIResource)
 	if err != nil {
 		return nil, err
 	}
-	p.templateStore, p.templateController = util.NewResourceInformer(templateClient, targetNamespace, federationEventHandler)
-
-	placementAPIResource := typeConfig.GetPlacement()
-	p.placementClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &placementAPIResource)
-	if err != nil {
-		return nil, err
-	}
-	p.placementStore, p.placementController = util.NewResourceInformer(p.placementClient, targetNamespace, federationEventHandler)
-
-	overrideAPIResource := typeConfig.GetOverride()
-	p.overrideClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &overrideAPIResource)
-	if err != nil {
-		return nil, err
-	}
-	p.overrideStore, p.overrideController = util.NewResourceInformer(p.overrideClient, targetNamespace, federationEventHandler)
+	p.federatedStore, p.federatedController = util.NewResourceInformer(p.federatedTypeClient, targetNamespace, federationEventHandler)
 
 	return p, nil
 }
@@ -111,9 +84,7 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 func (p *Plugin) Start() {
 	p.targetInformer.Start()
 
-	go p.templateController.Run(p.stopChannel)
-	go p.overrideController.Run(p.stopChannel)
-	go p.placementController.Run(p.stopChannel)
+	go p.federatedController.Run(p.stopChannel)
 }
 
 func (p *Plugin) Stop() {
@@ -127,13 +98,7 @@ func (p *Plugin) HasSynced() bool {
 		return false
 	}
 
-	if !p.templateController.HasSynced() {
-		return false
-	}
-	if !p.placementController.HasSynced() {
-		return false
-	}
-	if !p.overrideController.HasSynced() {
+	if !p.federatedController.HasSynced() {
 		return false
 	}
 
@@ -150,8 +115,8 @@ func (p *Plugin) HasSynced() bool {
 	return true
 }
 
-func (p *Plugin) TemplateExists(key string) bool {
-	_, exist, err := p.templateStore.GetByKey(key)
+func (p *Plugin) FederatedTypeExists(key string) bool {
+	_, exist, err := p.federatedStore.GetByKey(key)
 	if err != nil {
 		glog.Errorf("Failed to query store while reconciling RSP controller for key %q: %v", key, err)
 		wrappedErr := errors.Wrapf(err, "Failed to query store while reconciling RSP controller for key %q", key)
@@ -161,81 +126,51 @@ func (p *Plugin) TemplateExists(key string) bool {
 	return exist
 }
 
-func (p *Plugin) ReconcilePlacement(qualifiedName util.QualifiedName, newClusterNames []string) error {
-	placement, err := p.placementClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+func (p *Plugin) Reconcile(qualifiedName util.QualifiedName, result map[string]int64) error {
+	fedObject, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		// Federated resource has been deleted - no further action required
+		return nil
+	}
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
-		newPlacement := newUnstructured(p.typeConfig.GetPlacement(), qualifiedName)
-		setPlacementSpec(newPlacement, newClusterNames)
-		_, err := p.placementClient.Resources(qualifiedName.Namespace).Create(newPlacement, metav1.CreateOptions{})
 		return err
 	}
 
-	clusterNames, err := util.GetClusterNames(placement)
+	isDirty := false
+
+	newClusterNames := []string{}
+	for name := range result {
+		newClusterNames = append(newClusterNames, name)
+	}
+	clusterNames, err := util.GetClusterNames(fedObject)
 	if err != nil {
 		return err
 	}
 	if PlacementUpdateNeeded(clusterNames, newClusterNames) {
-		setPlacementSpec(placement, newClusterNames)
-		_, err := p.placementClient.Resources(qualifiedName.Namespace).Update(placement, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
+		util.SetClusterNames(fedObject, newClusterNames)
+		isDirty = true
 	}
 
-	return nil
-}
-
-func (p *Plugin) ReconcileOverride(qualifiedName util.QualifiedName, result map[string]int64) error {
-	override, err := p.overrideClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	overridesMap, err := util.GetOverrides(fedObject)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
-		newOverride := newUnstructured(p.typeConfig.GetOverride(), qualifiedName)
-		err := setOverrides(newOverride, nil, result)
-		if err != nil {
-			return err
-		}
-		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Create(newOverride, metav1.CreateOptions{})
-		return err
+		return errors.Wrapf(err, "Error reading cluster overrides for %s %q", p.typeConfig.GetFederatedType().Kind, qualifiedName)
 	}
-
-	overridesMap, err := util.GetOverrides(override)
-	if err != nil {
-		return errors.Wrapf(err, "Error reading cluster overrides for %s %q", p.typeConfig.GetOverride().Kind, qualifiedName)
-	}
-
 	if OverrideUpdateNeeded(overridesMap, result) {
-		err := setOverrides(override, overridesMap, result)
+		err := setOverrides(fedObject, overridesMap, result)
 		if err != nil {
 			return err
 		}
-		_, err = p.overrideClient.Resources(qualifiedName.Namespace).Update(override, metav1.UpdateOptions{})
+		isDirty = true
+	}
+
+	if isDirty {
+		_, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Update(fedObject, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func newUnstructured(apiResource metav1.APIResource, qualifiedName util.QualifiedName) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{}
-	obj.SetKind(apiResource.Kind)
-	gv := schema.GroupVersion{Group: apiResource.Group, Version: apiResource.Version}
-	obj.SetAPIVersion(gv.String())
-	obj.SetName(qualifiedName.Name)
-	obj.SetNamespace(qualifiedName.Namespace)
-	return obj
-}
-
-func setPlacementSpec(obj *unstructured.Unstructured, clusterNames []string) {
-	obj.Object[util.SpecField] = map[string]interface{}{
-		util.ClusterNamesField: clusterNames,
-	}
 }
 
 // These assume that there would be no duplicate clusternames

@@ -47,9 +47,11 @@ type Controller struct {
 	// Arguments to use when starting new controllers
 	controllerConfig *util.ControllerConfig
 
-	// The namespace placement resource which will be needed to start
-	// sync controllers when running namespaced.
-	namespacePlacement *metav1.APIResource
+	// The federated namespace api resource will be needed to start
+	// sync controllers for namespaced federated types.  The placement
+	// for a federated namespace is used in determining the placement
+	// of resources contained by that namespace.
+	fedNamespaceAPIResource *metav1.APIResource
 
 	client corev1alpha1client.CoreV1alpha1Interface
 
@@ -156,7 +158,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {
-		glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetTemplate().Kind)
+		glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
@@ -256,15 +258,18 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 }
 
 func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error {
-	// TODO(marun) Consider creating a placement plugin that can be
-	// shared between all controllers.
-	namespacePlacement, err := c.getNamespacePlacement()
+	// TODO(marun) Consider using a shared informer for federated
+	// namespace that can be shared between all controllers of a
+	// cluster-scoped federation control plane.  A namespace-scoped
+	// control plane would still have to use a non-shared informer due
+	// to it not being possible to limit its scope.
+	fedNamespaceAPIResource, err := c.getFederatedNamespaceAPIResource()
 	if err != nil {
 		return err
 	}
-	kind := tc.Spec.Template.Kind
+	kind := tc.Spec.FederatedType.Kind
 	stopChan := make(chan struct{})
-	err = synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc, namespacePlacement)
+	err = synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc, fedNamespaceAPIResource)
 	if err != nil {
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting sync controller for %q", kind)
@@ -277,7 +282,7 @@ func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error
 }
 
 func (c *Controller) startStatusController(statusKey string, tc *corev1a1.FederatedTypeConfig) error {
-	kind := tc.Spec.Template.Kind
+	kind := tc.Spec.FederatedType.Kind
 	stopChan := make(chan struct{})
 	err := statuscontroller.StartFederationStatusController(c.controllerConfig, stopChan, tc)
 	if err != nil {
@@ -328,15 +333,15 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	return err
 }
 
-func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
+func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, error) {
 	// TODO(marun) Document the requirement to restart the controller
-	// manager if the namespace placement resource changes.
+	// manager if the federated namespace resource changes.
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if c.namespacePlacement != nil {
-		return c.namespacePlacement, nil
+	if c.fedNamespaceAPIResource != nil {
+		return c.fedNamespaceAPIResource, nil
 	}
 
 	qualifiedName := util.QualifiedName{
@@ -352,7 +357,7 @@ func (c *Controller) getNamespacePlacement() (*metav1.APIResource, error) {
 		return nil, errors.Errorf("Unable to find %q in the informer cache", key)
 	}
 	namespaceTypeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
-	placement := namespaceTypeConfig.GetPlacement()
-	c.namespacePlacement = &placement
-	return c.namespacePlacement, nil
+	apiResource := namespaceTypeConfig.GetFederatedType()
+	c.fedNamespaceAPIResource = &apiResource
+	return c.fedNamespaceAPIResource, nil
 }

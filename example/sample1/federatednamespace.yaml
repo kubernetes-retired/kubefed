@@ -1,9 +1,10 @@
 apiVersion: primitives.federation.k8s.io/v1alpha1
-kind: FederatedNamespacePlacement
+kind: FederatedNamespace
 metadata:
   name: test-namespace
   namespace: test-namespace
 spec:
-  clusterNames:
-  - cluster1
-  - cluster2
+  placement:
+    clusterNames:
+    - cluster2
+    - cluster1

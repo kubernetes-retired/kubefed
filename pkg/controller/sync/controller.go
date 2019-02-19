@@ -73,22 +73,23 @@ type FederationSyncController struct {
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) error {
-	controller, err := newFederationSyncController(controllerConfig, typeConfig, namespacePlacement)
+func StartFederationSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface, fedNamespaceAPIResource *metav1.APIResource) error {
+	controller, err := newFederationSyncController(controllerConfig, typeConfig, fedNamespaceAPIResource)
 	if err != nil {
 		return err
 	}
 	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedKind()))
+	glog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedType().Kind))
 	controller.Run(stopChan)
 	return nil
 }
 
 // newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) (*FederationSyncController, error) {
-	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(typeConfig.GetFederatedKind()))
+func newFederationSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface, fedNamespaceAPIResource *metav1.APIResource) (*FederationSyncController, error) {
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(federatedTypeAPIResource.Kind))
 
 	// Initialize non-dynamic clients first to avoid polluting config
 	fedClient, kubeClient, crClient := controllerConfig.AllClients(userAgent)
@@ -169,7 +170,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		})
 
 	s.fedAccessor, err = NewFederatedResourceAccessor(
-		controllerConfig, typeConfig, namespacePlacement,
+		controllerConfig, typeConfig, fedNamespaceAPIResource,
 		fedClient, s.worker.EnqueueObject, s.informer, s.updater)
 	if err != nil {
 		return nil, err
@@ -212,6 +213,8 @@ func (s *FederationSyncController) isSynced() bool {
 		return false
 	}
 	if !s.fedAccessor.HasSynced() {
+		// The fed accessor will have logged why sync is not yet
+		// complete.
 		return false
 	}
 
@@ -251,20 +254,19 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusAllOK
 	}
 
+	kind := s.typeConfig.GetFederatedType().Kind
 	key := fedResource.FederatedName().String()
 
-	federatedKind := s.typeConfig.GetFederatedKind()
-	glog.V(4).Infof("Starting to reconcile %s %q", federatedKind, key)
+	glog.V(4).Infof("Starting to reconcile %s %q", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %s %q (duration: %v)", federatedKind, key, time.Since(startTime))
+	defer glog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
 
-	finalizationKind := fedResource.FinalizationKind()
 	if fedResource.MarkedForDeletion() {
-		glog.V(3).Infof("Handling deletion of %s %q", finalizationKind, key)
+		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		err := fedResource.EnsureDeletion()
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
-			args := []interface{}{finalizationKind, key, err}
+			args := []interface{}{kind, key, err}
 			runtime.HandleError(errors.Errorf(msg, args...))
 			s.eventRecorder.Eventf(fedResource.Object(), corev1.EventTypeWarning, "DeleteFailed", msg, args...)
 			return util.StatusError
@@ -272,10 +274,10 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// It should now be possible to garbage collect the finalization target.
 		return util.StatusAllOK
 	}
-	glog.V(3).Infof("Ensuring finalizers exist on %s %q", finalizationKind, key)
+	glog.V(3).Infof("Ensuring finalizers exist on %s %q", kind, key)
 	err = fedResource.EnsureFinalizers()
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizers for %s %q", finalizationKind, key))
+		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizers for %s %q", kind, key))
 		return util.StatusError
 	}
 
@@ -285,7 +287,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 // syncToClusters ensures that the state of the given object is synchronized to
 // member clusters.
 func (s *FederationSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
-	kind := s.typeConfig.GetFederatedKind()
+	kind := s.typeConfig.GetFederatedType().Kind
 	key := fedResource.FederatedName().String()
 
 	clusters, err := s.informer.GetReadyClusters()

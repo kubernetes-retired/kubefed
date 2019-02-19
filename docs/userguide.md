@@ -19,12 +19,12 @@
     - [Create the Test Namespace](#create-the-test-namespace)
     - [Create Test Resources](#create-test-resources)
     - [Check Status of Resources](#check-status-of-resources)
-    - [Update FederatedNamespacePlacement](#update-federatednamespaceplacement)
+    - [Update FederatedNamespace Placement](#update-federatednamespace)
       - [Using Cluster Selector](#using-cluster-selector)
-        - [Neither `spec.clusterNames` nor `spec.clusterSelector` is provided](#neither-specclusternames-nor-specclusterselector-is-provided)
-        - [Both `spec.clusterNames` and `spec.clusterSelector` are provided](#both-specclusternames-and-specclusterselector-are-provided)
-        - [`spec.clusterNames` is not provided, `spec.clusterSelector` is provided but empty](#specclusternames-is-not-provided-specclusterselector-is-provided-but-empty)
-        - [`spec.clusterNames` is not provided, `spec.clusterSelector` is provided and not empty](#specclusternames-is-not-provided-specclusterselector-is-provided-and-not-empty)
+        - [Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusternames-nor-specplacementclusterselector-is-provided)
+        - [Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided](#both-specplacementclusternames-and-specplacementclusterselector-are-provided)
+        - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-but-empty)
+        - [`spec.placementclusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
     - [Example Cleanup](#example-cleanup)
     - [Troubleshooting](#troubleshooting)
   - [Cleanup](#cleanup)
@@ -186,12 +186,10 @@ The `<target kubernetes API type>` above can be the Kind (e.g. `Deployment`), pl
 (e.g. `deployments`), group-qualified plural name (e.g `deployment.apps`), or short name
 (e.g. `deploy`) of the intended target API type.
 
-The command will create CRDs for the primitives (template, placement, override) needed to
-federate the type, with names of the form `Federated<Kind>`, `Federated<Kind>Placement`, and
-`Federated<Kind>Override`.  The command will also create a `FederatedTypeConfig` in the
-federation system namespace with the group-qualified plural name of the target type.  A
-`FederatedTypeConfig` associates the primitive CRD types with the target kubernetes type, 
-enabling propagation of the federated resources of the given type to the member clusters.
+The command will create a CRD for the federated type named `Federated<Kind>`.  The command will also
+create a `FederatedTypeConfig` in the federation system namespace with the group-qualified plural name
+of the target type.  A `FederatedTypeConfig` associates the federated type CRD with the target
+kubernetes type, enabling propagation of federated resources of the given type to the member clusters.
 The format used to name the `FederatedTypeConfig` is `<target kubernetes API type name>.<group name>`
 except kubernetes `core` group types where the name format used is `<target kubernetes API type name>`.
 
@@ -213,13 +211,13 @@ It is possible to disable propagation of a type that is configured for propagati
 kubefed2 disable <FederatedTypeConfig Name>
 ```
 
-This command will set the `propagationEnabled` field in the `FederatedTypeConfig` 
-associated with this target API type to `false`, which will prompt the sync 
+This command will set the `propagationEnabled` field in the `FederatedTypeConfig`
+associated with this target API type to `false`, which will prompt the sync
 controller for the target API type to be stopped.
 
-If the goal is to permanently disable federation of the target API type, passing the 
-`--delete-from-api` flag will remove the `FederatedTypeConfig` and the associated 
-primitive CRDS, created by `enable`:
+If the goal is to permanently disable federation of the target API type, passing the
+`--delete-from-api` flag will remove the `FederatedTypeConfig` and federated type CRD created by
+`enable`:
 
 ```bash
 kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
@@ -230,19 +228,18 @@ kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
 ## Example
 
 Follow these instructions for running an example to verify your deployment is
-working. The example will create a test namespace with a
-`federatednamespaceplacement` resource as well as federated template,
-override, and placement resources for the following k8s resources: `configmap`,
-`secret`, `deployment`, `service` and `serviceaccount`. It will then show how
-to update the `federatednamespaceplacement` resource to move resources.
+working. The example will create a test namespace with a `federatednamespace`
+resource as well as a federated resource for the following k8s resources:
+`configmap`, `secret`, `deployment`, `service` and `serviceaccount`. It will
+then show how to update the `federatednamespace` resource to move resources.
 
 ### Create the Test Namespace
 
 First create the `test-namespace` for the test resources:
 
 ```bash
-kubectl apply -f example/sample1/federatednamespace-template.yaml \
-    -f example/sample1/federatednamespace-placement.yaml
+kubectl apply -f example/sample1/namespace.yaml \
+    -f example/sample1/federatednamespace.yaml
 ```
 
 ### Create Test Resources
@@ -256,11 +253,11 @@ kubectl apply -R -f example/sample1
 **NOTE:** If you get the following error while creating a test resource i.e.
 
 ```
-unable to recognize "example/sample1/Federated<type>-placement.yaml": no matches for kind "Federated<type>Placement" in version "primitives.federation.k8s.io/v1alpha1",
+unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "primitives.federation.k8s.io/v1alpha1",
 
 ```
 
-then it indicates that a given type may need to be federated by `kubefed2 federate enable <type>`
+then it indicates that a given type may need to be enabled with `kubefed2 enable <type>`
 
 ### Check Status of Resources
 
@@ -288,15 +285,15 @@ for c in cluster1 cluster2; do
 done
 ```
 
-### Update FederatedNamespacePlacement
+### Update FederatedNamespace Placement
 
 Remove `cluster2` via a patch command or manually:
 
 ```bash
-kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
-    --type=merge -p '{"spec":{"clusterNames": ["cluster1"]}}'
+kubectl -n test-namespace patch federatednamespace test-namespace \
+    --type=merge -p '{"spec": {"placement": {"clusterNames": ["cluster1"]}}}'
 
-kubectl -n test-namespace edit federatednamespaceplacement test-namespace
+kubectl -n test-namespace edit federatednamespace test-namespace
 ```
 
 Then wait to verify all resources are removed from `cluster2`:
@@ -312,14 +309,14 @@ done
 ```
 
 We can quickly add back all the resources by simply updating the
-`FederatedNamespacePlacement` to add `cluster2` again via a patch command or
+`FederatedNamespace` to add `cluster2` again via a patch command or
 manually:
 
 ```bash
-kubectl -n test-namespace patch federatednamespaceplacement test-namespace \
-    --type=merge -p '{"spec":{"clusterNames": ["cluster1", "cluster2"]}}'
+kubectl -n test-namespace patch federatednamespace test-namespace \
+    --type=merge -p '{"spec": {"placement": {"clusterNames": ["cluster1", "cluster2"]}}}'
 
-kubectl -n test-namespace edit federatednamespaceplacement test-namespace
+kubectl -n test-namespace edit federatednamespace test-namespace
 ```
 
 Then wait and verify all resources are added back to `cluster2`:
@@ -351,9 +348,9 @@ successfully verified a working federation-v2 deployment.
 
 #### Using Cluster Selector
 
-In addition to specifying an explicit list of clusters that a resource should be
-propagated to via the `spec.clusterNames` field of a placement resource, it is possible
-to use the `spec.clusterSelector` field to provide a label selector that determines
+In addition to specifying an explicit list of clusters that a resource should be propagated
+to via the `spec.placement.clusterNames` field of a federated resource, it is possible to
+use the `spec.placement.clusterSelector` field to provide a label selector that determines
 that list of clusters at runtime.
 
 If the goal is to select a subset of member clusters, make sure that the `FederatedCluster`
@@ -368,50 +365,55 @@ kubectl label federatedclusters -n federation-system cluster1 foo=bar
 Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)
 to get more detail for how `kubectl label` works.
 
-The following sections detail how `spec.clusterNames` and `spec.clusterSelector` are
-used in determining the clusters that a federated resource should be propagated to.
+The following sections detail how `spec.placement.clusterNames` and
+`spec.placement.clusterSelector` are used in determining the clusters that a federated
+resource should be propagated to.
 
-##### Neither `spec.clusterNames` nor `spec.clusterSelector` is provided
+##### Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided
 
 ```yaml
-spec: {}
+spec:
+  placement: {}
 ```
 
 In this case, you can either set `spec: {}` as above or remove `spec` field from your
 placement policy. The resource will not be propagated to member clusters.
 
-##### Both `spec.clusterNames` and `spec.clusterSelector` are provided
+##### Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided
 
 ```yaml
 spec:
-  clusterNames:
-    - cluster2
-    - cluster1
-  clusterSelector:
-    matchLabels:
-      foo: bar
+  placement:
+    clusterNames:
+      - cluster2
+      - cluster1
+    clusterSelector:
+      matchLabels:
+        foo: bar
 ```
 
-For this case, `spec.clusterSelector` will be ignored as `spec.clusterNames` is provided. This
-ensures that the results of runtime scheduling have priority over manual definition of a
-cluster selector.
+For this case, `spec.placement.clusterSelector` will be ignored as
+`spec.placement.clusterNames` is provided. This ensures that the results of runtime
+scheduling have priority over manual definition of a cluster selector.
 
-##### `spec.clusterNames` is not provided, `spec.clusterSelector` is provided but empty
+##### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty
 
 ```yaml
 spec:
-  clusterSelector: {}
+  placement:
+    clusterSelector: {}
 ```
 
 In this case, the resource will be propagated to all member clusters.
 
-##### `spec.clusterNames` is not provided, `spec.clusterSelector` is provided and not empty
+##### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty
 
 ```yaml
 spec:
-  clusterSelector:
-    matchLabels:
-      foo: bar
+  placement:
+    clusterSelector:
+      matchLabels:
+        foo: bar
 ```
 
 In this case, the resource will only be propagated to member clusters that are labeled
@@ -450,7 +452,7 @@ kubectl logs -f federation-controller-manager-0 -n federation-system
 
 ### Deployment Cleanup
 
-Resources such as `namespaces` associated with a `FederatedNamespacePlacement` or `FederatedClusterRoles`
+Resources such as `namespaces` associated with a `FederatedNamespace` or `FederatedClusterRoles`
 should be deleted before cleaning up the deployment, otherwise, the process will fail.
 
 Run the following command to perform a cleanup of the cluster registry and
@@ -528,11 +530,10 @@ NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
 
 ## Higher order behaviour
 
-The architecture of federation v2 API allows higher level APIs to be
-constructed using the mechanics provided by the core API types (`template`,
-`placement` and `override`) and associated controllers for a given resource.
-Further sections describe few of higher level APIs implemented as part of
-Federation V2.
+The architecture of federation v2 API allows higher level APIs to be constructed using the
+mechanics provided by the standard form of the federated API types (containing fields for
+`template`, `placement` and `override`) and associated controllers for a given resource.
+Further sections describe few of higher level APIs implemented as part of Federation V2.
 
 ### Multi-Cluster Ingress DNS
 
@@ -566,15 +567,16 @@ RSP is used in place of ReplicaSchedulingPreference for brevity in text further 
 The RSP controller works in a sync loop observing the RSP resource and the
 matching `namespace/name` pair `FederatedDeployment` or `FederatedReplicaset`
 resource.
-If it finds that both RSP and its target template resource, the type of which
+
+If it finds that both RSP and its associated federated resource, the type of which
 is specified using `spec.targetKind`, exists, it goes ahead to list currently
 healthy clusters and distributes the `spec.totalReplicas` using the associated
 per cluster user preferences. If the per cluster preferences are absent, it
 distributes the `spec.totalReplicas` evenly among all clusters. It updates (or
-creates if missing) the same `namespace/name` `placement` and `overrides` for the
+creates if missing) the same `namespace/name` for the
 `targetKind` with the replica values calculated, leveraging the sync controller
 to actually propagate the k8s resource to federated clusters. Its noteworthy that
-if an RSP is present, the `spec.replicas` from the `template` resource are unused.
+if an RSP is present, the `spec.replicas` from the federated resource are unused.
 RSP also provides a further more useful feature using `spec.rebalance`. If this is
 set to `true`, the RSP controller monitors the replica pods for target replica
 workload from each federated cluster and if it finds that some clusters are not
@@ -592,10 +594,10 @@ behaviour is unacceptable.
 
 The RSP can be considered as more user friendly mechanism to distribute the
 replicas, where the inputs needed from the user at federated control plane are
-reduced. The user only needs to create the RSP resource and the mapping template
-resource, to distribute the replicas. It can also be considered as a more
-automated approach at distribution and further reconciliation of the workload
-replicas.
+reduced. The user only needs to create the RSP resource and associated federated
+resource (with only spec.template populated) to distribute the replicas. It can
+also be considered as a more automated approach at distribution and further
+reconciliation of the workload replicas.
 
 The usage of the RSP semantics is illustrated using some examples below. The
 examples considers 3 federated clusters `A`, `B` and `C`.

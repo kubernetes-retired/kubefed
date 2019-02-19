@@ -5,87 +5,27 @@ metadata:
   name: namespaces
 spec:
   comparisonField: ResourceVersion
+  federatedType:
+    group: primitives.federation.k8s.io
+    kind: FederatedNamespace
+    pluralName: federatednamespaces
+    version: v1alpha1
   namespaced: false
-  override:
-    group: primitives.federation.k8s.io
-    kind: FederatedNamespaceOverride
-    pluralName: federatednamespaceoverrides
-    version: v1alpha1
-  placement:
-    group: primitives.federation.k8s.io
-    kind: FederatedNamespacePlacement
-    pluralName: federatednamespaceplacements
-    version: v1alpha1
   propagationEnabled: true
   target:
     kind: Namespace
     pluralName: namespaces
     version: v1
-  template:
-    kind: Namespace
-    pluralName: namespaces
-    version: v1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: federatednamespaceplacements.primitives.federation.k8s.io
+  name: federatednamespaces.primitives.federation.k8s.io
 spec:
   group: primitives.federation.k8s.io
   names:
-    kind: FederatedNamespacePlacement
-    plural: federatednamespaceplacements
-  scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          type: string
-        kind:
-          type: string
-        metadata:
-          type: object
-        spec:
-          properties:
-            clusterNames:
-              items:
-                type: string
-              type: array
-            clusterSelector:
-              properties:
-                matchExpressions:
-                  items:
-                    properties:
-                      key:
-                        type: string
-                      operator:
-                        type: string
-                      values:
-                        items:
-                          type: string
-                        type: array
-                    required:
-                    - key
-                    - operator
-                    type: object
-                  type: array
-                matchLabels:
-                  additionalProperties:
-                    type: string
-                  type: object
-              type: object
-          type: object
-  version: v1alpha1
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: federatednamespaceoverrides.primitives.federation.k8s.io
-spec:
-  group: primitives.federation.k8s.io
-  names:
-    kind: FederatedNamespaceOverride
-    plural: federatednamespaceoverrides
+    kind: FederatedNamespace
+    plural: federatednamespaces
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -119,5 +59,35 @@ spec:
                     type: array
                 type: object
               type: array
+            placement:
+              properties:
+                clusterNames:
+                  items:
+                    type: string
+                  type: array
+                clusterSelector:
+                  properties:
+                    matchExpressions:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          values:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+              type: object
           type: object
   version: v1alpha1

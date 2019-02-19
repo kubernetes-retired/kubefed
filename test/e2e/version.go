@@ -56,12 +56,12 @@ type testVersionAdapter interface {
 	Update(obj pkgruntime.Object) (pkgruntime.Object, error)
 
 	// Type-agnostic template methods
-	CreateTemplate(obj pkgruntime.Object) (pkgruntime.Object, error)
-	DeleteTemplate(qualifiedName util.QualifiedName) error
-	GetTemplate(qualifiedName util.QualifiedName) (pkgruntime.Object, error)
-	TemplateType() string
-	TemplateYAML() string
-	TemplateInstance() pkgruntime.Object
+	CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error)
+	DeleteFederatedObject(qualifiedName util.QualifiedName) error
+	GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error)
+	FederatedType() string
+	FederatedObjectYAML() string
+	FederatedTypeInstance() pkgruntime.Object
 }
 
 type testNamespacedVersionAdapter struct {
@@ -79,24 +79,24 @@ func (a *testNamespacedVersionAdapter) Update(obj pkgruntime.Object) (pkgruntime
 	return a.coreClient.PropagatedVersions(version.Namespace).Update(version)
 }
 
-func (a *testNamespacedVersionAdapter) CreateTemplate(obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (a *testNamespacedVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	configMap := obj.(*corev1.ConfigMap)
 	return a.kubeClient.CoreV1().ConfigMaps(configMap.Namespace).Create(configMap)
 }
 
-func (a *testNamespacedVersionAdapter) DeleteTemplate(qualifiedName util.QualifiedName) error {
+func (a *testNamespacedVersionAdapter) DeleteFederatedObject(qualifiedName util.QualifiedName) error {
 	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Delete(qualifiedName.Name, nil)
 }
 
-func (a *testNamespacedVersionAdapter) GetTemplate(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
+func (a *testNamespacedVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
 	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 }
 
-func (a *testNamespacedVersionAdapter) TemplateType() string {
+func (a *testNamespacedVersionAdapter) FederatedType() string {
 	return "ConfigMap"
 }
 
-func (a *testNamespacedVersionAdapter) TemplateYAML() string {
+func (a *testNamespacedVersionAdapter) FederatedObjectYAML() string {
 	return `
 apiVersion: v1
 kind: ConfigMap
@@ -107,7 +107,7 @@ data:
 `
 }
 
-func (a *testNamespacedVersionAdapter) TemplateInstance() pkgruntime.Object {
+func (a *testNamespacedVersionAdapter) FederatedTypeInstance() pkgruntime.Object {
 	return &corev1.ConfigMap{}
 }
 
@@ -126,24 +126,24 @@ func (a *testClusterVersionAdapter) Update(obj pkgruntime.Object) (pkgruntime.Ob
 	return a.coreClient.ClusterPropagatedVersions().Update(version)
 }
 
-func (a *testClusterVersionAdapter) CreateTemplate(obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (a *testClusterVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	role := obj.(*rbacv1.ClusterRole)
 	return a.kubeClient.RbacV1().ClusterRoles().Create(role)
 }
 
-func (a *testClusterVersionAdapter) DeleteTemplate(qualifiedName util.QualifiedName) error {
+func (a *testClusterVersionAdapter) DeleteFederatedObject(qualifiedName util.QualifiedName) error {
 	return a.kubeClient.RbacV1().ClusterRoles().Delete(qualifiedName.String(), nil)
 }
 
-func (a *testClusterVersionAdapter) GetTemplate(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
+func (a *testClusterVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
 	return a.kubeClient.RbacV1().ClusterRoles().Get(qualifiedName.String(), metav1.GetOptions{})
 }
 
-func (a *testClusterVersionAdapter) TemplateType() string {
+func (a *testClusterVersionAdapter) FederatedType() string {
 	return "ClusterRole"
 }
 
-func (a *testClusterVersionAdapter) TemplateYAML() string {
+func (a *testClusterVersionAdapter) FederatedObjectYAML() string {
 	return `
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -152,7 +152,7 @@ metadata:
 `
 }
 
-func (a *testClusterVersionAdapter) TemplateInstance() pkgruntime.Object {
+func (a *testClusterVersionAdapter) FederatedTypeInstance() pkgruntime.Object {
 	return &rbacv1.ClusterRole{}
 }
 
@@ -194,18 +194,18 @@ var _ = Describe("VersionManager", func() {
 
 	tl := framework.NewE2ELogger()
 
-	templateKind := "FederatedFoo"
+	federatedKind := "FederatedFoo"
 
 	var targetKind string
 	var namespace string
-	var template *unstructured.Unstructured
+	var fedObject *unstructured.Unstructured
 	var versionedResource *testVersionedResource
 	var versionManager *version.VersionManager
 	var expectedStatus fedv1a1.PropagatedVersionStatus
 	var clusterNames []string
 	var versionMap map[string]string
 	var fedClient fedclientset.Interface
-	var versionName, templateName util.QualifiedName
+	var versionName, fedObjectName util.QualifiedName
 	var adapter testVersionAdapter
 	var versionType string
 
@@ -228,7 +228,7 @@ var _ = Describe("VersionManager", func() {
 				// Clear the resource names to avoid AfterEach using
 				// stale names if an error occurs in BeforeEach.
 				versionName = util.QualifiedName{}
-				templateName = util.QualifiedName{}
+				fedObjectName = util.QualifiedName{}
 
 				// Use a random string for the target kind to ensure test
 				// isolation for any test that depends on the state of the
@@ -248,32 +248,32 @@ var _ = Describe("VersionManager", func() {
 				adapter = newTestVersionAdapter(fedClient, kubeClient, namespaced)
 				versionType = adapter.TypeName()
 
-				// Use a non-template type as the template to avoid having
-				// sync controllers add a deletion finalizer to the
-				// created template that would complicate validating
-				// garbage collection.
-				template = &unstructured.Unstructured{}
-				err := federate.DecodeYAML(strings.NewReader(adapter.TemplateYAML()), template)
+				// Use a non-federated type as the federated object to
+				// avoid having sync controllers add a deletion
+				// finalizer to the object that would complicate
+				// validating garbage collection.
+				fedObject = &unstructured.Unstructured{}
+				err := federate.DecodeYAML(strings.NewReader(adapter.FederatedObjectYAML()), fedObject)
 				if err != nil {
-					tl.Fatalf("Failed to parse template yaml: %v", err)
+					tl.Fatalf("Failed to parse yaml: %v", err)
 				}
 				if namespaced {
-					template.SetNamespace(namespace)
+					fedObject.SetNamespace(namespace)
 				}
-				content, err := template.MarshalJSON()
+				content, err := fedObject.MarshalJSON()
 				if err != nil {
-					tl.Fatalf("Failed to marshall template yaml: %v", err)
+					tl.Fatalf("Failed to marshall yaml: %v", err)
 				}
-				templateInstance := adapter.TemplateInstance()
-				err = json.Unmarshal(content, templateInstance)
+				fedObjectInstance := adapter.FederatedTypeInstance()
+				err = json.Unmarshal(content, fedObjectInstance)
 				if err != nil {
-					tl.Fatalf("Failed to unmarshall template: %v", err)
+					tl.Fatalf("Failed to unmarshall federated object: %v", err)
 				}
 
 				// Create the template to ensure that created versions
 				// will have a valid owner and not be subject to immediate
 				// garbage collection.
-				createdObj, err := adapter.CreateTemplate(templateInstance)
+				createdObj, err := adapter.CreateFederatedObject(fedObjectInstance)
 				if err != nil {
 					tl.Fatalf("Error creating template: %v", err)
 				}
@@ -281,23 +281,23 @@ var _ = Describe("VersionManager", func() {
 				if err != nil {
 					tl.Fatalf("Failed to retrieve meta accessor for template: %s", err)
 				}
-				template.SetName(metaAccessor.GetName())
-				template.SetUID(metaAccessor.GetUID())
-				template.SetResourceVersion(metaAccessor.GetResourceVersion())
-				templateName = util.NewQualifiedName(template)
+				fedObject.SetName(metaAccessor.GetName())
+				fedObject.SetUID(metaAccessor.GetUID())
+				fedObject.SetResourceVersion(metaAccessor.GetResourceVersion())
+				fedObjectName = util.NewQualifiedName(fedObject)
 
-				templateVersion, err := sync.GetTemplateHash(template)
+				templateVersion, err := sync.GetTemplateHash(fedObject.Object, false)
 				if err != nil {
 					tl.Fatalf("Failed to determine template version: %v", err)
 				}
 
 				versionedResource = &testVersionedResource{
-					federatedName:   templateName,
-					object:          template,
+					federatedName:   fedObjectName,
+					object:          fedObject,
 					templateVersion: templateVersion,
 				}
 
-				propVerName := apicommon.PropagatedVersionName(targetKind, template.GetName())
+				propVerName := apicommon.PropagatedVersionName(targetKind, fedObject.GetName())
 				versionNamespace := namespace
 				if !namespaced {
 					versionNamespace = ""
@@ -309,17 +309,13 @@ var _ = Describe("VersionManager", func() {
 					versionMap[name] = name
 				}
 
-				templateHash, err := sync.GetTemplateHash(template)
-				if err != nil {
-					tl.Fatalf("Failed to compute template hash: %v", err)
-				}
 				expectedStatus = fedv1a1.PropagatedVersionStatus{
-					TemplateVersion: templateHash,
+					TemplateVersion: templateVersion,
 					OverrideVersion: "",
 					ClusterVersions: version.VersionMapToClusterVersions(versionMap),
 				}
 
-				versionManager = version.NewVersionManager(fedClient, namespaced, templateKind, targetKind, versionNamespace)
+				versionManager = version.NewVersionManager(fedClient, namespaced, federatedKind, targetKind, versionNamespace)
 				stopChan = make(chan struct{})
 				// There shouldn't be any api objects to load, but Sync
 				// also starts the worker that will write to the API.
@@ -328,12 +324,13 @@ var _ = Describe("VersionManager", func() {
 
 			AfterEach(func() {
 				close(stopChan)
-				// Ensure removal of the template, which will prompt the
-				// removal of owned versions by the garbage collector.
-				if len(templateName.Name) > 0 {
-					err := adapter.DeleteTemplate(templateName)
+				// Ensure removal of the federated object, which will
+				// prompt the removal of owned versions by the garbage
+				// collector.
+				if len(fedObjectName.Name) > 0 {
+					err := adapter.DeleteFederatedObject(fedObjectName)
 					if err != nil && !errors.IsNotFound(err) {
-						tl.Errorf("Error deleting %s %q: %v", adapter.TemplateType(), templateName, err)
+						tl.Errorf("Error deleting %s %q: %v", adapter.FederatedType(), fedObjectName, err)
 					}
 				}
 				// Managed fixture doesn't run the garbage collector, so
@@ -362,7 +359,7 @@ var _ = Describe("VersionManager", func() {
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Create a second manager and sync it
-				otherManager := version.NewVersionManager(fedClient, namespaced, templateKind, targetKind, namespace)
+				otherManager := version.NewVersionManager(fedClient, namespaced, federatedKind, targetKind, namespace)
 				otherManager.Sync(stopChan)
 
 				// Ensure that the second manager loaded the version
@@ -378,7 +375,7 @@ var _ = Describe("VersionManager", func() {
 
 			inSupportedScopeIt("should refresh and update after out-of-band creation", namespaced, func() {
 				// Create a second manager and use it to write a version to the api
-				otherManager := version.NewVersionManager(fedClient, namespaced, templateKind, targetKind, namespace)
+				otherManager := version.NewVersionManager(fedClient, namespaced, federatedKind, targetKind, namespace)
 				otherManager.Sync(stopChan)
 				err := otherManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {
@@ -473,12 +470,12 @@ var _ = Describe("VersionManager", func() {
 				// Removal of the template should prompt the garbage
 				// collection of the associated version resource due to
 				// the owner reference added by the version manager.
-				err = adapter.DeleteTemplate(templateName)
+				err = adapter.DeleteFederatedObject(fedObjectName)
 				if err != nil {
-					tl.Fatalf("Error deleting %s %q: %v", adapter.TemplateType(), templateName, err)
+					tl.Fatalf("Error deleting %s %q: %v", adapter.FederatedType(), fedObjectName, err)
 				}
-				checkForDeletion(tl, adapter.TemplateType(), templateName, func() error {
-					_, err := adapter.GetTemplate(templateName)
+				checkForDeletion(tl, adapter.FederatedType(), fedObjectName, func() error {
+					_, err := adapter.GetFederatedObject(fedObjectName)
 					return err
 				})
 				checkForDeletion(tl, adapter.TypeName(), versionName, func() error {

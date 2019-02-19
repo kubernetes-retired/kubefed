@@ -410,9 +410,7 @@ func (in *FederatedTypeConfigList) DeepCopyObject() runtime.Object {
 func (in *FederatedTypeConfigSpec) DeepCopyInto(out *FederatedTypeConfigSpec) {
 	*out = *in
 	out.Target = in.Target
-	out.Template = in.Template
-	out.Placement = in.Placement
-	out.Override = in.Override
+	out.FederatedType = in.FederatedType
 	if in.Status != nil {
 		in, out := &in.Status, &out.Status
 		if *in == nil {

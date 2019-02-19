@@ -26,7 +26,6 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/placement"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
@@ -42,21 +41,28 @@ type FederatedResourceAccessor interface {
 }
 
 type resourceAccessor struct {
+	limitedScope      bool
 	typeConfig        typeconfig.Interface
 	targetIsNamespace bool
 	fedNamespace      string
 
-	// Store for the templates of the federated type
-	templateStore cache.Store
-	// Informer for the templates of the federated type
-	templateController cache.Controller
+	// The informer for the federated type.
+	federatedStore      cache.Store
+	federatedController cache.Controller
 
-	// Store for the override directives of the federated type
-	overrideStore cache.Store
-	// Informer controller for override directives of the federated type
-	overrideController cache.Controller
+	// The informer used to source namespaces for templates of
+	// federated namespaces.  Will only be initialized if
+	// targetIsNamespace=true.
+	namespaceStore      cache.Store
+	namespaceController cache.Controller
 
-	placementPlugin placement.PlacementPlugin
+	fedNamespaceAPIResource *metav1.APIResource
+
+	// The informer used to source federated namespaces used in
+	// determining placement for namespaced resources.  Will only be
+	// initialized if the target resource is namespaced.
+	fedNamespaceStore      cache.Store
+	fedNamespaceController cache.Controller
 
 	// Manages propagated versions
 	versionManager *version.VersionManager
@@ -68,85 +74,80 @@ type resourceAccessor struct {
 func NewFederatedResourceAccessor(
 	controllerConfig *util.ControllerConfig,
 	typeConfig typeconfig.Interface,
-	namespacePlacementAPIResource *metav1.APIResource,
+	fedNamespaceAPIResource *metav1.APIResource,
 	fedClient fedclientset.Interface,
 	enqueueObj func(pkgruntime.Object),
 	informer util.FederatedInformer,
 	updater util.FederatedUpdater) (FederatedResourceAccessor, error) {
 
 	a := &resourceAccessor{
-		typeConfig:        typeConfig,
-		targetIsNamespace: typeConfig.GetTarget().Kind == util.NamespaceKind,
-		fedNamespace:      controllerConfig.FederationNamespace,
+		limitedScope:            controllerConfig.LimitedScope(),
+		typeConfig:              typeConfig,
+		targetIsNamespace:       typeConfig.GetTarget().Kind == util.NamespaceKind,
+		fedNamespace:            controllerConfig.FederationNamespace,
+		fedNamespaceAPIResource: fedNamespaceAPIResource,
 	}
 
 	targetNamespace := controllerConfig.TargetNamespace
 
-	// Start informers on the resources for the federated type
-	templateAPIResource := typeConfig.GetTemplate()
-	templateClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &templateAPIResource)
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	federatedTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &federatedTypeAPIResource)
 	if err != nil {
 		return nil, err
 	}
-	a.templateStore, a.templateController = util.NewResourceInformer(templateClient, targetNamespace, enqueueObj)
+	a.federatedStore, a.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, enqueueObj)
 
-	overrideAPIResource := typeConfig.GetOverride()
-	overrideClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &overrideAPIResource)
-	if err != nil {
-		return nil, err
-	}
-	a.overrideStore, a.overrideController = util.NewResourceInformer(overrideClient, targetNamespace, enqueueObj)
-
-	placementAPIResource := typeConfig.GetPlacement()
-	placementClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &placementAPIResource)
-	if err != nil {
-		return nil, err
-	}
-	if typeConfig.GetNamespaced() {
-		namespacePlacementClient, err := util.NewResourceClient(controllerConfig.KubeConfig, namespacePlacementAPIResource)
+	if a.targetIsNamespace {
+		// Initialize an informer for namespaces.  The namespace
+		// containing a federated namespace resource is used as the
+		// template for target resources in member clusters.
+		namespaceAPIResource := typeConfig.GetTarget()
+		namespaceTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &namespaceAPIResource)
 		if err != nil {
 			return nil, err
 		}
-		namespacePlacementEnqueue := func(placementObj pkgruntime.Object) {
-			// When namespace placement changes, every resource in the
-			// namespace needs to be reconciled.
-			placementNamespace := util.NewQualifiedName(placementObj).Namespace
-			for _, templateObj := range a.templateStore.List() {
-				template := templateObj.(pkgruntime.Object)
-				qualifiedName := util.NewQualifiedName(template)
-				if qualifiedName.Namespace == placementNamespace {
-					enqueueObj(template)
+		a.namespaceStore, a.namespaceController = util.NewResourceInformer(namespaceTypeClient, targetNamespace, enqueueObj)
+	}
+
+	if typeConfig.GetNamespaced() {
+		fedNamespaceEnqueue := func(fedNamespaceObj pkgruntime.Object) {
+			// When a federated namespace changes, every resource in
+			// the namespace needs to be reconciled.
+			//
+			// TODO(marun) Consider optimizing this to only reconcile
+			// contained resources in response to a change in
+			// placement for the federated namespace.
+			namespace := util.NewQualifiedName(fedNamespaceObj).Namespace
+			for _, rawObj := range a.federatedStore.List() {
+				obj := rawObj.(pkgruntime.Object)
+				qualifiedName := util.NewQualifiedName(obj)
+				if qualifiedName.Namespace == namespace {
+					enqueueObj(obj)
 				}
 			}
 		}
-
-		a.placementPlugin = placement.NewNamespacedPlacementPlugin(placementClient, namespacePlacementClient, targetNamespace, enqueueObj, namespacePlacementEnqueue)
-	} else {
-		a.placementPlugin = placement.NewResourcePlacementPlugin(placementClient, targetNamespace, enqueueObj)
+		// Initialize an informer for federated namespaces.  Placement
+		// for a resource is computed as the intersection of resource
+		// and federated namespace placement.
+		fedNamespaceClient, err := util.NewResourceClient(controllerConfig.KubeConfig, fedNamespaceAPIResource)
+		if err != nil {
+			return nil, err
+		}
+		a.fedNamespaceStore, a.fedNamespaceController = util.NewResourceInformer(fedNamespaceClient, targetNamespace, fedNamespaceEnqueue)
 	}
 
 	a.versionManager = version.NewVersionManager(
 		fedClient,
 		typeConfig.GetFederatedNamespaced(),
-		typeConfig.GetFederatedKind(),
+		typeConfig.GetFederatedType().Kind,
 		typeConfig.GetTarget().Kind,
 		targetNamespace,
 	)
 
-	// Most types apply the finalizer to the template.
-	finalizerClient := templateClient
-	if a.targetIsNamespace {
-		// For namespaces the finalizer is applied to the placement to
-		// ensure that deletion of namespaces in member clusters only
-		// occurs after a namespace has been configured to be propagated
-		// to those clusters.
-		finalizerClient = placementClient
-	}
-
 	a.deletionHelper = deletionhelper.NewDeletionHelper(
 		func(rawObj pkgruntime.Object) (pkgruntime.Object, error) {
 			obj := rawObj.(*unstructured.Unstructured)
-			return finalizerClient.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+			return federatedTypeClient.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		},
 		func(obj pkgruntime.Object) string {
 			return util.NewQualifiedName(obj).String()
@@ -160,26 +161,31 @@ func NewFederatedResourceAccessor(
 
 func (a *resourceAccessor) Run(stopChan <-chan struct{}) {
 	go a.versionManager.Sync(stopChan)
-	go a.templateController.Run(stopChan)
-	go a.overrideController.Run(stopChan)
-	go a.placementPlugin.Run(stopChan)
+	go a.federatedController.Run(stopChan)
+	if a.namespaceController != nil {
+		go a.namespaceController.Run(stopChan)
+	}
+	if a.fedNamespaceController != nil {
+		go a.fedNamespaceController.Run(stopChan)
+	}
 }
 
 func (a *resourceAccessor) HasSynced() bool {
+	kind := a.typeConfig.GetFederatedType().Kind
 	if !a.versionManager.HasSynced() {
-		glog.V(2).Infof("Version manager not synced")
+		glog.V(2).Infof("Version manager for %s not synced", kind)
 		return false
 	}
-	if !a.templateController.HasSynced() {
-		glog.V(2).Infof("Templates not synced")
+	if !a.federatedController.HasSynced() {
+		glog.V(2).Infof("Informer for %s not synced", kind)
 		return false
 	}
-	if !a.overrideController.HasSynced() {
-		glog.V(2).Infof("Overrides not synced")
+	if a.namespaceController != nil && !a.namespaceController.HasSynced() {
+		glog.V(2).Infof("Namespace informer for %s not synced", kind)
 		return false
 	}
-	if !a.placementPlugin.HasSynced() {
-		glog.V(2).Infof("Placements not synced")
+	if a.fedNamespaceController != nil && !a.fedNamespaceController.HasSynced() {
+		glog.V(2).Infof("FederatedNamespace informer for %s not synced", kind)
 		return false
 	}
 	return true
@@ -191,17 +197,14 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 		return nil, nil
 	}
 
+	kind := a.typeConfig.GetFederatedType().Kind
+
 	// Most federated resources have the same name as their targets.
 	targetName := eventSource
 	federatedName := util.QualifiedName{
 		Namespace: eventSource.Namespace,
 		Name:      eventSource.Name,
 	}
-	templateKey := federatedName.String()
-
-	// If the target type is namespace, the placement resource must be
-	// present and will be used as the finalization target.
-	var placement *unstructured.Unstructured
 
 	// A federated primitive for namespace "foo" is namespaced
 	// (e.g. "foo/foo"). An event sourced from a namespace in the host
@@ -216,62 +219,71 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 			// Ensure the federated name is namespace qualified.
 			federatedName.Namespace = federatedName.Name
 		} else {
+			if federatedName.Namespace != federatedName.Name {
+				// A FederatedNamespace is only valid for propagation
+				// if it has the same name as the containing namespace.
+				return nil, nil
+			}
 			// Ensure the target name is not namespace qualified.
 			targetName.Namespace = ""
 		}
-
-		// A namespace is only federated if it has a corresponding
-		// placement resource.
-		var err error
-		placement, err = a.placementPlugin.GetPlacement(federatedName.String())
-		if err != nil {
-			return nil, err
-		}
-		if placement == nil {
-			// No propagation without placement, and finalization
-			// ensures that the absence of placement indicates removal
-			// of target resources from member clusters.
-			glog.V(7).Infof("%s %q was not found which indicates the namespace is not federated",
-				a.typeConfig.GetPlacement().Kind, federatedName)
-			return nil, nil
-		}
-
-		// The template for a federated namespace is the namespace.
-		templateKey = targetName.String()
 	}
 
-	templateKind := a.typeConfig.GetTemplate().Kind
-	template, err := util.ObjFromCache(a.templateStore, templateKind, templateKey)
+	key := federatedName.String()
+
+	resource, err := util.ObjFromCache(a.federatedStore, kind, key)
 	if err != nil {
 		return nil, err
 	}
-	if template == nil {
-		// Without a template, a resource is not federated.  The event
-		// source may be an override or placement, but is more likely
-		// to be a non-federated resource in the target cluster.
+	if resource == nil {
+		// The event source may be a federated resource that was
+		// deleted, but is more likely a non-federated resource in the
+		// target cluster.
 		glog.V(7).Infof("%s %q was not found which indicates that the %s is not federated",
-			templateKind, templateKey, a.typeConfig.GetTarget().Kind)
+			kind, key, a.typeConfig.GetTarget().Kind)
 		return nil, nil
 	}
 
+	var namespace *unstructured.Unstructured
+	if a.targetIsNamespace {
+		namespace, err = util.ObjFromCache(a.namespaceStore, a.typeConfig.GetTarget().Kind, targetName.String())
+		if err != nil {
+			return nil, err
+		}
+		if namespace == nil {
+			// The namespace containing the FederatedNamespace was deleted.
+			return nil, nil
+		}
+	}
+
+	var fedNamespace *unstructured.Unstructured
+	if a.typeConfig.GetNamespaced() {
+		fedNamespaceName := util.QualifiedName{Namespace: targetName.Namespace, Name: targetName.Namespace}
+		fedNamespace, err = util.ObjFromCache(a.fedNamespaceStore, a.fedNamespaceAPIResource.Kind, fedNamespaceName.String())
+		if err != nil {
+			return nil, err
+		}
+		// If fedNamespace is nil, the resources in member clusters
+		// will be removed.
+	}
+
 	return &federatedResource{
+		limitedScope:      a.limitedScope,
 		typeConfig:        a.typeConfig,
 		targetIsNamespace: a.targetIsNamespace,
 		targetName:        targetName,
+		federatedKind:     kind,
 		federatedName:     federatedName,
-		template:          template,
-		placement:         placement,
-		placementPlugin:   a.placementPlugin,
+		federatedResource: resource,
 		versionManager:    a.versionManager,
 		deletionHelper:    a.deletionHelper,
-		// Overrides are loaded lazily to ensure that deletion can
-		// handled by the controller first.
-		overrideStore: a.overrideStore,
+		namespace:         namespace,
+		fedNamespace:      fedNamespace,
 	}, nil
 }
 
 func (a *resourceAccessor) VisitFederatedResources(visitFunc func(obj interface{})) {
-	for _, obj := range a.templateStore.List() {
+	for _, obj := range a.federatedStore.List() {
 		visitFunc(obj)
 	}
 }

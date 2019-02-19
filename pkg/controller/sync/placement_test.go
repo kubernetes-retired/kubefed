@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package placement
+package sync
 
 import (
 	"reflect"
@@ -80,10 +80,10 @@ func TestSelectedClusterNames(t *testing.T) {
 				},
 			}
 			if testCase.clusterNames != nil {
-				unstructured.SetNestedStringSlice(obj.Object, testCase.clusterNames, util.SpecField, util.ClusterNamesField)
+				unstructured.SetNestedStringSlice(obj.Object, testCase.clusterNames, util.SpecField, util.PlacementField, util.ClusterNamesField)
 			}
 			if testCase.clusterSelector != nil {
-				unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.ClusterSelectorField, "matchLabels")
+				unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, "matchLabels")
 			}
 
 			selectedNames, err := selectedClusterNames(obj, clusters)

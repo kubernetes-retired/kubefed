@@ -51,7 +51,7 @@ type SchedulerController struct {
 
 	runningPlugins sets.String
 	// mapping qualifiedname to template kind for managing plugins in scheduler
-	templateKindMap map[string]string
+	federatedKindMap map[string]string
 }
 
 func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan struct{}) {
@@ -69,10 +69,10 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 
 func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) *SchedulerController {
 	c := &SchedulerController{
-		config:          config,
-		scheduler:       make(map[string]schedulingtypes.Scheduler),
-		runningPlugins:  sets.String{},
-		templateKindMap: make(map[string]string),
+		config:           config,
+		scheduler:        make(map[string]schedulingtypes.Scheduler),
+		runningPlugins:   sets.String{},
+		federatedKindMap: make(map[string]string),
 	}
 
 	fedNamespace := config.FederationNamespace
@@ -168,16 +168,16 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 		c.scheduler[schedulingKind] = scheduler
 	}
 
-	templateKind := typeConfig.GetTemplate().Kind
-	glog.Infof("Starting plugin kind %s for scheduling type %s", templateKind, schedulingKind)
+	federatedKind := typeConfig.GetFederatedType().Kind
+	glog.Infof("Starting plugin kind %s for scheduling type %s", federatedKind, schedulingKind)
 
 	err = scheduler.StartPlugin(typeConfig)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Error starting plugin for %q", templateKind))
+		runtime.HandleError(errors.Wrapf(err, "Error starting plugin for %q", federatedKind))
 		return util.StatusError
 	}
 	c.runningPlugins.Insert(qualifiedName.Name)
-	c.templateKindMap[qualifiedName.Name] = templateKind
+	c.federatedKindMap[qualifiedName.Name] = federatedKind
 
 	return util.StatusAllOK
 }
@@ -192,11 +192,11 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 		return
 	}
 
-	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.templateKindMap[qualifiedName.Name])
+	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.federatedKindMap[qualifiedName.Name])
 
-	scheduler.StopPlugin(c.templateKindMap[qualifiedName.Name])
+	scheduler.StopPlugin(c.federatedKindMap[qualifiedName.Name])
 	c.runningPlugins.Delete(qualifiedName.Name)
-	delete(c.templateKindMap, qualifiedName.Name)
+	delete(c.federatedKindMap, qualifiedName.Name)
 
 	// if all resources registered to same scheduler are deleted, the scheduler should be stopped
 	resources := schedulingtypes.GetSchedulingKinds(qualifiedName.Name)

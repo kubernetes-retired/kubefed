@@ -13,3 +13,7 @@ spec:
           - backend:
               serviceName: test-service
               servicePort: 80
+  placement:
+    clusterNames:
+    - cluster2
+    - cluster1

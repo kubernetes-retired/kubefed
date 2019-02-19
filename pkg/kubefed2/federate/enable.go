@@ -186,10 +186,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	if j.outputYAML {
 		concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
-		objects := []pkgruntime.Object{concreteTypeConfig}
-		for _, crd := range resources.CRDs {
-			objects = append(objects, crd)
-		}
+		objects := []pkgruntime.Object{concreteTypeConfig, resources.CRD}
 		err := writeObjectsToYAML(objects, cmdOut)
 		if err != nil {
 			return errors.Wrap(err, "Failed to write objects to YAML")
@@ -208,7 +205,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 type typeResources struct {
 	TypeConfig typeconfig.Interface
-	CRDs       []*apiextv1b1.CustomResourceDefinition
+	CRD        *apiextv1b1.CustomResourceDefinition
 }
 
 func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective) (*typeResources, error) {
@@ -224,14 +221,11 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error initializing validation schema accessor")
 	}
-	crds, err := primitiveCRDs(typeConfig, accessor)
-	if err != nil {
-		return nil, err
-	}
+	crd := federatedTypeCRD(typeConfig, accessor)
 
 	return &typeResources{
 		TypeConfig: typeConfig,
-		CRDs:       crds,
+		CRD:        crd,
 	}, nil
 }
 
@@ -249,13 +243,11 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	if err != nil {
 		return errors.Wrap(err, "Failed to create crd clientset")
 	}
-	for _, crd := range resources.CRDs {
-		_, err := crdClient.CustomResourceDefinitions().Create(crd)
-		if err != nil {
-			return errors.Wrapf(err, "Error creating CRD %q", crd.Name)
-		}
-		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", crd.Name))
+	_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
+	if err != nil {
+		return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
 	}
+	write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
 
 	fedClient, err := util.FedClientset(config)
 	if err != nil {
@@ -293,52 +285,32 @@ func typeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *En
 			Namespaced:         apiResource.Namespaced,
 			ComparisonField:    spec.ComparisonField,
 			PropagationEnabled: true,
-			Placement: fedv1a1.APIResource{
-				Kind: fmt.Sprintf("Federated%sPlacement", kind),
-			},
-			Override: fedv1a1.APIResource{
-				Kind: fmt.Sprintf("Federated%sOverride", kind),
+			FederatedType: fedv1a1.APIResource{
+				Group:      spec.PrimitiveGroup,
+				Version:    spec.PrimitiveVersion,
+				Kind:       fmt.Sprintf("Federated%s", kind),
+				PluralName: fmt.Sprintf("federated%s", pluralName),
 			},
 		},
 	}
-	if typeConfig.Name == ctlutil.NamespaceName {
-		typeConfig.Spec.Template = typeConfig.Spec.Target
-		typeConfig.Spec.Placement.Group = spec.PrimitiveGroup
-		typeConfig.Spec.Placement.Version = spec.PrimitiveVersion
-		typeConfig.Spec.Override.Group = spec.PrimitiveGroup
-		typeConfig.Spec.Override.Version = spec.PrimitiveVersion
-	} else {
-		typeConfig.Spec.Template = fedv1a1.APIResource{
-			Group:      spec.PrimitiveGroup,
-			Version:    spec.PrimitiveVersion,
-			Kind:       fmt.Sprintf("Federated%s", kind),
-			PluralName: fmt.Sprintf("federated%s", pluralName),
-		}
-	}
+
 	// Set defaults that would normally be set by the api
 	fedv1a1.SetFederatedTypeConfigDefaults(typeConfig)
 	return typeConfig
 }
 
-func primitiveCRDs(typeConfig typeconfig.Interface, accessor schemaAccessor) ([]*apiextv1b1.CustomResourceDefinition, error) {
-	crds := []*apiextv1b1.CustomResourceDefinition{}
-
-	// Namespaces do not require a template
+func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor) *apiextv1b1.CustomResourceDefinition {
+	var templateSchema map[string]apiextv1b1.JSONSchemaProps
+	// Define the template field for everything but namespaces.
+	// A FederatedNamespace uses the containing namespace as the
+	// template.
 	if typeConfig.GetTarget().Kind != ctlutil.NamespaceKind {
-		templateSchema, err := templateValidationSchema(accessor)
-		if err != nil {
-			return nil, err
-		}
-		crds = append(crds, CrdForAPIResource(typeConfig.GetTemplate(), templateSchema))
+		templateSchema = accessor.templateSchema()
 	}
 
-	placementSchema := placementValidationSchema()
-	crds = append(crds, CrdForAPIResource(typeConfig.GetPlacement(), placementSchema))
+	schema := federatedTypeValidationSchema(templateSchema)
 
-	overrideSchema := overrideValidationSchema()
-	crds = append(crds, CrdForAPIResource(typeConfig.GetOverride(), overrideSchema))
-
-	return crds, nil
+	return CrdForAPIResource(typeConfig.GetFederatedType(), schema)
 }
 
 func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {

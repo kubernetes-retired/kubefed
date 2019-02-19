@@ -33,7 +33,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-type testObjectAccessor func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error)
+type testObjectAccessor func(namespace string, clusterNames []string) (fedObject *unstructured.Unstructured, err error)
 
 var _ = Describe("Federated", func() {
 	f := framework.NewFederationFramework("federated-types")
@@ -41,6 +41,10 @@ var _ = Describe("Federated", func() {
 	tl := framework.NewE2ELogger()
 
 	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
+
+	// TODO(marun) Ensure that deletion handling of federated
+	// resources is performed in the event of test failure before
+	// controllers are shutdown.
 
 	for key := range typeConfigFixtures {
 		typeConfigName := key
@@ -70,8 +74,8 @@ var _ = Describe("Federated", func() {
 					framework.Skipf("Federation of cluster-scoped type %s is not supported by a namespaced control plane.", typeConfigName)
 				}
 
-				testObjectFunc := func(namespace string, clusterNames []string) (template, placement, override *unstructured.Unstructured, err error) {
-					return common.NewTestObjects(typeConfig, namespace, clusterNames, fixture)
+				testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
+					return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
 				}
 				validateCrud(f, tl, typeConfig, testObjectFunc)
 			})
@@ -81,8 +85,7 @@ var _ = Describe("Federated", func() {
 
 func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) (
-	crudTester *common.FederatedTypeCrudTester, template, placement,
-	override *unstructured.Unstructured) {
+	*common.FederatedTypeCrudTester, *unstructured.Unstructured) {
 
 	// Initialize in-memory controllers if configuration requires
 	fixture := f.SetUpSyncControllerFixture(typeConfig)
@@ -94,16 +97,16 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 		f.EnsureTestNamespacePropagation()
 	}
 
-	templateKind := typeConfig.GetTemplate().Kind
+	federatedKind := typeConfig.GetFederatedType().Kind
 
-	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(templateKind))
+	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(federatedKind))
 
 	kubeConfig := f.KubeConfig()
 	targetAPIResource := typeConfig.GetTarget()
 	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
 	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 	if err != nil {
-		tl.Fatalf("Error creating crudtester for %q: %v", templateKind, err)
+		tl.Fatalf("Error creating crudtester for %q: %v", federatedKind, err)
 	}
 
 	namespace := ""
@@ -117,17 +120,17 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	for name := range testClusters {
 		clusterNames = append(clusterNames, name)
 	}
-	template, placement, override, err = testObjectFunc(namespace, clusterNames)
+	fedObject, err := testObjectFunc(namespace, clusterNames)
 	if err != nil {
-		tl.Fatalf("Error creating test objects: %v", err)
+		tl.Fatalf("Error creating test object: %v", err)
 	}
 
-	return crudTester, template, placement, override
+	return crudTester, fedObject
 }
 
 func validateCrud(f framework.FederationFramework, tl common.TestLogger,
 	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
 
-	crudTester, template, placement, override := initCrudTest(f, tl, typeConfig, testObjectFunc)
-	crudTester.CheckLifecycle(template, placement, override)
+	crudTester, fedObject := initCrudTest(f, tl, typeConfig, testObjectFunc)
+	crudTester.CheckLifecycle(fedObject)
 }

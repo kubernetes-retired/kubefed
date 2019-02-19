@@ -144,7 +144,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 					if !ok {
 						tl.Fatalf("Unable to find type config for %q", typeConfigName)
 					}
-					templateKind := typeConfig.GetTemplate().Kind
+					federatedKind := typeConfig.GetFederatedType().Kind
 
 					clusterCount := len(clusterNames)
 					if clusterCount != 2 {
@@ -153,9 +153,9 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 
 					var rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec
 					if tc.noPreferences {
-						rspSpec = rspSpecWithoutClusterList(tc.total, templateKind)
+						rspSpec = rspSpecWithoutClusterList(tc.total, federatedKind)
 					} else {
-						rspSpec = rspSpecWithClusterList(tc.total, tc.weight1, tc.weight2, tc.min1, tc.min2, clusterNames, templateKind)
+						rspSpec = rspSpecWithClusterList(tc.total, tc.weight1, tc.weight2, tc.min1, tc.min2, clusterNames, federatedKind)
 					}
 
 					expected := map[string]int32{
@@ -168,14 +168,9 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 						tl.Fatalf("Creation of test objects failed in federation: %v", err)
 					}
 
-					err = waitForMatchingPlacement(tl, typeConfig, kubeConfig, name, namespace, expected)
+					err = waitForMatchingFederatedObject(tl, typeConfig, kubeConfig, name, namespace, expected)
 					if err != nil {
-						tl.Fatalf("Failed waiting for matching placements: %v", err)
-					}
-
-					err = waitForMatchingOverride(tl, typeConfig, kubeConfig, name, namespace, expected)
-					if err != nil {
-						tl.Fatalf("Failed waiting for matching overrides: %v", err)
+						tl.Fatalf("Failed waiting for matching federated object: %v", err)
 					}
 
 					err = deleteTestObj(typeConfig, kubeConfig, name, namespace)
@@ -214,8 +209,8 @@ func rspSpecWithClusterList(total int32, w1, w2, min1, min2 int64, clusters []st
 }
 
 func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
-	templateAPIResource := typeConfig.GetTemplate()
-	templateClient, err := util.NewResourceClient(kubeConfig, &templateAPIResource)
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	federatedTypeClient, err := util.NewResourceClient(kubeConfig, &federatedTypeAPIResource)
 	if err != nil {
 		return "", err
 	}
@@ -225,15 +220,15 @@ func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeCon
 	if !ok {
 		return "", errors.Errorf("Unable to find fixture for %q", typeConfigName)
 	}
-	template, err := common.NewTestTemplate(typeConfig.GetTemplate(), namespace, fixture)
+	fedObject, err := common.NewTestObject(typeConfig, namespace, []string{}, fixture)
 	if err != nil {
 		return "", err
 	}
-	createdTemplate, err := templateClient.Resources(namespace).Create(template, metav1.CreateOptions{})
+	createdFedObject, err := federatedTypeClient.Resources(namespace).Create(fedObject, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
-	name := createdTemplate.GetName()
+	name := createdFedObject.GetName()
 
 	rsp := &fedschedulingv1a1.ReplicaSchedulingPreference{
 		ObjectMeta: metav1.ObjectMeta{
@@ -251,13 +246,13 @@ func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeCon
 }
 
 func deleteTestObj(typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string) error {
-	templateAPIResource := typeConfig.GetTemplate()
-	templateClient, err := util.NewResourceClient(kubeConfig, &templateAPIResource)
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	federatedTypeClient, err := util.NewResourceClient(kubeConfig, &federatedTypeAPIResource)
 	if err != nil {
 		return err
 	}
 
-	err = templateClient.Resources(namespace).Delete(name, &metav1.DeleteOptions{})
+	err = federatedTypeClient.Resources(namespace).Delete(name, &metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -265,58 +260,42 @@ func deleteTestObj(typeConfig typeconfig.Interface, kubeConfig *restclient.Confi
 	return nil
 }
 
-func waitForMatchingPlacement(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected map[string]int32) error {
-	placementAPIResource := typeConfig.GetPlacement()
-	placementKind := placementAPIResource.Kind
-	client, err := util.NewResourceClient(kubeConfig, &placementAPIResource)
+func waitForMatchingFederatedObject(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected32 map[string]int32) error {
+	apiResource := typeConfig.GetFederatedType()
+	kind := apiResource.Kind
+	client, err := util.NewResourceClient(kubeConfig, &apiResource)
 	if err != nil {
 		return err
 	}
 
 	expectedClusterNames := []string{}
-	for clusterName := range expected {
+	for clusterName := range expected32 {
 		expectedClusterNames = append(expectedClusterNames, clusterName)
-	}
-
-	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		placement, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			if !apierrors.IsNotFound(err) {
-				tl.Errorf("An error occurred while polling for %s %s/%s: %v", placementKind, namespace, name, err)
-			}
-			return false, nil
-		}
-
-		clusterNames, err := util.GetClusterNames(placement)
-		if err != nil {
-			tl.Errorf("An error occurred while retrieving cluster names for override %s %s/%s: %v", placementKind, namespace, name, err)
-			return false, nil
-		}
-		return !schedulingtypes.PlacementUpdateNeeded(clusterNames, expectedClusterNames), nil
-	})
-}
-
-func waitForMatchingOverride(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, name, namespace string, expected32 map[string]int32) error {
-	overrideAPIResource := typeConfig.GetOverride()
-	overrideKind := overrideAPIResource.Kind
-	client, err := util.NewResourceClient(kubeConfig, &overrideAPIResource)
-	if err != nil {
-		return err
 	}
 
 	expected64 := int32MapToInt64(expected32)
 
 	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		override, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
+		fedObject, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
-				tl.Errorf("An error occurred while polling for %s %s/%s: %v", overrideKind, namespace, name, err)
+				tl.Errorf("An error occurred while polling for %s %s/%s: %v", kind, namespace, name, err)
 			}
 			return false, nil
 		}
-		overridesMap, err := util.GetOverrides(override)
+
+		clusterNames, err := util.GetClusterNames(fedObject)
 		if err != nil {
-			tl.Errorf("Error reading cluster overrides for %s %s/%s: %v", overrideKind, namespace, name, err)
+			tl.Errorf("An error occurred while retrieving cluster names for override %s %s/%s: %v", kind, namespace, name, err)
+			return false, nil
+		}
+		if schedulingtypes.PlacementUpdateNeeded(clusterNames, expectedClusterNames) {
+			return false, nil
+		}
+
+		overridesMap, err := util.GetOverrides(fedObject)
+		if err != nil {
+			tl.Errorf("Error reading cluster overrides for %s %s/%s: %v", kind, namespace, name, err)
 			return false, nil
 		}
 		return !schedulingtypes.OverrideUpdateNeeded(overridesMap, expected64), nil
