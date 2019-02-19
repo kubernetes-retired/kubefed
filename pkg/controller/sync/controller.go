@@ -452,8 +452,12 @@ func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *uns
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
-	if s.typeConfig.GetTarget().Kind == util.ServiceKind {
+	targetKind := s.typeConfig.GetTarget().Kind
+	if targetKind == util.ServiceKind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
+	}
+	if targetKind == util.ServiceAccountKind {
+		return serviceAccountForUpdateOp(desiredObj, clusterObj)
 	}
 	return desiredObj, nil
 }
@@ -508,5 +512,39 @@ func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*uns
 		return nil, errors.Wrap(err, "Error setting ports for service")
 	}
 
+	return desiredObj, nil
+}
+
+// serviceAccountForUpdateOp retains the 'secrets' field of a service account
+// if the desired representation does not include a value for the field.  This
+// ensures that the sync controller doesn't continually clear a generated
+// secret from a service account, prompting continual regeneration by the
+// service account controller in the member cluster.
+//
+// TODO(marun) Clearing a manually-set secrets field will require resetting
+// placement.  Is there a better way to do this?
+func serviceAccountForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// Check whether the secrets field is populated in the desired object.
+	desiredSecrets, ok, err := unstructured.NestedSlice(desiredObj.Object, util.SecretsField)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error retrieving secrets from desired service account")
+	}
+	if ok && len(desiredSecrets) > 0 {
+		// Field is populated, so an update to the target resource does not
+		// risk triggering a race with the service account controller.
+		return desiredObj, nil
+	}
+
+	// Retrieve the secrets from the cluster object and retain them.
+	secrets, ok, err := unstructured.NestedSlice(clusterObj.Object, util.SecretsField)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error retrieving secrets from service account")
+	}
+	if ok && len(secrets) > 0 {
+		err := unstructured.SetNestedField(desiredObj.Object, secrets, util.SecretsField)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error setting secrets for service account")
+		}
+	}
 	return desiredObj, nil
 }
