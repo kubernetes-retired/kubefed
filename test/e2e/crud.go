@@ -17,7 +17,6 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -25,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -33,7 +31,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-type testObjectAccessor func(namespace string, clusterNames []string) (fedObject *unstructured.Unstructured, err error)
+type testObjectsAccessor func(namespace string, clusterNames []string) (targetObject *unstructured.Unstructured, overrides []interface{}, err error)
 
 var _ = Describe("Federated", func() {
 	f := framework.NewFederationFramework("federated-types")
@@ -63,9 +61,7 @@ var _ = Describe("Federated", func() {
 				if err != nil {
 					tl.Fatalf("Error initializing dynamic client: %v", err)
 				}
-				typeConfig := &fedv1a1.FederatedTypeConfig{}
-				key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
-				err = dynClient.Get(context.Background(), key, typeConfig)
+				typeConfig, err := common.GetTypeConfig(dynClient, typeConfigName, f.FederationSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 				}
@@ -74,18 +70,27 @@ var _ = Describe("Federated", func() {
 					framework.Skipf("Federation of cluster-scoped type %s is not supported by a namespaced control plane.", typeConfigName)
 				}
 
-				testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
-					return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
+				testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {
+					targetObject, err := common.NewTestTargetObject(typeConfig, namespace, fixture)
+					if err != nil {
+						return nil, nil, err
+					}
+					overrides, err := common.OverridesFromFixture(clusterNames, fixture)
+					if err != nil {
+						return nil, nil, err
+					}
+					return targetObject, overrides, err
 				}
-				validateCrud(f, tl, typeConfig, testObjectFunc)
+
+				validateCrud(f, tl, typeConfig, testObjectsFunc)
 			})
 		})
 	}
 })
 
 func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
-	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) (
-	*common.FederatedTypeCrudTester, *unstructured.Unstructured) {
+	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) (
+	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
 
 	// Initialize in-memory controllers if configuration requires
 	fixture := f.SetUpSyncControllerFixture(typeConfig)
@@ -120,17 +125,17 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	for name := range testClusters {
 		clusterNames = append(clusterNames, name)
 	}
-	fedObject, err := testObjectFunc(namespace, clusterNames)
+	targetObject, overrides, err := testObjectsFunc(namespace, clusterNames)
 	if err != nil {
-		tl.Fatalf("Error creating test object: %v", err)
+		tl.Fatalf("Error creating test objects: %v", err)
 	}
 
-	return crudTester, fedObject
+	return crudTester, targetObject, overrides
 }
 
 func validateCrud(f framework.FederationFramework, tl common.TestLogger,
-	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
+	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) {
 
-	crudTester, fedObject := initCrudTest(f, tl, typeConfig, testObjectFunc)
-	crudTester.CheckLifecycle(fedObject)
+	crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+	crudTester.CheckLifecycle(targetObject, overrides)
 }

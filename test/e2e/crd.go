@@ -34,6 +34,7 @@ import (
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
 	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -174,7 +175,10 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	// TODO(marun) If not using in-memory controllers, wait until the
 	// controller has started.
 
-	testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
+	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
+	// FederateResource needs the typeconfig to carry ns within
+	concreteTypeConfig.Namespace = f.FederationSystemNamespace()
+	testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {
 		fixtureYAML := `
 kind: fixture
 template:
@@ -192,12 +196,20 @@ overrides:
 		fixture := &unstructured.Unstructured{}
 		err = kfenable.DecodeYAML(strings.NewReader(fixtureYAML), fixture)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error reading test fixture")
+			return nil, nil, errors.Wrap(err, "Error reading test fixture")
 		}
-		return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
+		targetObj, err := common.NewTestTargetObject(concreteTypeConfig, namespace, fixture)
+		if err != nil {
+			return nil, nil, err
+		}
+		overrides, err := common.OverridesFromFixture(clusterNames, fixture)
+		if err != nil {
+			return nil, nil, err
+		}
+		return targetObj, overrides, nil
 	}
 
-	validateCrud(f, tl, typeConfig, testObjectFunc)
+	validateCrud(f, tl, concreteTypeConfig, testObjectsFunc)
 
 }
 

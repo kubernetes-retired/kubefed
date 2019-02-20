@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
@@ -78,12 +77,7 @@ var _ = Describe("Scheduling", func() {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
 			}
 			for targetTypeName := range schedulingTypes {
-				typeConfig := &fedv1a1.FederatedTypeConfig{}
-				key := client.ObjectKey{
-					Namespace: f.FederationSystemNamespace(),
-					Name:      targetTypeName,
-				}
-				err = dynClient.Get(context.Background(), key, typeConfig)
+				typeConfig, err := common.GetTypeConfig(dynClient, targetTypeName, f.FederationSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
 				}
