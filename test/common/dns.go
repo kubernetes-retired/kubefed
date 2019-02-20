@@ -35,7 +35,7 @@ import (
 func NewDomainObject(federation, domain string) *dnsv1a1.Domain {
 	return &dnsv1a1.Domain{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: federation,
+			GenerateName: federation,
 		},
 		Domain: domain,
 	}

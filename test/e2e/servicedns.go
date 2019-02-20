@@ -43,11 +43,12 @@ var _ = Describe("ServiceDNS", func() {
 
 	const userAgent = "test-service-dns"
 	const baseName = "test-service-dns-"
-	const federation = "galactic"
+	const federationPrefix = "galactic"
 	const Domain = "example.com"
 
 	var fedClient fedclientset.Interface
 	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
+	var federation string
 	var namespace string
 	var domainClient dnsv1a1client.DomainInterface
 	var dnsClient dnsv1a1client.ServiceDNSRecordInterface
@@ -77,9 +78,11 @@ var _ = Describe("ServiceDNS", func() {
 			f.RegisterFixture(fixture)
 		}
 		f.EnsureTestNamespacePropagation()
-		domainObj := common.NewDomainObject(federation, Domain)
+		domainObj := common.NewDomainObject(federationPrefix, Domain)
+		domainObj.Namespace = f.FederationSystemNamespace()
 		_, err = domainClient.Create(domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")
+		federation = domainObj.Name
 	})
 
 	AfterEach(func() {
