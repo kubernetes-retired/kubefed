@@ -56,9 +56,6 @@ type FederationSyncController struct {
 	// For updating members of federation.
 	updater util.FederatedUpdater
 
-	// Helper for propagated version comparison for resource types.
-	comparisonHelper util.ComparisonHelper
-
 	// For events
 	eventRecorder record.EventRecorder
 
@@ -116,12 +113,6 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 
 	targetAPIResource := typeConfig.GetTarget()
 
-	var err error
-	s.comparisonHelper, err = util.NewComparisonHelper(typeConfig.GetComparisonField())
-	if err != nil {
-		return nil, err
-	}
-
 	// Federated informer on the resource type in members of federation.
 	s.informer = util.NewFederatedInformer(
 		fedClient,
@@ -153,7 +144,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			if err != nil {
 				return "", err
 			}
-			return s.comparisonHelper.GetVersion(createdObj), err
+			return util.ObjectVersion(createdObj), err
 		},
 		func(client util.ResourceClient, rawObj pkgruntime.Object) (string, error) {
 			obj := rawObj.(*unstructured.Unstructured)
@@ -161,7 +152,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			if err != nil {
 				return "", err
 			}
-			return s.comparisonHelper.GetVersion(updatedObj), err
+			return util.ObjectVersion(updatedObj), err
 		},
 		func(client util.ResourceClient, obj pkgruntime.Object) (string, error) {
 			qualifiedName := util.NewQualifiedName(obj)
@@ -169,6 +160,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			return "", client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 		})
 
+	var err error
 	s.fedAccessor, err = NewFederatedResourceAccessor(
 		controllerConfig, typeConfig, fedNamespaceAPIResource,
 		fedClient, s.worker.EnqueueObject, s.informer, s.updater)
@@ -387,24 +379,8 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 			}
 
 			version, ok := versionMap[clusterName]
-			if !ok {
-				// No target version recorded for federated resource
+			if !ok || util.ObjectNeedsUpdate(desiredObj, clusterObj, version) {
 				operationType = util.OperationTypeUpdate
-			} else {
-				targetVersion := s.comparisonHelper.GetVersion(clusterObj)
-
-				// Check if versions don't match. If they match then check its
-				// ObjectMeta which only applies to resources where Generation
-				// is used to track versions because Generation is only updated
-				// when Spec changes.
-				if version != targetVersion {
-					operationType = util.OperationTypeUpdate
-				} else if !s.comparisonHelper.Equivalent(desiredObj, clusterObj) {
-					// TODO(marun) Since only the metadata is compared
-					// in the call to Equivalent(), use the template
-					// to avoid having to worry about overrides.
-					operationType = util.OperationTypeUpdate
-				}
 			}
 		} else {
 			// A namespace in the host cluster will never need to be

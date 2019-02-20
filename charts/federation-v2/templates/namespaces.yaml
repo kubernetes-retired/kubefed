@@ -4,7 +4,6 @@ kind: FederatedTypeConfig
 metadata:
   name: namespaces
 spec:
-  comparisonField: ResourceVersion
   federatedType:
     group: primitives.federation.k8s.io
     kind: FederatedNamespace

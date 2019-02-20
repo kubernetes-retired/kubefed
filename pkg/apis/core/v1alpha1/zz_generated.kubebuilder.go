@@ -337,9 +337,6 @@ var (
 						"spec": v1beta1.JSONSchemaProps{
 							Type: "object",
 							Properties: map[string]v1beta1.JSONSchemaProps{
-								"comparisonField": v1beta1.JSONSchemaProps{
-									Type: "string",
-								},
 								"enableStatus": v1beta1.JSONSchemaProps{
 									Type: "boolean",
 								},
@@ -410,7 +407,6 @@ var (
 							Required: []string{
 								"target",
 								"namespaced",
-								"comparisonField",
 								"propagationEnabled",
 								"federatedType",
 							}},

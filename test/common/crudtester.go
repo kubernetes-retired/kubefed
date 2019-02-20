@@ -46,7 +46,6 @@ type FederatedTypeCrudTester struct {
 	tl                TestLogger
 	typeConfig        typeconfig.Interface
 	targetIsNamespace bool
-	comparisonHelper  util.ComparisonHelper
 	fedClient         clientset.Interface
 	kubeConfig        *rest.Config
 	testClusters      map[string]TestCluster
@@ -68,16 +67,10 @@ type TestCluster struct {
 }
 
 func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
-	compare, err := util.NewComparisonHelper(typeConfig.GetComparisonField())
-	if err != nil {
-		return nil, err
-	}
-
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
 		targetIsNamespace:  typeConfig.GetTarget().Kind == util.NamespaceKind,
-		comparisonHelper:   compare,
 		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
 		kubeConfig:         kubeConfig,
 		testClusters:       testClusters,
@@ -408,7 +401,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 		}
 
 		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
-		if err == nil && c.comparisonHelper.GetVersion(clusterObj) == expectedVersion {
+		if err == nil && util.ObjectVersion(clusterObj) == expectedVersion {
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
 				for path, expectedValue := range expectedOverrides {

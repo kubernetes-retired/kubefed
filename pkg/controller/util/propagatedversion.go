@@ -17,64 +17,45 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
+	"strings"
 
-	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type ComparisonHelper interface {
-	GetVersion(objectMeta metav1.Object) string
-	Equivalent(objMeta1, objectMeta2 metav1.Object) bool
-}
+const (
+	generationPrefix      = "gen:"
+	resourceVersionPrefix = "rv:"
+)
 
-// NewComparisonHelper instantiates and returns a Resource or Generation Helper
-// struct that implements the ComparisonHelper interface based on the version
-// comparison type passed in.
-func NewComparisonHelper(comparisonField common.VersionComparisonField) (ComparisonHelper, error) {
-	switch comparisonField {
-	case common.ResourceVersionField:
-		return &ResourceHelper{}, nil
-	case common.GenerationField:
-		return &GenerationHelper{}, nil
-	default:
-		return nil, errors.Errorf("Unrecognized version comparison field %v", comparisonField)
+// ObjectVersion retrieves the field type-prefixed value used for
+// determining currency of the given cluster object.
+func ObjectVersion(clusterObj *unstructured.Unstructured) string {
+	generation := clusterObj.GetGeneration()
+	if generation != 0 {
+		return fmt.Sprintf("%s%d", generationPrefix, generation)
 	}
+	return fmt.Sprintf("%s%s", resourceVersionPrefix, clusterObj.GetResourceVersion())
 }
 
-type GenerationHelper struct{}
+// ObjectNeedsUpdate determines whether the 2 objects provided cluster
+// object needs to be updated according to the desired object and the
+// recorded version.
+func ObjectNeedsUpdate(desiredObj, clusterObj *unstructured.Unstructured, recordedVersion string) bool {
+	targetVersion := ObjectVersion(clusterObj)
 
-// GetVersion returns a string containing the version in the resource's
-// ObjectMeta using the resource comparison type to perform for that
-// resource.
-func (GenerationHelper) GetVersion(objectMeta metav1.Object) string {
-	return strconv.FormatInt(objectMeta.GetGeneration(), 10)
-}
+	if recordedVersion != targetVersion {
+		return true
+	}
 
-// Equivalent returns true if both object metas passed in are equivalent, false
-// otherwise.
-func (GenerationHelper) Equivalent(obj1Meta, obj2Meta metav1.Object) bool {
-	return ObjectMetaObjEquivalent(obj1Meta, obj2Meta)
-}
-
-type ResourceHelper struct{}
-
-// GetVersion returns a string containing the version in the resource's
-// ObjectMeta using the resource comparison type to perform for that
-// resource.
-func (ResourceHelper) GetVersion(objectMeta metav1.Object) string {
-	return objectMeta.GetResourceVersion()
-}
-
-// Equivalent returns true for ResourceVersion comparison as it doesn't require
-// comparing ObjectMeta.
-func (ResourceHelper) Equivalent(obj1Meta, obj2Meta metav1.Object) bool {
-	return true
+	// If versions match and the version is sourced from the
+	// generation field, a further check of metadata equivalency is
+	// required.
+	return strings.HasPrefix(targetVersion, generationPrefix) && !ObjectMetaObjEquivalent(desiredObj, clusterObj)
 }
 
 // SortClusterVersions ASCII sorts the given cluster versions slice

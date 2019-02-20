@@ -52,7 +52,6 @@ type EnableTypeDirective struct {
 }
 
 func (ft *EnableTypeDirective) SetDefaults() {
-	ft.Spec.ComparisonField = defaultComparisonField
 	ft.Spec.PrimitiveGroup = defaultPrimitiveGroup
 	ft.Spec.PrimitiveVersion = defaultPrimitiveVersion
 }
