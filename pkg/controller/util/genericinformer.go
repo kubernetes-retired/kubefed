@@ -17,6 +17,8 @@ limitations under the License.
 package util
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -29,7 +31,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-func NewGenericInformer(config *rest.Config, namespace string, obj pkgruntime.Object, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller, error) {
+func NewGenericInformer(config *rest.Config, namespace string, obj pkgruntime.Object, resyncPeriod time.Duration, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller, error) {
+	return NewGenericInformerWithEventHandler(config, namespace, obj, resyncPeriod, NewTriggerOnAllChanges(triggerFunc))
+}
+
+func NewGenericInformerWithEventHandler(config *rest.Config, namespace string, obj pkgruntime.Object, resyncPeriod time.Duration, resourceEventHandlerFuncs *cache.ResourceEventHandlerFuncs) (cache.Store, cache.Controller, error) {
 	gvk, err := apiutil.GVKForObject(obj, scheme.Scheme)
 	if err != nil {
 		return nil, nil, err
@@ -72,8 +78,8 @@ func NewGenericInformer(config *rest.Config, namespace string, obj pkgruntime.Ob
 			},
 		},
 		obj,
-		NoResyncPeriod,
-		NewTriggerOnAllChanges(triggerFunc),
+		resyncPeriod,
+		resourceEventHandlerFuncs,
 	)
 	return store, controller, nil
 }
