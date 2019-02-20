@@ -24,10 +24,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
@@ -68,19 +66,23 @@ type Controller struct {
 }
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
-func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) {
+func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
 	userAgent := "FederatedTypeConfig"
 	kubeConfig := config.KubeConfig
 	restclient.AddUserAgent(kubeConfig, userAgent)
 	client := fedclientset.NewForConfigOrDie(kubeConfig).CoreV1alpha1()
 
-	controller := newController(config, client)
+	controller, err := newController(config, client)
+	if err != nil {
+		return err
+	}
 	glog.Infof("Starting FederatedTypeConfig controller")
 	controller.Run(stopChan)
+	return nil
 }
 
 // newController returns a new controller to manage FederatedTypeConfig objects.
-func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) *Controller {
+func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) (*Controller, error) {
 	c := &Controller{
 		controllerConfig: config,
 		client:           client,
@@ -89,24 +91,21 @@ func newController(config *util.ControllerConfig, client corev1alpha1client.Core
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
 
-	c.store, c.controller = cache.NewInformer(
-		&cache.ListWatch{
-			// Only watch the federation namespace to ensure
-			// restrictive authz can be applied to a namespaced
-			// control plane.
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return client.FederatedTypeConfigs(config.FederationNamespace).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return client.FederatedTypeConfigs(config.FederationNamespace).Watch(options)
-			},
-		},
+	// Only watch the federation namespace to ensure
+	// restrictive authz can be applied to a namespaced
+	// control plane.
+	var err error
+	c.store, c.controller, err = util.NewGenericInformer(
+		config.KubeConfig,
+		config.FederationNamespace,
 		&corev1a1.FederatedTypeConfig{},
-		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(c.worker.EnqueueObject),
+		c.worker.EnqueueObject,
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	return c
+	return c, nil
 }
 
 // Run runs the Controller.
