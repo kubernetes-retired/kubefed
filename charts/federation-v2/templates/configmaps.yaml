@@ -5,7 +5,7 @@ metadata:
   name: configmaps
 spec:
   federatedType:
-    group: primitives.federation.k8s.io
+    group: types.federation.k8s.io
     kind: FederatedConfigMap
     pluralName: federatedconfigmaps
     version: v1alpha1
@@ -19,9 +19,9 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: federatedconfigmaps.primitives.federation.k8s.io
+  name: federatedconfigmaps.types.federation.k8s.io
 spec:
-  group: primitives.federation.k8s.io
+  group: types.federation.k8s.io
   names:
     kind: FederatedConfigMap
     plural: federatedconfigmaps

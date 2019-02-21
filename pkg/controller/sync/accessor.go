@@ -206,7 +206,7 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 		Name:      eventSource.Name,
 	}
 
-	// A federated primitive for namespace "foo" is namespaced
+	// A federated type for namespace "foo" is namespaced
 	// (e.g. "foo/foo"). An event sourced from a namespace in the host
 	// or member clusters will have the name "foo", and an event
 	// sourced from a federated resource will have the name "foo/foo".
