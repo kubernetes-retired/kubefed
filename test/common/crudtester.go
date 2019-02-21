@@ -238,10 +238,16 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	name := qualifiedName.Name
 	namespace := qualifiedName.Namespace
 
+	clusterNames, err := util.GetClusterNames(fedObject)
+	if err != nil {
+		c.tl.Fatalf("Error retrieving cluster names: %v", err)
+	}
+	selectedClusters := sets.NewString(clusterNames...)
+
 	client := c.fedResourceClient(apiResource)
 
 	c.tl.Logf("Deleting %s %q", federatedKind, qualifiedName)
-	err := client.Resources(namespace).Delete(name, &metav1.DeleteOptions{OrphanDependents: orphanDependents})
+	err = client.Resources(namespace).Delete(name, &metav1.DeleteOptions{OrphanDependents: orphanDependents})
 	if err != nil {
 		c.tl.Fatalf("Error deleting %s %q: %v", federatedKind, qualifiedName, err)
 	}
@@ -280,6 +286,9 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		stateMsg = "not present"
 	}
 	for clusterName, testCluster := range c.testClusters {
+		if !selectedClusters.Has(clusterName) {
+			continue
+		}
 		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 			_, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
 			switch {
