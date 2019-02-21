@@ -16,17 +16,19 @@
   - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Example](#example)
-    - [Create the Test Namespace](#create-the-test-namespace)
-    - [Create Test Resources](#create-test-resources)
-    - [Check Status of Resources](#check-status-of-resources)
-    - [Update FederatedNamespace Placement](#update-federatednamespace)
-      - [Using Cluster Selector](#using-cluster-selector)
-        - [Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusternames-nor-specplacementclusterselector-is-provided)
-        - [Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided](#both-specplacementclusternames-and-specplacementclusterselector-are-provided)
-        - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-but-empty)
-        - [`spec.placementclusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
-    - [Example Cleanup](#example-cleanup)
-    - [Troubleshooting](#troubleshooting)
+    - [Basic Resource Propogation](#basic-resource-propogation)
+      - [Create the Test Namespace](#create-the-test-namespace)
+      - [Create Test Resources](#create-test-resources)
+      - [Check Status of Resources](#check-status-of-resources)
+      - [Update FederatedNamespace Placement](#update-federatednamespace-placement)
+        - [Using Cluster Selector](#using-cluster-selector)
+          - [Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusternames-nor-specplacementclusterselector-is-provided)
+          - [Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided](#both-specplacementclusternames-and-specplacementclusterselector-are-provided)
+          - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-but-empty)
+          - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
+      - [Example Cleanup](#example-cleanup)
+      - [Troubleshooting](#troubleshooting)
+    - [Resource Propagation RBAC for Member Clusters](#resource-propagation-rbac-for-member-clusters)
   - [Cleanup](#cleanup)
     - [Deployment Cleanup](#deployment-cleanup)
   - [Namespaced Federation](#namespaced-federation)
@@ -226,6 +228,7 @@ kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
 **WARNING: All custom resources for the type will be removed by this command.**
 
 ## Example
+### Basic Resource Propogation
 
 Follow these instructions for running an example to verify your deployment is
 working. The example will create a test namespace with a `federatednamespace`
@@ -233,7 +236,7 @@ resource as well as a federated resource for the following k8s resources:
 `configmap`, `secret`, `deployment`, `service` and `serviceaccount`. It will
 then show how to update the `federatednamespace` resource to move resources.
 
-### Create the Test Namespace
+#### Create the Test Namespace
 
 First create the `test-namespace` for the test resources:
 
@@ -242,7 +245,7 @@ kubectl apply -f example/sample1/namespace.yaml \
     -f example/sample1/federatednamespace.yaml
 ```
 
-### Create Test Resources
+#### Create Test Resources
 
 Create all the test resources by running:
 
@@ -259,7 +262,7 @@ unable to recognize "example/sample1/federated<type>.yaml": no matches for kind 
 
 then it indicates that a given type may need to be enabled with `kubefed2 enable <type>`
 
-### Check Status of Resources
+#### Check Status of Resources
 
 Check the status of all the resources in each cluster by running:
 
@@ -285,7 +288,7 @@ for c in cluster1 cluster2; do
 done
 ```
 
-### Update FederatedNamespace Placement
+#### Update FederatedNamespace Placement
 
 Remove `cluster2` via a patch command or manually:
 
@@ -346,7 +349,7 @@ done
 If you were able to verify the resources removed and added back then you have
 successfully verified a working federation-v2 deployment.
 
-#### Using Cluster Selector
+##### Using Cluster Selector
 
 In addition to specifying an explicit list of clusters that a resource should be propagated
 to via the `spec.placement.clusterNames` field of a federated resource, it is possible to
@@ -369,7 +372,7 @@ The following sections detail how `spec.placement.clusterNames` and
 `spec.placement.clusterSelector` are used in determining the clusters that a federated
 resource should be propagated to.
 
-##### Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided
+###### Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided
 
 ```yaml
 spec:
@@ -379,7 +382,7 @@ spec:
 In this case, you can either set `spec: {}` as above or remove `spec` field from your
 placement policy. The resource will not be propagated to member clusters.
 
-##### Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided
+###### Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided
 
 ```yaml
 spec:
@@ -396,7 +399,7 @@ For this case, `spec.placement.clusterSelector` will be ignored as
 `spec.placement.clusterNames` is provided. This ensures that the results of runtime
 scheduling have priority over manual definition of a cluster selector.
 
-##### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty
+###### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty
 
 ```yaml
 spec:
@@ -406,7 +409,7 @@ spec:
 
 In this case, the resource will be propagated to all member clusters.
 
-##### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty
+###### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty
 
 ```yaml
 spec:
@@ -419,7 +422,7 @@ spec:
 In this case, the resource will only be propagated to member clusters that are labeled
 with `foo: bar`.
 
-### Example Cleanup
+#### Example Cleanup
 
 To cleanup the example simply delete the namespace:
 
@@ -427,7 +430,7 @@ To cleanup the example simply delete the namespace:
 kubectl delete ns test-namespace
 ```
 
-### Troubleshooting
+#### Troubleshooting
 
 If federated resources are not propagated as expected to the member clusters, you can
 use the following command to view `Events` which may aid in diagnosing the problem.
@@ -447,6 +450,10 @@ It may also be useful to inspect the federation controller log as follows:
 ```bash
 kubectl logs -f federation-controller-manager-0 -n federation-system
 ```
+### Resource Propagation RBAC for Member Clusters
+Different users may have requirements to propagate resources to different set of member clusters.
+Review the [RBAC guide](./propagation-rbac-for-member-clusters.md) for RBAC configuration example
+to learn more.
 
 ## Cleanup
 
