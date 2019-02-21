@@ -79,7 +79,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 	}, nil
 }
 
-func (c *FederatedTypeCrudTester) CheckLifecycle(desiredFedObject *unstructured.Unstructured) {
+func (c *FederatedTypeCrudTester) CheckLifecycle(desiredFedObject *unstructured.Unstructured, orphanDependents *bool) {
 	fedObject := c.CheckCreate(desiredFedObject)
 
 	c.CheckStatusCreated(util.NewQualifiedName(fedObject))
@@ -87,9 +87,7 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(desiredFedObject *unstructured.
 	c.CheckUpdate(fedObject)
 	c.CheckPlacementChange(fedObject)
 
-	// Validate the golden path - removal of dependents
-	orphanDependents := false
-	c.CheckDelete(fedObject, &orphanDependents)
+	c.CheckDelete(fedObject, orphanDependents)
 }
 
 func (c *FederatedTypeCrudTester) Create(desiredFedObject *unstructured.Unstructured) *unstructured.Unstructured {

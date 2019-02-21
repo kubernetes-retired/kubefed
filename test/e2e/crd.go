@@ -196,7 +196,8 @@ overrides:
 		return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
 	}
 
-	validateCrud(f, tl, typeConfig, testObjectFunc)
+	orphanDependents := false
+	validateCrud(f, tl, typeConfig, testObjectFunc, &orphanDependents)
 
 }
 

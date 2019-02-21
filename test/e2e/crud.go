@@ -77,7 +77,10 @@ var _ = Describe("Federated", func() {
 				testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
 					return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
 				}
-				validateCrud(f, tl, typeConfig, testObjectFunc)
+				orphanDependents := false
+				validateCrud(f, tl, typeConfig, testObjectFunc, &orphanDependents)
+				orphanDependents = true
+				validateCrud(f, tl, typeConfig, testObjectFunc, &orphanDependents)
 			})
 		})
 	}
@@ -129,8 +132,9 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 }
 
 func validateCrud(f framework.FederationFramework, tl common.TestLogger,
-	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor) {
+	typeConfig typeconfig.Interface, testObjectFunc testObjectAccessor,
+	orphanDependents *bool) {
 
 	crudTester, fedObject := initCrudTest(f, tl, typeConfig, testObjectFunc)
-	crudTester.CheckLifecycle(fedObject)
+	crudTester.CheckLifecycle(fedObject, orphanDependents)
 }
