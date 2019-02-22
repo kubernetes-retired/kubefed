@@ -67,7 +67,7 @@ After the cluster, federation control-plane, and external-dns controller are run
 the `DNSEndpoint`:
 
 ```bash
-sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice-template.yaml
+sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice.yaml
 ```
 
 You can now create the sample deployment and service using `kubectl`. Then check the status of all the resources in each

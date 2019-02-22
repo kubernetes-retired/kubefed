@@ -129,7 +129,7 @@ EOF
 After metallb works, create a sample deployment and service from [sample](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md). Make service as LoadBalancer type.
 
 ```bash
-sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice-template.yaml
+sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice.yaml
 ```
 
 Create `ServiceDNSRecord` to make DNS work for service.
