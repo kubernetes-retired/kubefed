@@ -52,26 +52,29 @@ type Plugin struct {
 
 func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface) (*Plugin, error) {
 	targetAPIResource := typeConfig.GetTarget()
-	fedClient, kubeClient, crClient := controllerConfig.AllClients(fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind)))
+	_, kubeClient, crClient := controllerConfig.AllClients(fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind)))
+	targetInformer, err := util.NewFederatedInformer(
+		controllerConfig,
+		kubeClient,
+		crClient,
+		&targetAPIResource,
+		eventHandlers.ClusterEventHandler,
+		eventHandlers.ClusterLifecycleHandlers,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	p := &Plugin{
-		targetInformer: util.NewFederatedInformer(
-			fedClient,
-			kubeClient,
-			crClient,
-			controllerConfig.FederationNamespaces,
-			&targetAPIResource,
-			eventHandlers.ClusterEventHandler,
-			eventHandlers.ClusterLifecycleHandlers,
-		),
-		typeConfig:  typeConfig,
-		stopChannel: make(chan struct{}),
+		targetInformer: targetInformer,
+		typeConfig:     typeConfig,
+		stopChannel:    make(chan struct{}),
 	}
 
 	targetNamespace := controllerConfig.TargetNamespace
 	federationEventHandler := eventHandlers.FederationEventHandler
 
 	federatedTypeAPIResource := typeConfig.GetFederatedType()
-	var err error
 	p.federatedTypeClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &federatedTypeAPIResource)
 	if err != nil {
 		return nil, err

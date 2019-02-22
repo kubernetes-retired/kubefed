@@ -24,20 +24,17 @@ import (
 	"github.com/pkg/errors"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -75,9 +72,7 @@ type SchedulingPreferenceController struct {
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
 func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType) (schedulingtypes.Scheduler, error) {
-	userAgent := fmt.Sprintf("%s-controller", schedulingType.Kind)
-	fedClient, kubeClient, crClient := config.AllClients(userAgent)
-	controller, err := newSchedulingPreferenceController(config, schedulingType.SchedulerFactory, fedClient, kubeClient, crClient)
+	controller, err := newSchedulingPreferenceController(config, schedulingType)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +85,14 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 }
 
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
-func newSchedulingPreferenceController(config *util.ControllerConfig, schedulerFactory schedulingtypes.SchedulerFactory, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*SchedulingPreferenceController, error) {
+func newSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType) (*SchedulingPreferenceController, error) {
+	userAgent := fmt.Sprintf("%s-controller", schedulingType.Kind)
+	restclient.AddUserAgent(config.KubeConfig, userAgent)
+	kubeClient, err := kubeclientset.NewForConfig(config.KubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
@@ -125,7 +127,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, schedulerF
 			},
 		},
 	}
-	scheduler, err := schedulerFactory(config, eventHandlers)
+	scheduler, err := schedulingType.SchedulerFactory(config, eventHandlers)
 	if err != nil {
 		return nil, err
 	}
@@ -134,19 +136,16 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, schedulerF
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	s.store, s.controller = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return s.scheduler.FedList(config.TargetNamespace, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return s.scheduler.FedWatch(config.TargetNamespace, options)
-			},
-		},
+	s.store, s.controller, err = util.NewGenericInformer(
+		config.KubeConfig,
+		config.TargetNamespace,
 		s.scheduler.ObjectType(),
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(s.worker.EnqueueObject),
+		s.worker.EnqueueObject,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }

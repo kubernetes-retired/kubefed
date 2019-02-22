@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -27,8 +28,7 @@ import (
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	dnsv1a1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -46,25 +46,23 @@ var _ = Describe("ServiceDNS", func() {
 	const federationPrefix = "galactic"
 	const Domain = "example.com"
 
-	var fedClient fedclientset.Interface
+	var client genericclient.Client
 	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
 	var federation string
 	var namespace string
-	var domainClient dnsv1a1client.DomainInterface
-	var dnsClient dnsv1a1client.ServiceDNSRecordInterface
 
 	objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-		dnsClient := fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace)
-		return dnsClient.Get(name, metav1.GetOptions{})
+		serviceDNSRecords := &dnsv1a1.ServiceDNSRecord{}
+		err := client.Get(context.TODO(), serviceDNSRecords, namespace, name)
+		return serviceDNSRecords, err
 	}
 
 	BeforeEach(func() {
-		fedClient = f.FedClient(userAgent)
+		client = f.Client(userAgent)
 		namespace = f.TestNamespaceName()
-		domainClient = fedClient.MulticlusterdnsV1alpha1().Domains(f.FederationSystemNamespace())
-		dnsClient = fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(namespace)
 
-		federatedClusters, err := fedClient.CoreV1alpha1().FederatedClusters(f.FederationSystemNamespace()).List(metav1.ListOptions{})
+		federatedClusters := &fedv1a1.FederatedClusterList{}
+		err := client.List(context.TODO(), federatedClusters, f.FederationSystemNamespace())
 		framework.ExpectNoError(err, "Error listing federated clusters")
 		clusterRegionZones = make(map[string]fedv1a1.FederatedClusterStatus)
 		for _, cluster := range federatedClusters.Items {
@@ -80,20 +78,22 @@ var _ = Describe("ServiceDNS", func() {
 		f.EnsureTestNamespacePropagation()
 		domainObj := common.NewDomainObject(federationPrefix, Domain)
 		domainObj.Namespace = f.FederationSystemNamespace()
-		_, err = domainClient.Create(domainObj)
+		err = client.Create(context.TODO(), domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")
 		federation = domainObj.Name
 	})
 
 	AfterEach(func() {
-		domainClient.Delete(federation, &metav1.DeleteOptions{})
+		domainObj := &dnsv1a1.Domain{}
+		err := client.Delete(context.TODO(), domainObj, f.FederationSystemNamespace(), federation)
+		framework.ExpectNoError(err, "Error deleting Domain object")
 	})
 
 	It("ServiceDNS object status should be updated correctly when there are no service and/or endpoint in member clusters", func() {
 		By("Creating the ServiceDNS object")
-		serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
-		serviceDNSObj.Spec.DomainRef = federation
-		serviceDNS, err := dnsClient.Create(serviceDNSObj)
+		serviceDNS := common.NewServiceDNSObject(baseName, namespace)
+		serviceDNS.Spec.DomainRef = federation
+		err := client.Create(context.TODO(), serviceDNS)
 		framework.ExpectNoError(err, "Error creating ServiceDNS object: %v", serviceDNS)
 
 		serviceDNSStatus := dnsv1a1.ServiceDNSRecordStatus{Domain: Domain, DNS: []dnsv1a1.ClusterDNS{}}
@@ -121,10 +121,10 @@ var _ = Describe("ServiceDNS", func() {
 
 		It("DNSEndpoint object should be created with correct status when ServiceDNS object is created", func() {
 			By("Creating the ServiceDNS object")
-			serviceDNSObj := common.NewServiceDNSObject(baseName, namespace)
-			serviceDNSObj.Spec.DomainRef = federation
-			serviceDNSObj.Spec.RecordTTL = RecordTTL
-			serviceDNS, err := dnsClient.Create(serviceDNSObj)
+			serviceDNS := common.NewServiceDNSObject(baseName, namespace)
+			serviceDNS.Spec.DomainRef = federation
+			serviceDNS.Spec.RecordTTL = RecordTTL
+			err := client.Create(context.TODO(), serviceDNS)
 			framework.ExpectNoError(err, "Error creating ServiceDNS object %v", serviceDNS)
 			name := serviceDNS.Name
 
@@ -140,7 +140,9 @@ var _ = Describe("ServiceDNS", func() {
 
 			By("Waiting for the DNSEndpoint object to be created")
 			endpointObjectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Get(name, metav1.GetOptions{})
+				dnsEndpoint := &dnsv1a1.DNSEndpoint{}
+				err := client.Get(context.TODO(), dnsEndpoint, namespace, name)
+				return dnsEndpoint, err
 			}
 
 			endpoints := []*dnsv1a1.Endpoint{}

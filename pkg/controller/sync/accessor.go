@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
@@ -75,7 +75,7 @@ func NewFederatedResourceAccessor(
 	controllerConfig *util.ControllerConfig,
 	typeConfig typeconfig.Interface,
 	fedNamespaceAPIResource *metav1.APIResource,
-	fedClient fedclientset.Interface,
+	client genericclient.Client,
 	enqueueObj func(pkgruntime.Object),
 	informer util.FederatedInformer,
 	updater util.FederatedUpdater) (FederatedResourceAccessor, error) {
@@ -137,7 +137,7 @@ func NewFederatedResourceAccessor(
 	}
 
 	a.versionManager = version.NewVersionManager(
-		fedClient,
+		client,
 		typeConfig.GetFederatedNamespaced(),
 		typeConfig.GetFederatedType().Kind,
 		typeConfig.GetTarget().Kind,

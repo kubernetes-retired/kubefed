@@ -19,16 +19,12 @@ package schedulingtypes
 import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 )
 
 type Scheduler interface {
 	Kind() string
 	ObjectType() pkgruntime.Object
-	FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error)
-	FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error)
 
 	Start()
 	HasSynced() bool

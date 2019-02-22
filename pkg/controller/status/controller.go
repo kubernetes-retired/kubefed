@@ -28,7 +28,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -70,7 +70,7 @@ type FederationStatusController struct {
 
 	typeConfig typeconfig.Interface
 
-	fedClient    fedclientset.Interface
+	client       genericclient.Client
 	statusClient util.ResourceClient
 
 	fedNamespace string
@@ -97,7 +97,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
 
 	// Initialize non-dynamic clients first to avoid polluting config
-	fedClient, kubeClient, crClient := controllerConfig.AllClients(userAgent)
+	client, kubeClient, crClient := controllerConfig.AllClients(userAgent)
 
 	federatedTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &federatedAPIResource)
 	if err != nil {
@@ -114,7 +114,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 		clusterUnavailableDelay: controllerConfig.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
 		typeConfig:              typeConfig,
-		fedClient:               fedClient,
+		client:                  client,
 		statusClient:            statusClient,
 		fedNamespace:            controllerConfig.FederationNamespace,
 	}
@@ -137,11 +137,10 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 	targetAPIResource := typeConfig.GetTarget()
 
 	// Federated informer on the resource type in members of federation.
-	s.informer = util.NewFederatedInformer(
-		fedClient,
+	s.informer, err = util.NewFederatedInformer(
+		controllerConfig,
 		kubeClient,
 		crClient,
-		controllerConfig.FederationNamespaces,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
@@ -158,6 +157,9 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 			},
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }

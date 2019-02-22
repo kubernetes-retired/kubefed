@@ -17,6 +17,7 @@ limitations under the License.
 package ingressdns
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"sort"
@@ -31,14 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -48,7 +48,7 @@ const (
 
 // Controller manages the IngressDNSRecord objects in federation.
 type Controller struct {
-	fedClient fedclientset.Interface
+	client genericclient.Client
 
 	// For triggering reconciliation of all target resources. This is
 	// used when a new cluster becomes available.
@@ -71,8 +71,8 @@ type Controller struct {
 
 // StartController starts the Controller for managing IngressDNSRecord objects.
 func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
-	fedClient, kubeClient, crClient := config.AllClients("IngressDNS")
-	controller, err := newController(config, fedClient, kubeClient, crClient)
+	client, kubeClient, crClient := config.AllClients("IngressDNS")
+	controller, err := newController(config, client, kubeClient, crClient)
 	if err != nil {
 		return err
 	}
@@ -85,9 +85,9 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 }
 
 // newController returns a new controller to manage IngressDNSRecord objects.
-func newController(config *util.ControllerConfig, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*Controller, error) {
+func newController(config *util.ControllerConfig, client genericclient.Client, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*Controller, error) {
 	s := &Controller{
-		fedClient:               fedClient,
+		client:                  client,
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
 		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
@@ -101,28 +101,23 @@ func newController(config *util.ControllerConfig, fedClient fedclientset.Interfa
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
 	// Informer for the IngressDNSRecord resource in federation.
-	s.ingressDNSStore, s.ingressDNSController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(config.TargetNamespace).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(config.TargetNamespace).Watch(options)
-			},
-		},
+	var err error
+	s.ingressDNSStore, s.ingressDNSController, err = util.NewGenericInformer(
+		config.KubeConfig,
+		config.TargetNamespace,
 		&dnsv1a1.IngressDNSRecord{},
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) {
-			s.worker.EnqueueObject(obj)
-		}),
+		s.worker.EnqueueObject,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// Federated informer for the ingress resource in members of federation.
-	s.ingressFederatedInformer = util.NewFederatedInformer(
-		fedClient,
+	s.ingressFederatedInformer, err = util.NewFederatedInformer(
+		config,
 		kubeClient,
 		crClient,
-		config.FederationNamespaces,
 		&metav1.APIResource{
 			Group:        "extensions",
 			Version:      "v1beta1",
@@ -145,6 +140,9 @@ func newController(config *util.ControllerConfig, fedClient fedclientset.Interfa
 			},
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
@@ -257,7 +255,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	})
 
 	if !reflect.DeepEqual(cachedIngressDNS.Status, newIngressDNS.Status) {
-		_, err = c.fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(newIngressDNS.Namespace).UpdateStatus(newIngressDNS)
+		err = c.client.UpdateStatus(context.TODO(), newIngressDNS)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Error updating the IngressDNS object %s", key))
 			return util.StatusError

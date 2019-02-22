@@ -17,6 +17,7 @@ limitations under the License.
 package servicedns
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"sort"
@@ -30,14 +31,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -47,7 +45,7 @@ const (
 
 // Controller manages the ServiceDNSRecord objects in federation.
 type Controller struct {
-	fedClient fedclientset.Interface
+	client genericclient.Client
 
 	// For triggering reconciliation of all target resources. This is
 	// used when a new cluster becomes available.
@@ -80,8 +78,7 @@ type Controller struct {
 
 // StartController starts the Controller for managing ServiceDNSRecord objects.
 func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
-	fedClient, kubeClient, crClient := config.AllClients("ServiceDNS")
-	controller, err := newController(config, fedClient, kubeClient, crClient)
+	controller, err := newController(config)
 	if err != nil {
 		return err
 	}
@@ -94,9 +91,10 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 }
 
 // newController returns a new controller to manage ServiceDNSRecord objects.
-func newController(config *util.ControllerConfig, fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*Controller, error) {
+func newController(config *util.ControllerConfig) (*Controller, error) {
+	client, kubeClient, crClient := config.AllClients("ServiceDNS")
 	s := &Controller{
-		fedClient:               fedClient,
+		client:                  client,
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
 		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
@@ -111,43 +109,34 @@ func newController(config *util.ControllerConfig, fedClient fedclientset.Interfa
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
 	// Informer for the ServiceDNSRecord resource in federation.
-	s.serviceDNSStore, s.serviceDNSController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).Watch(options)
-			},
-		},
+	var err error
+	s.serviceDNSStore, s.serviceDNSController, err = util.NewGenericInformer(
+		config.KubeConfig,
+		config.TargetNamespace,
 		&dnsv1a1.ServiceDNSRecord{},
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(s.worker.EnqueueObject),
+		s.worker.EnqueueObject,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// Informer for the Domain resource
-	s.domainStore, s.domainController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().Domains(s.fedNamespace).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.MulticlusterdnsV1alpha1().Domains(s.fedNamespace).Watch(options)
-			},
-		},
+	s.domainStore, s.domainController, err = util.NewGenericInformer(
+		config.KubeConfig,
+		config.FederationNamespace,
 		&dnsv1a1.Domain{},
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(func(pkgruntime.Object) {
+		func(pkgruntime.Object) {
 			s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now())
-		}),
+		},
 	)
 
 	// Federated serviceInformer for the service resource in members of federation.
-	s.serviceInformer = util.NewFederatedInformer(
-		fedClient,
+	s.serviceInformer, err = util.NewFederatedInformer(
+		config,
 		kubeClient,
 		crClient,
-		config.FederationNamespaces,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",
@@ -167,14 +156,16 @@ func newController(config *util.ControllerConfig, fedClient fedclientset.Interfa
 			},
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// Federated informers on endpoints in federated clusters.
 	// This will enable to check if service ingress endpoints in federated clusters are reachable
-	s.endpointInformer = util.NewFederatedInformer(
-		fedClient,
+	s.endpointInformer, err = util.NewFederatedInformer(
+		config,
 		kubeClient,
 		crClient,
-		config.FederationNamespaces,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",
@@ -185,6 +176,9 @@ func newController(config *util.ControllerConfig, fedClient fedclientset.Interfa
 		s.worker.EnqueueObject,
 		&util.ClusterLifecycleHandlerFuncs{},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
@@ -358,7 +352,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	fedDNS.Status.Domain = domainObj.Domain
 
 	if !reflect.DeepEqual(cachedDNS.Status, fedDNS.Status) {
-		_, err = c.fedClient.MulticlusterdnsV1alpha1().ServiceDNSRecords(fedDNS.Namespace).UpdateStatus(fedDNS)
+		err = c.client.UpdateStatus(context.TODO(), fedDNS)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Error updating the ServiceDNS object %s", key))
 			return util.StatusError

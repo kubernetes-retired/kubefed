@@ -27,7 +27,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 )
 
 const (
@@ -59,32 +58,35 @@ type ReplicaScheduler struct {
 
 	plugins map[string]*Plugin
 
-	fedClient   fedclientset.Interface
+	client      genericclient.Client
 	podInformer FederatedInformer
 }
 
 func NewReplicaScheduler(controllerConfig *ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error) {
-	fedClient, kubeClient, crClient := controllerConfig.AllClients("replica-scheduler")
+	client, kubeClient, crClient := controllerConfig.AllClients("replica-scheduler")
 	scheduler := &ReplicaScheduler{
 		plugins:          make(map[string]*Plugin),
 		controllerConfig: controllerConfig,
 		eventHandlers:    eventHandlers,
-		fedClient:        fedClient,
+		client:           client,
 	}
 
 	// TODO: Update this to use a typed client from single target informer.
 	// As of now we have a separate informer for pods, whereas all we need
 	// is a typed client.
 	// We ignore the pod events in this informer from clusters.
-	scheduler.podInformer = NewFederatedInformer(
-		fedClient,
+	var err error
+	scheduler.podInformer, err = NewFederatedInformer(
+		controllerConfig,
 		kubeClient,
 		crClient,
-		controllerConfig.FederationNamespaces,
 		PodResource,
 		func(pkgruntime.Object) {},
 		eventHandlers.ClusterLifecycleHandlers,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return scheduler, nil
 }
@@ -120,14 +122,6 @@ func (s *ReplicaScheduler) StopPlugin(kind string) {
 
 func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
 	return &fedschedulingv1a1.ReplicaSchedulingPreference{}
-}
-
-func (s *ReplicaScheduler) FedList(namespace string, options metav1.ListOptions) (pkgruntime.Object, error) {
-	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(s.controllerConfig.TargetNamespace).List(options)
-}
-
-func (s *ReplicaScheduler) FedWatch(namespace string, options metav1.ListOptions) (watch.Interface, error) {
-	return s.fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(s.controllerConfig.TargetNamespace).Watch(options)
 }
 
 func (s *ReplicaScheduler) Start() {

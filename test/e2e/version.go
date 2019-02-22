@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -36,8 +37,7 @@ import (
 
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	corev1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -66,17 +66,22 @@ type testVersionAdapter interface {
 
 type testNamespacedVersionAdapter struct {
 	version.VersionAdapter
-	coreClient corev1alpha1.CoreV1alpha1Interface
+	client     genericclient.Client
 	kubeClient kubeclientset.Interface
 }
 
 func (a *testNamespacedVersionAdapter) Delete(qualifiedName util.QualifiedName) error {
-	return a.coreClient.PropagatedVersions(qualifiedName.Namespace).Delete(qualifiedName.Name, nil)
+	propagatedVersion := &fedv1a1.PropagatedVersion{}
+	return a.client.Delete(context.TODO(), propagatedVersion, qualifiedName.Namespace, qualifiedName.Name)
 }
 
 func (a *testNamespacedVersionAdapter) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	version := obj.(*fedv1a1.PropagatedVersion)
-	return a.coreClient.PropagatedVersions(version.Namespace).Update(version)
+	err := a.client.Update(context.TODO(), version)
+	if err != nil {
+		return nil, err
+	}
+	return version, nil
 }
 
 func (a *testNamespacedVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
@@ -113,17 +118,22 @@ func (a *testNamespacedVersionAdapter) FederatedTypeInstance() pkgruntime.Object
 
 type testClusterVersionAdapter struct {
 	version.VersionAdapter
-	coreClient corev1alpha1.CoreV1alpha1Interface
+	client     genericclient.Client
 	kubeClient kubeclientset.Interface
 }
 
 func (a *testClusterVersionAdapter) Delete(qualifiedName util.QualifiedName) error {
-	return a.coreClient.ClusterPropagatedVersions().Delete(qualifiedName.Name, nil)
+	clusterPropagatedVersion := &fedv1a1.ClusterPropagatedVersion{}
+	return a.client.Delete(context.TODO(), clusterPropagatedVersion, qualifiedName.Namespace, qualifiedName.Name)
 }
 
 func (a *testClusterVersionAdapter) Update(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	version := obj.(*fedv1a1.ClusterPropagatedVersion)
-	return a.coreClient.ClusterPropagatedVersions().Update(version)
+	err := a.client.Update(context.TODO(), version)
+	if err != nil {
+		return nil, err
+	}
+	return version, nil
 }
 
 func (a *testClusterVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
@@ -178,13 +188,12 @@ func (r *testVersionedResource) OverrideVersion() (string, error) {
 	return r.overrideVersion, nil
 }
 
-func newTestVersionAdapter(fedClient fedclientset.Interface, kubeClient kubeclientset.Interface, namespaced bool) testVersionAdapter {
-	adapter := version.NewVersionAdapter(fedClient, namespaced)
-	coreClient := fedClient.CoreV1alpha1()
+func newTestVersionAdapter(client genericclient.Client, kubeClient kubeclientset.Interface, namespaced bool) testVersionAdapter {
+	adapter := version.NewVersionAdapter(client, namespaced)
 	if namespaced {
-		return &testNamespacedVersionAdapter{adapter, coreClient, kubeClient}
+		return &testNamespacedVersionAdapter{adapter, client, kubeClient}
 	}
-	return &testClusterVersionAdapter{adapter, coreClient, kubeClient}
+	return &testClusterVersionAdapter{adapter, client, kubeClient}
 }
 
 var _ = Describe("VersionManager", func() {
@@ -204,7 +213,7 @@ var _ = Describe("VersionManager", func() {
 	var expectedStatus fedv1a1.PropagatedVersionStatus
 	var clusterNames []string
 	var versionMap map[string]string
-	var fedClient fedclientset.Interface
+	var client genericclient.Client
 	var versionName, fedObjectName util.QualifiedName
 	var adapter testVersionAdapter
 	var versionType string
@@ -242,10 +251,10 @@ var _ = Describe("VersionManager", func() {
 
 				clusterNames = []string{"cluster1", "cluster2", "cluster3"}
 
-				fedClient = f.FedClient(userAgent)
+				client = f.Client(userAgent)
 
 				kubeClient := f.KubeClient(userAgent)
-				adapter = newTestVersionAdapter(fedClient, kubeClient, namespaced)
+				adapter = newTestVersionAdapter(client, kubeClient, namespaced)
 				versionType = adapter.TypeName()
 
 				// Use a non-federated type as the federated object to
@@ -315,7 +324,7 @@ var _ = Describe("VersionManager", func() {
 					ClusterVersions: version.VersionMapToClusterVersions(versionMap),
 				}
 
-				versionManager = version.NewVersionManager(fedClient, namespaced, federatedKind, targetKind, versionNamespace)
+				versionManager = version.NewVersionManager(client, namespaced, federatedKind, targetKind, versionNamespace)
 				stopChan = make(chan struct{})
 				// There shouldn't be any api objects to load, but Sync
 				// also starts the worker that will write to the API.
@@ -359,7 +368,7 @@ var _ = Describe("VersionManager", func() {
 				waitForPropVer(tl, adapter, versionName, expectedStatus)
 
 				// Create a second manager and sync it
-				otherManager := version.NewVersionManager(fedClient, namespaced, federatedKind, targetKind, namespace)
+				otherManager := version.NewVersionManager(client, namespaced, federatedKind, targetKind, namespace)
 				otherManager.Sync(stopChan)
 
 				// Ensure that the second manager loaded the version
@@ -375,7 +384,7 @@ var _ = Describe("VersionManager", func() {
 
 			inSupportedScopeIt("should refresh and update after out-of-band creation", namespaced, func() {
 				// Create a second manager and use it to write a version to the api
-				otherManager := version.NewVersionManager(fedClient, namespaced, federatedKind, targetKind, namespace)
+				otherManager := version.NewVersionManager(client, namespaced, federatedKind, targetKind, namespace)
 				otherManager.Sync(stopChan)
 				err := otherManager.Update(versionedResource, clusterNames, versionMap)
 				if err != nil {

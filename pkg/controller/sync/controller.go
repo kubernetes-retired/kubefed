@@ -89,7 +89,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(federatedTypeAPIResource.Kind))
 
 	// Initialize non-dynamic clients first to avoid polluting config
-	fedClient, kubeClient, crClient := controllerConfig.AllClients(userAgent)
+	client, kubeClient, crClient := controllerConfig.AllClients(userAgent)
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
@@ -114,11 +114,11 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	targetAPIResource := typeConfig.GetTarget()
 
 	// Federated informer on the resource type in members of federation.
-	s.informer = util.NewFederatedInformer(
-		fedClient,
+	var err error
+	s.informer, err = util.NewFederatedInformer(
+		controllerConfig,
 		kubeClient,
 		crClient,
-		controllerConfig.FederationNamespaces,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
@@ -135,6 +135,9 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			},
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// Federated updater along with Create/Update/Delete operations.
 	s.updater = util.NewFederatedUpdater(s.informer, targetAPIResource.Kind, s.updateTimeout, s.eventRecorder,
@@ -160,10 +163,9 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			return "", client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
 		})
 
-	var err error
 	s.fedAccessor, err = NewFederatedResourceAccessor(
 		controllerConfig, typeConfig, fedNamespaceAPIResource,
-		fedClient, s.worker.EnqueueObject, s.informer, s.updater)
+		client, s.worker.EnqueueObject, s.informer, s.updater)
 	if err != nil {
 		return nil, err
 	}

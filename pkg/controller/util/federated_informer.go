@@ -27,11 +27,9 @@ import (
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -136,23 +134,22 @@ type ClusterLifecycleHandlerFuncs struct {
 
 // Builds a FederatedInformer for the given federation client and factory.
 func NewFederatedInformer(
+	config *ControllerConfig,
 	// TODO(marun) - use unified client?
-	fedClient fedclientset.Interface,
 	kubeClient kubeclientset.Interface,
 	crClient crclientset.Interface,
-	namespaces FederationNamespaces,
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
-	clusterLifecycle *ClusterLifecycleHandlerFuncs) FederatedInformer {
+	clusterLifecycle *ClusterLifecycleHandlerFuncs) (FederatedInformer, error) {
 
 	targetInformerFactory := func(cluster *fedv1a1.FederatedCluster, client ResourceClient) (cache.Store, cache.Controller) {
-		return NewResourceInformer(client, namespaces.TargetNamespace, triggerFunc)
+		return NewResourceInformer(client, config.TargetNamespace, triggerFunc)
 	}
 
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, kubeClient, crClient, namespaces.FederationNamespace, namespaces.ClusterNamespace)
+			config, err := BuildClusterConfig(cluster, kubeClient, crClient, config.FederationNamespace, config.ClusterNamespace)
 			if err != nil {
 				return nil, err
 			}
@@ -164,7 +161,7 @@ func NewFederatedInformer(
 			return NewResourceClient(config, apiResource)
 		},
 		targetInformers: make(map[string]informer),
-		fedNamespace:    namespaces.FederationNamespace,
+		fedNamespace:    config.FederationNamespace,
 	}
 
 	getClusterData := func(name string) []interface{} {
@@ -176,18 +173,13 @@ func NewFederatedInformer(
 		return data
 	}
 
-	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters(namespaces.FederationNamespace).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return fedClient.CoreV1alpha1().FederatedClusters(namespaces.FederationNamespace).Watch(options)
-			},
-		},
+	var err error
+	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller, err = NewGenericInformerWithEventHandler(
+		config.KubeConfig,
+		config.FederationNamespace,
 		&fedv1a1.FederatedCluster{},
 		clusterSyncPeriod,
-		cache.ResourceEventHandlerFuncs{
+		&cache.ResourceEventHandlerFuncs{
 			DeleteFunc: func(old interface{}) {
 				oldCluster, ok := old.(*fedv1a1.FederatedCluster)
 				if ok {
@@ -248,7 +240,7 @@ func NewFederatedInformer(
 			},
 		},
 	)
-	return federatedInformer
+	return federatedInformer, err
 }
 
 func IsClusterReady(cluster *fedv1a1.FederatedCluster) bool {

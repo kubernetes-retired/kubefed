@@ -17,6 +17,7 @@ limitations under the License.
 package dnsendpoint
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -32,7 +33,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -48,8 +49,7 @@ const (
 type GetEndpointsFunc func(interface{}) ([]*feddnsv1a1.Endpoint, error)
 
 type controller struct {
-	// Client to federation api server
-	client fedclientset.Interface
+	client genericclient.Client
 	// Informer Store for DNS objects
 	dnsObjectStore cache.Store
 	// Informer controller for DNS objects
@@ -66,8 +66,13 @@ type controller struct {
 	maxRetryDelay time.Duration
 }
 
-func newDNSEndpointController(client fedclientset.Interface, objectType pkgruntime.Object, objectKind string,
-	listFunc cache.ListFunc, watchFunc cache.WatchFunc, getEndpoints GetEndpointsFunc, minimizeLatency bool) (*controller, error) {
+func newDNSEndpointController(config *util.ControllerConfig, objectType pkgruntime.Object, objectKind string,
+	getEndpoints GetEndpointsFunc, minimizeLatency bool) (*controller, error) {
+	client, err := genericclient.New(config.KubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &controller{
 		client:        client,
 		dnsObjectKind: objectKind,
@@ -76,19 +81,18 @@ func newDNSEndpointController(client fedclientset.Interface, objectType pkgrunti
 		maxRetryDelay: maxRetryDelay,
 	}
 
-	// Start informer in federated API servers on DNS objects
+	// Start informer for DNS objects
 	// TODO: Change this to shared informer
-	d.dnsObjectStore, d.dnsObjectController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc:  listFunc,
-			WatchFunc: watchFunc,
-		},
+	d.dnsObjectStore, d.dnsObjectController, err = util.NewGenericInformer(
+		config.KubeConfig,
+		config.TargetNamespace,
 		objectType,
 		util.NoResyncPeriod,
-		util.NewTriggerOnAllChanges(func(obj pkgruntime.Object) {
-			d.enqueueObject(obj)
-		}),
+		d.enqueueObject,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	if minimizeLatency {
 		d.minimizeLatency()
@@ -129,7 +133,7 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 	<-stopCh
 }
 
-func (d *controller) enqueueObject(obj interface{}) {
+func (d *controller) enqueueObject(obj pkgruntime.Object) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %#v: %v", obj, err)
@@ -193,7 +197,12 @@ func (d *controller) processItem(key string) error {
 
 	if !exists {
 		//delete corresponding DNSEndpoint object
-		return d.client.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Delete(name, &metav1.DeleteOptions{})
+		dnsEndpointObject := &feddnsv1a1.DNSEndpoint{}
+		err = d.client.Delete(context.TODO(), dnsEndpointObject, namespace, name)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	dnsEndpoints, err := d.getEndpoints(obj)
@@ -201,29 +210,29 @@ func (d *controller) processItem(key string) error {
 		return err
 	}
 
-	dnsEndpointObject, err := d.client.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			newDNSEndpointObject := &feddnsv1a1.DNSEndpoint{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
-				},
-				Spec: feddnsv1a1.DNSEndpointSpec{
-					Endpoints: dnsEndpoints,
-				},
-			}
-
-			_, err = d.client.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Create(newDNSEndpointObject)
+	dnsEndpointObject := &feddnsv1a1.DNSEndpoint{}
+	err = d.client.Get(context.TODO(), dnsEndpointObject, namespace, name)
+	if apierrors.IsNotFound(err) {
+		newDNSEndpointObject := &feddnsv1a1.DNSEndpoint{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+			Spec: feddnsv1a1.DNSEndpointSpec{
+				Endpoints: dnsEndpoints,
+			},
 		}
+		return d.client.Create(context.TODO(), newDNSEndpointObject)
+	}
+	if err != nil {
 		return err
 	}
 
 	// Update only if the new endpoints are not equal to the existing ones.
 	if !reflect.DeepEqual(dnsEndpointObject.Spec.Endpoints, dnsEndpoints) {
 		dnsEndpointObject.Spec.Endpoints = dnsEndpoints
-		_, err = d.client.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Update(dnsEndpointObject)
+		return d.client.Update(context.TODO(), dnsEndpointObject)
 	}
 
-	return err
+	return nil
 }

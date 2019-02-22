@@ -14,6 +14,7 @@ limitations under the License.
 package kubefed2
 
 import (
+	"context"
 	goerrors "errors"
 	"io"
 	"strings"
@@ -21,7 +22,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	controllerutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
@@ -29,7 +31,7 @@ import (
 	"github.com/spf13/pflag"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	client "k8s.io/client-go/kubernetes"
+	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
@@ -173,7 +175,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 		return err
 	}
 
-	var clusterClientset *client.Clientset
+	var clusterClientset *kubeclient.Clientset
 	if clusterConfig != nil {
 		clusterClientset, err = util.ClusterClientset(clusterConfig)
 		if err != nil {
@@ -184,7 +186,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 		}
 	}
 
-	fedClientset, err := util.FedClientset(hostConfig)
+	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get federation clientset: %v", err)
 		return err
@@ -207,7 +209,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 	// deletionSucceeded when all operations in deleteRBACResources and deleteFedNSFromUnjoinCluster succeed.
 	if deletionSucceeded || forceDeletion {
-		deleteFederatedClusterAndSecret(hostClientset, fedClientset, federationNamespace, unjoiningClusterName, dryRun)
+		deleteFederatedClusterAndSecret(hostClientset, client, federationNamespace, unjoiningClusterName, dryRun)
 	}
 
 	return nil
@@ -249,7 +251,7 @@ func unregisterCluster(crClientset *crclient.Clientset, clusterNamespace, unjoin
 
 // deleteFederatedClusterAndSecret deletes a federated cluster resource that associates
 // the cluster and secret.
-func deleteFederatedClusterAndSecret(hostClientset client.Interface, fedClientset *fedclient.Clientset,
+func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client genericclient.Client,
 	federationNamespace, unjoiningClusterName string, dryRun bool) {
 	if dryRun {
 		return
@@ -258,8 +260,8 @@ func deleteFederatedClusterAndSecret(hostClientset client.Interface, fedClientse
 	glog.V(2).Infof("Deleting federated cluster resource from namespace: %s for unjoin cluster: %s",
 		federationNamespace, unjoiningClusterName)
 
-	fedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Get(
-		unjoiningClusterName, metav1.GetOptions{})
+	fedCluster := &fedv1a1.FederatedCluster{}
+	err := client.Get(context.TODO(), fedCluster, federationNamespace, unjoiningClusterName)
 	if err != nil {
 		glog.Errorf("Failed to get FederatedCluster resource from namespace: %s for unjoin cluster: %s due to: %v", federationNamespace, unjoiningClusterName, err)
 		return
@@ -273,8 +275,7 @@ func deleteFederatedClusterAndSecret(hostClientset client.Interface, fedClientse
 		glog.V(2).Infof("Deleted Secret resource from namespace: %s for unjoin cluster: %s", federationNamespace, unjoiningClusterName)
 	}
 
-	err = fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Delete(
-		unjoiningClusterName, &metav1.DeleteOptions{})
+	err = client.Delete(context.TODO(), fedCluster, fedCluster.Namespace, fedCluster.Name)
 	if err != nil {
 		glog.Errorf("Failed to delete FederatedCluster resource from namespace: %s for unjoin cluster: %s due to: %v", federationNamespace, unjoiningClusterName, err)
 	} else {
@@ -284,7 +285,7 @@ func deleteFederatedClusterAndSecret(hostClientset client.Interface, fedClientse
 
 // deleteRBACResources deletes the cluster role, cluster rolebindings and service account
 // from the unjoining cluster.
-func deleteRBACResources(unjoiningClusterClientset client.Interface,
+func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
 	namespace, unjoiningClusterName, hostClusterName string, dryRun bool) bool {
 
 	var deletionSucceeded = true
@@ -316,7 +317,7 @@ func deleteRBACResources(unjoiningClusterClientset client.Interface,
 // deleteFedNSFromUnjoinCluster deletes the federation namespace from
 // the unjoining cluster so long as the unjoining cluster is not the
 // host cluster.
-func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset client.Interface,
+func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset kubeclient.Interface,
 	federationNamespace, unjoiningClusterName string, dryRun bool) error {
 
 	if dryRun {
@@ -354,7 +355,7 @@ func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset clien
 // deleteServiceAccount deletes a service account in the cluster associated
 // with clusterClientset with credentials that are used by the host cluster
 // to access its API server.
-func deleteServiceAccount(clusterClientset client.Interface, saName,
+func deleteServiceAccount(clusterClientset kubeclient.Interface, saName,
 	namespace string, dryRun bool) error {
 	if dryRun {
 		return nil
@@ -368,7 +369,7 @@ func deleteServiceAccount(clusterClientset client.Interface, saName,
 // deleteClusterRoleAndBinding deletes an RBAC cluster role and binding that
 // allows the service account identified by saName to access all resources in
 // all namespaces in the cluster associated with clusterClientset.
-func deleteClusterRoleAndBinding(clusterClientset client.Interface, saName, namespace string, dryRun bool) bool {
+func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface, saName, namespace string, dryRun bool) bool {
 	var deletionSucceeded = true
 
 	if dryRun {

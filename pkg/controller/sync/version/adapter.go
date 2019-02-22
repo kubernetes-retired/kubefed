@@ -21,7 +21,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -42,7 +42,7 @@ type VersionAdapter interface {
 	UpdateStatus(obj pkgruntime.Object) (pkgruntime.Object, error)
 }
 
-func NewVersionAdapter(client fedclientset.Interface, namespaced bool) VersionAdapter {
+func NewVersionAdapter(client generic.Client, namespaced bool) VersionAdapter {
 	if namespaced {
 		return newNamespacedVersionAdapter(client)
 	}
