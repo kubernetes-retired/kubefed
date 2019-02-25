@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -121,9 +122,21 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return errors.Wrap(err, "Failed to get host cluster config")
 	}
 
+	// If . is specified, the target name is assumed as a group qualified name.
+	// In such case, ignore the lookup to make sure deletion of a federatedtypeconfig
+	// for which the corresponding target has been removed.
+	name := j.targetName
+	if !strings.Contains(j.targetName, ".") {
+		apiResource, err := LookupAPIResource(hostConfig, j.targetName, "")
+		if err != nil {
+			return err
+		}
+		name = typeconfig.GroupQualifiedName(*apiResource)
+	}
+
 	typeConfigName := ctlutil.QualifiedName{
 		Namespace: j.FederationNamespace,
-		Name:      j.targetName,
+		Name:      name,
 	}
 
 	return DisableFederation(cmdOut, hostConfig, typeConfigName, j.delete, j.DryRun)
