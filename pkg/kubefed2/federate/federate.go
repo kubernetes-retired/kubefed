@@ -197,6 +197,11 @@ func createFedResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTyp
 		return nil, errors.Wrapf(err, "Error creating client for %s", fedAPIResource.Kind)
 	}
 
+	targetKind := typeConfig.GetTarget().Kind
+	if targetKind == ctlutil.ServiceAccountKind {
+		unstructured.RemoveNestedField(template.Object, ctlutil.SecretsField)
+	}
+
 	qualifiedName := ctlutil.NewQualifiedName(template)
 	resourceNamespace := ""
 	if typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
