@@ -22,7 +22,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
@@ -35,7 +35,6 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,7 +51,7 @@ type FederationFrameworkImpl interface {
 	KubeConfig() *restclient.Config
 
 	KubeClient(userAgent string) kubeclientset.Interface
-	FedClient(userAgent string) fedclientset.Interface
+	Client(userAgent string) genericclient.Client
 	CrClient(userAgent string) crclientset.Interface
 
 	ClusterConfigs(userAgent string) map[string]common.TestClusterConfig
@@ -165,8 +164,8 @@ func (f *frameworkWrapper) KubeClient(userAgent string) kubeclientset.Interface 
 	return f.framework().KubeClient(userAgent)
 }
 
-func (f *frameworkWrapper) FedClient(userAgent string) fedclientset.Interface {
-	return f.framework().FedClient(userAgent)
+func (f *frameworkWrapper) Client(userAgent string) genericclient.Client {
+	return f.framework().Client(userAgent)
 }
 
 func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
@@ -235,7 +234,7 @@ func (f *frameworkWrapper) EnsureTestNamespacePropagation() {
 func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstructured.Unstructured {
 	tl := f.Logger()
 
-	dynclient, err := client.New(f.KubeConfig(), client.Options{})
+	client, err := genericclient.New(f.KubeConfig())
 	if err != nil {
 		tl.Fatalf("Error initializing dynamic client: %v", err)
 	}
@@ -251,8 +250,7 @@ func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstr
 	namespace := f.TestNamespaceName()
 
 	// Return an existing federated namespace if it already exists.
-	key := client.ObjectKey{Namespace: namespace, Name: namespace}
-	err = dynclient.Get(context.Background(), key, obj)
+	err = client.Get(context.Background(), obj, namespace, namespace)
 	if err == nil {
 		return obj
 	}
@@ -272,11 +270,11 @@ func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstr
 		}
 	}
 
-	err = dynclient.Create(context.Background(), obj)
+	err = client.Create(context.Background(), obj)
 	if err != nil {
-		tl.Fatalf("Error creating %s %q: %v", apiResource.Kind, key, err)
+		tl.Fatalf("Error creating %s for namespace %q: %v", apiResource.Kind, namespace, err)
 	}
-	tl.Logf("Created new %s %q", apiResource.Kind, key)
+	tl.Logf("Created new %s %q", apiResource.Kind, namespace)
 
 	return obj
 }
@@ -284,18 +282,14 @@ func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstr
 func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
 	if f.namespaceTypeConfig == nil {
 		tl := f.Logger()
-		dynClient, err := client.New(f.KubeConfig(), client.Options{})
+		client, err := genericclient.New(f.KubeConfig())
 		if err != nil {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
-		key := client.ObjectKey{
-			Namespace: f.FederationSystemNamespace(),
-			Name:      util.NamespaceName,
-		}
 		typeConfig := &fedv1a1.FederatedTypeConfig{}
-		err = dynClient.Get(context.Background(), key, typeConfig)
+		err = client.Get(context.Background(), typeConfig, f.FederationSystemNamespace(), util.NamespaceName)
 		if err != nil {
-			tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", key.Name, err)
+			tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", util.NamespaceName, err)
 		}
 		f.namespaceTypeConfig = typeConfig
 	}

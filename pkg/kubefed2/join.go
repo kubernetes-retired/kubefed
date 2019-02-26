@@ -17,6 +17,7 @@ limitations under the License.
 package kubefed2
 
 import (
+	"context"
 	goerrors "errors"
 	"io"
 	"reflect"
@@ -27,7 +28,7 @@ import (
 	"github.com/pkg/errors"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclient "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 	"github.com/spf13/cobra"
@@ -37,7 +38,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	client "k8s.io/client-go/kubernetes"
+	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
@@ -210,7 +211,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 		return err
 	}
 
-	fedClientset, err := util.FedClientset(hostConfig)
+	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get federation clientset: %v", err)
 		return err
@@ -262,7 +263,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 
 	glog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createFederatedCluster(fedClientset, joiningClusterName, secret.Name,
+	_, err = createFederatedCluster(client, joiningClusterName, secret.Name,
 		federationNamespace, dryRun, errorOnExisting)
 	if err != nil {
 		glog.V(2).Infof("Failed to create federated cluster resource: %v", err)
@@ -275,7 +276,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
-func performPreflightChecks(clusterClientset client.Interface, name, hostClusterName,
+func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClusterName,
 	federationNamespace string, errorOnExisting bool) error {
 	// Make sure there is no existing service account in the joining cluster.
 	saName := util.ClusterServiceAccountName(name, hostClusterName)
@@ -392,11 +393,12 @@ func registerCluster(crClientset crclient.Interface, clusterNamespace, host, joi
 
 // createFederatedCluster creates a federated cluster resource that associates
 // the cluster and secret.
-func createFederatedCluster(fedClientset fedclient.Interface, joiningClusterName,
+func createFederatedCluster(client genericclient.Client, joiningClusterName,
 	secretName, federationNamespace string, dryRun, errorOnExisting bool) (*fedv1a1.FederatedCluster, error) {
 	fedCluster := &fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: joiningClusterName,
+			Namespace: federationNamespace,
+			Name:      joiningClusterName,
 		},
 		Spec: fedv1a1.FederatedClusterSpec{
 			ClusterRef: corev1.LocalObjectReference{
@@ -412,7 +414,8 @@ func createFederatedCluster(fedClientset fedclient.Interface, joiningClusterName
 		return fedCluster, nil
 	}
 
-	existingFedCluster, err := fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Get(joiningClusterName, metav1.GetOptions{})
+	existingFedCluster := &fedv1a1.FederatedCluster{}
+	err := client.Get(context.TODO(), existingFedCluster, federationNamespace, joiningClusterName)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		glog.V(2).Infof("Could not retrieve federated cluster %s due to %v", joiningClusterName, err)
@@ -421,14 +424,14 @@ func createFederatedCluster(fedClientset fedclient.Interface, joiningClusterName
 		return nil, errors.Errorf("federated cluster %s already exists in host cluster", joiningClusterName)
 	case err == nil:
 		existingFedCluster.Spec = fedCluster.Spec
-		fedCluster, err = fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Update(existingFedCluster)
+		err = client.Update(context.TODO(), existingFedCluster)
 		if err != nil {
 			glog.V(2).Infof("Could not update federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err
 		}
-		return fedCluster, nil
+		return existingFedCluster, nil
 	default:
-		fedCluster, err = fedClientset.CoreV1alpha1().FederatedClusters(federationNamespace).Create(fedCluster)
+		err = client.Create(context.TODO(), fedCluster)
 		if err != nil {
 			glog.V(2).Infof("Could not create federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err
@@ -439,7 +442,7 @@ func createFederatedCluster(fedClientset fedclient.Interface, joiningClusterName
 
 // createFederationNamespace creates the federation namespace in the cluster
 // associated with clusterClientset, if it doesn't already exist.
-func createFederationNamespace(clusterClientset client.Interface, federationNamespace,
+func createFederationNamespace(clusterClientset kubeclient.Interface, federationNamespace,
 	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
 	federationNS := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -462,7 +465,7 @@ func createFederationNamespace(clusterClientset client.Interface, federationName
 // createRBACSecret creates a secret in the joining cluster using a service
 // account, and populate that secret into the host cluster to allow it to
 // access the joining cluster.
-func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Interface,
+func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.Interface,
 	namespace, joiningClusterName, hostClusterName,
 	secretName string, limitedScope, dryRun, errorOnExisting bool) (*corev1.Secret, error) {
 
@@ -534,7 +537,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset client.Inter
 // createServiceAccount creates a service account in the cluster associated
 // with clusterClientset with credentials that will be used by the host cluster
 // to access its API server.
-func createServiceAccount(clusterClientset client.Interface, namespace,
+func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
 	joiningClusterName, hostClusterName string, dryRun, errorOnExisting bool) (string, error) {
 	saName := util.ClusterServiceAccountName(joiningClusterName, hostClusterName)
 	sa := &corev1.ServiceAccount{
@@ -576,7 +579,7 @@ func bindingSubjects(saName, namespace string) []rbacv1.Subject {
 // binding that allows the service account identified by saName to
 // access all resources in all namespaces in the cluster associated
 // with clientset.
-func createClusterRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun, errorOnExisting bool) error {
+func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clusterName string, dryRun, errorOnExisting bool) error {
 	if dryRun {
 		return nil
 	}
@@ -673,7 +676,7 @@ func createClusterRoleAndBinding(clientset client.Interface, saName, namespace, 
 // createRoleAndBinding creates an RBAC role and binding
 // that allows the service account identified by saName to access all
 // resources in the specified namespace.
-func createRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun, errorOnExisting bool) error {
+func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clusterName string, dryRun, errorOnExisting bool) error {
 	if dryRun {
 		return nil
 	}
@@ -770,7 +773,7 @@ func createRoleAndBinding(clientset client.Interface, saName, namespace, cluster
 // createHealthCheckClusterRoleAndBinding creates an RBAC cluster role and
 // binding that allows the service account identified by saName to
 // access the health check path of the cluster.
-func createHealthCheckClusterRoleAndBinding(clientset client.Interface, saName, namespace, clusterName string, dryRun, errorOnExisting bool) error {
+func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clusterName string, dryRun, errorOnExisting bool) error {
 	if dryRun {
 		return nil
 	}
@@ -879,7 +882,7 @@ func createHealthCheckClusterRoleAndBinding(clientset client.Interface, saName, 
 // from the cluster referenced by clusterClientset to the client referenced by
 // hostClientset, putting it in a secret named secretName in the provided
 // namespace.
-func populateSecretInHostCluster(clusterClientset, hostClientset client.Interface,
+func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Interface,
 	saName, namespace, joiningClusterName, secretName string,
 	dryRun bool) (*corev1.Secret, error) {
 	if dryRun {

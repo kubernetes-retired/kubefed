@@ -21,29 +21,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 
 	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
 	restclient.AddUserAgent(config.KubeConfig, "Service DNSEndpoint")
-	client := fedclientset.NewForConfigOrDie(config.KubeConfig)
-
-	listFunc := func(options metav1.ListOptions) (pkgruntime.Object, error) {
-		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).List(options)
-	}
-	watchFunc := func(options metav1.ListOptions) (watch.Interface, error) {
-		return client.MulticlusterdnsV1alpha1().ServiceDNSRecords(config.TargetNamespace).Watch(options)
-	}
-
-	controller, err := newDNSEndpointController(client, &feddnsv1a1.ServiceDNSRecord{}, "service",
-		listFunc, watchFunc, getServiceDNSEndpoints, config.MinimizeLatency)
+	controller, err := newDNSEndpointController(config, &feddnsv1a1.ServiceDNSRecord{}, "service",
+		getServiceDNSEndpoints, config.MinimizeLatency)
 	if err != nil {
 		return err
 	}

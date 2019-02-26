@@ -35,7 +35,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -67,7 +67,7 @@ type VersionManager struct {
 	versions map[string]pkgruntime.Object
 }
 
-func NewVersionManager(client fedclientset.Interface, namespaced bool, federatedKind, targetKind, namespace string) *VersionManager {
+func NewVersionManager(client generic.Client, namespaced bool, federatedKind, targetKind, namespace string) *VersionManager {
 	v := &VersionManager{
 		targetKind:    targetKind,
 		federatedKind: federatedKind,

@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
@@ -99,10 +99,10 @@ func (f *ManagedFramework) KubeConfig() *restclient.Config {
 	return fedFixture.KubeApi.NewConfig(f.logger)
 }
 
-func (f *ManagedFramework) FedClient(userAgent string) fedclientset.Interface {
+func (f *ManagedFramework) Client(userAgent string) genericclient.Client {
 	config := fedFixture.KubeApi.NewConfig(f.logger)
 	restclient.AddUserAgent(config, userAgent)
-	return fedclientset.NewForConfigOrDie(config)
+	return genericclient.NewForConfigOrDie(config)
 }
 
 func (f *ManagedFramework) KubeClient(userAgent string) kubeclientset.Interface {

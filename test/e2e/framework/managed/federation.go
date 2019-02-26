@@ -17,6 +17,7 @@ limitations under the License.
 package managed
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -27,7 +28,7 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
@@ -95,8 +96,7 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	f.ClusterController = NewClusterControllerFixture(f.ControllerConfig(tl))
 	tl.Log("Federation started.")
 
-	config := f.KubeApi.NewConfig(tl)
-	client := fedclientset.NewForConfigOrDie(config)
+	client := genericclient.NewForConfigOrDie(f.KubeApi.NewConfig(tl))
 	WaitForClusterReadiness(tl, client, f.SystemNamespace, DefaultWaitInterval, wait.ForeverTestTimeout)
 }
 
@@ -208,10 +208,11 @@ func (f *FederationFixture) createSecret(tl common.TestLogger, clusterFixture *K
 // createFederatedCluster create a federated cluster resource that
 // associates the cluster and secret.
 func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, clusterName, secretName string) {
-	fedClient := f.NewFedClient(tl, userAgent)
-	_, err := fedClient.CoreV1alpha1().FederatedClusters(f.SystemNamespace).Create(&fedv1a1.FederatedCluster{
+	client := f.NewClient(tl, userAgent)
+	err := client.Create(context.TODO(), &fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterName,
+			Namespace: f.SystemNamespace,
+			Name:      clusterName,
 		},
 		Spec: fedv1a1.FederatedClusterSpec{
 			ClusterRef: apiv1.LocalObjectReference{
@@ -227,10 +228,10 @@ func (f *FederationFixture) createFederatedCluster(tl common.TestLogger, cluster
 	}
 }
 
-func (f *FederationFixture) NewFedClient(tl common.TestLogger, userAgent string) fedclientset.Interface {
+func (f *FederationFixture) NewClient(tl common.TestLogger, userAgent string) genericclient.Client {
 	config := f.KubeApi.NewConfig(tl)
 	rest.AddUserAgent(config, userAgent)
-	return fedclientset.NewForConfigOrDie(config)
+	return genericclient.NewForConfigOrDie(config)
 }
 
 func (f *FederationFixture) NewCrClient(tl common.TestLogger, userAgent string) crclientset.Interface {

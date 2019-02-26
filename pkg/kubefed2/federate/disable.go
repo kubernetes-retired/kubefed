@@ -17,6 +17,7 @@ limitations under the License.
 package federate
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -26,10 +27,11 @@ import (
 	"github.com/spf13/pflag"
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
@@ -128,11 +130,12 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 }
 
 func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
-	fedClient, err := util.FedClientset(config)
+	client, err := genericclient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
 	}
-	typeConfig, err := fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfigName.Namespace).Get(typeConfigName.Name, metav1.GetOptions{})
+	typeConfig := &fedv1a1.FederatedTypeConfig{}
+	err = client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
 	if err != nil {
 		return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeConfigName)
 	}
@@ -149,7 +152,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 
 	if typeConfig.Spec.PropagationEnabled {
 		typeConfig.Spec.PropagationEnabled = false
-		_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfig.Namespace).Update(typeConfig)
+		err = client.Update(context.TODO(), typeConfig)
 		if err != nil {
 			return errors.Wrapf(err, "Error disabling propagation for FederatedTypeConfig %q", typeConfigName)
 		}
@@ -167,7 +170,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 		return err
 	}
 
-	err = fedClient.CoreV1alpha1().FederatedTypeConfigs(typeConfigName.Namespace).Delete(typeConfigName.Name, nil)
+	err = client.Delete(context.TODO(), typeConfig, typeConfig.Namespace, typeConfig.Name)
 	if err != nil {
 		return errors.Wrapf(err, "Error deleting FederatedTypeConfig %q", typeConfigName)
 	}

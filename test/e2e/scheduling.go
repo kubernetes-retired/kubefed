@@ -30,8 +30,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -60,7 +59,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 	}
 
 	var kubeConfig *restclient.Config
-	var fedClient fedclientset.Interface
+	var genericClient genericclient.Client
 	var namespace string
 	var clusterNames []string
 	typeConfigs := make(map[string]typeconfig.Interface)
@@ -87,7 +86,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 			}
 
 			clusterNames = f.ClusterNames(userAgent)
-			fedClient = f.FedClient(userAgent)
+			genericClient = f.Client(userAgent)
 			kubeConfig = f.KubeConfig()
 		}
 		namespace = f.TestNamespaceName()
@@ -163,7 +162,7 @@ var _ = Describe("ReplicaSchedulingPreferences", func() {
 						clusterNames[1]: tc.cluster2,
 					}
 
-					name, err := createTestObjs(tl, fedClient, typeConfig, kubeConfig, rspSpec, namespace)
+					name, err := createTestObjs(tl, genericClient, typeConfig, kubeConfig, rspSpec, namespace)
 					if err != nil {
 						tl.Fatalf("Creation of test objects failed in federation: %v", err)
 					}
@@ -208,7 +207,7 @@ func rspSpecWithClusterList(total int32, w1, w2, min1, min2 int64, clusters []st
 	return rspSpec
 }
 
-func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
+func createTestObjs(tl common.TestLogger, client genericclient.Client, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, rspSpec fedschedulingv1a1.ReplicaSchedulingPreferenceSpec, namespace string) (string, error) {
 	federatedTypeAPIResource := typeConfig.GetFederatedType()
 	federatedTypeClient, err := util.NewResourceClient(kubeConfig, &federatedTypeAPIResource)
 	if err != nil {
@@ -237,7 +236,7 @@ func createTestObjs(tl common.TestLogger, fedClient clientset.Interface, typeCon
 		},
 		Spec: rspSpec,
 	}
-	_, err = fedClient.SchedulingV1alpha1().ReplicaSchedulingPreferences(namespace).Create(rsp)
+	err = client.Create(context.TODO(), rsp)
 	if err != nil {
 		return "", err
 	}

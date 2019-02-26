@@ -26,7 +26,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -46,7 +46,7 @@ type FederatedTypeCrudTester struct {
 	tl                TestLogger
 	typeConfig        typeconfig.Interface
 	targetIsNamespace bool
-	fedClient         clientset.Interface
+	client            genericclient.Client
 	kubeConfig        *rest.Config
 	testClusters      map[string]TestCluster
 	waitInterval      time.Duration
@@ -71,7 +71,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
 		targetIsNamespace:  typeConfig.GetTarget().Kind == util.NamespaceKind,
-		fedClient:          clientset.NewForConfigOrDie(kubeConfig),
+		client:             genericclient.NewForConfigOrDie(kubeConfig),
 		kubeConfig:         kubeConfig,
 		testClusters:       testClusters,
 		waitInterval:       waitInterval,
@@ -487,7 +487,7 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 	}
 
 	loggedWaiting := false
-	adapter := versionmanager.NewVersionAdapter(c.fedClient, c.typeConfig.GetFederatedNamespaced())
+	adapter := versionmanager.NewVersionAdapter(c.client, c.typeConfig.GetFederatedNamespaced())
 	var version *fedv1a1.PropagatedVersionStatus
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		versionObj, err := adapter.Get(versionName)

@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -26,8 +27,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	dnsv1a1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -43,31 +43,30 @@ var _ = Describe("IngressDNS", func() {
 	const userAgent = "test-ingress-dns"
 	const baseName = "test-ingress-dns-"
 
-	var fedClient fedclientset.Interface
+	var client genericclient.Client
 	var namespace string
-	var dnsClient dnsv1a1client.IngressDNSRecordInterface
 
 	objectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-		dnsClient := fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(namespace)
-		return dnsClient.Get(name, metav1.GetOptions{})
+		ingressDNSRecords := &dnsv1a1.IngressDNSRecord{}
+		err := client.Get(context.TODO(), ingressDNSRecords, namespace, name)
+		return ingressDNSRecords, err
 	}
 
 	BeforeEach(func() {
-		fedClient = f.FedClient(userAgent)
+		client = f.Client(userAgent)
 		if framework.TestContext.RunControllers() {
 			fixture := managed.NewIngressDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
 		f.EnsureTestNamespacePropagation()
 		namespace = f.TestNamespaceName()
-		dnsClient = fedClient.MulticlusterdnsV1alpha1().IngressDNSRecords(namespace)
 	})
 
 	Context("When IngressDNS is created", func() {
 		It("IngressDNS status should be updated correctly when there are no corresponding ingresses in member clusters", func() {
 			By("Creating the IngressDNS object")
-			ingressDNSObj := common.NewIngressDNSObject(baseName, namespace)
-			ingressDNS, err := dnsClient.Create(ingressDNSObj)
+			ingressDNS := common.NewIngressDNSObject(baseName, namespace)
+			err := client.Create(context.TODO(), ingressDNS)
 			framework.ExpectNoError(err, "Error creating IngressDNS object: %v", ingressDNS)
 
 			ingressDNSStatus := dnsv1a1.IngressDNSRecordStatus{DNS: []dnsv1a1.ClusterIngressDNS{}}
@@ -93,10 +92,10 @@ var _ = Describe("IngressDNS", func() {
 			hosts := []string{"foo.bar.test"}
 
 			By("Creating the IngressDNS object")
-			ingressDNSObj := common.NewIngressDNSObject(baseName, namespace)
-			ingressDNSObj.Spec.Hosts = hosts
-			ingressDNSObj.Spec.RecordTTL = RecordTTL
-			ingressDNS, err := dnsClient.Create(ingressDNSObj)
+			ingressDNS := common.NewIngressDNSObject(baseName, namespace)
+			ingressDNS.Spec.Hosts = hosts
+			ingressDNS.Spec.RecordTTL = RecordTTL
+			err := client.Create(context.TODO(), ingressDNS)
 			framework.ExpectNoError(err, "Error creating IngressDNS object %v", ingressDNS)
 			name := ingressDNS.Name
 
@@ -112,7 +111,9 @@ var _ = Describe("IngressDNS", func() {
 
 			By("Waiting for the DNSEndpoint object to be created")
 			endpointObjectGetter := func(namespace, name string) (pkgruntime.Object, error) {
-				return fedClient.MulticlusterdnsV1alpha1().DNSEndpoints(namespace).Get(name, metav1.GetOptions{})
+				dnsEndpoints := &dnsv1a1.DNSEndpoint{}
+				err := client.Get(context.TODO(), dnsEndpoints, namespace, name)
+				return dnsEndpoints, err
 			}
 
 			endpoints := []*dnsv1a1.Endpoint{}

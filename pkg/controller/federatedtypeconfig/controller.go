@@ -17,6 +17,7 @@ limitations under the License.
 package federatedtypeconfig
 
 import (
+	"context"
 	"sync"
 
 	"github.com/golang/glog"
@@ -31,8 +32,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	fedclientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	corev1alpha1client "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	statuscontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
 	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -51,7 +51,7 @@ type Controller struct {
 	// of resources contained by that namespace.
 	fedNamespaceAPIResource *metav1.APIResource
 
-	client corev1alpha1client.CoreV1alpha1Interface
+	client genericclient.Client
 
 	// Map of running sync controllers keyed by qualified target type
 	stopChannels map[string]chan struct{}
@@ -67,12 +67,7 @@ type Controller struct {
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
 func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
-	userAgent := "FederatedTypeConfig"
-	kubeConfig := config.KubeConfig
-	restclient.AddUserAgent(kubeConfig, userAgent)
-	client := fedclientset.NewForConfigOrDie(kubeConfig).CoreV1alpha1()
-
-	controller, err := newController(config, client)
+	controller, err := newController(config)
 	if err != nil {
 		return err
 	}
@@ -82,10 +77,18 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 }
 
 // newController returns a new controller to manage FederatedTypeConfig objects.
-func newController(config *util.ControllerConfig, client corev1alpha1client.CoreV1alpha1Interface) (*Controller, error) {
+func newController(config *util.ControllerConfig) (*Controller, error) {
+	userAgent := "FederatedTypeConfig"
+	kubeConfig := config.KubeConfig
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	genericclient, err := genericclient.New(kubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &Controller{
 		controllerConfig: config,
-		client:           client,
+		client:           genericclient,
 		stopChannels:     make(map[string]chan struct{}),
 	}
 
@@ -94,11 +97,11 @@ func newController(config *util.ControllerConfig, client corev1alpha1client.Core
 	// Only watch the federation namespace to ensure
 	// restrictive authz can be applied to a namespaced
 	// control plane.
-	var err error
 	c.store, c.controller, err = util.NewGenericInformer(
 		config.KubeConfig,
 		config.FederationNamespace,
 		&corev1a1.FederatedTypeConfig{},
+		util.NoResyncPeriod,
 		c.worker.EnqueueObject,
 	)
 	if err != nil {
@@ -162,7 +165,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
-		_, err = c.client.FederatedTypeConfigs(typeConfig.Namespace).UpdateStatus(typeConfig)
+		err = c.client.UpdateStatus(context.TODO(), typeConfig)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Could not update status fields of the CRD: %q", key))
 			return util.StatusError
@@ -230,7 +233,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	} else {
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
 	}
-	_, err = c.client.FederatedTypeConfigs(typeConfig.Namespace).UpdateStatus(typeConfig)
+	err = c.client.UpdateStatus(context.TODO(), typeConfig)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Could not update status fields of the CRD: %q", key))
 		return util.StatusError
@@ -328,7 +331,7 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Delete(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	_, err = c.client.FederatedTypeConfigs(tc.Namespace).UpdateStatus(tc)
+	err = c.client.UpdateStatus(context.TODO(), tc)
 	return err
 }
 

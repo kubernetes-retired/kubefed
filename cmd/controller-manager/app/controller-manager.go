@@ -104,10 +104,14 @@ func Run(opts *options.Options) error {
 		glog.Info("Federation will target all namespaces")
 	}
 
-	federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod)
+	if err := federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod); err != nil {
+		glog.Fatalf("Error starting cluster controller: %v", err)
+	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		schedulingmanager.StartSchedulerController(opts.Config, stopChan)
+		if err := schedulingmanager.StartSchedulerController(opts.Config, stopChan); err != nil {
+			glog.Fatalf("Error starting scheduler controller: %v", err)
+		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {

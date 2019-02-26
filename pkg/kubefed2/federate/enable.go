@@ -17,6 +17,7 @@ limitations under the License.
 package federate
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -36,6 +37,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
@@ -232,12 +234,13 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	}
 	write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
 
-	fedClient, err := util.FedClientset(config)
+	client, err := genericclient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
 	}
 	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
-	_, err = fedClient.CoreV1alpha1().FederatedTypeConfigs(namespace).Create(concreteTypeConfig)
+	concreteTypeConfig.Namespace = namespace
+	err = client.Create(context.TODO(), concreteTypeConfig)
 	if err != nil {
 		return errors.Wrapf(err, "Error creating FederatedTypeConfig %q", concreteTypeConfig.Name)
 	}
