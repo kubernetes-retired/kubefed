@@ -89,7 +89,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(federatedTypeAPIResource.Kind))
 
 	// Initialize non-dynamic clients first to avoid polluting config
-	client, kubeClient, crClient := controllerConfig.AllClients(userAgent)
+	client, kubeClient := controllerConfig.AllClients(userAgent)
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
@@ -118,7 +118,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	s.informer, err = util.NewFederatedInformer(
 		controllerConfig,
 		kubeClient,
-		crClient,
+		client,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)

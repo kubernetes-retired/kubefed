@@ -22,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
@@ -45,12 +44,11 @@ type ControllerConfig struct {
 	MinimizeLatency         bool
 }
 
-func (c *ControllerConfig) AllClients(userAgent string) (genericclient.Client, kubeclientset.Interface, crclientset.Interface) {
+func (c *ControllerConfig) AllClients(userAgent string) (genericclient.Client, kubeclientset.Interface) {
 	restclient.AddUserAgent(c.KubeConfig, userAgent)
 	client := genericclient.NewForConfigOrDie(c.KubeConfig)
 	kubeClient := kubeclientset.NewForConfigOrDie(c.KubeConfig)
-	crClient := crclientset.NewForConfigOrDie(c.KubeConfig)
-	return client, kubeClient, crClient
+	return client, kubeClient
 }
 
 func (c *ControllerConfig) LimitedScope() bool {

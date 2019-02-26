@@ -24,12 +24,12 @@ import (
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -50,8 +50,8 @@ type ClusterClient struct {
 // The kubeClient and crClient are used to configure the ClusterClient's
 // internal client with information from a kubeconfig stored in a kubernetes
 // secret and an API endpoint from the cluster-registry.
-func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
-	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, crClient, fedNamespace, clusterNamespace)
+func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, client generic.Client, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
+	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, client, fedNamespace, clusterNamespace)
 	if err != nil {
 		return nil, err
 	}

@@ -92,7 +92,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 
 // newController returns a new controller to manage ServiceDNSRecord objects.
 func newController(config *util.ControllerConfig) (*Controller, error) {
-	client, kubeClient, crClient := config.AllClients("ServiceDNS")
+	client, kubeClient := config.AllClients("ServiceDNS")
 	s := &Controller{
 		client:                  client,
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
@@ -136,7 +136,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	s.serviceInformer, err = util.NewFederatedInformer(
 		config,
 		kubeClient,
-		crClient,
+		client,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",
@@ -165,7 +165,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	s.endpointInformer, err = util.NewFederatedInformer(
 		config,
 		kubeClient,
-		crClient,
+		client,
 		&metav1.APIResource{
 			Group:        "",
 			Version:      "v1",

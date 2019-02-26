@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 var (
@@ -107,12 +106,6 @@ func (f *ManagedFramework) Client(userAgent string) genericclient.Client {
 
 func (f *ManagedFramework) KubeClient(userAgent string) kubeclientset.Interface {
 	return fedFixture.KubeApi.NewClient(f.logger, userAgent)
-}
-
-func (f *ManagedFramework) CrClient(userAgent string) crclientset.Interface {
-	config := fedFixture.KubeApi.NewConfig(f.logger)
-	restclient.AddUserAgent(config, userAgent)
-	return crclientset.NewForConfigOrDie(config)
 }
 
 func (f *ManagedFramework) ClusterNames(userAgent string) []string {

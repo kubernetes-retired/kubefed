@@ -41,7 +41,6 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -301,7 +300,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 func addToClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, joiningClusterName string,
 	dryRun, errorOnExisting bool) error {
 	// Get the cluster registry clientset using the host cluster config.
-	crClientset, err := util.ClusterRegistryClientset(hostConfig)
+	client, err := util.ClusterRegistryClientset(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
 		return err
@@ -309,7 +308,7 @@ func addToClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, joini
 
 	glog.V(2).Infof("Registering cluster: %s with the cluster registry.", joiningClusterName)
 
-	_, err = registerCluster(crClientset, clusterNamespace, host, joiningClusterName, dryRun, errorOnExisting)
+	err = registerCluster(client, clusterNamespace, host, joiningClusterName, dryRun, errorOnExisting)
 	if err != nil {
 		glog.V(2).Infof("Could not register cluster: %s with the cluster registry: %v",
 			joiningClusterName, err)
@@ -323,8 +322,7 @@ func addToClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, joini
 // verifyExistsInClusterRegistry verifies that the given joining cluster name exists
 // in the cluster registry.
 func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, joiningClusterName string) error {
-	// Get the cluster registry clientset using the host cluster config.
-	crClientset, err := util.ClusterRegistryClientset(hostConfig)
+	client, err := util.ClusterRegistryClientset(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
 		return err
@@ -333,8 +331,8 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, jo
 	glog.V(2).Infof("Verifying cluster: %s exists in the cluster registry.",
 		joiningClusterName)
 
-	_, err = crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Get(joiningClusterName,
-		metav1.GetOptions{})
+	cluster := &crv1a1.Cluster{}
+	err = client.Get(context.TODO(), cluster, clusterNamespace, joiningClusterName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return errors.Errorf("Cluster %s does not exist in the cluster registry.",
@@ -352,11 +350,12 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, jo
 
 // registerCluster registers a cluster with the cluster registry.
 // TODO: save off service account authinfo for cluster.
-func registerCluster(crClientset crclient.Interface, clusterNamespace, host, joiningClusterName string,
-	dryRun, errorOnExisting bool) (*crv1a1.Cluster, error) {
+func registerCluster(client genericclient.Client, clusterNamespace, host, joiningClusterName string,
+	dryRun, errorOnExisting bool) error {
 	cluster := &crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: joiningClusterName,
+			Namespace: clusterNamespace,
+			Name:      joiningClusterName,
 		},
 		Spec: crv1a1.ClusterSpec{
 			KubernetesAPIEndpoints: crv1a1.KubernetesAPIEndpoints{
@@ -371,23 +370,24 @@ func registerCluster(crClientset crclient.Interface, clusterNamespace, host, joi
 	}
 
 	if dryRun {
-		return cluster, nil
+		return nil
 	}
 
-	existingCluster, err := crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Get(cluster.Name, metav1.GetOptions{})
+	existingCluster := &crv1a1.Cluster{}
+	err := client.Get(context.TODO(), existingCluster, clusterNamespace, cluster.Name)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
 		glog.V(2).Infof("Cannot retrieve cluster registry cluster %s due to %v", cluster.Name, err)
-		return nil, err
+		return err
 	case err == nil && errorOnExisting:
-		return nil, errors.Errorf("cluster registry cluster %s already exists", cluster.Name)
+		return errors.Errorf("cluster registry cluster %s already exists", cluster.Name)
 	case err == nil:
 		existingCluster.Spec = cluster.Spec
 		glog.V(2).Infof("Updating existing cluster registry cluster %s", cluster.Name)
-		return crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Update(existingCluster)
+		return client.Update(context.TODO(), existingCluster)
 	default:
 		glog.V(2).Infof("Creating cluster registry cluster %s", cluster.Name)
-		return crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Create(cluster)
+		return client.Create(context.TODO(), cluster)
 	}
 }
 

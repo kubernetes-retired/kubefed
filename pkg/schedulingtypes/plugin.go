@@ -52,11 +52,11 @@ type Plugin struct {
 
 func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface) (*Plugin, error) {
 	targetAPIResource := typeConfig.GetTarget()
-	_, kubeClient, crClient := controllerConfig.AllClients(fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind)))
+	client, kubeClient := controllerConfig.AllClients(fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind)))
 	targetInformer, err := util.NewFederatedInformer(
 		controllerConfig,
 		kubeClient,
-		crClient,
+		client,
 		&targetAPIResource,
 		eventHandlers.ClusterEventHandler,
 		eventHandlers.ClusterLifecycleHandlers,

@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,7 +51,6 @@ type FederationFrameworkImpl interface {
 
 	KubeClient(userAgent string) kubeclientset.Interface
 	Client(userAgent string) genericclient.Client
-	CrClient(userAgent string) crclientset.Interface
 
 	ClusterConfigs(userAgent string) map[string]common.TestClusterConfig
 	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
@@ -166,10 +164,6 @@ func (f *frameworkWrapper) KubeClient(userAgent string) kubeclientset.Interface 
 
 func (f *frameworkWrapper) Client(userAgent string) genericclient.Client {
 	return f.framework().Client(userAgent)
-}
-
-func (f *frameworkWrapper) CrClient(userAgent string) crclientset.Interface {
-	return f.framework().CrClient(userAgent)
 }
 
 func (f *frameworkWrapper) ClusterConfigs(userAgent string) map[string]common.TestClusterConfig {

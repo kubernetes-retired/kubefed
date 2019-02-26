@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
@@ -71,8 +70,8 @@ type Controller struct {
 
 // StartController starts the Controller for managing IngressDNSRecord objects.
 func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
-	client, kubeClient, crClient := config.AllClients("IngressDNS")
-	controller, err := newController(config, client, kubeClient, crClient)
+	client, kubeClient := config.AllClients("IngressDNS")
+	controller, err := newController(config, client, kubeClient)
 	if err != nil {
 		return err
 	}
@@ -85,7 +84,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 }
 
 // newController returns a new controller to manage IngressDNSRecord objects.
-func newController(config *util.ControllerConfig, client genericclient.Client, kubeClient kubeclientset.Interface, crClient crclientset.Interface) (*Controller, error) {
+func newController(config *util.ControllerConfig, client genericclient.Client, kubeClient kubeclientset.Interface) (*Controller, error) {
 	s := &Controller{
 		client:                  client,
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
@@ -117,7 +116,7 @@ func newController(config *util.ControllerConfig, client genericclient.Client, k
 	s.ingressFederatedInformer, err = util.NewFederatedInformer(
 		config,
 		kubeClient,
-		crClient,
+		client,
 		&metav1.APIResource{
 			Group:        "extensions",
 			Version:      "v1beta1",
