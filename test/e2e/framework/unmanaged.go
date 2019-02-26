@@ -247,10 +247,9 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
 
-	kubeClient := f.KubeClient(userAgent)
 	clusterConfigs := make(map[string]common.TestClusterConfig)
 	for _, cluster := range clusterList.Items {
-		config, err := util.BuildClusterConfig(&cluster, kubeClient, client, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
+		config, err := util.BuildClusterConfig(&cluster, client, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{

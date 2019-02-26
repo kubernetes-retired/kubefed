@@ -50,8 +50,8 @@ type ClusterClient struct {
 // The kubeClient and crClient are used to configure the ClusterClient's
 // internal client with information from a kubeconfig stored in a kubernetes
 // secret and an API endpoint from the cluster-registry.
-func NewClusterClientSet(c *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, client generic.Client, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
-	clusterConfig, err := util.BuildClusterConfig(c, kubeClient, client, fedNamespace, clusterNamespace)
+func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
+	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace, clusterNamespace)
 	if err != nil {
 		return nil, err
 	}

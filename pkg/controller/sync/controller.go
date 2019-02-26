@@ -26,12 +26,14 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -89,7 +91,8 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(federatedTypeAPIResource.Kind))
 
 	// Initialize non-dynamic clients first to avoid polluting config
-	client, kubeClient := controllerConfig.AllClients(userAgent)
+	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
+	kubeClient := kubeclient.NewForConfigOrDie(controllerConfig.KubeConfig)
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
@@ -117,7 +120,6 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	var err error
 	s.informer, err = util.NewFederatedInformer(
 		controllerConfig,
-		kubeClient,
 		client,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {

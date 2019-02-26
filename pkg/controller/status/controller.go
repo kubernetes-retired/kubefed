@@ -95,9 +95,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 	federatedAPIResource := typeConfig.GetFederatedType()
 	statusAPIResource := typeConfig.GetStatus()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
-
-	// Initialize non-dynamic clients first to avoid polluting config
-	client, kubeClient := controllerConfig.AllClients(userAgent)
+	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
 
 	federatedTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &federatedAPIResource)
 	if err != nil {
@@ -139,7 +137,6 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 	// Federated informer on the resource type in members of federation.
 	s.informer, err = util.NewFederatedInformer(
 		controllerConfig,
-		kubeClient,
 		client,
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {

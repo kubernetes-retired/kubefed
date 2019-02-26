@@ -58,6 +58,11 @@ func NewForConfigOrDie(config *rest.Config) Client {
 	return client
 }
 
+func NewForConfigOrDieWithUserAgent(config *rest.Config, userAgent string) Client {
+	rest.AddUserAgent(config, userAgent)
+	return NewForConfigOrDie(config)
+}
+
 func (c *genericClient) Create(ctx context.Context, obj runtime.Object) error {
 	return c.client.Create(ctx, obj)
 }

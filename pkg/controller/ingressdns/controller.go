@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -70,8 +69,7 @@ type Controller struct {
 
 // StartController starts the Controller for managing IngressDNSRecord objects.
 func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
-	client, kubeClient := config.AllClients("IngressDNS")
-	controller, err := newController(config, client, kubeClient)
+	controller, err := newController(config)
 	if err != nil {
 		return err
 	}
@@ -84,7 +82,8 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 }
 
 // newController returns a new controller to manage IngressDNSRecord objects.
-func newController(config *util.ControllerConfig, client genericclient.Client, kubeClient kubeclientset.Interface) (*Controller, error) {
+func newController(config *util.ControllerConfig) (*Controller, error) {
+	client := genericclient.NewForConfigOrDieWithUserAgent(config.KubeConfig, "IngressDNS")
 	s := &Controller{
 		client:                  client,
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
@@ -115,7 +114,6 @@ func newController(config *util.ControllerConfig, client genericclient.Client, k
 	// Federated informer for the ingress resource in members of federation.
 	s.ingressFederatedInformer, err = util.NewFederatedInformer(
 		config,
-		kubeClient,
 		client,
 		&metav1.APIResource{
 			Group:        "extensions",
