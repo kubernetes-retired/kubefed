@@ -44,7 +44,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 // TODO(marun) In fedv1 namespace cleanup required that a kube api
@@ -146,9 +145,10 @@ func (f *FederationFixture) AddMemberCluster(tl common.TestLogger) string {
 // registerCluster registers a cluster with the cluster registry
 func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) string {
 	// Registry the kube api with the cluster registry
-	crClient := f.NewCrClient(tl, userAgent)
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(f.SystemNamespace).Create(&crv1a1.Cluster{
+	client := f.NewClient(tl, userAgent)
+	cluster := &crv1a1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
+			Namespace:    f.SystemNamespace,
 			GenerateName: "test-cluster-",
 		},
 		Spec: crv1a1.ClusterSpec{
@@ -161,7 +161,8 @@ func (f *FederationFixture) registerCluster(tl common.TestLogger, host string) s
 				},
 			},
 		},
-	})
+	}
+	err := client.Create(context.TODO(), cluster)
 	if err != nil {
 		tl.Fatal(err)
 	}
@@ -232,12 +233,6 @@ func (f *FederationFixture) NewClient(tl common.TestLogger, userAgent string) ge
 	config := f.KubeApi.NewConfig(tl)
 	rest.AddUserAgent(config, userAgent)
 	return genericclient.NewForConfigOrDie(config)
-}
-
-func (f *FederationFixture) NewCrClient(tl common.TestLogger, userAgent string) crclientset.Interface {
-	config := f.KubeApi.NewConfig(tl)
-	rest.AddUserAgent(config, userAgent)
-	return crclientset.NewForConfigOrDie(config)
 }
 
 func (f *FederationFixture) ClusterConfigs(tl common.TestLogger, userAgent string) map[string]common.TestClusterConfig {

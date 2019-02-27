@@ -37,7 +37,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -192,11 +191,6 @@ func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
 	return genericclient.NewForConfigOrDie(f.Config)
 }
 
-func (f *UnmanagedFramework) CrClient(userAgent string) crclientset.Interface {
-	restclient.AddUserAgent(f.Config, userAgent)
-	return crclientset.NewForConfigOrDie(f.Config)
-}
-
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 	var clusters []string
 	client := f.Client(userAgent)
@@ -253,11 +247,9 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
 
-	kubeClient := f.KubeClient(userAgent)
-	crClient := f.CrClient(userAgent)
 	clusterConfigs := make(map[string]common.TestClusterConfig)
 	for _, cluster := range clusterList.Items {
-		config, err := util.BuildClusterConfig(&cluster, kubeClient, crClient, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
+		config, err := util.BuildClusterConfig(&cluster, client, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{

@@ -27,13 +27,12 @@ import (
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 const (
@@ -135,9 +134,7 @@ type ClusterLifecycleHandlerFuncs struct {
 // Builds a FederatedInformer for the given federation client and factory.
 func NewFederatedInformer(
 	config *ControllerConfig,
-	// TODO(marun) - use unified client?
-	kubeClient kubeclientset.Interface,
-	crClient crclientset.Interface,
+	client generic.Client,
 	apiResource *metav1.APIResource,
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) (FederatedInformer, error) {
@@ -149,7 +146,7 @@ func NewFederatedInformer(
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, kubeClient, crClient, config.FederationNamespace, config.ClusterNamespace)
+			config, err := BuildClusterConfig(cluster, client, config.FederationNamespace, config.ClusterNamespace)
 			if err != nil {
 				return nil, err
 			}

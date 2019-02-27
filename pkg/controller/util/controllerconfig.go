@@ -20,11 +20,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
-
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
 
 // FederationNamespaces defines the namespace configuration shared by
@@ -43,14 +39,6 @@ type ControllerConfig struct {
 	ClusterAvailableDelay   time.Duration
 	ClusterUnavailableDelay time.Duration
 	MinimizeLatency         bool
-}
-
-func (c *ControllerConfig) AllClients(userAgent string) (genericclient.Client, kubeclientset.Interface, crclientset.Interface) {
-	restclient.AddUserAgent(c.KubeConfig, userAgent)
-	client := genericclient.NewForConfigOrDie(c.KubeConfig)
-	kubeClient := kubeclientset.NewForConfigOrDie(c.KubeConfig)
-	crClient := crclientset.NewForConfigOrDie(c.KubeConfig)
-	return client, kubeClient, crClient
 }
 
 func (c *ControllerConfig) LimitedScope() bool {

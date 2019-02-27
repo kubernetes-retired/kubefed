@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"net"
 	"time"
 
@@ -24,15 +25,14 @@ import (
 	"github.com/pkg/errors"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	crcv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 const (
@@ -48,15 +48,15 @@ const (
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
-// a client for the given FederatedCluster or an error. The kubernetes and
-// cluster-registry clients are used to access kubernetes secrets in the
-// federation namespace and cluster-registry records in the clusterNamespace,
-// respectively.
-func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubeclientset.Interface, crClient crclientset.Interface, fedNamespace string, clusterNamespace string) (*restclient.Config, error) {
+// a client for the given FederatedCluster or an error. The client is used to
+// access kubernetes secrets in the federation namespace and cluster-registry
+// records in the clusterNamespace.
+func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string, clusterNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	// Retrieve the associated cluster
-	cluster, err := crClient.ClusterregistryV1alpha1().Clusters(clusterNamespace).Get(clusterName, metav1.GetOptions{})
+	cluster := &crcv1alpha1.Cluster{}
+	err := client.Get(context.TODO(), cluster, clusterNamespace, clusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,8 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, kubeClient kubecli
 		if secretRef.Name == "" {
 			return nil, errors.Errorf("found secretRef but no secret name for cluster %s", clusterName)
 		}
-		secret, err := kubeClient.CoreV1().Secrets(fedNamespace).Get(secretRef.Name, metav1.GetOptions{})
+		secret := &apiv1.Secret{}
+		err := client.Get(context.TODO(), secret, fedNamespace, secretRef.Name)
 		if err != nil {
 			return nil, err
 		}

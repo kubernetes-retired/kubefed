@@ -33,7 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
+	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 var (
@@ -220,8 +220,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, unjoiningClusterName string,
 	dryRun bool) {
 
-	// Get the cluster registry clientset using the host cluster config.
-	crClientset, err := util.ClusterRegistryClientset(hostConfig)
+	client, err := util.ClusterRegistryClientset(hostConfig)
 	if err != nil {
 		glog.Errorf("Failed to get cluster registry clientset: %v", err)
 		return
@@ -229,7 +228,7 @@ func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, unjoin
 
 	glog.V(2).Infof("Removing cluster: %s from the cluster registry.", unjoiningClusterName)
 
-	err = unregisterCluster(crClientset, clusterNamespace, unjoiningClusterName, dryRun)
+	err = unregisterCluster(client, clusterNamespace, unjoiningClusterName, dryRun)
 	if err != nil {
 		glog.Errorf("Could not remove cluster from the cluster registry: %v", err)
 		return
@@ -239,14 +238,13 @@ func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, unjoin
 }
 
 // unregisterCluster removes a cluster from the cluster registry.
-func unregisterCluster(crClientset *crclient.Clientset, clusterNamespace, unjoiningClusterName string,
+func unregisterCluster(client genericclient.Client, clusterNamespace, unjoiningClusterName string,
 	dryRun bool) error {
 	if dryRun {
 		return nil
 	}
 
-	return crClientset.ClusterregistryV1alpha1().Clusters(clusterNamespace).Delete(unjoiningClusterName,
-		&metav1.DeleteOptions{})
+	return client.Delete(context.TODO(), &crv1a1.Cluster{}, clusterNamespace, unjoiningClusterName)
 }
 
 // deleteFederatedClusterAndSecret deletes a federated cluster resource that associates

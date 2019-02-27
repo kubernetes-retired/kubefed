@@ -24,6 +24,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,11 +53,12 @@ type Plugin struct {
 
 func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface) (*Plugin, error) {
 	targetAPIResource := typeConfig.GetTarget()
-	_, kubeClient, crClient := controllerConfig.AllClients(fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind)))
+	userAgent := fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind))
+	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
+
 	targetInformer, err := util.NewFederatedInformer(
 		controllerConfig,
-		kubeClient,
-		crClient,
+		client,
 		&targetAPIResource,
 		eventHandlers.ClusterEventHandler,
 		eventHandlers.ClusterLifecycleHandlers,

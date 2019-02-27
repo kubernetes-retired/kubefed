@@ -19,10 +19,10 @@ package util
 import (
 	"fmt"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	crclient "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 )
 
 // FedConfig provides a rest config based on the filesystem kubeconfig (via
@@ -96,8 +96,8 @@ func ClusterClientset(config *rest.Config) (*kubeclient.Clientset, error) {
 
 // ClusterRegistryClientset provides a cluster registry API compliant
 // clientset to communicate with the cluster registry.
-func ClusterRegistryClientset(config *rest.Config) (*crclient.Clientset, error) {
-	return crclient.NewForConfig(config)
+func ClusterRegistryClientset(config *rest.Config) (generic.Client, error) {
+	return generic.New(config)
 }
 
 // ClusterServiceAccountName returns the name of a service account whose

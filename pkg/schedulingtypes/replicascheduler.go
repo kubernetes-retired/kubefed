@@ -63,7 +63,7 @@ type ReplicaScheduler struct {
 }
 
 func NewReplicaScheduler(controllerConfig *ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error) {
-	client, kubeClient, crClient := controllerConfig.AllClients("replica-scheduler")
+	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, "replica-scheduler")
 	scheduler := &ReplicaScheduler{
 		plugins:          make(map[string]*Plugin),
 		controllerConfig: controllerConfig,
@@ -78,8 +78,7 @@ func NewReplicaScheduler(controllerConfig *ControllerConfig, eventHandlers Sched
 	var err error
 	scheduler.podInformer, err = NewFederatedInformer(
 		controllerConfig,
-		kubeClient,
-		crClient,
+		client,
 		PodResource,
 		func(pkgruntime.Object) {},
 		eventHandlers.ClusterLifecycleHandlers,

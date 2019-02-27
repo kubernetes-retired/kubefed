@@ -29,9 +29,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	crclientset "k8s.io/cluster-registry/pkg/client/clientset/versioned"
 
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
@@ -40,12 +38,6 @@ import (
 // FederatedCluster in a particular namespace.
 type ClusterController struct {
 	client genericclient.Client
-
-	// kubeClient is used to access Secrets in the host cluster.
-	kubeClient kubeclientset.Interface
-
-	// crClient is used to access the cluster registry in the host cluster.
-	crClient crclientset.Interface
 
 	// clusterMonitorPeriod is the period for updating status of cluster
 	clusterMonitorPeriod time.Duration
@@ -88,13 +80,11 @@ func StartClusterController(config *util.ControllerConfig, stopChan <-chan struc
 
 // newClusterController returns a new cluster controller
 func newClusterController(config *util.ControllerConfig, clusterMonitorPeriod time.Duration) (*ClusterController, error) {
-	client, kubeClient, crClient := config.AllClients("cluster-controller")
+	client := genericclient.NewForConfigOrDieWithUserAgent(config.KubeConfig, "cluster-controller")
 
 	cc := &ClusterController{
 		knownClusterSet:      make(sets.String),
 		client:               client,
-		kubeClient:           kubeClient,
-		crClient:             crClient,
 		clusterMonitorPeriod: clusterMonitorPeriod,
 		clusterStatusMap:     make(map[string]fedv1a1.FederatedClusterStatus),
 		clusterKubeClientMap: make(map[string]ClusterClient),
@@ -151,7 +141,7 @@ func (cc *ClusterController) addToClusterSetWithoutLock(cluster *fedv1a1.Federat
 	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	cc.knownClusterSet.Insert(cluster.Name)
 	// create the restclient of cluster
-	restClient, err := NewClusterClientSet(cluster, cc.kubeClient, cc.crClient, cc.fedNamespace, cc.clusterNamespace)
+	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterNamespace)
 	if err != nil || restClient == nil {
 		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
