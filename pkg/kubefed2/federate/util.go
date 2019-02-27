@@ -91,6 +91,17 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 	// TODO(marun) Consider using a caching scheme ala kubectl
 	lowerKey := strings.ToLower(key)
 	var targetResource *metav1.APIResource
+	var matchedResources []string
+	var matchResource = func(resource metav1.APIResource, gv schema.GroupVersion) {
+		if targetResource == nil {
+			targetResource = resource.DeepCopy()
+			targetResource.Group = gv.Group
+			targetResource.Version = gv.Version
+		}
+
+		matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
+	}
+
 	for _, resourceList := range resourceLists {
 		// The list holds the GroupVersion for its list of APIResources
 		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
@@ -106,24 +117,20 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 				lowerKey == strings.ToLower(resource.Kind) ||
 				lowerKey == fmt.Sprintf("%s.%s", resource.Name, gv.Group) {
 
-				targetResource = &resource
-				break
+				matchResource(resource, gv)
+				continue
 			}
 			for _, shortName := range resource.ShortNames {
 				if lowerKey == strings.ToLower(shortName) {
-					targetResource = &resource
+					matchResource(resource, gv)
 					break
 				}
 			}
-			if targetResource != nil {
-				break
-			}
 		}
-		if targetResource != nil {
-			targetResource.Group = gv.Group
-			targetResource.Version = gv.Version
-			break
-		}
+
+	}
+	if len(matchedResources) > 1 {
+		return nil, errors.Errorf("Multiple resources are matched by %q: %s. A group-qualified plural name must be provided.", key, strings.Join(matchedResources, ", "))
 	}
 
 	if targetResource != nil {
@@ -146,4 +153,13 @@ func resourceKey(apiResource metav1.APIResource) string {
 		version = apiResource.Version
 	}
 	return fmt.Sprintf("%s.%s/%s", apiResource.Name, group, version)
+}
+
+func groupQualifiedName(name, group string) string {
+	apiResource := metav1.APIResource{
+		Name:  name,
+		Group: group,
+	}
+
+	return typeconfig.GroupQualifiedName(apiResource)
 }
