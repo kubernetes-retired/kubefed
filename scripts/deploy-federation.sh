@@ -67,9 +67,13 @@ function deploy-with-script() {
   # TODO(marun) Ensure federatdtypeconfig is available before creating instances
   # TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
 
+  NAMESPACED_OPTIONS=""
+  if [[ "${NAMESPACED}" ]]; then
+      NAMESPACED_OPTIONS="--error-on-existing=false"
+  fi
   # Enable available types
   for filename in ./config/enabletypedirectives/*.yaml; do
-    ./bin/kubefed2 enable -f "${filename}" --federation-namespace="${NS}"
+    ./bin/kubefed2 enable -f "${filename}" --federation-namespace="${NS}" ${NAMESPACED_OPTIONS}
   done
 }
 

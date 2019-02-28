@@ -17,6 +17,7 @@ import (
 	"context"
 	goerrors "errors"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/golang/glog"
@@ -29,6 +30,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -58,10 +60,11 @@ type unjoinFederation struct {
 }
 
 type unjoinFederationOptions struct {
-	hostClusterName    string
-	clusterContext     string
-	removeFromRegistry bool
-	forceDeletion      bool
+	hostClusterName      string
+	clusterContext       string
+	removeFromRegistry   bool
+	forceDeletion        bool
+	deleteGlobalResource bool
 }
 
 // Bind adds the unjoin specific arguments to the flagset passed in as an
@@ -75,6 +78,8 @@ func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Delete federated cluster and secret resources even if resources in the cluster targeted for unjoin are not removed successfully.")
 	flags.StringVar(&o.hostClusterName, "host-cluster-name", "",
 		"If set, overrides the use of host-cluster-context name in resource names created in the target cluster. This option must be used when the context name has characters invalid for kubernetes resources like \"/\" and \":\".")
+	flags.BoolVar(&o.deleteGlobalResource, "delete-global-resource", true,
+		"Delete the global resource created during 'join' operation. This option must be false when a limited-scope federation deployment is unjoining and there still has at least one limited-scope federation deployment in the host cluster.")
 }
 
 // NewCmdUnjoin defines the `unjoin` command that unjoins a cluster from a
@@ -161,13 +166,13 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		hostClusterName, j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
+		hostClusterName, j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.deleteGlobalResource, j.DryRun)
 }
 
 // UnjoinCluster performs all the necessary steps to unjoin a cluster from the
 // federation provided the required set of parameters are passed in.
 func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace, hostClusterName, hostClusterContext,
-	unjoiningClusterContext, unjoiningClusterName string, removeFromRegistry, forceDeletion, dryRun bool) error {
+	unjoiningClusterContext, unjoiningClusterName string, removeFromRegistry, forceDeletion, deleteGlobalResource, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
@@ -198,7 +203,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 	var deletionSucceeded bool
 	if clusterClientset != nil {
-		deletionSucceeded = deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterName, dryRun)
+		deletionSucceeded = deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterName, deleteGlobalResource, dryRun)
 
 		err = deleteFedNSFromUnjoinCluster(hostClientset, clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
 		if err != nil {
@@ -284,7 +289,7 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 // deleteRBACResources deletes the cluster role, cluster rolebindings and service account
 // from the unjoining cluster.
 func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
-	namespace, unjoiningClusterName, hostClusterName string, dryRun bool) bool {
+	namespace, unjoiningClusterName, hostClusterName string, deleteGlobalResource, dryRun bool) bool {
 
 	var deletionSucceeded = true
 
@@ -293,7 +298,7 @@ func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
 	glog.V(2).Infof("Deleting cluster role binding for service account: %s in unjoining cluster: %s",
 		saName, unjoiningClusterName)
 
-	deletionSucceeded = deleteClusterRoleAndBinding(unjoiningClusterClientset, saName, namespace, dryRun)
+	deletionSucceeded = deleteClusterRoleAndBinding(unjoiningClusterClientset, saName, namespace, deleteGlobalResource, dryRun)
 	if deletionSucceeded {
 		glog.V(2).Infof("Deleted cluster role binding for service account: %s in unjoining cluster: %s",
 			saName, unjoiningClusterName)
@@ -367,7 +372,7 @@ func deleteServiceAccount(clusterClientset kubeclient.Interface, saName,
 // deleteClusterRoleAndBinding deletes an RBAC cluster role and binding that
 // allows the service account identified by saName to access all resources in
 // all namespaces in the cluster associated with clusterClientset.
-func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface, saName, namespace string, dryRun bool) bool {
+func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface, saName, namespace string, deleteGlobalResource, dryRun bool) bool {
 	var deletionSucceeded = true
 
 	if dryRun {
@@ -377,20 +382,50 @@ func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface, saName, 
 	roleName := util.RoleName(saName)
 	healthCheckRoleName := util.HealthCheckRoleName(saName)
 
-	// Attempt to delete all role and role bindings created by join
+	// Attempt to clean all role and role bindings created by join
 	// and ignore if there is any error
-
-	for _, name := range []string{roleName, healthCheckRoleName} {
-		err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
+	if !deleteGlobalResource {
+		// if not delete global resources, local resources attached to global resource should be deleted
+		existingBinding, err := clusterClientset.RbacV1().ClusterRoleBindings().Get(healthCheckRoleName, metav1.GetOptions{})
+		if err != nil {
 			deletionSucceeded = false
-			glog.Errorf("Could not delete cluster role binding %q in unjoining cluster: %v", name, err)
+			glog.Errorf("Could not delete cluster role binding %q in unjoining cluster: %v", healthCheckRoleName, err)
 		}
 
-		err = clusterClientset.RbacV1().ClusterRoles().Delete(name, &metav1.DeleteOptions{})
+		if err == nil {
+			target := rbacv1.Subject{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      saName,
+				Namespace: namespace,
+			}
+			for i, subject := range existingBinding.Subjects {
+				if !reflect.DeepEqual(subject, target) {
+					continue
+				}
+
+				length := len(existingBinding.Subjects)
+				existingBinding.Subjects[i] = existingBinding.Subjects[length-1]
+				existingBinding.Subjects = existingBinding.Subjects[:length-1]
+				_, err = clusterClientset.RbacV1().ClusterRoleBindings().Update(existingBinding)
+				if err != nil {
+					deletionSucceeded = false
+					glog.Errorf("Could not delete subject from cluster role binding %q in unjoining cluster: %v", healthCheckRoleName, err)
+
+				}
+				break
+			}
+		}
+	} else {
+		err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(healthCheckRoleName, &metav1.DeleteOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			deletionSucceeded = false
-			glog.Errorf("Could not delete cluster role %q in unjoining cluster: %v", name, err)
+			glog.Errorf("Could not delete cluster role binding %q in unjoining cluster: %v", healthCheckRoleName, err)
+		}
+
+		err = clusterClientset.RbacV1().ClusterRoles().Delete(healthCheckRoleName, &metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			deletionSucceeded = false
+			glog.Errorf("Could not delete cluster role %q in unjoining cluster: %v", healthCheckRoleName, err)
 		}
 	}
 

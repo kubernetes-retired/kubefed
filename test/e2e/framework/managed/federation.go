@@ -371,7 +371,7 @@ func federateCoreTypes(tl common.TestLogger, config *rest.Config, namespace stri
 		if err != nil {
 			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}
-		err = kfenable.CreateResources(nil, config, resources, namespace)
+		err = kfenable.CreateResources(nil, config, resources, namespace, true)
 		if err != nil {
 			tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}

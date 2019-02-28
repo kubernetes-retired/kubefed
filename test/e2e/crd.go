@@ -149,18 +149,19 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 	typeConfig := resources.TypeConfig
 
-	err = kfenable.CreateResources(nil, hostConfig, resources, f.FederationSystemNamespace())
+	err = kfenable.CreateResources(nil, hostConfig, resources, f.FederationSystemNamespace(), true)
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
 	framework.AddCleanupAction(func() {
 		delete := true
+		deleteCRD := true
 		dryRun := false
 		// TODO(marun) Make this more resilient so that removal of all
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
-		err := kubefed2.DisableFederation(nil, hostConfig, qualifiedName, delete, dryRun)
+		err := kubefed2.DisableFederation(nil, hostConfig, qualifiedName, delete, deleteCRD, dryRun)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}

@@ -30,6 +30,7 @@ import (
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -77,6 +78,7 @@ type enableTypeOptions struct {
 	output              string
 	outputYAML          bool
 	filename            string
+	errorOnExisting     bool
 	enableTypeDirective *EnableTypeDirective
 }
 
@@ -88,6 +90,8 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.federationVersion, "federation-version", defaultFederationVersion, "The API version to use for the generated federation type.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that would be created in the API by the command are instead output to stdout in the provided format.  Valid values are ['yaml'].")
 	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output wll be accepted from the command line")
+	flags.BoolVar(&o.errorOnExisting, "error-on-existing", true,
+		"Whether the enable operation will throw an error if it encounters existing federated resource CRD with the same name as it's trying to create. If false, the enable operation will reuse existing artifacts.")
 }
 
 // NewCmdTypeEnable defines the `enable` command that
@@ -185,7 +189,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	return CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace)
+	return CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace, j.errorOnExisting)
 }
 
 type typeResources struct {
@@ -217,7 +221,7 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 // TODO(marun) Allow updates to the configuration for a type that has
 // already been enabled for federation.  This would likely involve
 // updating the version of the target type and the validation of the schema.
-func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string) error {
+func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string, errorOnExisting bool) error {
 	write := func(data string) {
 		if cmdOut != nil {
 			cmdOut.Write([]byte(data))
@@ -229,10 +233,13 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		return errors.Wrap(err, "Failed to create crd clientset")
 	}
 	_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
-	if err != nil {
+	if err == nil {
+		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
+	} else if !errorOnExisting && apierrors.IsAlreadyExists(err) {
+		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s existed\n", resources.CRD.Name))
+	} else {
 		return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
 	}
-	write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
 
 	client, err := genericclient.New(config)
 	if err != nil {

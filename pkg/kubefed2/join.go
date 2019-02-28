@@ -846,6 +846,11 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 		// The roleRef cannot be updated, therefore if the existing roleRef is different, the existing rolebinding
 		// must be deleted and recreated with the correct roleRef
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
+			// I don't think this can happen in common case for limited-scope deployment.
+			//   - no one update kubefed2 join resource unless our future code
+			//   - if anyone manually change the RoleRef in their case, we have no need to fix it back
+			// So, I do not maintain subject here to avoid code complexicity.
+			// Actually, if related RoleRef changed, does it still make sense to maintain old subjects?
 			err = clientset.RbacV1().ClusterRoleBindings().Delete(existingBinding.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				glog.V(2).Infof("Could not delete existing health check cluster role binding for service account %s in joining cluster %s due to: %v",
@@ -859,7 +864,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 				return err
 			}
 		} else {
-			existingBinding.Subjects = binding.Subjects
+			existingBinding.Subjects = append(existingBinding.Subjects, binding.Subjects...)
 			_, err := clientset.RbacV1().ClusterRoleBindings().Update(existingBinding)
 			if err != nil {
 				glog.V(2).Infof("Could not update health check cluster role binding for service account: %s in joining cluster: %s due to: %v",

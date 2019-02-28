@@ -24,8 +24,13 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function delete-script-deployment() {
-  # Remove cluster registry CRD
-  ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+  DISABLE_OPTIONS="--delete-federated-crd=false"
+  if [[ "${DELETE_GLOBAL_RESOURCE}" ]]; then
+    DISABLE_OPTIONS="--delete-federated-crd=true"
+
+    # Remove cluster registry CRD
+    ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+  fi
 
   # Remove public namespace
   if [[ ! "${NAMESPACED}" ]]; then
@@ -34,13 +39,20 @@ function delete-script-deployment() {
 
   # Disable federation of all types
   for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
-    ./bin/kubefed2 disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
+    ./bin/kubefed2 disable "${ftc}" --delete-from-api --federation-namespace="${NS}" ${DISABLE_OPTIONS}
   done
 
   # Remove federation CRDs, namespace, RBAC and deployment resources.
   if [[ ! "${USE_LATEST}" ]]; then
     if [[ "${NAMESPACED}" ]]; then
-      ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+      if [[ "${DELETE_GLOBAL_RESOURCE}" ]]; then
+        ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+      else
+        ${KCD} -n "${NS}" role federation-role
+        ${KCD} -n "${NS}" rolebinding federation-rolebinding
+        ${KCD} -n "${NS}" service federation-controller-manager-service
+        ${KCD} -n "${NS}" statefulset federation-controller-manager
+      fi
     else
       ${KCD} -f hack/install.yaml
     fi
@@ -67,6 +79,7 @@ KCD="kubectl --ignore-not-found=true delete"
 NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
 NAMESPACED="${NAMESPACED:-}"
+DELETE_GLOBAL_RESOURCE="${DELETE_GLOBAL_RESOURCE:-}"
 
 IMAGE_NAME=`kubectl get sts -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
 LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
@@ -78,7 +91,10 @@ fi
 
 KF_NS_ARG="--federation-namespace=${NS} "
 if [[ "${NAMESPACED}" ]]; then
-  KF_NS_ARG+="--registry-namespace=${NS}"
+  KF_NS_ARG+="--registry-namespace=${NS} "
+  if [[ ! "${DELETE_GLOBAL_RESOURCE}" ]]; then
+      KF_NS_ARG+="--delete-global-resource=false "
+  fi
 fi
 
 # Unjoin clusters by removing objects added by kubefed2.

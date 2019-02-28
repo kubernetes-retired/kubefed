@@ -68,12 +68,14 @@ type disableType struct {
 type disableTypeOptions struct {
 	targetName string
 	delete     bool
+	deleteCRD  bool
 }
 
 // Bind adds the join specific arguments to the flagset passed in as an
 // argument.
 func (o *disableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.delete, "delete-from-api", false, "Whether to remove the API resources added by 'enable'.")
+	flags.BoolVar(&o.deleteCRD, "delete-federated-crd", true, "Whether to remove the Federated CRD resource added by 'enable'.")
 }
 
 // NewCmdTypeDisable defines the `disable` command that
@@ -140,10 +142,10 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      name,
 	}
 
-	return DisableFederation(cmdOut, hostConfig, typeConfigName, j.delete, j.DryRun)
+	return DisableFederation(cmdOut, hostConfig, typeConfigName, j.delete, j.deleteCRD, j.DryRun)
 }
 
-func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
+func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctlutil.QualifiedName, deleteAPI, deleteCRD, dryRun bool) error {
 	client, err := genericclient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
@@ -174,12 +176,12 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	} else {
 		write(fmt.Sprintf("Propagation already disabled for FederatedTypeConfig %q\n", typeConfigName))
 	}
-	if !delete {
+	if !deleteAPI {
 		return nil
 	}
 
 	// TODO(marun) consider waiting for the sync controller to be stopped before attempting deletion
-	err = deleteFederatedType(config, typeConfig, write)
+	err = deleteFederatedType(config, typeConfig, deleteCRD, write)
 	if err != nil {
 		return err
 	}
@@ -193,17 +195,19 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	return nil
 }
 
-func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
+func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, deleteCRD bool, write func(string)) error {
 	client, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Error creating crd client")
 	}
 
-	crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
-	err = client.CustomResourceDefinitions().Delete(crdName, nil)
-	if err != nil {
-		return errors.Wrapf(err, "Error deleting crd %q", crdName)
+	if deleteCRD {
+		crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
+		err = client.CustomResourceDefinitions().Delete(crdName, nil)
+		if err != nil {
+			return errors.Wrapf(err, "Error deleting crd %q", crdName)
+		}
+		write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	}
-	write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	return nil
 }
