@@ -34,7 +34,9 @@ import (
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -90,7 +92,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Namespaced: namespaced,
 	}
 
-	validationSchema := federate.ValidationSchema(apiextv1b1.JSONSchemaProps{
+	validationSchema := kfenable.ValidationSchema(apiextv1b1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextv1b1.JSONSchemaProps{
 			"bar": {
@@ -99,7 +101,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		},
 	})
 
-	targetCrd := federate.CrdForAPIResource(targetAPIResource, validationSchema)
+	targetCrd := kfenable.CrdForAPIResource(targetAPIResource, validationSchema)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 
@@ -119,7 +121,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	targetName := targetAPIResource.Name
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		_, err := federate.LookupAPIResource(hostConfig, targetName, targetAPIResource.Version)
+		_, err := kfenable.LookupAPIResource(hostConfig, targetName, targetAPIResource.Version)
 		if err != nil {
 			tl.Logf("An error was reported while waiting for target type %q to be published as an available resource: %v", targetName, err)
 		}
@@ -129,11 +131,11 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		tl.Fatalf("Timed out waiting for target type %q to be published as an available resource", targetName)
 	}
 
-	enableTypeDirective := &federate.EnableTypeDirective{
+	enableTypeDirective := &kfenable.EnableTypeDirective{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: targetAPIResource.Name,
 		},
-		Spec: federate.EnableTypeDirectiveSpec{
+		Spec: kfenable.EnableTypeDirectiveSpec{
 			TargetVersion:     targetAPIResource.Version,
 			FederationGroup:   targetAPIResource.Group,
 			FederationVersion: targetAPIResource.Version,
@@ -141,13 +143,13 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		},
 	}
 
-	resources, err := federate.GetResources(hostConfig, enableTypeDirective)
+	resources, err := kfenable.GetResources(hostConfig, enableTypeDirective)
 	if err != nil {
 		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
 	typeConfig := resources.TypeConfig
 
-	err = federate.CreateResources(nil, hostConfig, resources, f.FederationSystemNamespace())
+	err = kfenable.CreateResources(nil, hostConfig, resources, f.FederationSystemNamespace())
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
@@ -158,7 +160,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
-		err := federate.DisableFederation(nil, hostConfig, qualifiedName, delete, dryRun)
+		err := kubefed2.DisableFederation(nil, hostConfig, qualifiedName, delete, dryRun)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}
@@ -173,7 +175,10 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	// TODO(marun) If not using in-memory controllers, wait until the
 	// controller has started.
 
-	testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
+	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
+	// FederateResource needs the typeconfig to carry ns within
+	concreteTypeConfig.Namespace = f.FederationSystemNamespace()
+	testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {
 		fixtureYAML := `
 kind: fixture
 template:
@@ -189,14 +194,22 @@ overrides:
       - bang
 `
 		fixture := &unstructured.Unstructured{}
-		err = federate.DecodeYAML(strings.NewReader(fixtureYAML), fixture)
+		err = kfenable.DecodeYAML(strings.NewReader(fixtureYAML), fixture)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error reading test fixture")
+			return nil, nil, errors.Wrap(err, "Error reading test fixture")
 		}
-		return common.NewTestObject(typeConfig, namespace, clusterNames, fixture)
+		targetObj, err := common.NewTestTargetObject(concreteTypeConfig, namespace, fixture)
+		if err != nil {
+			return nil, nil, err
+		}
+		overrides, err := common.OverridesFromFixture(clusterNames, fixture)
+		if err != nil {
+			return nil, nil, err
+		}
+		return targetObj, overrides, nil
 	}
 
-	validateCrud(f, tl, typeConfig, testObjectFunc)
+	validateCrud(f, tl, concreteTypeConfig, testObjectsFunc)
 
 }
 

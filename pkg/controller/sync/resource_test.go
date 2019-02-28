@@ -20,9 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 )
 
 func TestGetTemplateHash(t *testing.T) {
@@ -34,7 +33,7 @@ spec:
     spec:
       foo:
 `
-	err := federate.DecodeYAML(strings.NewReader(yaml), template)
+	err := kfenable.DecodeYAML(strings.NewReader(yaml), template)
 	if err != nil {
 		t.Fatalf("An unexpected error occurred: %v", err)
 	}

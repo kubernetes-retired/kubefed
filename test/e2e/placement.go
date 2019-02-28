@@ -82,11 +82,15 @@ var _ = Describe("Placement", func() {
 		}
 
 		// Propagate a resource to member clusters
-		testObjectFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, error) {
-			return common.NewTestObject(selectedTypeConfig, namespace, clusterNames, fixture)
+		testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {
+			targetObject, err := common.NewTestTargetObject(selectedTypeConfig, namespace, fixture)
+			if err != nil {
+				return nil, nil, err
+			}
+			return targetObject, nil, err
 		}
-		crudTester, desiredFedObject := initCrudTest(f, tl, selectedTypeConfig, testObjectFunc)
-		fedObject := crudTester.CheckCreate(desiredFedObject)
+		crudTester, desiredTargetObject, _ := initCrudTest(f, tl, selectedTypeConfig, testObjectsFunc)
+		fedObject := crudTester.CheckCreate(desiredTargetObject, nil)
 		defer func() {
 			orphanDependents := false
 			crudTester.CheckDelete(fedObject, &orphanDependents)

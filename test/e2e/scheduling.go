@@ -28,12 +28,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -77,12 +77,7 @@ var _ = Describe("Scheduling", func() {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
 			}
 			for targetTypeName := range schedulingTypes {
-				typeConfig := &fedv1a1.FederatedTypeConfig{}
-				key := client.ObjectKey{
-					Namespace: f.FederationSystemNamespace(),
-					Name:      targetTypeName,
-				}
-				err = dynClient.Get(context.Background(), key, typeConfig)
+				typeConfig, err := common.GetTypeConfig(dynClient, targetTypeName, f.FederationSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
 				}
@@ -383,13 +378,13 @@ func int32MapToInt64(original map[string]int32) map[string]int64 {
 
 func enableTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
 	for _, enableTypeDirective := range managed.LoadEnableTypeDirectives(tl) {
-		resources, err := federate.GetResources(config, enableTypeDirective)
+		resources, err := kfenable.GetResources(config, enableTypeDirective)
 		if err != nil {
 			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 		}
 
 		if enableTypeDirective.Name == name {
-			err = federate.CreateResources(nil, config, resources, namespace)
+			err = kfenable.CreateResources(nil, config, resources, namespace)
 			if err != nil {
 				tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 			}
@@ -399,7 +394,7 @@ func enableTypeConfigResource(name, namespace string, config *restclient.Config,
 
 func deleteTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
 	qualifiedName := util.QualifiedName{Namespace: namespace, Name: name}
-	err := federate.DisableFederation(nil, config, qualifiedName, true, false)
+	err := kubefed2.DisableFederation(nil, config, qualifiedName, true, false)
 	if err != nil {
 		tl.Fatalf("Error disabling federation of target type %q: %v", qualifiedName, err)
 	}

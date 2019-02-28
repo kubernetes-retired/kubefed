@@ -41,7 +41,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -262,7 +262,7 @@ var _ = Describe("VersionManager", func() {
 				// finalizer to the object that would complicate
 				// validating garbage collection.
 				fedObject = &unstructured.Unstructured{}
-				err := federate.DecodeYAML(strings.NewReader(adapter.FederatedObjectYAML()), fedObject)
+				err := kfenable.DecodeYAML(strings.NewReader(adapter.FederatedObjectYAML()), fedObject)
 				if err != nil {
 					tl.Fatalf("Failed to parse yaml: %v", err)
 				}

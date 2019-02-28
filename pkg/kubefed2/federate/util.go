@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,149 +17,32 @@ limitations under the License.
 package federate
 
 import (
-	"fmt"
-	"io"
-	"os"
-	"strings"
-
-	"github.com/pkg/errors"
-
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 )
 
-func DecodeYAMLFromFile(filename string, obj interface{}) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
+var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}
+
+func RemoveUnwantedFields(resource *unstructured.Unstructured) {
+	for _, field := range systemMetadataFields {
+		unstructured.RemoveNestedField(resource.Object, "metadata", field)
+		// For resources with pod template subresource (jobs, deployments, replicasets)
+		unstructured.RemoveNestedField(resource.Object, "spec", "template", "metadata", field)
 	}
-	defer f.Close()
-
-	return DecodeYAML(f, obj)
+	unstructured.RemoveNestedField(resource.Object, "metadata", "name")
+	unstructured.RemoveNestedField(resource.Object, "metadata", "namespace")
 }
 
-func DecodeYAML(r io.Reader, obj interface{}) error {
-	decoder := yaml.NewYAMLToJSONDecoder(r)
-	return decoder.Decode(obj)
-}
-
-func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.CustomResourceValidation) *apiextv1b1.CustomResourceDefinition {
-	scope := apiextv1b1.ClusterScoped
+func SetBasicMetaFields(resource *unstructured.Unstructured, apiResource metav1.APIResource, name, namespace, generateName string) {
+	resource.SetKind(apiResource.Kind)
+	gv := schema.GroupVersion{Group: apiResource.Group, Version: apiResource.Version}
+	resource.SetAPIVersion(gv.String())
+	resource.SetName(name)
+	if generateName != "" {
+		resource.SetGenerateName(generateName)
+	}
 	if apiResource.Namespaced {
-		scope = apiextv1b1.NamespaceScoped
+		resource.SetNamespace(namespace)
 	}
-	return &apiextv1b1.CustomResourceDefinition{
-		// Explicitly including TypeMeta will ensure it will be
-		// serialized properly to yaml.
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CustomResourceDefinition",
-			APIVersion: "apiextensions.k8s.io/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: typeconfig.GroupQualifiedName(apiResource),
-		},
-		Spec: apiextv1b1.CustomResourceDefinitionSpec{
-			Group:   apiResource.Group,
-			Version: apiResource.Version,
-			Scope:   scope,
-			Names: apiextv1b1.CustomResourceDefinitionNames{
-				Plural: apiResource.Name,
-				Kind:   apiResource.Kind,
-			},
-			Validation: validation,
-		},
-	}
-}
-
-func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.APIResource, error) {
-	client, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error creating discovery client")
-	}
-
-	resourceLists, err := client.ServerPreferredResources()
-	if err != nil {
-		return nil, errors.Wrap(err, "Error listing api resources")
-	}
-
-	// TODO(marun) Consider using a caching scheme ala kubectl
-	lowerKey := strings.ToLower(key)
-	var targetResource *metav1.APIResource
-	var matchedResources []string
-	var matchResource = func(resource metav1.APIResource, gv schema.GroupVersion) {
-		if targetResource == nil {
-			targetResource = resource.DeepCopy()
-			targetResource.Group = gv.Group
-			targetResource.Version = gv.Version
-		}
-
-		matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
-	}
-
-	for _, resourceList := range resourceLists {
-		// The list holds the GroupVersion for its list of APIResources
-		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
-		if err != nil {
-			return nil, errors.Wrap(err, "Error parsing GroupVersion")
-		}
-		if len(targetVersion) > 0 && gv.Version != targetVersion {
-			continue
-		}
-		for _, resource := range resourceList.APIResources {
-			if lowerKey == resource.Name ||
-				lowerKey == resource.SingularName ||
-				lowerKey == strings.ToLower(resource.Kind) ||
-				lowerKey == fmt.Sprintf("%s.%s", resource.Name, gv.Group) {
-
-				matchResource(resource, gv)
-				continue
-			}
-			for _, shortName := range resource.ShortNames {
-				if lowerKey == strings.ToLower(shortName) {
-					matchResource(resource, gv)
-					break
-				}
-			}
-		}
-
-	}
-	if len(matchedResources) > 1 {
-		return nil, errors.Errorf("Multiple resources are matched by %q: %s. A group-qualified plural name must be provided.", key, strings.Join(matchedResources, ", "))
-	}
-
-	if targetResource != nil {
-		return targetResource, nil
-	}
-	return nil, errors.Errorf("Unable to find api resource named %q.", key)
-}
-
-func resourceKey(apiResource metav1.APIResource) string {
-	var group string
-	if len(apiResource.Group) == 0 {
-		group = "core"
-	} else {
-		group = apiResource.Group
-	}
-	var version string
-	if len(apiResource.Version) == 0 {
-		version = "v1"
-	} else {
-		version = apiResource.Version
-	}
-	return fmt.Sprintf("%s.%s/%s", apiResource.Name, group, version)
-}
-
-func groupQualifiedName(name, group string) string {
-	apiResource := metav1.APIResource{
-		Name:  name,
-		Group: group,
-	}
-
-	return typeconfig.GroupQualifiedName(apiResource)
 }
