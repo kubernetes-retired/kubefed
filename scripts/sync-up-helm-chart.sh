@@ -66,9 +66,23 @@ util::wait-for-condition 'ok' "curl http://127.0.0.1:2379/version &> /dev/null" 
 util::wait-for-condition 'ok' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --context federation get --raw=/healthz &> /dev/null" 60
 
 # Generate YAML templates to enable resource propagation for helm chart.
+echo -n > ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
+echo -n > ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 for filename in ./config/enabletypedirectives/*.yaml; do
-  ./bin/kubefed2 --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
+  full_name=${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
+
+  ./bin/kubefed2 --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${full_name}
+  sed -n '/^---/,/^---/p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
+  sed -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
+
+  echo "---" >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+  sed -n '/^apiVersion: apiextensions.k8s.io\/v1beta1/,$p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+
+  rm ${full_name}
 done
+sed -i '/CustomResourceDefinition/,$s/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/'  ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+sed -i '1i{{ if (or (not .Values.global.limitedScope) (not (.Capabilities.APIVersions.Has "types.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+sed -i '$a{{ end }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 
 # Clean kube-apiserver daemons and temporary files
 kill %1 # etcd

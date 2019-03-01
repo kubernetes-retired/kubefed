@@ -1,0 +1,175 @@
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: clusterroles.rbac.authorization.k8s.io
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedClusterRole
+    pluralName: federatedclusterroles
+    version: v1alpha1
+  namespaced: false
+  propagationEnabled: true
+  target:
+    group: rbac.authorization.k8s.io
+    kind: ClusterRole
+    pluralName: clusterroles
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: configmaps
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedConfigMap
+    pluralName: federatedconfigmaps
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    kind: ConfigMap
+    pluralName: configmaps
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: deployments.apps
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedDeployment
+    pluralName: federateddeployments
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    group: apps
+    kind: Deployment
+    pluralName: deployments
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: ingresses.extensions
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedIngress
+    pluralName: federatedingresses
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    group: extensions
+    kind: Ingress
+    pluralName: ingresses
+    version: v1beta1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: jobs.batch
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedJob
+    pluralName: federatedjobs
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    group: batch
+    kind: Job
+    pluralName: jobs
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: namespaces
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedNamespace
+    pluralName: federatednamespaces
+    version: v1alpha1
+  namespaced: false
+  propagationEnabled: true
+  target:
+    kind: Namespace
+    pluralName: namespaces
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: replicasets.apps
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedReplicaSet
+    pluralName: federatedreplicasets
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    group: apps
+    kind: ReplicaSet
+    pluralName: replicasets
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: secrets
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedSecret
+    pluralName: federatedsecrets
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    kind: Secret
+    pluralName: secrets
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: serviceaccounts
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedServiceAccount
+    pluralName: federatedserviceaccounts
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    kind: ServiceAccount
+    pluralName: serviceaccounts
+    version: v1
+---
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederatedTypeConfig
+metadata:
+  name: services
+spec:
+  federatedType:
+    group: types.federation.k8s.io
+    kind: FederatedService
+    pluralName: federatedservices
+    version: v1alpha1
+  namespaced: true
+  propagationEnabled: true
+  target:
+    kind: Service
+    pluralName: services
+    version: v1

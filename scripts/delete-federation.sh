@@ -62,17 +62,25 @@ function delete-script-deployment() {
 }
 
 function delete-helm-deployment() {
-  # Clean cluster registry
-  ${KCD} crd clusters.clusterregistry.k8s.io
+  if [[ "${DELETE_GLOBAL_RESOURCE}" ]]; then
+    # Clean cluster registry
+    ${KCD} crd clusters.clusterregistry.k8s.io
+  fi
+
   if [[ ! "${NAMESPACED}" ]]; then
       ${KCD} namespace ${PUBLIC_NS}
   fi
 
   # Clean federation resources
   ${KCD} -n "${NS}" FederatedTypeConfig --all
-  ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
 
-  helm delete --purge federation-v2
+  if [[ "${DELETE_GLOBAL_RESOURCE}" ]]; then
+    ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+    ${KCD} clusterrolebindings
+    ${KCD} clusterrole
+  fi
+
+  helm delete --purge federation-v2-${NS}
 }
 
 KCD="kubectl --ignore-not-found=true delete"
@@ -112,14 +120,14 @@ else
   delete-script-deployment
 fi
 
-${KCD} ns "${NS}"
-
 # Remove permissive rolebinding that allows federation controllers to run.
 if [[ "${NAMESPACED}" ]]; then
   ${KCD} -n "${NS}" rolebinding federation-admin
 else
   ${KCD} clusterrolebinding federation-admin
 fi
+${KCD} ns "${NS}"
+
 
 # Wait for the namespaces to be removed
 function ns-deleted() {

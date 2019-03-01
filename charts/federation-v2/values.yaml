@@ -30,12 +30,14 @@ controllermanager:
   federationNamespace:
   ## The cluster registry namespace. If unset, will default to kube-multicluster-public.
   registryNamespace:
-  ## Whether the federation namespace will be the only target for federation.
-  ## If unset, will default to false.
-  limitedScope:
-  
 
 ## Configuration values for federation v2 clusterregistry.
 ##
 clusterregistry:
   enabled: true
+
+global:
+  ## Whether the federation namespace will be the only target for federation.
+  ## If unset, will default to false.
+  limitedScope:
+

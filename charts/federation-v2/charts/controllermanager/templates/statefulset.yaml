@@ -31,8 +31,8 @@ spec:
 {{- if .Values.featureGates }}
         - --feature-gates={{ .Values.featureGates }}
 {{- end }}
-{{- if .Values.limitedScope }}
-        - --limited-scope={{ .Values.limitedScope }}
+{{- if .Values.global.limitedScope }}
+        - --limited-scope={{ .Values.global.limitedScope }}
         - --federation-namespace=$(FEDERATION_NAMESPACE)
         - --registry-namespace=$(CLUSTER_REGISTRY_NAMESPACE)
 {{- else }}
@@ -51,7 +51,7 @@ spec:
 {{- if .Values.resources }}
 {{ toYaml .Values.resources | indent 12 }}
 {{- end }}
-{{- if .Values.limitedScope }}
+{{- if .Values.global.limitedScope }}
         env:
         - name: FEDERATION_NAMESPACE
           valueFrom:

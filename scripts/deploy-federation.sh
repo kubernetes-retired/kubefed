@@ -109,9 +109,9 @@ EOF
   TAG=${IMAGE_TAG#*:}
 
   if [[ "${NAMESPACED}" ]]; then
-      helm install charts/federation-v2 --name federation-v2 --namespace ${NS} \
+      helm install charts/federation-v2 --name federation-v2-${NS} --namespace ${NS} \
           --set controllermanager.repository=${REPOSITORY} --set controllermanager.image=${IMAGE} --set controllermanager.tag=${TAG} \
-          --set controllermanager.limitedScope=true
+          --set global.limitedScope=true
   else
       helm install charts/federation-v2 --name federation-v2 --namespace ${NS} \
           --set controllermanager.repository=${REPOSITORY} --set controllermanager.image=${IMAGE} --set controllermanager.tag=${TAG}
