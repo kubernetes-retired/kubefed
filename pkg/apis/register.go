@@ -29,6 +29,11 @@ import (
 var Scheme = runtime.NewScheme()
 var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
+var localSchemeBuilder = runtime.SchemeBuilder{
+	corev1alpha1.AddToScheme,
+	multiclusterdnsv1alpha1.AddToScheme,
+	schedulingv1alpha1.AddToScheme,
+}
 
 func init() {
 	v1.AddToGroupVersion(Scheme, schema.GroupVersion{Version: "v1"})
@@ -49,8 +54,4 @@ func init() {
 //
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
-func AddToScheme(scheme *runtime.Scheme) {
-	corev1alpha1.AddToScheme(scheme)
-	multiclusterdnsv1alpha1.AddToScheme(scheme)
-	schedulingv1alpha1.AddToScheme(scheme)
-}
+var AddToScheme = localSchemeBuilder.AddToScheme
