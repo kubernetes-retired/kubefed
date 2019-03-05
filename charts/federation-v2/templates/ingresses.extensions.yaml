@@ -26,6 +26,8 @@ spec:
   names:
     kind: FederatedIngress
     plural: federatedingresses
+    shortNames:
+    - fing
   scope: Namespaced
   validation:
     openAPIV3Schema:

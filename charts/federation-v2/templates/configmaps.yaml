@@ -25,6 +25,8 @@ spec:
   names:
     kind: FederatedConfigMap
     plural: federatedconfigmaps
+    shortNames:
+    - fcm
   scope: Namespaced
   validation:
     openAPIV3Schema:
