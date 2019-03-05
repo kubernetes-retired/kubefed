@@ -107,6 +107,7 @@ function check-git-state() {
   for line in "${output}"; do
     echo "${line}"
   done
+  git diff
   return 1
 }
 

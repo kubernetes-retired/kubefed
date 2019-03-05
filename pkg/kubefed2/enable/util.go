@@ -49,7 +49,7 @@ func DecodeYAML(r io.Reader, obj interface{}) error {
 	return decoder.Decode(obj)
 }
 
-func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.CustomResourceValidation) *apiextv1b1.CustomResourceDefinition {
+func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.CustomResourceValidation, shortNames []string) *apiextv1b1.CustomResourceDefinition {
 	scope := apiextv1b1.ClusterScoped
 	if apiResource.Namespaced {
 		scope = apiextv1b1.NamespaceScoped
@@ -69,8 +69,9 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 			Version: apiResource.Version,
 			Scope:   scope,
 			Names: apiextv1b1.CustomResourceDefinitionNames{
-				Plural: apiResource.Name,
-				Kind:   apiResource.Kind,
+				Plural:     apiResource.Name,
+				Kind:       apiResource.Kind,
+				ShortNames: shortNames,
 			},
 			Validation: validation,
 		},
