@@ -778,7 +778,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 		return nil
 	}
 
-	roleName := util.HealthCheckRoleName(saName)
+	roleName := util.HealthCheckRoleName(saName, namespace)
 
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{

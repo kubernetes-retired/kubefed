@@ -378,7 +378,7 @@ func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface, saName, 
 	}
 
 	roleName := util.RoleName(saName)
-	healthCheckRoleName := util.HealthCheckRoleName(saName)
+	healthCheckRoleName := util.HealthCheckRoleName(saName, namespace)
 
 	// Attempt to delete all role and role bindings created by join
 	// and ignore if there is any error

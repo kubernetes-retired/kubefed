@@ -116,6 +116,6 @@ func RoleName(serviceAccountName string) string {
 // HealthCheckRoleName returns the name of a ClusterRole and its
 // associated ClusterRoleBinding that is used to allow the service
 // account to check the health of the cluster and list nodes.
-func HealthCheckRoleName(serviceAccountName string) string {
-	return fmt.Sprintf("federation-controller-manager:healthcheck-%s", serviceAccountName)
+func HealthCheckRoleName(serviceAccountName, namespace string) string {
+	return fmt.Sprintf("federation-controller-manager:%s:healthcheck-%s", namespace, serviceAccountName)
 }
