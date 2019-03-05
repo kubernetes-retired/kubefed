@@ -21,12 +21,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	crscheme "k8s.io/cluster-registry/pkg/client/clientset/versioned/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis"
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic/scheme"
 )
 
 type Client interface {
@@ -43,10 +41,7 @@ type genericClient struct {
 }
 
 func New(config *rest.Config) (Client, error) {
-	scheme := apis.Scheme
-	k8sscheme.AddToScheme(scheme)
-	crscheme.AddToScheme(scheme)
-	client, err := client.New(config, client.Options{Scheme: scheme})
+	client, err := client.New(config, client.Options{Scheme: scheme.Scheme})
 	return &genericClient{client}, err
 }
 
