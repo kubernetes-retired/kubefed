@@ -28,7 +28,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,20 +52,20 @@ func init() {
 }
 
 type ReplicaScheduler struct {
-	controllerConfig *ControllerConfig
+	controllerConfig *ctlutil.ControllerConfig
 
 	eventHandlers SchedulerEventHandlers
 
-	plugins map[string]*Plugin
+	plugins *ctlutil.SafeMap
 
 	client      genericclient.Client
-	podInformer FederatedInformer
+	podInformer ctlutil.FederatedInformer
 }
 
-func NewReplicaScheduler(controllerConfig *ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error) {
+func NewReplicaScheduler(controllerConfig *ctlutil.ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error) {
 	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, "replica-scheduler")
 	scheduler := &ReplicaScheduler{
-		plugins:          make(map[string]*Plugin),
+		plugins:          ctlutil.NewSafeMap(),
 		controllerConfig: controllerConfig,
 		eventHandlers:    eventHandlers,
 		client:           client,
@@ -76,7 +76,7 @@ func NewReplicaScheduler(controllerConfig *ControllerConfig, eventHandlers Sched
 	// is a typed client.
 	// We ignore the pod events in this informer from clusters.
 	var err error
-	scheduler.podInformer, err = NewFederatedInformer(
+	scheduler.podInformer, err = ctlutil.NewFederatedInformer(
 		controllerConfig,
 		client,
 		PodResource,
@@ -104,19 +104,20 @@ func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface) error {
 	}
 
 	plugin.Start()
-	s.plugins[kind] = plugin
+	s.plugins.Store(kind, plugin)
 
 	return nil
 }
+
 func (s *ReplicaScheduler) StopPlugin(kind string) {
-	plugin, ok := s.plugins[kind]
+	plugin, ok := s.plugins.Get(kind)
 	if !ok {
 		return
 	}
 
-	plugin.Stop()
+	plugin.(*Plugin).Stop()
 
-	delete(s.plugins, kind)
+	s.plugins.Delete(kind)
 }
 
 func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
@@ -128,8 +129,8 @@ func (s *ReplicaScheduler) Start() {
 }
 
 func (s *ReplicaScheduler) HasSynced() bool {
-	for _, plugin := range s.plugins {
-		if !plugin.HasSynced() {
+	for _, plugin := range s.plugins.GetAll() {
+		if !plugin.(*Plugin).HasSynced() {
 			return false
 		}
 	}
@@ -147,60 +148,60 @@ func (s *ReplicaScheduler) HasSynced() bool {
 }
 
 func (s *ReplicaScheduler) Stop() {
-	for _, plugin := range s.plugins {
-		plugin.Stop()
+	for _, plugin := range s.plugins.GetAll() {
+		plugin.(*Plugin).Stop()
 	}
 
 	s.podInformer.Stop()
 }
 
-func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus {
+func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctlutil.QualifiedName) ctlutil.ReconciliationStatus {
 	rsp, ok := obj.(*fedschedulingv1a1.ReplicaSchedulingPreference)
 	if !ok {
 		runtime.HandleError(errors.Errorf("Incorrect runtime object for RSP: %v", rsp))
-		return StatusError
+		return ctlutil.StatusError
 	}
 
 	clusterNames, err := s.clusterNames()
 	if err != nil {
 		runtime.HandleError(errors.Wrap(err, "Failed to get cluster list"))
-		return StatusError
+		return ctlutil.StatusError
 	}
 	if len(clusterNames) == 0 {
 		// no joined clusters, nothing to do
-		return StatusAllOK
+		return ctlutil.StatusAllOK
 	}
 
 	kind := rsp.Spec.TargetKind
 	if kind != "FederatedDeployment" && kind != "FederatedReplicaSet" {
 		runtime.HandleError(errors.Wrapf(err, "RSP target kind: %s is incorrect", kind))
-		return StatusNeedsRecheck
+		return ctlutil.StatusNeedsRecheck
 	}
 
-	plugin, ok := s.plugins[kind]
+	plugin, ok := s.plugins.Get(kind)
 	if !ok {
-		return StatusAllOK
+		return ctlutil.StatusAllOK
 	}
 
-	if !plugin.FederatedTypeExists(qualifiedName.String()) {
+	if !plugin.(*Plugin).FederatedTypeExists(qualifiedName.String()) {
 		// target FederatedType does not exist, nothing to do
-		return StatusAllOK
+		return ctlutil.StatusAllOK
 	}
 
 	key := qualifiedName.String()
 	result, err := s.GetSchedulingResult(rsp, qualifiedName, clusterNames)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to compute the schedule information while reconciling RSP named %q", key))
-		return StatusError
+		return ctlutil.StatusError
 	}
 
-	err = s.plugins[kind].Reconcile(qualifiedName, result)
+	err = plugin.(*Plugin).Reconcile(qualifiedName, result)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to reconcile Federation Targets for RSP named %q", key))
-		return StatusError
+		return ctlutil.StatusError
 	}
 
-	return StatusAllOK
+	return ctlutil.StatusAllOK
 }
 
 // The list of clusters could come from any target informer
@@ -217,11 +218,15 @@ func (s *ReplicaScheduler) clusterNames() ([]string, error) {
 	return clusterNames, nil
 }
 
-func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName QualifiedName, clusterNames []string) (map[string]int64, error) {
+func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName ctlutil.QualifiedName, clusterNames []string) (map[string]int64, error) {
 	key := qualifiedName.String()
 
 	objectGetter := func(clusterName, key string) (interface{}, bool, error) {
-		return s.plugins[rsp.Spec.TargetKind].targetInformer.GetTargetStore().GetByKey(clusterName, key)
+		plugin, ok := s.plugins.Get(rsp.Spec.TargetKind)
+		if !ok {
+			return nil, false, nil
+		}
+		return plugin.(*Plugin).targetInformer.GetTargetStore().GetByKey(clusterName, key)
 	}
 	podsGetter := func(clusterName string, unstructuredObj *unstructured.Unstructured) (pkgruntime.Object, error) {
 		client, err := s.podInformer.GetClientForCluster(clusterName)
