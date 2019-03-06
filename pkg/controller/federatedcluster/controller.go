@@ -26,9 +26,11 @@ import (
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/cache"
 
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
@@ -208,18 +210,20 @@ func (cc *ClusterController) updateClusterStatus() error {
 			}
 		}
 
-		zone, region, err := clusterClient.GetClusterZones()
-		if err != nil {
-			glog.Warningf("Failed to get zones and region for cluster with client %v: %v", clusterClient, err)
-		} else {
-			if len(zone) == 0 {
-				zone = cluster.Status.Zone
+		if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
+			zone, region, err := clusterClient.GetClusterZones()
+			if err != nil {
+				glog.Warningf("Failed to get zones and region for cluster %s: %v", cluster.Name, err)
+			} else {
+				if len(zone) == 0 {
+					zone = cluster.Status.Zone
+				}
+				if len(region) == 0 {
+					region = cluster.Status.Region
+				}
+				clusterStatusNew.Zone = zone
+				clusterStatusNew.Region = region
 			}
-			if len(region) == 0 {
-				region = cluster.Status.Region
-			}
-			clusterStatusNew.Zone = zone
-			clusterStatusNew.Region = region
 		}
 
 		cc.mu.Lock()
