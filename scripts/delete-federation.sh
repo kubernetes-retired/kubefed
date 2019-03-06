@@ -24,8 +24,10 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function delete-script-deployment() {
-  # Remove cluster registry CRD
-  ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+  if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
+      # Remove cluster registry CRD
+      ${KCD} -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
+  fi
 
   # Remove public namespace
   if [[ ! "${NAMESPACED}" ]]; then
@@ -33,14 +35,22 @@ function delete-script-deployment() {
   fi
 
   # Disable federation of all types
-  for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
-    ./bin/kubefed2 disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
-  done
+  if [[ ! "${NAMESPACED}" ]]; then
+    for ftc in $(kubectl get federatedtypeconfig -n "${NS}" -o=jsonpath={.items..metadata.name}); do
+      ./bin/kubefed2 disable "${ftc}" --delete-from-api --federation-namespace="${NS}"
+    done
+  else
+    if [[ "${DELETE_CLUSTER_RESOURCE}" ]]; then
+      ${KCD} crd $(kubectl get crd | grep -E 'types.federation.k8s.io' | awk '{print $1}')
+    fi
+  fi
 
   # Remove federation CRDs, namespace, RBAC and deployment resources.
   if [[ ! "${USE_LATEST}" ]]; then
     if [[ "${NAMESPACED}" ]]; then
-      ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+      if [[ "${DELETE_CLUSTER_RESOURCE}" ]]; then
+        ${KCD} -n "${NS}" -f hack/install-namespaced.yaml
+      fi
     else
       ${KCD} -f hack/install.yaml
     fi
@@ -67,6 +77,7 @@ KCD="kubectl --ignore-not-found=true delete"
 NS="${FEDERATION_NAMESPACE:-federation-system}"
 PUBLIC_NS=kube-multicluster-public
 NAMESPACED="${NAMESPACED:-}"
+DELETE_CLUSTER_RESOURCE="${DELETE_CLUSTER_RESOURCE:-}"
 
 IMAGE_NAME=`kubectl get deploy -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
 LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
