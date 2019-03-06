@@ -54,8 +54,9 @@ func NewForConfigOrDie(config *rest.Config) Client {
 }
 
 func NewForConfigOrDieWithUserAgent(config *rest.Config, userAgent string) Client {
-	rest.AddUserAgent(config, userAgent)
-	return NewForConfigOrDie(config)
+	configCopy := rest.CopyConfig(config)
+	rest.AddUserAgent(configCopy, userAgent)
+	return NewForConfigOrDie(configCopy)
 }
 
 func (c *genericClient) Create(ctx context.Context, obj runtime.Object) error {

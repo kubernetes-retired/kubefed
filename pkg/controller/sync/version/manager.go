@@ -17,6 +17,7 @@ limitations under the License.
 package version
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -65,6 +66,8 @@ type VersionManager struct {
 	worker util.ReconcileWorker
 
 	versions map[string]pkgruntime.Object
+
+	client generic.Client
 }
 
 func NewVersionManager(client generic.Client, namespaced bool, federatedKind, targetKind, namespace string) *VersionManager {
@@ -72,8 +75,9 @@ func NewVersionManager(client generic.Client, namespaced bool, federatedKind, ta
 		targetKind:    targetKind,
 		federatedKind: federatedKind,
 		namespace:     namespace,
-		adapter:       NewVersionAdapter(client, namespaced),
+		adapter:       NewVersionAdapter(namespaced),
 		versions:      make(map[string]pkgruntime.Object),
+		client:        client,
 	}
 
 	v.worker = util.NewReconcileWorker(v.writeVersion, util.WorkerTiming{
@@ -219,9 +223,8 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 			return false, errors.New("")
 		default:
 		}
-
-		var err error
-		versionList, err = m.adapter.List(m.namespace)
+		versionList = m.adapter.NewListObject()
+		err := m.client.List(context.TODO(), versionList, m.namespace)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to list propagated versions for %q", m.federatedKind))
 			// Do not return the error to allow the operation to be retried.
@@ -301,7 +304,9 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 	creationNeeded := len(metaAccessor.GetResourceVersion()) == 0
 
 	if creationNeeded {
-		createdObj, err := m.adapter.Create(obj)
+		// Make a copy to avoid mutating the map outside of a lock.
+		createdObj := obj.DeepCopyObject()
+		err := m.client.Create(context.TODO(), createdObj)
 		if apierrors.IsAlreadyExists(err) {
 			// Version was written to the API after the version manager loaded
 			glog.V(4).Infof("Refreshing %s %q from the API due to already existing", adapterType, key)
@@ -318,13 +323,17 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 		}
 
 		// Status on the created version will have been cleared.  Set
-		// it from the in-memory instance.
+		// it from the in-memory instance.  Since status is referred
+		// to via a pointer and it is desirable to have the latest
+		// status, it should be ok to do this outside of a lock.
 		status := m.adapter.GetStatus(obj)
 		m.adapter.SetStatus(createdObj, status)
 		obj = createdObj
 	}
 
-	updatedObj, err := m.adapter.UpdateStatus(obj)
+	// Make a copy to avoid mutating the map outside of a lock.
+	updatedObj := obj.DeepCopyObject()
+	err = m.client.UpdateStatus(context.TODO(), updatedObj)
 	if err == nil {
 		m.Lock()
 		defer m.Unlock()
@@ -373,7 +382,8 @@ func (m *VersionManager) refreshVersion(obj pkgruntime.Object) error {
 	qualifiedName := util.NewQualifiedName(obj)
 
 	glog.V(4).Infof("Refreshing %s version %q from the API", m.federatedKind, qualifiedName)
-	refreshedObj, err := m.adapter.Get(qualifiedName)
+	refreshedObj := m.adapter.NewObject()
+	err := m.client.Get(context.TODO(), refreshedObj, qualifiedName.Namespace, qualifiedName.Name)
 	if err != nil {
 		return err
 	}

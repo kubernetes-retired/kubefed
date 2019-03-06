@@ -17,35 +17,28 @@ limitations under the License.
 package version
 
 import (
-	"context"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-type clusterVersionAdapter struct {
-	client genericclient.Client
-}
+type clusterVersionAdapter struct{}
 
-func newClusterVersionAdapter(client genericclient.Client) VersionAdapter {
-	return &clusterVersionAdapter{client}
-}
-
-func (a *clusterVersionAdapter) TypeName() string {
+func (*clusterVersionAdapter) TypeName() string {
 	return "ClusterPropagatedVersion"
 }
 
-func (a *clusterVersionAdapter) List(namespace string) (pkgruntime.Object, error) {
-	clusterPropagatedVersionList := &fedv1a1.ClusterPropagatedVersionList{}
-	err := a.client.List(context.TODO(), clusterPropagatedVersionList, namespace)
-	return clusterPropagatedVersionList, err
+func (*clusterVersionAdapter) NewListObject() pkgruntime.Object {
+	return &fedv1a1.ClusterPropagatedVersionList{}
 }
 
-func (a *clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
+func (*clusterVersionAdapter) NewObject() pkgruntime.Object {
+	return &fedv1a1.ClusterPropagatedVersion{}
+}
+
+func (*clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
 	return &fedv1a1.ClusterPropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            qualifiedName.Name,
@@ -55,31 +48,13 @@ func (a *clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, own
 	}
 }
 
-func (a *clusterVersionAdapter) GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus {
+func (*clusterVersionAdapter) GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus {
 	version := obj.(*fedv1a1.ClusterPropagatedVersion)
 	status := version.Status
 	return &status
 }
 
-func (a *clusterVersionAdapter) SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus) {
+func (*clusterVersionAdapter) SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus) {
 	version := obj.(*fedv1a1.ClusterPropagatedVersion)
 	version.Status = *status
-}
-
-func (a *clusterVersionAdapter) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	version := obj.(*fedv1a1.ClusterPropagatedVersion)
-	err := a.client.Create(context.TODO(), version)
-	return version, err
-}
-
-func (a *clusterVersionAdapter) Get(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
-	clusterPropagatedVersion := &fedv1a1.ClusterPropagatedVersion{}
-	err := a.client.Get(context.TODO(), clusterPropagatedVersion, qualifiedName.Namespace, qualifiedName.Name)
-	return clusterPropagatedVersion, err
-}
-
-func (a *clusterVersionAdapter) UpdateStatus(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	version := obj.(*fedv1a1.ClusterPropagatedVersion)
-	err := a.client.UpdateStatus(context.TODO(), version)
-	return version, err
 }

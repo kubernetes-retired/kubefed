@@ -21,30 +21,27 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 type VersionAdapter interface {
 	TypeName() string
 
-	// Create a new instance of the version type
+	// Create an empty instance of the version type
+	NewObject() pkgruntime.Object
+	// Create an empty instance of list version type
+	NewListObject() pkgruntime.Object
+	// Create a populated instance of the version type
 	NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object
 
 	// Type-agnostic access / mutation of the Status field of a version resource
 	GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus
 	SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus)
-
-	// Methods that interact with the API
-	Create(obj pkgruntime.Object) (pkgruntime.Object, error)
-	Get(qualifiedName util.QualifiedName) (pkgruntime.Object, error)
-	List(namespace string) (pkgruntime.Object, error)
-	UpdateStatus(obj pkgruntime.Object) (pkgruntime.Object, error)
 }
 
-func NewVersionAdapter(client generic.Client, namespaced bool) VersionAdapter {
+func NewVersionAdapter(namespaced bool) VersionAdapter {
 	if namespaced {
-		return newNamespacedVersionAdapter(client)
+		return &namespacedVersionAdapter{}
 	}
-	return newClusterVersionAdapter(client)
+	return &clusterVersionAdapter{}
 }

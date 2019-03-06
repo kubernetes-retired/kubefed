@@ -17,35 +17,28 @@ limitations under the License.
 package version
 
 import (
-	"context"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-type namespacedVersionAdapter struct {
-	client genericclient.Client
-}
+type namespacedVersionAdapter struct{}
 
-func newNamespacedVersionAdapter(client genericclient.Client) VersionAdapter {
-	return &namespacedVersionAdapter{client}
-}
-
-func (a *namespacedVersionAdapter) TypeName() string {
+func (*namespacedVersionAdapter) TypeName() string {
 	return "PropagatedVersion"
 }
 
-func (a *namespacedVersionAdapter) List(namespace string) (pkgruntime.Object, error) {
-	propagatedVersionList := &fedv1a1.PropagatedVersionList{}
-	err := a.client.List(context.TODO(), propagatedVersionList, namespace)
-	return propagatedVersionList, err
+func (*namespacedVersionAdapter) NewListObject() pkgruntime.Object {
+	return &fedv1a1.PropagatedVersionList{}
 }
 
-func (a *namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
+func (*namespacedVersionAdapter) NewObject() pkgruntime.Object {
+	return &fedv1a1.PropagatedVersion{}
+}
+
+func (*namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       qualifiedName.Namespace,
@@ -56,31 +49,13 @@ func (a *namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, 
 	}
 }
 
-func (a *namespacedVersionAdapter) GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus {
+func (*namespacedVersionAdapter) GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus {
 	version := obj.(*fedv1a1.PropagatedVersion)
 	status := version.Status
 	return &status
 }
 
-func (a *namespacedVersionAdapter) SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus) {
+func (*namespacedVersionAdapter) SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus) {
 	version := obj.(*fedv1a1.PropagatedVersion)
 	version.Status = *status
-}
-
-func (a *namespacedVersionAdapter) Create(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	version := obj.(*fedv1a1.PropagatedVersion)
-	err := a.client.Create(context.TODO(), version)
-	return version, err
-}
-
-func (a *namespacedVersionAdapter) Get(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
-	propogatedVersion := &fedv1a1.PropagatedVersion{}
-	err := a.client.Get(context.TODO(), propogatedVersion, qualifiedName.Namespace, qualifiedName.Name)
-	return propogatedVersion, err
-}
-
-func (a *namespacedVersionAdapter) UpdateStatus(obj pkgruntime.Object) (pkgruntime.Object, error) {
-	version := obj.(*fedv1a1.PropagatedVersion)
-	err := a.client.UpdateStatus(context.TODO(), version)
-	return version, err
 }

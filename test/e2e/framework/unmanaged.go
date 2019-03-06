@@ -187,8 +187,7 @@ func (f *UnmanagedFramework) KubeClient(userAgent string) kubeclientset.Interfac
 }
 
 func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
-	restclient.AddUserAgent(f.Config, userAgent)
-	return genericclient.NewForConfigOrDie(f.Config)
+	return genericclient.NewForConfigOrDieWithUserAgent(f.Config, userAgent)
 }
 
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {

@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -542,10 +543,11 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 	}
 
 	loggedWaiting := false
-	adapter := versionmanager.NewVersionAdapter(c.client, c.typeConfig.GetFederatedNamespaced())
+	adapter := versionmanager.NewVersionAdapter(c.typeConfig.GetFederatedNamespaced())
 	var version *fedv1a1.PropagatedVersionStatus
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
-		versionObj, err := adapter.Get(versionName)
+		versionObj := adapter.NewObject()
+		err := c.client.Get(context.TODO(), versionObj, versionName.Namespace, versionName.Name)
 		if apierrors.IsNotFound(err) {
 			if !loggedWaiting {
 				loggedWaiting = true
