@@ -101,7 +101,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		},
 	})
 
-	targetCrd := kfenable.CrdForAPIResource(targetAPIResource, validationSchema)
+	targetCrd := kfenable.CrdForAPIResource(targetAPIResource, validationSchema, nil)
 
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 

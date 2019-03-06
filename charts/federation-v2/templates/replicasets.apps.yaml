@@ -26,6 +26,8 @@ spec:
   names:
     kind: FederatedReplicaSet
     plural: federatedreplicasets
+    shortNames:
+    - frs
   scope: Namespaced
   validation:
     openAPIV3Schema:

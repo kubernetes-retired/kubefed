@@ -26,6 +26,8 @@ spec:
   names:
     kind: FederatedDeployment
     plural: federateddeployments
+    shortNames:
+    - fdeploy
   scope: Namespaced
   validation:
     openAPIV3Schema:

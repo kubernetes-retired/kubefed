@@ -206,7 +206,13 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error initializing validation schema accessor")
 	}
-	crd := federatedTypeCRD(typeConfig, accessor)
+
+	shortNames := []string{}
+	for _, shortName := range apiResource.ShortNames {
+		shortNames = append(shortNames, fmt.Sprintf("f%s", shortName))
+	}
+
+	crd := federatedTypeCRD(typeConfig, accessor, shortNames)
 
 	return &typeResources{
 		TypeConfig: typeConfig,
@@ -284,7 +290,7 @@ func typeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *En
 	return typeConfig
 }
 
-func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor) *apiextv1b1.CustomResourceDefinition {
+func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, shortNames []string) *apiextv1b1.CustomResourceDefinition {
 	var templateSchema map[string]apiextv1b1.JSONSchemaProps
 	// Define the template field for everything but namespaces.
 	// A FederatedNamespace uses the containing namespace as the
@@ -295,7 +301,7 @@ func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor) 
 
 	schema := federatedTypeValidationSchema(templateSchema)
 
-	return CrdForAPIResource(typeConfig.GetFederatedType(), schema)
+	return CrdForAPIResource(typeConfig.GetFederatedType(), schema, shortNames)
 }
 
 func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {

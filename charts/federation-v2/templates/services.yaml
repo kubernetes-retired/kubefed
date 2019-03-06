@@ -25,6 +25,8 @@ spec:
   names:
     kind: FederatedService
     plural: federatedservices
+    shortNames:
+    - fsvc
   scope: Namespaced
   validation:
     openAPIV3Schema:

@@ -25,6 +25,8 @@ spec:
   names:
     kind: FederatedNamespace
     plural: federatednamespaces
+    shortNames:
+    - fns
   scope: Namespaced
   validation:
     openAPIV3Schema:
