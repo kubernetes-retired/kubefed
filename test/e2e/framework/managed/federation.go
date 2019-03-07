@@ -241,8 +241,8 @@ func (f *FederationFixture) ClusterConfigs(tl common.TestLogger, userAgent strin
 		config := cluster.NewConfig(tl)
 		rest.AddUserAgent(config, userAgent)
 		configMap[name] = common.TestClusterConfig{
-			config,
-			cluster.IsPrimary,
+			Config:    config,
+			IsPrimary: cluster.IsPrimary,
 		}
 	}
 	return configMap
@@ -256,8 +256,8 @@ func (f *FederationFixture) ClusterDynamicClients(tl common.TestLogger, apiResou
 			tl.Fatalf("Error creating a resource client in cluster %q for kind %q: %v", name, apiResource.Kind, err)
 		}
 		clientMap[name] = common.TestCluster{
-			clusterConfig,
-			client,
+			TestClusterConfig: clusterConfig,
+			Client:            client,
 		}
 	}
 	return clientMap

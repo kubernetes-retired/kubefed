@@ -213,8 +213,8 @@ func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResour
 		// Check if this cluster is the same name as the host cluster name to
 		// make it the primary cluster.
 		testClusters[clusterName] = common.TestCluster{
-			clusterConfig,
-			client,
+			TestClusterConfig: clusterConfig,
+			Client:            client,
 		}
 	}
 	return testClusters
@@ -252,8 +252,8 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{
-			config,
-			(cluster.Name == hostClusterName),
+			Config:    config,
+			IsPrimary: (cluster.Name == hostClusterName),
 		}
 	}
 
