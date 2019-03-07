@@ -28,6 +28,13 @@ import (
 func NewTriggerOnAllChanges(triggerFunc func(pkgruntime.Object)) *cache.ResourceEventHandlerFuncs {
 	return &cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(old interface{}) {
+			if deleted, ok := old.(cache.DeletedFinalStateUnknown); ok {
+				// This object might be stale but ok for our current usage.
+				old = deleted.Obj
+				if old == nil {
+					return
+				}
+			}
 			oldObj := old.(pkgruntime.Object)
 			triggerFunc(oldObj)
 		},
