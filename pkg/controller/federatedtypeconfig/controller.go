@@ -160,7 +160,14 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {
-		glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q.  It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
+		_, ok := c.getStopChannel(typeConfig.Name)
+		if !ok {
+			holderChan := make(chan struct{})
+			c.lock.Lock()
+			c.stopChannels[typeConfig.Name] = holderChan
+			c.lock.Unlock()
+			glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
+		}
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
