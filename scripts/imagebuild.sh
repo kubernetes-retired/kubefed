@@ -21,15 +21,27 @@ set -o pipefail
 base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dockerfile_dir="${base_dir}/images/federation-v2"
 
+SUBCMD=
+if [[ $# == 1 ]]; then
+    SUBCMD="$1"
+fi
+
+REGISTRY=${REGISTRY:-quay.io}
+REPO=${REPO:-kubernetes-multicluster}
+IMAGE=${REGISTRY}/${REPO}/federation-v2
+
+TRAVIS_TAG=${TRAVIS_TAG:-$(git tag -l --points-at HEAD)}
+TRAVIS_BRANCH=${TRAVIS_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
+
 [ -f "$base_dir/bin/hyperfed" ] || { echo "$base_dir/bin/hyperfed not found" ; exit 1 ;}
 echo "travis tag: ${TRAVIS_TAG}"
 echo "travis branch:${TRAVIS_BRANCH}"
 if [[ "${TRAVIS_TAG}" =~ ^v([0-9]\.)+([0-9])[-a-zA-Z0-9]*([.0-9])* ]]; then
-   echo "Using tag: '${TRAVIS_TAG}' and 'latest' ."
+    echo "Using tag: '${TRAVIS_TAG}' and 'latest' ."
     TAG="${TRAVIS_TAG}"
     LATEST="latest"
 elif [[ "${TRAVIS_BRANCH}" == "master" ]]; then
-   echo "Using tag: 'canary'."
+    echo "Using tag: 'canary'."
     TAG="canary"
     LATEST=""
 else
@@ -37,27 +49,28 @@ else
     exit 0
 fi
 
-echo "Starting image build"
-export REGISTRY=quay.io/
-export REPO=kubernetes-multicluster
+if [[ -z "${SUBCMD}" || "${SUBCMD}" == "build" ]]; then
 
-echo "Copy hyperfed"
-cp ${base_dir}/bin/hyperfed ${dockerfile_dir}/hyperfed
+    echo "Starting image build"
+    echo "Copy hyperfed"
+    cp ${base_dir}/bin/hyperfed ${dockerfile_dir}/hyperfed
 
-echo "Logging into registry ${REGISTRY///}"
-docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
-
-echo "Building Federation-v2 docker image"
-docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:${TAG}
-
-echo "Pushing image with tag '${TAG}'."
-docker push ${REGISTRY}${REPO}/federation-v2:${TAG}
-
-if [ "$LATEST" == "latest" ]; then
-
-   docker tag ${REGISTRY}${REPO}/federation-v2:${TAG} ${REGISTRY}${REPO}/federation-v2:${LATEST}
-   echo "Pushing image with tag '${LATEST}'."
-   docker push ${REGISTRY}${REPO}/federation-v2:${LATEST}
+    echo "Building Federation-v2 docker image"
+    docker build ${dockerfile_dir} -t ${IMAGE}:${TAG}
+    rm ${dockerfile_dir}/hyperfed
 fi
 
-rm ${dockerfile_dir}/hyperfed
+if [[ -z "${SUBCMD}" || "${SUBCMD}" == "push" ]]; then
+
+    echo "Logging into registry ${REGISTRY}"
+    docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" ${REGISTRY}
+
+    echo "Pushing image with tag '${TAG}'."
+    docker push ${IMAGE}:${TAG}
+
+    if [ "$LATEST" == "latest" ]; then
+        docker tag ${IMAGE}:${TAG} ${IMAGE}:${LATEST}
+        echo "Pushing image with tag '${LATEST}'."
+        docker push ${IMAGE}:${LATEST}
+    fi
+fi
