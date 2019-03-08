@@ -39,8 +39,8 @@ spec:
 {{- if .Values.federationNamespace }}
         - --federation-namespace={{ .Values.federationNamespace }}
 {{- end }}
-{{- if .Values.registryNamespace }}
-        - --registry-namespace={{ .Values.registryNamespace }}
+{{- if .Values.global.registryNamespace }}
+        - --registry-namespace={{ .Values.global.registryNamespace }}
 {{- end }}
 {{- end }}
         command:

@@ -5,6 +5,10 @@
 ## Configuration values for federation v2 controllermanager statefulset.
 ## TODO(gyliu513): Add more parameters here like `feature-gates` etc.
 ##
+
+global:
+  registryNamespace: kube-multicluster-public
+
 controllermanager:
   enabled: true
   replicaCount: 1
@@ -28,14 +32,14 @@ controllermanager:
   ## The namespace the federation control plane is deployed in. If unset,
   ## will default to federation-system.
   federationNamespace:
-  ## The cluster registry namespace. If unset, will default to kube-multicluster-public.
-  registryNamespace:
+  ## The cluster registry namespace must be read from the global property
+
   ## Whether the federation namespace will be the only target for federation.
   ## If unset, will default to false.
   limitedScope:
-  
 
 ## Configuration values for federation v2 clusterregistry.
 ##
 clusterregistry:
   enabled: true
+  ## The cluster registry namespace must be read from the global property
