@@ -184,12 +184,6 @@ if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
   kubectl create ns "${NS}"
 fi
 
-if [[ ! "${NAMESPACED}" ]]; then
-  if ! kubectl get ns "${PUBLIC_NS}" > /dev/null 2>&1; then
-    kubectl create ns "${PUBLIC_NS}"
-  fi
-fi
-
 # Create a permissive clusterrolebinding to allow federation controllers to run.
 if [[ "${NAMESPACED}" ]]; then
   # TODO(marun) Investigate why cluster-admin is required to view cluster registry clusters in a namespace
@@ -206,6 +200,13 @@ if [[ ${USE_CHART} == true ]]; then
 else
   deploy-with-script
 fi
+
+if [[ ! "${NAMESPACED}" ]]; then
+  if ! kubectl get ns "${PUBLIC_NS}" > /dev/null 2>&1; then
+    kubectl create ns "${PUBLIC_NS}"
+  fi
+fi
+
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
