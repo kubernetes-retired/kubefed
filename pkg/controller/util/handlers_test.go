@@ -66,35 +66,4 @@ func TestHandlers(t *testing.T) {
 	assert.False(t, triggered())
 	trigger.OnUpdate(&service, &service2)
 	assert.True(t, triggered())
-
-	trigger2 := NewTriggerOnMetaAndSpecChanges(
-		func(obj pkgruntime.Object) {
-			triggerChan <- struct{}{}
-		},
-	)
-
-	trigger2.OnAdd(&service)
-	assert.True(t, triggered())
-	trigger2.OnDelete(&service)
-	assert.True(t, triggered())
-	trigger2.OnUpdate(&service, &service)
-	assert.False(t, triggered())
-	trigger2.OnUpdate(&service, &service2)
-	assert.True(t, triggered())
-
-	service3 := apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "s1",
-		},
-		Status: apiv1.ServiceStatus{
-			LoadBalancer: apiv1.LoadBalancerStatus{
-				Ingress: []apiv1.LoadBalancerIngress{{
-					Hostname: "A",
-				}},
-			},
-		},
-	}
-	trigger2.OnUpdate(&service, &service3)
-	assert.False(t, triggered())
 }
