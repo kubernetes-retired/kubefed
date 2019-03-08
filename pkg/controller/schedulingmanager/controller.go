@@ -17,6 +17,8 @@ limitations under the License.
 package schedulingmanager
 
 import (
+	"sync"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
@@ -33,6 +35,7 @@ import (
 )
 
 type SchedulerController struct {
+	sync.RWMutex
 	// Store for the FederatedTypeConfig objects
 	store cache.Store
 	// Informer for the FederatedTypeConfig objects
@@ -69,7 +72,7 @@ func newController(config *util.ControllerConfig) (*SchedulerController, error) 
 	c := &SchedulerController{
 		config:           config,
 		scheduler:        make(map[string]schedulingtypes.Scheduler),
-		runningPlugins:   sets.String{},
+		runningPlugins:   make(sets.String),
 		federatedKindMap: make(map[string]string),
 	}
 
@@ -131,6 +134,8 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 		return util.StatusAllOK
 	}
 
+	c.Lock()
+	defer c.Unlock()
 	if c.runningPlugins.Has(qualifiedName.Name) {
 		// Scheduler and plugin are already running
 		return util.StatusAllOK
@@ -175,6 +180,8 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 }
 
 func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName util.QualifiedName) {
+	c.Lock()
+	defer c.Unlock()
 	scheduler, ok := c.scheduler[schedulingKind]
 	if !ok {
 		return
@@ -184,11 +191,13 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 		return
 	}
 
-	glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, c.federatedKindMap[qualifiedName.Name])
-
-	scheduler.StopPlugin(c.federatedKindMap[qualifiedName.Name])
+	kind, ok := c.federatedKindMap[qualifiedName.Name]
+	if ok {
+		glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, kind)
+		scheduler.StopPlugin(kind)
+		delete(c.federatedKindMap, qualifiedName.Name)
+	}
 	c.runningPlugins.Delete(qualifiedName.Name)
-	delete(c.federatedKindMap, qualifiedName.Name)
 
 	// if all resources registered to same scheduler are deleted, the scheduler should be stopped
 	resources := schedulingtypes.GetSchedulingKinds(qualifiedName.Name)
@@ -202,10 +211,14 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 }
 
 func (c *SchedulerController) HasSchedulerPlugin(name string) bool {
+	c.RLock()
+	defer c.RUnlock()
 	return c.runningPlugins.Has(name)
 }
 
 func (c *SchedulerController) HasScheduler(name string) bool {
+	c.RLock()
+	defer c.RUnlock()
 	_, ok := c.scheduler[name]
 	if !ok {
 		return false

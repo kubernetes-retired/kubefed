@@ -27,9 +27,11 @@ NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 JOIN_CLUSTERS="${JOIN_CLUSTERS:-}"
 DOWNLOAD_BINARIES="${DOWNLOAD_BINARIES:-}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
-MANAGED_E2E_TEST_CMD="go test -v ./test/e2e -args -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+COMMON_TEST_CMD="go test -v"
+COMMON_TEST_ARGS="./test/e2e -args -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+MANAGED_E2E_TEST_CMD="${COMMON_TEST_CMD} -race ${COMMON_TEST_ARGS}"
 # Specifying a kube config allows the tests to target deployed (unmanaged) fixture
-UNMANAGED_E2E_TEST_CMD="${MANAGED_E2E_TEST_CMD} -kubeconfig=${HOME}/.kube/config"
+UNMANAGED_E2E_TEST_CMD="${COMMON_TEST_CMD} ${COMMON_TEST_ARGS} -kubeconfig=${HOME}/.kube/config"
 
 function build-binaries() {
   ${MAKE_CMD} hyperfed
