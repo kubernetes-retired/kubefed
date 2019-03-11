@@ -348,6 +348,8 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		return nil, errors.Wrapf(err, "Error retrieving version map for %s %q", kind, key)
 	}
 
+	targetKind := s.typeConfig.GetTarget().Kind
+
 	for _, clusterName := range selectedClusters {
 		// TODO(marun) Create the desired object only if needed
 		desiredObj, err := fedResource.ObjectForCluster(clusterName)
@@ -375,7 +377,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				continue
 			}
 
-			desiredObj, err = s.objectForUpdateOp(desiredObj, clusterObj, fedResource.Object())
+			desiredObj, err = objectForUpdateOp(targetKind, desiredObj, clusterObj, fedResource.Object())
 			if err != nil {
 				wrappedErr := errors.Wrapf(err, "Failed to determine desired object %s %q for cluster %q", kind, key, clusterName)
 				runtime.HandleError(wrappedErr)
@@ -428,11 +430,10 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 }
 
 // TODO(marun) Support webhooks for custom update behavior
-func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj, fedObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func objectForUpdateOp(targetKind string, desiredObj, clusterObj, fedObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
-	targetKind := s.typeConfig.GetTarget().Kind
 	if targetKind == util.ServiceKind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
