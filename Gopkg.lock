@@ -313,7 +313,7 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:9233890fd85411e026eb94a703d320478a6e792bd6b0f24cb0b91f588b75d925"
+  digest = "1:fb37fbd88a21b990d754d3c5d0c10da002cbea2aa8bec530ccb8c2a6fbeb8d7f"
   name = "github.com/kubernetes-sigs/kubebuilder"
   packages = [
     "pkg/config",
@@ -328,7 +328,6 @@
     "pkg/inject/run",
     "pkg/install",
     "pkg/signals",
-    "pkg/test",
   ]
   pruneopts = "NUT"
   revision = "a523fb6b174c2785084eb0948c4cfdaf2f818bc4"
@@ -765,7 +764,7 @@
   version = "kubernetes-1.12.4"
 
 [[projects]]
-  digest = "1:e29b9d05002abc1a54d1a0f392041e8bec05bcdd861a81f3b87d7e3a4eae9398"
+  digest = "1:1bec3939c715c6a9cda0225353d2fad4b6b95932f0a628319e8916052d3ad8de"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -802,6 +801,7 @@
     "pkg/util/runtime",
     "pkg/util/sets",
     "pkg/util/strategicpatch",
+    "pkg/util/uuid",
     "pkg/util/validation",
     "pkg/util/validation/field",
     "pkg/util/wait",
@@ -828,7 +828,7 @@
   revision = "92634e4423af1b6ad84ab94b43948b0e504a3edd"
 
 [[projects]]
-  digest = "1:b619f9388b3b3f7ce5364c18995e45c951c50946f072bbafda2d17c9645755df"
+  digest = "1:845b33393a6dbcbf40198317b7c8f342ee4794eae8fa88bc1ff57b41bc4afce9"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -959,6 +959,8 @@
     "tools/clientcmd/api",
     "tools/clientcmd/api/latest",
     "tools/clientcmd/api/v1",
+    "tools/leaderelection",
+    "tools/leaderelection/resourcelock",
     "tools/metrics",
     "tools/pager",
     "tools/record",
@@ -981,12 +983,7 @@
 [[projects]]
   digest = "1:d4db9b703c15bd2adc54f733ff4bf093353a5eaec4a0ba27a8cea04e819fcc90"
   name = "k8s.io/cluster-registry"
-  packages = [
-    "pkg/apis/clusterregistry/v1alpha1",
-    "pkg/client/clientset/versioned",
-    "pkg/client/clientset/versioned/scheme",
-    "pkg/client/clientset/versioned/typed/clusterregistry/v1alpha1",
-  ]
+  packages = ["pkg/apis/clusterregistry/v1alpha1"]
   pruneopts = "T"
   revision = "423735c7f10cbbc83ccee14d62b266ddcf9709dd"
   version = "v0.0.6"
@@ -1054,7 +1051,6 @@
     "github.com/kubernetes-sigs/kubebuilder/pkg/inject/run",
     "github.com/kubernetes-sigs/kubebuilder/pkg/install",
     "github.com/kubernetes-sigs/kubebuilder/pkg/signals",
-    "github.com/kubernetes-sigs/kubebuilder/pkg/test",
     "github.com/kubernetes/repo-infra/verify/boilerplate/test",
     "github.com/onsi/ginkgo",
     "github.com/onsi/ginkgo/config",
@@ -1081,6 +1077,7 @@
     "k8s.io/apimachinery/pkg/util/net",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
+    "k8s.io/apimachinery/pkg/util/uuid",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/util/yaml",
     "k8s.io/apimachinery/pkg/watch",
@@ -1099,15 +1096,17 @@
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
+    "k8s.io/client-go/tools/leaderelection",
+    "k8s.io/client-go/tools/leaderelection/resourcelock",
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/cert",
     "k8s.io/client-go/util/flowcontrol",
     "k8s.io/client-go/util/workqueue",
     "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1",
-    "k8s.io/cluster-registry/pkg/client/clientset/versioned",
     "k8s.io/kube-openapi/pkg/util/proto",
     "k8s.io/kubectl/pkg/framework/openapi",
     "sigs.k8s.io/controller-runtime/pkg/client",
+    "sigs.k8s.io/controller-runtime/pkg/client/apiutil",
     "sigs.k8s.io/testing_frameworks/integration",
   ]
   solver-name = "gps-cdcl"

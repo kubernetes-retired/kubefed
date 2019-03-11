@@ -17,6 +17,8 @@ limitations under the License.
 package app
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -32,6 +34,7 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
 
+	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
@@ -104,6 +107,36 @@ func Run(opts *options.Options) error {
 		glog.Info("Federation will target all namespaces")
 	}
 
+	if !opts.LeaderElection.LeaderElect {
+		// Leader election is disabled, so run inline until done.
+		startControllers(opts, stopChan)
+		<-stopChan
+		return errors.New("finished without leader election")
+	}
+
+	elector, err := leaderelection.NewFederationLeaderElector(opts, startControllers)
+	if err != nil {
+		panic(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		select {
+		case <-stopChan:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	elector.Run(ctx)
+
+	glog.Errorf("lost lease")
+	return errors.New("lost lease")
+}
+
+func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	if err := federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod); err != nil {
 		glog.Fatalf("Error starting cluster controller: %v", err)
 	}
@@ -139,9 +172,6 @@ func Run(opts *options.Options) error {
 			glog.Fatalf("Error starting federated type config controller: %v", err)
 		}
 	}
-
-	// Blockforever
-	select {}
 }
 
 type InstallStrategy struct {
