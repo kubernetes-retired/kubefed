@@ -22,6 +22,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,7 +44,7 @@ func TestHandlers(t *testing.T) {
 			},
 		},
 	}
-	triggerChan := make(chan struct{}, 1)
+	triggerChan := make(chan interface{}, 1)
 	triggered := func() bool {
 		select {
 		case <-triggerChan:
@@ -52,49 +53,32 @@ func TestHandlers(t *testing.T) {
 			return false
 		}
 	}
+	triggeredWith := func(obj interface{}) bool {
+		select {
+		case triggeredObj := <-triggerChan:
+			return triggeredObj == obj
+		default:
+			return false
+		}
+	}
 
 	trigger := NewTriggerOnAllChanges(
 		func(obj pkgruntime.Object) {
-			triggerChan <- struct{}{}
+			triggerChan <- obj
 		})
 
 	trigger.OnAdd(&service)
 	assert.True(t, triggered())
 	trigger.OnDelete(&service)
-	assert.True(t, triggered())
+	assert.True(t, triggeredWith(&service))
+	trigger.OnDelete(
+		cache.DeletedFinalStateUnknown{Key: "ns1/s1", Obj: &service})
+	assert.True(t, triggeredWith(&service))
+	trigger.OnDelete(
+		cache.DeletedFinalStateUnknown{Key: "ns1/s1", Obj: nil})
+	assert.False(t, triggered())
 	trigger.OnUpdate(&service, &service)
 	assert.False(t, triggered())
 	trigger.OnUpdate(&service, &service2)
 	assert.True(t, triggered())
-
-	trigger2 := NewTriggerOnMetaAndSpecChanges(
-		func(obj pkgruntime.Object) {
-			triggerChan <- struct{}{}
-		},
-	)
-
-	trigger2.OnAdd(&service)
-	assert.True(t, triggered())
-	trigger2.OnDelete(&service)
-	assert.True(t, triggered())
-	trigger2.OnUpdate(&service, &service)
-	assert.False(t, triggered())
-	trigger2.OnUpdate(&service, &service2)
-	assert.True(t, triggered())
-
-	service3 := apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "s1",
-		},
-		Status: apiv1.ServiceStatus{
-			LoadBalancer: apiv1.LoadBalancerStatus{
-				Ingress: []apiv1.LoadBalancerIngress{{
-					Hostname: "A",
-				}},
-			},
-		},
-	}
-	trigger2.OnUpdate(&service, &service3)
-	assert.False(t, triggered())
 }
