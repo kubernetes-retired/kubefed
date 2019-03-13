@@ -95,35 +95,20 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(targetObject *unstructured.Unst
 }
 
 func (c *FederatedTypeCrudTester) Create(targetObject *unstructured.Unstructured, overrides []interface{}) *unstructured.Unstructured {
-	createdObj := c.createResource(c.typeConfig.GetTarget(), targetObject)
-	qualifiedTypeName := util.QualifiedName{
-		Namespace: c.typeConfig.GetObjectMeta().Namespace,
-		Name:      c.typeConfig.GetObjectMeta().Name,
-	}
-
-	name := createdObj.GetName()
-	namespace := createdObj.GetNamespace()
-	if c.targetIsNamespace {
-		namespace = name
-	}
-	qualifiedName := util.QualifiedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-
+	qualifiedName := util.NewQualifiedName(targetObject)
 	kind := c.typeConfig.GetTarget().Kind
-	c.tl.Logf("Federating %s %q", kind, qualifiedName)
-	fedObject, err := federate.FederateResource(c.kubeConfig, qualifiedTypeName, qualifiedName, false)
+	fedKind := c.typeConfig.GetFederatedType().Kind
+	fedObject, err := federate.FederatedResourceFromTargetResource(c.typeConfig, targetObject)
 	if err != nil {
-		c.tl.Fatalf("Error federating %s %q: %v", kind, qualifiedName, err)
+		c.tl.Fatalf("Error obtaining %s from %s %q: %v", fedKind, kind, qualifiedName, err)
 	}
 
 	fedObject, err = c.setAdditionalTestData(fedObject, overrides)
 	if err != nil {
-		c.tl.Fatalf("Error setting overrides and placement on %s %q: %v", c.typeConfig.GetFederatedType().Kind, qualifiedName, err)
+		c.tl.Fatalf("Error setting overrides and placement on %s %q: %v", fedKind, qualifiedName, err)
 	}
 
-	return fedObject
+	return c.createResource(c.typeConfig.GetFederatedType(), fedObject)
 }
 
 func (c *FederatedTypeCrudTester) createResource(apiResource metav1.APIResource, desiredObj *unstructured.Unstructured) *unstructured.Unstructured {
@@ -163,30 +148,25 @@ func (c *FederatedTypeCrudTester) CheckCreate(targetObject *unstructured.Unstruc
 	return fedObject
 }
 
-// AdditionalTestData additionally sets fixture overrides and placement clusternames which don't come from FederateResource
+// AdditionalTestData additionally sets fixture overrides and placement clusternames into federated object
 func (c *FederatedTypeCrudTester) setAdditionalTestData(fedObject *unstructured.Unstructured, overrides []interface{}) (*unstructured.Unstructured, error) {
 	fedKind := c.typeConfig.GetFederatedType().Kind
-	qualifiedName := util.QualifiedName{
-		Namespace: fedObject.GetNamespace(),
-		Name:      fedObject.GetName(),
-	}
+	qualifiedName := util.NewQualifiedName(fedObject)
 
-	fedObject, err := c.updateObject(c.typeConfig.GetFederatedType(), fedObject, func(obj *unstructured.Unstructured) {
-		if overrides != nil {
-			err := unstructured.SetNestedField(obj.Object, overrides, util.SpecField, util.OverridesField)
-			if err != nil {
-				c.tl.Fatalf("Error updating overrides in %s %q: %v", fedKind, qualifiedName, err)
-			}
-		}
-		clusterNames := []string{}
-		for name := range c.testClusters {
-			clusterNames = append(clusterNames, name)
-		}
-		err := util.SetClusterNames(obj, clusterNames)
+	if overrides != nil {
+		err := unstructured.SetNestedField(fedObject.Object, overrides, util.SpecField, util.OverridesField)
 		if err != nil {
-			c.tl.Fatalf("Error setting cluster names in %s %q: %v", fedKind, qualifiedName, err)
+			c.tl.Fatalf("Error updating overrides in %s %q: %v", fedKind, qualifiedName, err)
 		}
-	})
+	}
+	clusterNames := []string{}
+	for name := range c.testClusters {
+		clusterNames = append(clusterNames, name)
+	}
+	err := util.SetClusterNames(fedObject, clusterNames)
+	if err != nil {
+		c.tl.Fatalf("Error setting cluster names in %s %q: %v", fedKind, qualifiedName, err)
+	}
 
 	return fedObject, err
 }

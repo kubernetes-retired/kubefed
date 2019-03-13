@@ -27,7 +27,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func NewTestObject(typeConfig typeconfig.Interface, namespace string, clusterNames []string, fixture *unstructured.Unstructured) (*unstructured.Unstructured, error) {
@@ -88,18 +87,18 @@ func NewTestTargetObject(typeConfig typeconfig.Interface, namespace string, fixt
 	}
 
 	federate.SetBasicMetaFields(obj, typeConfig.GetTarget(), "", namespace, "test-e2e-")
+	if typeConfig.GetTarget().Kind == util.NamespaceKind {
+		// Federated namespace testing needs to have the same name as its namespace.
+		obj.SetName(namespace)
+		obj.SetNamespace(namespace)
+	}
+
 	return obj, nil
 }
 
 func newTestUnstructured(apiResource metav1.APIResource, namespace string) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
-	obj.SetKind(apiResource.Kind)
-	gv := schema.GroupVersion{Group: apiResource.Group, Version: apiResource.Version}
-	obj.SetAPIVersion(gv.String())
-	obj.SetGenerateName("test-e2e-")
-	if apiResource.Namespaced {
-		obj.SetNamespace(namespace)
-	}
+	federate.SetBasicMetaFields(obj, apiResource, "", namespace, "test-e2e-")
 	return obj
 }
 
