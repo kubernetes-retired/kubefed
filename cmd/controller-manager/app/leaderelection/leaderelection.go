@@ -72,6 +72,7 @@ func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*
 		RetryPeriod:   opts.LeaderElection.RetryPeriod,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
+				glog.Info("promoted as leader")
 				stopChan := ctx.Done()
 				fnStartControllers(opts, stopChan)
 				<-stopChan

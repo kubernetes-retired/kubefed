@@ -24,7 +24,6 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	configlib "github.com/kubernetes-sigs/kubebuilder/pkg/config"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	"github.com/spf13/cobra"
@@ -33,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
@@ -45,6 +45,10 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
+)
+
+var (
+	kubeconfig, masterURL string
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -76,6 +80,8 @@ member clusters and does the necessary reconciliation`,
 
 	opts.AddFlags(cmd.Flags())
 	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
+	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
 	return cmd
 }
@@ -91,7 +97,11 @@ func Run(opts *options.Options) error {
 
 	stopChan := signals.SetupSignalHandler()
 
-	opts.Config.KubeConfig = configlib.GetConfigOrDie()
+	var err error
+	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	if err != nil {
+		panic(err)
+	}
 
 	if opts.InstallCRDs {
 		if err := install.NewInstaller(opts.Config.KubeConfig).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
