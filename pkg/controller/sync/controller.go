@@ -348,6 +348,8 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 		return nil, errors.Wrapf(err, "Error retrieving version map for %s %q", kind, key)
 	}
 
+	targetKind := s.typeConfig.GetTarget().Kind
+
 	for _, clusterName := range selectedClusters {
 		// TODO(marun) Create the desired object only if needed
 		desiredObj, err := fedResource.ObjectForCluster(clusterName)
@@ -375,7 +377,7 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 				continue
 			}
 
-			desiredObj, err = s.objectForUpdateOp(desiredObj, clusterObj)
+			desiredObj, err = objectForUpdateOp(targetKind, desiredObj, clusterObj, fedResource.Object())
 			if err != nil {
 				wrappedErr := errors.Wrapf(err, "Failed to determine desired object %s %q for cluster %q", kind, key, clusterName)
 				runtime.HandleError(wrappedErr)
@@ -428,18 +430,17 @@ func (s *FederationSyncController) clusterOperations(selectedClusters, unselecte
 }
 
 // TODO(marun) Support webhooks for custom update behavior
-func (s *FederationSyncController) objectForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func objectForUpdateOp(targetKind string, desiredObj, clusterObj, fedObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
-	targetKind := s.typeConfig.GetTarget().Kind
 	if targetKind == util.ServiceKind {
 		return serviceForUpdateOp(desiredObj, clusterObj)
 	}
 	if targetKind == util.ServiceAccountKind {
 		return serviceAccountForUpdateOp(desiredObj, clusterObj)
 	}
-	return desiredObj, nil
+	return retainReplicas(desiredObj, clusterObj, fedObj)
 }
 
 func serviceForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
@@ -524,6 +525,30 @@ func serviceAccountForUpdateOp(desiredObj, clusterObj *unstructured.Unstructured
 		err := unstructured.SetNestedField(desiredObj.Object, secrets, util.SecretsField)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error setting secrets for service account")
+		}
+	}
+	return desiredObj, nil
+}
+
+func retainReplicas(desiredObj, clusterObj, fedObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// Retain the replicas field if the federated object has been
+	// configured to do so.  If the replicas field is intended to be
+	// set by the in-cluster HPA controller, not retaining it will
+	// thrash the scheduler.
+	retainReplicas, ok, err := unstructured.NestedBool(fedObj.Object, util.SpecField, util.RetainReplicasField)
+	if err != nil {
+		return nil, err
+	}
+	if ok && retainReplicas {
+		replicas, ok, err := unstructured.NestedInt64(clusterObj.Object, util.SpecField, util.ReplicasField)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			err := unstructured.SetNestedField(desiredObj.Object, replicas, util.SpecField, util.ReplicasField)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return desiredObj, nil

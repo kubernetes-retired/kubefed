@@ -91,6 +91,8 @@ spec:
                       type: object
                   type: object
               type: object
+            retainReplicas:
+              type: bool
             template:
               properties:
                 apiVersion:
