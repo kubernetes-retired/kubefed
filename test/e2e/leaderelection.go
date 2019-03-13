@@ -17,15 +17,13 @@ limitations under the License.
 package e2e
 
 import (
-	"context"
-	"time"
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"strings"
 
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/leaderelection"
-
-	app "github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
-	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -36,73 +34,80 @@ var _ = Describe("Leader Elector", func() {
 	f := framework.NewFederationFramework("leaderelection")
 	tl := framework.NewE2ELogger()
 
-	var leaderElection *util.LeaderElectionConfiguration
-	var opts *options.Options
-
-	BeforeEach(func() {
-		leaderElection = &util.LeaderElectionConfiguration{
-			LeaderElect:   true,
-			LeaseDuration: time.Second,
-			RenewDeadline: 500 * time.Millisecond,
-			RetryPeriod:   100 * time.Millisecond,
-			ResourceLock:  "configmaps",
-		}
-
-		opts = options.NewOptions()
-		opts.Config = f.ControllerConfig()
-		opts.LeaderElection = leaderElection
-	})
-
 	It("should chose secondary instance, primary goes down", func() {
 		if !framework.TestContext.TestManagedFederation {
 			framework.Skipf("leader election is valid only in managed federation setup")
 		}
 
-		primaryLeaderElector, err := app.NewFederationLeaderElector(opts, func(opts *options.Options, stopChan <-chan struct{}) {
-			tl.Log("Run controllers of primary controller manager")
-			<-stopChan
-		})
+		const leaderIdentifier = "promoted as leader"
+
+		primaryControllerManager, primaryLogStream, err := spawnControllerManagerProcess(f.KubeConfig().Host, f.FederationSystemNamespace())
 		framework.ExpectNoError(err)
+		if waitUntilLogStreamContains(tl, primaryLogStream, leaderIdentifier) {
+			tl.Log("Primary controller manager became leader")
+		} else {
+			_ = primaryControllerManager.Process.Kill()
+			tl.Fatal("Primary controller manager failed to become leader")
+		}
 
-		ctx := context.Background()
-		primaryContext, primaryContextCancel := context.WithCancel(ctx)
-
-		tl.Log("Running primary instance of controller manager")
+		done := make(chan bool, 1)
+		secondaryControllerManager, secondaryLogStream, err := spawnControllerManagerProcess(f.KubeConfig().Host, f.FederationSystemNamespace())
+		framework.ExpectNoError(err)
 		go func() {
-			primaryLeaderElector.Run(primaryContext)
-			waitToBecomeLeader(tl, primaryLeaderElector)
-			tl.Log("Primary instance is elected leader")
+			if waitUntilLogStreamContains(tl, secondaryLogStream, leaderIdentifier) {
+				tl.Log("Secondary controller manager became leader")
+				done <- true
+			} else {
+				_ = secondaryControllerManager.Process.Kill()
+				tl.Fatal("Secondary controller manager failed to become leader")
+			}
 		}()
 
-		secondaryLeaderElector, err := app.NewFederationLeaderElector(opts, func(opts *options.Options, stopChan <-chan struct{}) {
-			tl.Log("Run controllers of secondary controller manager")
-			<-stopChan
-		})
+		err = primaryControllerManager.Process.Kill()
 		framework.ExpectNoError(err)
 
-		SecondaryContext, secondaryContextCancel := context.WithCancel(ctx)
-		tl.Log("Running secondary instance of controller manager")
-		go func() {
-			secondaryLeaderElector.Run(SecondaryContext)
-			waitToBecomeLeader(tl, secondaryLeaderElector)
-			tl.Log("Secondary instance is elected leader")
-		}()
+		<-done
 
-		// Stop primary instance of controller manager
-		primaryContextCancel()
-
-		secondaryContextCancel()
+		err = secondaryControllerManager.Process.Kill()
+		framework.ExpectNoError(err)
 	})
 })
 
-func waitToBecomeLeader(tl common.TestLogger, lec *leaderelection.LeaderElector) {
-	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-		if lec.IsLeader() {
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		tl.Fatalf("Timed out waiting to become leader, err: %v", err)
+func spawnControllerManagerProcess(master, federationNamespace string) (*exec.Cmd, io.ReadCloser, error) {
+	binPath, _ := os.LookupEnv("TEST_ASSET_PATH")
+	args := []string{fmt.Sprintf("--master=%s", master),
+		fmt.Sprintf("--federation-namespace=%s", federationNamespace),
+		"--leader-elect-lease-duration=1500ms",
+		"--leader-elect-renew-deadline=1000ms",
+		"--leader-elect-retry-period=500ms",
 	}
+	cmd := exec.Command(binPath+"/controller-manager", args...)
+
+	logStream, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, nil, err
+	}
+	return cmd, logStream, nil
+}
+
+func waitUntilLogStreamContains(tl common.TestLogger, stream io.ReadCloser, substr string) bool {
+	scanner := bufio.NewScanner(stream)
+	done := make(chan bool, 1)
+	go func() {
+		for scanner.Scan() {
+			line := scanner.Text()
+			tl.Log(line)
+			if strings.Contains(line, substr) {
+				done <- true
+				return
+			}
+		}
+		done <- false
+	}()
+
+	return <-done
 }
