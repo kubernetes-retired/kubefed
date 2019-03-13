@@ -87,12 +87,6 @@ func NewTestTargetObject(typeConfig typeconfig.Interface, namespace string, fixt
 	}
 
 	federate.SetBasicMetaFields(obj, typeConfig.GetTarget(), "", namespace, "test-e2e-")
-	if typeConfig.GetTarget().Kind == util.NamespaceKind {
-		// Federated namespace testing needs to have the same name as its namespace.
-		obj.SetName(namespace)
-		obj.SetNamespace(namespace)
-	}
-
 	return obj, nil
 }
 
