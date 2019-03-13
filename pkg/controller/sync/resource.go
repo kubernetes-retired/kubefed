@@ -45,7 +45,7 @@ type FederatedResource interface {
 	GetVersions() (map[string]string, error)
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
-	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, err error)
+	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error)
 	SkipClusterChange(clusterObj pkgruntime.Object) bool
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	MarkedForDeletion() bool
@@ -106,7 +106,7 @@ func (r *federatedResource) DeleteVersions() {
 	r.versionManager.Delete(r.federatedName)
 }
 
-func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.FederatedCluster) ([]string, []string, error) {
+func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.FederatedCluster) (sets.String, error) {
 	if r.typeConfig.GetNamespaced() {
 		return computeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope)
 	}

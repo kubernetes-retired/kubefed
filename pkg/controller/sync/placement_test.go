@@ -22,6 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -47,28 +48,25 @@ func TestSelectedClusterNames(t *testing.T) {
 	testCases := map[string]struct {
 		clusterNames    []string
 		clusterSelector map[string]string
-		expectedNames   []string
+		expectedNames   sets.String
 	}{
 		"ignore cluster selector when cluster names present": {
 			clusterNames:    []string{"cluster1"},
 			clusterSelector: map[string]string{},
-			expectedNames:   []string{"cluster1"},
+			expectedNames:   sets.NewString("cluster1"),
 		},
 		"no clusters when cluster names and selector absent": {
-			expectedNames: []string{},
+			expectedNames: sets.NewString(),
 		},
 		"all clusters when cluster names absent and selector empty": {
 			clusterSelector: map[string]string{},
-			expectedNames: []string{
-				"cluster1",
-				"cluster2",
-			},
+			expectedNames:   sets.NewString("cluster1", "cluster2"),
 		},
 		"selected clusters when cluster names absent and selector not empty": {
 			clusterSelector: map[string]string{
 				"foo": "bar",
 			},
-			expectedNames: []string{"cluster2"},
+			expectedNames: sets.NewString("cluster2"),
 		},
 	}
 

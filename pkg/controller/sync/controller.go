@@ -292,16 +292,17 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource)
 		return util.StatusNotSynced
 	}
 
-	selectedClusters, unselectedClusters, err := fedResource.ComputePlacement(clusters)
+	selectedClusters, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to compute placement for %s %q", kind, key))
 		return util.StatusError
 	}
+	unselectedClusters := getClusterNames(clusters).Difference(selectedClusters)
 
 	glog.V(3).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s, unselected clusters are: %s",
 		kind, key, selectedClusters, unselectedClusters)
 
-	operations, err := s.clusterOperations(selectedClusters, unselectedClusters, fedResource)
+	operations, err := s.clusterOperations(selectedClusters.List(), unselectedClusters.List(), fedResource)
 	if err != nil {
 		s.eventRecorder.Eventf(fedResource.Object(), corev1.EventTypeWarning, "FedClusterOperationsError",
 			"Error obtaining sync operations for %s %q: %v", kind, key, err)
@@ -315,7 +316,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource)
 	// TODO(marun) raise the visibility of operationErrors to aid in debugging
 	versionMap, operationErrors := s.updater.Update(operations)
 
-	err = fedResource.UpdateVersions(selectedClusters, versionMap)
+	err = fedResource.UpdateVersions(selectedClusters.List(), versionMap)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to update version status for %s %q", kind, key))
 		// Versioning of federated resources is an optimization to
