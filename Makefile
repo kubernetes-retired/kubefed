@@ -37,9 +37,9 @@ endif
 BUILDMNT = /go/src/$(GOTARGET)
 BUILD_IMAGE ?= golang:1.11.2
 
-HYPERFED_TARGET = bin/hyperfed
-CONTROLLER_TARGET = bin/controller-manager
-KUBEFED2_TARGET = bin/kubefed2
+HYPERFED_TARGET = bin/hyperfed-linux
+CONTROLLER_TARGET = bin/controller-manager-linux
+KUBEFED2_TARGET = bin/kubefed2-linux
 
 LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/version.version=$(GIT_VERSION) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
