@@ -35,7 +35,7 @@ UNMANAGED_E2E_TEST_CMD="${COMMON_TEST_CMD} ${COMMON_TEST_ARGS} -kubeconfig=${HOM
 
 function build-binaries() {
   ${MAKE_CMD} hyperfed
-  ${MAKE_CMD} controller
+  ${MAKE_CMD} controller-native
   ${MAKE_CMD} kubefed2
 }
 
