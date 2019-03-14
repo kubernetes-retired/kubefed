@@ -13,6 +13,7 @@
   - [Operations](#operations)
     - [Join Clusters](#join-clusters)
     - [Check Status of Joined Clusters](#check-status-of-joined-clusters)
+    - [Unjoin Clusters](#unjoin-clusters)
   - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Example](#example)
@@ -173,6 +174,13 @@ Status:
     Reason:                ClusterReady
     Status:                True
     Type:                  Ready
+```
+### Unjoin Clusters
+
+If required, federation allows you to unjoin clusters using `kubefed2` tool.
+
+```bash
+kubefed2 unjoin cluster2 --host-cluster-context cluster1
 ```
 
 ## Enabling federation of an API type
