@@ -1,0 +1,22 @@
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: federation-v2
+data:
+  install-crds: "false"
+  federation-namespace: federation-system
+  registry-namespace: kube-multicluster-public
+  cluster-available-delay: "20s"
+  cluster-unavailable-delay: "60s"
+  limited-scope: "false"
+  uster-monitor-period: "40s"
+  leader-elect: "true"
+  leader-elect-lease-duration: "15s"
+  leader-elect-renew-deadline: "10s"
+  leader-elect-retry-period: "5s"
+  leader-elect-resource-lock: configmaps
+  feature-gates: |
+    PushReconciler=true
+    SchedulerPreferences=true
+    CrossClusterServiceDiscovery=true
+    FederatedIngress=true
