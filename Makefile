@@ -78,7 +78,7 @@ fmt:
 	go fmt $(TEST_PKGS)
 
 container: hyperfed
-	cp -f bin/hyperfed images/federation-v2/
+	cp -f $(HYPERFED_TARGET) images/federation-v2/hyperfed
 	$(DOCKER) build images/federation-v2 \
 		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION)
 	rm -f images/federation-v2/hyperfed
