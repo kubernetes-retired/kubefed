@@ -30,6 +30,7 @@ import (
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -234,11 +235,24 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	if err != nil {
 		return errors.Wrap(err, "Failed to create crd clientset")
 	}
-	_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
-	if err != nil {
-		return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
+
+	existingCRD, err := crdClient.CustomResourceDefinitions().Get(resources.CRD.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
+		if err != nil {
+			return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
+		}
+		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
+	} else if err != nil {
+		return errors.Wrapf(err, "Error getting CRD %q", resources.CRD.Name)
+	} else {
+		existingCRD.Spec = resources.CRD.Spec
+		_, err = crdClient.CustomResourceDefinitions().Update(existingCRD)
+		if err != nil {
+			return errors.Wrapf(err, "Error updating CRD %q", resources.CRD.Name)
+		}
+		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s updated\n", resources.CRD.Name))
 	}
-	write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
 
 	client, err := genericclient.New(config)
 	if err != nil {
