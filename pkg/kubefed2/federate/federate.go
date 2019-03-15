@@ -62,10 +62,13 @@ type federateResource struct {
 	typeName          string
 	resourceName      string
 	resourceNamespace string
+	output            string
+	outputYAML        bool
 }
 
 func (j *federateResource) Bind(flags *pflag.FlagSet) {
 	flags.StringVarP(&j.resourceNamespace, "namespace", "n", "default", "The namespace of the resource to federate.")
+	flags.StringVarP(&j.output, "output", "o", "", "If provided, the resource that would be created in the API by the command is instead output to stdout in the provided format.  Valid format is ['yaml'].")
 }
 
 // Complete ensures that options are valid.
@@ -84,6 +87,12 @@ func (j *federateResource) Complete(args []string) error {
 		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
 		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 		j.resourceNamespace = ""
+	}
+
+	if j.output == "yaml" {
+		j.outputYAML = true
+	} else if len(j.output) > 0 {
+		return errors.Errorf("Invalid value for --output: %s", j.output)
 	}
 
 	return nil
@@ -136,11 +145,28 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      j.resourceName,
 	}
 
-	_, err = FederateResource(hostConfig, qualifiedTypeName, qualifiedResourceName, j.DryRun)
-	return err
+	resources, err := GetFedResources(hostConfig, qualifiedTypeName, qualifiedResourceName)
+	if err != nil {
+		return err
+	}
+
+	if j.outputYAML {
+		err := util.WriteUnstructuredToYaml(resources.FedResource, cmdOut)
+		if err != nil {
+			return errors.Wrap(err, "Failed to write federated resource to YAML")
+		}
+		return nil
+	}
+
+	return CreateFedResource(hostConfig, resources, j.DryRun)
 }
 
-func FederateResource(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName, dryrun bool) (*unstructured.Unstructured, error) {
+type fedResources struct {
+	typeConfig  typeconfig.Interface
+	FedResource *unstructured.Unstructured
+}
+
+func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName) (*fedResources, error) {
 	typeConfig, err := lookupTypeDetails(hostConfig, qualifiedTypeName)
 	if err != nil {
 		return nil, err
@@ -156,7 +182,10 @@ func FederateResource(hostConfig *rest.Config, qualifiedTypeName, qualifiedName 
 		return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTarget().Kind, qualifiedName)
 	}
 
-	return createFedResource(hostConfig, typeConfig, fedResource, qualifiedName, dryrun)
+	return &fedResources{
+		typeConfig:  typeConfig,
+		FedResource: fedResource,
+	}, nil
 }
 
 func lookupTypeDetails(config *rest.Config, qualifiedTypeName ctlutil.QualifiedName) (*fedv1a1.FederatedTypeConfig, error) {
@@ -250,23 +279,22 @@ func getNamespace(typeConfig typeconfig.Interface, qualifiedName ctlutil.Qualifi
 	return qualifiedName.Namespace
 }
 
-func createFedResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTypeConfig, fedResource *unstructured.Unstructured, qualifiedName ctlutil.QualifiedName, dryrun bool) (*unstructured.Unstructured, error) {
-	fedAPIResource := typeConfig.GetFederatedType()
+func CreateFedResource(hostConfig *rest.Config, resources *fedResources, dryrun bool) error {
+	fedAPIResource := resources.typeConfig.GetFederatedType()
 	fedKind := fedAPIResource.Kind
 	fedClient, err := ctlutil.NewResourceClient(hostConfig, &fedAPIResource)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error creating client for %s", fedKind)
+		return errors.Wrapf(err, "Error creating client for %s", fedKind)
 	}
 
-	qualifiedFedName := ctlutil.NewQualifiedName(fedResource)
-	var createdResource *unstructured.Unstructured = nil
+	qualifiedFedName := ctlutil.NewQualifiedName(resources.FedResource)
 	if !dryrun {
-		createdResource, err = fedClient.Resources(fedResource.GetNamespace()).Create(fedResource, metav1.CreateOptions{})
+		_, err = fedClient.Resources(resources.FedResource.GetNamespace()).Create(resources.FedResource, metav1.CreateOptions{})
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error creating %s %q", fedKind, qualifiedFedName)
+			return errors.Wrapf(err, "Error creating %s %q", fedKind, qualifiedFedName)
 		}
 	}
 
-	glog.Infof("Successfully created a %s from %s %q", fedKind, typeConfig.GetTarget().Kind, qualifiedName)
-	return createdResource, nil
+	glog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, resources.typeConfig.GetTarget().Kind)
+	return nil
 }

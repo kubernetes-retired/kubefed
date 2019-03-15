@@ -94,12 +94,18 @@ var _ = Describe("Federate resource", func() {
 			defer deleteResources(f, tl, typeConfig, testResourceName)
 
 			tl.Logf("Federating %s %q", kind, testResourceName)
-			federatedObject, err := federate.FederateResource(kubeConfig, typeName, testResourceName, false)
+			fedKind := typeConfig.GetFederatedType().Kind
+			resources, err := federate.GetFedResources(kubeConfig, typeName, testResourceName)
 			if err != nil {
-				tl.Fatalf("Error federating %s %q: %v", kind, testResourceName, err)
+				tl.Fatalf("Error getting %s from %s %q: %v", fedKind, kind, testResourceName, err)
 			}
 
-			validateTemplateEquality(tl, federatedObject, createdTargetObject, typeConfig.GetFederatedType().Kind)
+			err = federate.CreateFedResource(kubeConfig, resources, false)
+			if err != nil {
+				tl.Fatalf("Error creating %s %q: %v", fedKind, testResourceName, err)
+			}
+
+			validateTemplateEquality(tl, fedResourceFromAPI(tl, typeConfig, kubeConfig, testResourceName), createdTargetObject, fedKind)
 		})
 	}
 })
@@ -122,13 +128,8 @@ func validateTemplateEquality(tl common.TestLogger, fedObj, targetObj *unstructu
 }
 
 func deleteResources(f framework.FederationFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testResourceName util.QualifiedName) {
-	fedAPIResource := typeConfig.GetFederatedType()
-	fedKind := fedAPIResource.Kind
-	client, err := util.NewResourceClient(f.KubeConfig(), &fedAPIResource)
-	if err != nil {
-		tl.Fatalf("Error getting resource client for %s", fedKind)
-	}
-	deleteResource(tl, client, testResourceName, fedKind)
+	client := getClient(tl, typeConfig, f.KubeConfig())
+	deleteResource(tl, client, testResourceName, typeConfig.GetFederatedType().Kind)
 
 	targetAPIResource := typeConfig.GetTarget()
 	// Namespaced resources will be deleted in ns cleanup
@@ -157,4 +158,23 @@ func deleteResource(tl common.TestLogger, client util.ResourceClient, qualifiedN
 	if err != nil {
 		tl.Fatalf("Error deleting %s %q: %v", kind, qualifiedName, err)
 	}
+}
+
+func fedResourceFromAPI(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, qualifiedName util.QualifiedName) *unstructured.Unstructured {
+	client := getClient(tl, typeConfig, kubeConfig)
+	fedResource, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	if err != nil {
+		tl.Fatalf("Federated resource %q not found: %v", err)
+	}
+	return fedResource
+}
+
+func getClient(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config) util.ResourceClient {
+	fedAPIResource := typeConfig.GetFederatedType()
+	fedKind := fedAPIResource.Kind
+	client, err := util.NewResourceClient(kubeConfig, &fedAPIResource)
+	if err != nil {
+		tl.Fatalf("Error getting resource client for %s", fedKind)
+	}
+	return client
 }
