@@ -4,6 +4,7 @@
 
 - [User Guide](#user-guide)
   - [Prerequisites](#prerequisites)
+    - [Getting the Code](#gettingthecode)
     - [Binaries](#binaries)
       - [kubebuilder](#kubebuilder)
     - [Deployment Image](#deployment-image)
@@ -58,6 +59,22 @@ Please refer to [Federation V2 Concepts](./concepts.md) first before you go thro
 
 The federation v2 deployment requires kubernetes version >= 1.11. The following
 is a detailed list of binaries required.
+
+### Getting the Code
+
+Fork the repository in the cloud:<br />
+* Visit https://github.com/kubernetes-sigs/federation-v2<br />
+* Click Fork button (top right) to establish a cloud-based fork.<br />
+
+The code must be checked out as a subdirectory of `github.com` and not `k8s.io`.
+
+```bash
+cd $GOPATH/src/github.com
+# Replace "$YOUR_GITHUB_USERNAME" below with your github username
+git clone https://github.com/kubernetes-sigs/federation-v2.git
+cd federation-v2
+```
+**NOTE:** Make sure your $GOPATH is /home/(username)/go
 
 ### Binaries
 
