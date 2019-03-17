@@ -95,7 +95,7 @@ var _ = Describe("Federate resource", func() {
 
 			tl.Logf("Federating %s %q", kind, testResourceName)
 			fedKind := typeConfig.GetFederatedType().Kind
-			resources, err := federate.GetFedResources(kubeConfig, typeName, testResourceName)
+			resources, err := federate.GetFedResources(kubeConfig, typeName, testResourceName, false)
 			if err != nil {
 				tl.Fatalf("Error getting %s from %s %q: %v", fedKind, kind, testResourceName, err)
 			}
