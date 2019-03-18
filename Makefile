@@ -29,7 +29,7 @@ ifeq ($(DIFF), 1)
 endif
 
 ifneq ($(VERBOSE),)
-VERBOSE_FLAG = -v
+    VERBOSE_FLAG = -v
 endif
 BUILDMNT = /go/src/$(GOTARGET)
 BUILD_IMAGE ?= golang:1.11.2
@@ -56,29 +56,24 @@ BUILD_KUBEFED2 = $(BUILDCMD_KUBEFED2) cmd/kubefed2/kubefed2.go
 
 BUILD_CONTROLLER_NATIVE = $(BUILDCMD_CONTROLLER_NATIVE) cmd/controller-manager/main.go
 
-TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
-TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
-TEST_CMD = go test $(TESTARGS)
-TEST = $(TEST_CMD) $(TEST_PKGS)
-
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build
+.PHONY: all container push clean hyperfed controller kubefed2 test vet fmt build
 
 all: container hyperfed controller kubefed2
 
 # Unit tests
 test: vet
-	go test $(TEST_PKGS)
+	go test $(shell go list ./... | grep -v /test/)
 
 build: hyperfed controller kubefed2
 
 vet:
-	go vet $(TEST_PKGS)
+	go vet ./...
 
 fmt:
-	go fmt $(TEST_PKGS)
+	bash ./hack/go-tools/verify-gofmt.sh
 
 container: hyperfed
 	cp -f $(HYPERFED_TARGET) bin/hyperfed
