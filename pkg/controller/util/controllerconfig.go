@@ -26,10 +26,6 @@ import (
 // LeaderElectionConfiguration defines the configuration of leader election
 // clients for controller that can run with leader election enabled.
 type LeaderElectionConfiguration struct {
-	// leaderElect enables a leader election client to gain leadership
-	// before executing the main loop. Enable this when running replicated
-	// components for high availability.
-	LeaderElect bool
 	// leaseDuration is the duration that non-leader candidates will wait
 	// after observing a leadership renewal until attempting to acquire
 	// leadership of a led but unrenewed leader slot. This is effectively the
