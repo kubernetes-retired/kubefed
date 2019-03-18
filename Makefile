@@ -14,14 +14,11 @@
 
 TARGET = federation-v2
 GOTARGET = github.com/kubernetes-sigs/$(TARGET)
-REGISTRY ?= quay.io/kubernetes-multicluster
-IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
 BIN_DIR := bin
 DOCKER ?= docker
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
-GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
 GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
@@ -84,10 +81,8 @@ fmt:
 	go fmt $(TEST_PKGS)
 
 container: hyperfed
-	cp -f $(HYPERFED_TARGET) images/federation-v2/hyperfed
-	$(DOCKER) build images/federation-v2 \
-		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION)
-	rm -f images/federation-v2/hyperfed
+	cp -f $(HYPERFED_TARGET) bin/hyperfed
+	bash ./scripts/imagebuild.sh build
 
 $(BIN_DIR):
 	mkdir $(BIN_DIR)
@@ -104,15 +99,8 @@ kubefed2: $(BIN_DIR)
 controller-native: $(BIN_DIR)
 	$(BUILD_CONTROLLER_NATIVE)
 
-push:
-	$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION)
-	if git describe --tags --exact-match >/dev/null 2>&1; \
-	then \
-		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):$(GIT_TAG); \
-		$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_TAG); \
-		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):latest; \
-		$(DOCKER) push $(REGISTRY)/$(TARGET):latest; \
-	fi
+push: container
+	bash ./scripts/imagebuild.sh push
 
 clean:
 	rm -f $(KUBEFED2_TARGET) $(CONTROLLER_TARGET) $(HYPERFED_TARGET)
