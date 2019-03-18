@@ -281,9 +281,9 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 	key := qualifiedName.String()
 	adapterType := m.adapter.TypeName()
 
-	m.RLock()
+	m.Lock()
 	obj, ok := m.versions[key]
-	m.RUnlock()
+	defer m.Unlock()
 	if !ok {
 		// Version is no longer tracked
 		return util.StatusAllOK
@@ -335,8 +335,6 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 	updatedObj := obj.DeepCopyObject()
 	err = m.client.UpdateStatus(context.TODO(), updatedObj)
 	if err == nil {
-		m.Lock()
-		defer m.Unlock()
 		_, ok := m.versions[key]
 		if ok {
 			// Update the version since it is still being tracked.
@@ -388,8 +386,7 @@ func (m *VersionManager) refreshVersion(obj pkgruntime.Object) error {
 		return err
 	}
 	key := qualifiedName.String()
-	m.Lock()
-	defer m.Unlock()
+	// Should be Locked in caller function
 	_, ok := m.versions[key]
 	if !ok {
 		// Version has been deleted, no further action required
@@ -404,8 +401,7 @@ func (m *VersionManager) refreshVersion(obj pkgruntime.Object) error {
 }
 
 func (m *VersionManager) clearResourceVersion(key string) error {
-	m.Lock()
-	defer m.Unlock()
+	// Should be locked in calller function
 	obj, ok := m.versions[key]
 	if !ok {
 		// Version is deleted
