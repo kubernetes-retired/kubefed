@@ -61,8 +61,8 @@ var (
 		--host-cluster-context flag otherwise.`
 
 	enable_example = `
-		# Enable federation of Services with service type overrideable
-		kubefed2 enable Service --override-paths=spec.type --host-cluster-context=cluster1`
+		# Enable federation of Deployments
+		kubefed2 enable deployments.apps --host-cluster-context=cluster1`
 )
 
 type enableType struct {
