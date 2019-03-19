@@ -41,18 +41,19 @@ root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dest_dir="${root_dir}/bin"
 mkdir -p "${dest_dir}"
 
+platform=$(uname -s|tr A-Z a-z)
 kb_version="1.0.4"
-kb_tgz="kubebuilder_${kb_version}_linux_amd64.tar.gz"
+kb_tgz="kubebuilder_${kb_version}_${platform}_amd64.tar.gz"
 kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_version}/${kb_tgz}"
 curl "${curl_args}O" "${kb_url}" \
   && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
   && rm "${kb_tgz}"
 
 helm_version="2.11.0"
-helm_tgz="helm-v${helm_version}-linux-amd64.tar.gz"
+helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://storage.googleapis.com/kubernetes-helm/$helm_tgz"
 curl "${curl_args}O" "${helm_url}" \
-    && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 linux-amd64/helm \
+    && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
     && rm "${helm_tgz}"
 
 echo    "# destination:"
