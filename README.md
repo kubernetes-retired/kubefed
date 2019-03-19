@@ -29,9 +29,9 @@ clusters.
 
 Type configuration has three fundamental concepts:
 
-- **Template types** define the representation of a resource common across clusters
-- **Placement types** define which clusters the resource is intended to appear in
-- **Override types** optionally define per-cluster field-level variation to apply to the template
+- **Templates** define the representation of a resource common across clusters
+- **Placement** defines which clusters the resource is intended to appear in
+- **Overrides** define per-cluster field-level variation to apply to the template
 
 These three abstractions provide a concise representation of a resource intended
 to appear in multiple clusters. They encode the minimum information required for
