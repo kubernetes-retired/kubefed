@@ -117,13 +117,6 @@ func Run(opts *options.Options) error {
 		glog.Info("Federation will target all namespaces")
 	}
 
-	if !opts.LeaderElection.LeaderElect {
-		// Leader election is disabled, so run inline until done.
-		startControllers(opts, stopChan)
-		<-stopChan
-		return errors.New("finished without leader election")
-	}
-
 	elector, err := leaderelection.NewFederationLeaderElector(opts, startControllers)
 	if err != nil {
 		panic(err)

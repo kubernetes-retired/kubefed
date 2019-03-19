@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-## Configuration values for federation v2 controllermanager statefulset.
+## Configuration values for federation v2 controllermanager deployment.
 ## TODO(gyliu513): Add more parameters here like `feature-gates` etc.
 ##
 controllermanager:

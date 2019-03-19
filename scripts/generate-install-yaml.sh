@@ -23,7 +23,7 @@ IMAGE_NAME="${IMAGE_NAME:-quay.io/kubernetes-multicluster/federation-v2:latest}"
 FEDERATION_NAMESPACE="${FEDERATION_NAMESPACE:-""}"
 
 kubebuilder create config --controller-image "${IMAGE_NAME}" \
-            --name federation --output "${INSTALL_YAML}"
+            --controller-type=deployment --name federation --output "${INSTALL_YAML}"
 
 # Increase memory request and limit to avoid OOM issues.
 sed -i 's/memory: 20Mi/memory: 64Mi/' "${INSTALL_YAML}"

@@ -1,12 +1,12 @@
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
     api: federation
     control-plane: controller-manager
-    kubebuilder.k8s.io: 1.0.3
+    kubebuilder.k8s.io: 1.0.4
   name: federation-controller-manager
   namespace: {{ .Release.Namespace }}
 spec:
@@ -15,15 +15,15 @@ spec:
     matchLabels:
       api: federation
       control-plane: controller-manager
-      kubebuilder.k8s.io: 1.0.3
-  serviceName: federation-controller-manager-service
+      kubebuilder.k8s.io: 1.0.4
+  strategy: {}
   template:
     metadata:
       creationTimestamp: null
       labels:
         api: federation
         control-plane: controller-manager
-        kubebuilder.k8s.io: 1.0.3
+        kubebuilder.k8s.io: 1.0.4
     spec:
       containers:
       - args:
