@@ -231,6 +231,17 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		}
 	}
 
+	hostClientset, err := util.HostClientset(config)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create host clientset")
+	}
+	_, err = hostClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "Federation system namespace %q does not exist", namespace)
+	} else if err != nil {
+		return errors.Wrapf(err, "Error attempting to determine whether federation system namespace %q exists", namespace)
+	}
+
 	crdClient, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create crd clientset")
