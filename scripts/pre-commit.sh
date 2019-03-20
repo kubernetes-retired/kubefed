@@ -193,7 +193,7 @@ echo "Running go e2e tests with unmanaged fixture deployed by script"
 run-namespaced-e2e-tests-with-unmanaged-fixture
 
 echo "Deleting namespaced federation-v2"
-FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/delete-federation.sh
+FEDERATION_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-federation.sh
 
 echo "Deploying federation-v2 with helm chart"
 FEDERATION_NAMESPACE=foo NAMESPACED=y USE_CHART=true ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
