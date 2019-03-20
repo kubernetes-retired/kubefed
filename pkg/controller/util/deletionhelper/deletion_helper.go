@@ -103,7 +103,7 @@ func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (
 // when done.
 // Callers are expected to keep calling this (with appropriate backoff) until
 // it succeeds.
-func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, skipDelete func(runtime.Object) bool) (
+func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, targetKey string, skipDelete func(runtime.Object) bool) (
 	runtime.Object, error) {
 	objName := dh.objNameFunc(obj)
 	glog.V(2).Infof("Handling deletion of federated dependents for object: %s", objName)
@@ -137,8 +137,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 	// TODO: Handle the case when cluster resource is watched after this is executed.
 	// This can happen if a namespace is deleted before its creation had been
 	// observed in all underlying clusters.
-	storeKey := dh.informer.GetTargetStore().GetKeyFor(obj)
-	clusterNsObjs, err := dh.informer.GetTargetStore().GetFromAllClusters(storeKey)
+	clusterNsObjs, err := dh.informer.GetTargetStore().GetFromAllClusters(targetKey)
 	glog.V(3).Infof("Found %d objects in underlying clusters", len(clusterNsObjs))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get object %s from underlying clusters", objName)
@@ -153,7 +152,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, s
 			Type:        util.OperationTypeDelete,
 			ClusterName: clusterNsObj.ClusterName,
 			Obj:         clusterObj,
-			Key:         objName,
+			Key:         targetKey,
 		})
 	}
 	_, operationalErrors := dh.updater.Update(operations)

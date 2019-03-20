@@ -190,6 +190,7 @@ func (r *federatedResource) EnsureDeletion() error {
 	r.DeleteVersions()
 	_, err := r.deletionHelper.HandleObjectInUnderlyingClusters(
 		r.federatedResource,
+		r.TargetName().String(),
 		func(clusterObj pkgruntime.Object) bool {
 			// Skip deletion of a namespace in the host cluster as it will be
 			// removed by the garbage collector once its contents are removed.
