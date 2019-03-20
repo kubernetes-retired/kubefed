@@ -71,7 +71,7 @@ func NewDeletionHelper(
 // The finalizer ensures that the controller is always notified when a
 // federated resource is deleted so that host and member cluster cleanup can be
 // performed.
-func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (runtime.Object, error) {
+func (dh *DeletionHelper) EnsureFinalizer(obj runtime.Object) (runtime.Object, error) {
 	isUpdated, err := finalizersutil.AddFinalizers(obj, sets.NewString(FinalizerSyncController))
 	if err != nil || !isUpdated {
 		return nil, err

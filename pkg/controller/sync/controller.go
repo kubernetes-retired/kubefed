@@ -270,10 +270,10 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// It should now be possible to garbage collect the finalization target.
 		return util.StatusAllOK
 	}
-	glog.V(3).Infof("Ensuring finalizers exist on %s %q", kind, key)
-	err = fedResource.EnsureFinalizers()
+	glog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
+	err = fedResource.EnsureFinalizer()
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizers for %s %q", kind, key))
+		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizer for %s %q", kind, key))
 		return util.StatusError
 	}
 
