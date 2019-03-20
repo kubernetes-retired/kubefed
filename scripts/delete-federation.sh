@@ -110,9 +110,7 @@ fi
 ${KCD} ns "${NS}"
 
 # Remove permissive rolebinding that allows federation controllers to run.
-if [[ "${NAMESPACED}" ]]; then
-  ${KCD} -n "${NS}" rolebinding federation-admin
-else
+if [[ ! "${NAMESPACED}" ]]; then
   ${KCD} clusterrolebinding federation-admin
 fi
 
