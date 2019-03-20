@@ -87,7 +87,8 @@ var _ = Describe("Federated", func() {
 					return targetObject, overrides, err
 				}
 
-				validateCrud(f, tl, typeConfig, testObjectsFunc)
+				crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+				crudTester.CheckLifecycle(targetObject, overrides)
 			})
 		})
 	}
@@ -136,11 +137,4 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	}
 
 	return crudTester, targetObject, overrides
-}
-
-func validateCrud(f framework.FederationFramework, tl common.TestLogger,
-	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) {
-
-	crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
-	crudTester.CheckLifecycle(targetObject, overrides)
 }

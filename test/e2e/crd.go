@@ -209,8 +209,23 @@ overrides:
 		return targetObj, overrides, nil
 	}
 
-	validateCrud(f, tl, concreteTypeConfig, testObjectsFunc)
+	crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+	// Make a copy for use in the orphan check.
+	deletionTargetObject := targetObject.DeepCopy()
+	crudTester.CheckLifecycle(targetObject, overrides)
 
+	if namespaced {
+		// This check should not fail so long as the main test loop
+		// skips for limited scope.  If it does fail, manual cleanup
+		// after CheckDelete may need to be implemented.
+		if framework.TestContext.LimitedScope {
+			tl.Fatalf("Test of orphaned deletion assumes deletion of the containing namespace")
+		}
+		// Perform a check of orphan deletion.
+		fedObject := crudTester.CheckCreate(deletionTargetObject, nil)
+		orphanDeletion := true
+		crudTester.CheckDelete(fedObject, orphanDeletion)
+	}
 }
 
 func waitForCrd(config *rest.Config, tl common.TestLogger, apiResource metav1.APIResource) {
