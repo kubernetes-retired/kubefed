@@ -1,4 +1,4 @@
-{{- if .Values.limitedScope }}
+{{- if .Values.global.limitedScope }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

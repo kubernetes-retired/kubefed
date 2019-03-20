@@ -60,17 +60,26 @@ function delete-script-deployment() {
 }
 
 function delete-helm-deployment() {
-  # Clean cluster registry
-  ${KCD} crd clusters.clusterregistry.k8s.io
+  if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
+    # Clean cluster registry
+    ${KCD} crd clusters.clusterregistry.k8s.io
+  fi
+
   if [[ ! "${NAMESPACED}" ]]; then
       ${KCD} namespace ${PUBLIC_NS}
   fi
 
   # Clean federation resources
   ${KCD} -n "${NS}" FederatedTypeConfig --all
-  ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+  if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
+    ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+  fi
 
-  helm delete --purge federation-v2
+  if [[ "${NAMESPACED}" ]]; then
+    helm delete --purge federation-v2-${NS}
+  else
+    helm delete --purge federation-v2
+  fi
 }
 
 KCD="kubectl --ignore-not-found=true delete"
