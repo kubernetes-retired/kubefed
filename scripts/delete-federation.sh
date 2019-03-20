@@ -109,8 +109,8 @@ for c in ${JOINED_CLUSTERS}; do
 done
 
 # Deploy federation resources
-USE_CHART=${USE_CHART:-false}
-if [[ ${USE_CHART} == true ]]; then
+USE_CHART="${USE_CHART:-}"
+if [[ "${USE_CHART}" ]]; then
   delete-helm-deployment
 else
   delete-script-deployment
