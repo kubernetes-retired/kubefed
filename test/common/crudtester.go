@@ -243,12 +243,20 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(fedObject *unstructured.U
 
 	primaryClusterName := c.getPrimaryClusterName()
 
-	// Skip if we're a namespace, we only have one cluster, and it's the
-	// primary cluster. Skipping avoids deleting the namespace from the entire
-	// federation by removing this single cluster from the placement, because
-	// if deleted, this fails the next CheckDelete test.
-	if c.targetIsNamespace && len(clusterNames) == 1 && clusterNames[0] == primaryClusterName {
-		c.tl.Logf("Skipping %s update for %q due to single primary cluster",
+	// Skip if we're a namespace, we only have 2 or fewer member
+	// clusters, and the host cluster is also a member cluster.
+	// Otherwise the remainder of this function will ensure that the
+	// namespace is removed from non-host member clusters such that a
+	// subsequent CheckDelete will always succeed even if the deletion
+	// helper is broken.
+	//
+	// TODO(marun) This leaves namespace placement changes untested in
+	// the default 2 cluster CI configuration.  The code path is
+	// common, but it may make sense to remove and then add back the
+	// removed cluster for namespaces.
+	clusterNamesSet := sets.NewString(clusterNames...)
+	if c.targetIsNamespace && clusterNamesSet.Len() <= 2 && clusterNamesSet.Has(primaryClusterName) {
+		c.tl.Logf("Skipping check for placement change for %s %q due to only one non-host cluster",
 			kind, qualifiedName)
 		return
 	}
