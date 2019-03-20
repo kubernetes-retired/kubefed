@@ -16,6 +16,7 @@
     - [Unjoin Clusters](#unjoin-clusters)
   - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
+  - [Deletion policy](#deletion-policy)
   - [Example](#example)
     - [Create the Test Namespace](#create-the-test-namespace)
     - [Create Test Resources](#create-test-resources)
@@ -235,6 +236,32 @@ kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
 ```
 
 **WARNING: All custom resources for the type will be removed by this command.**
+
+## Deletion policy
+
+All federated resources reconciled by the sync controller have a
+finalizer (`federation.k8s.io/sync-controller`) added to their
+metadata. This finalizer will prevent deletion of a federated resource
+until the sync controller has a chance to perform pre-deletion
+cleanup.
+
+Pre-deletion cleanup of a federated resource includes removal of
+resources managed by the federated resource from member clusters. To
+ensure retention of managed resources, add `federation.k8s.io/orphan:
+true` as an annotation to the federated resource prior to deletion:
+
+```bash
+kubectl patch <federated type> <name> \
+    --type=merge -p '{"metadata": {"annotations": {"federation.k8s.io/orphan": "true"}}}'
+```
+
+In the event that a sync controller for a given federated type is not
+able to reconcile a federated resource slated for deletion - due to
+propagation being disabled for a given type or the federated control
+plane not running - a federated resource that still has the federation
+finalizer will linger rather than being garbage collected. If
+necessary, the federation finalizer can be manually removed to ensure
+garbage collection.
 
 ## Example
 
