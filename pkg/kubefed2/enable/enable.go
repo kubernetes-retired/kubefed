@@ -44,8 +44,8 @@ import (
 )
 
 const (
-	defaultFederationGroup   = "types.federation.k8s.io"
-	defaultFederationVersion = "v1alpha1"
+	DefaultFederationGroup   = "types.federation.k8s.io"
+	DefaultFederationVersion = "v1alpha1"
 )
 
 var (
@@ -84,8 +84,8 @@ type enableTypeOptions struct {
 // argument.
 func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.targetVersion, "version", "", "Optional, the API version of the target type.")
-	flags.StringVar(&o.federationGroup, "federation-group", defaultFederationGroup, "The name of the API group to use for the generated federation type.")
-	flags.StringVar(&o.federationVersion, "federation-version", defaultFederationVersion, "The API version to use for the generated federation type.")
+	flags.StringVar(&o.federationGroup, "federation-group", DefaultFederationGroup, "The name of the API group to use for the generated federation type.")
+	flags.StringVar(&o.federationVersion, "federation-version", DefaultFederationVersion, "The API version to use for the generated federation type.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that would be created in the API by the command are instead output to stdout in the provided format.  Valid values are ['yaml'].")
 	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output will be accepted from the command line")
 }

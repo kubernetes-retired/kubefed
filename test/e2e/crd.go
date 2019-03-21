@@ -81,12 +81,13 @@ var _ = Describe("Federated CRD resources", func() {
 func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, namespaced bool) {
 	tl := framework.NewE2ELogger()
 
-	group := "example.com"
-	version := "v1alpha1"
-
 	targetAPIResource := metav1.APIResource{
-		Group:      group,
-		Version:    version,
+		// Need to reuse a group and version for which the helm chart
+		// is granted rbac permissions for.  The default group and
+		// version used by `kubefed2 enable` meets this criteria.
+		Group:   kfenable.DefaultFederationGroup,
+		Version: kfenable.DefaultFederationVersion,
+
 		Kind:       targetCrdKind,
 		Name:       fedv1a1.PluralName(targetCrdKind),
 		Namespaced: namespaced,
