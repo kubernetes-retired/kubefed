@@ -75,6 +75,11 @@ var _ = Describe("Federated", func() {
 					if err != nil {
 						return nil, nil, err
 					}
+					if typeConfig.GetTarget().Kind == util.NamespaceKind {
+						// Namespace crud testing needs to have the same name as its namespace.
+						targetObject.SetName(namespace)
+						targetObject.SetNamespace(namespace)
+					}
 					overrides, err := common.OverridesFromFixture(clusterNames, fixture)
 					if err != nil {
 						return nil, nil, err

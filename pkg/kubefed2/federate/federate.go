@@ -25,12 +25,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
@@ -80,6 +81,7 @@ func (j *federateResource) Complete(args []string) error {
 	j.resourceName = args[1]
 
 	if j.typeName == ctlutil.NamespaceName {
+		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
 		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 		j.resourceNamespace = ""
 	}
@@ -138,18 +140,23 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	return err
 }
 
-func FederateResource(hostConfig *rest.Config, qualifiedTypeName, qualifiedResourceName ctlutil.QualifiedName, dryrun bool) (*unstructured.Unstructured, error) {
+func FederateResource(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName, dryrun bool) (*unstructured.Unstructured, error) {
 	typeConfig, err := lookupTypeDetails(hostConfig, qualifiedTypeName)
 	if err != nil {
 		return nil, err
 	}
 
-	templateResource, err := getTargetResource(hostConfig, typeConfig, qualifiedResourceName)
+	targetResource, err := getTargetResource(hostConfig, typeConfig, qualifiedName)
 	if err != nil {
 		return nil, err
 	}
 
-	return createFedResource(hostConfig, typeConfig, templateResource, dryrun)
+	fedResource, err := FederatedResourceFromTargetResource(typeConfig, targetResource)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTarget().Kind, qualifiedName)
+	}
+
+	return createFedResource(hostConfig, typeConfig, fedResource, qualifiedName, dryrun)
 }
 
 func lookupTypeDetails(config *rest.Config, qualifiedTypeName ctlutil.QualifiedName) (*fedv1a1.FederatedTypeConfig, error) {
@@ -190,44 +197,71 @@ func getTargetResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTyp
 	return resource, nil
 }
 
-func createFedResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTypeConfig, template *unstructured.Unstructured, dryrun bool) (*unstructured.Unstructured, error) {
+func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, targetResource *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	fedAPIResource := typeConfig.GetFederatedType()
-	fedClient, err := ctlutil.NewResourceClient(hostConfig, &fedAPIResource)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error creating client for %s", fedAPIResource.Kind)
+
+	// Special handling is needed for some controller set fields.
+	if typeConfig.GetTarget().Kind == ctlutil.ServiceAccountKind {
+		unstructured.RemoveNestedField(targetResource.Object, ctlutil.SecretsField)
 	}
 
-	targetKind := typeConfig.GetTarget().Kind
-	if targetKind == ctlutil.ServiceAccountKind {
-		unstructured.RemoveNestedField(template.Object, ctlutil.SecretsField)
+	if typeConfig.GetTarget().Kind == ctlutil.ServiceKind {
+		var targetPorts []interface{}
+		targetPorts, ok, err := unstructured.NestedSlice(targetResource.Object, "spec", "ports")
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			for index := range targetPorts {
+				port := targetPorts[index].(map[string]interface{})
+				delete(port, "nodePort")
+				targetPorts[index] = port
+			}
+			err := unstructured.SetNestedSlice(targetResource.Object, targetPorts, "spec", "ports")
+			if err != nil {
+				return nil, err
+			}
+		}
+		unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIP")
 	}
 
-	qualifiedName := ctlutil.NewQualifiedName(template)
-	resourceNamespace := ""
-	if typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
-		resourceNamespace = qualifiedName.Name
-	} else {
-		resourceNamespace = qualifiedName.Namespace
-	}
+	qualifiedName := ctlutil.NewQualifiedName(targetResource)
+	resourceNamespace := getNamespace(typeConfig, qualifiedName)
 	fedResource := &unstructured.Unstructured{}
 	SetBasicMetaFields(fedResource, fedAPIResource, qualifiedName.Name, resourceNamespace, "")
-	RemoveUnwantedFields(template)
+	RemoveUnwantedFields(targetResource)
 
-	fedKind := fedAPIResource.Kind
-	qualifiedFedName := ctlutil.NewQualifiedName(fedResource)
-	err = unstructured.SetNestedField(fedResource.Object, template.Object, ctlutil.SpecField, ctlutil.TemplateField)
+	err := unstructured.SetNestedField(fedResource.Object, targetResource.Object, ctlutil.SpecField, ctlutil.TemplateField)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error setting template into %s %q ", fedKind, qualifiedFedName)
+		return nil, err
 	}
-
 	err = unstructured.SetNestedStringMap(fedResource.Object, map[string]string{}, ctlutil.SpecField, ctlutil.PlacementField, ctlutil.ClusterSelectorField, ctlutil.MatchLabelsField)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error setting placement into %s %q", fedKind, qualifiedFedName)
+		return nil, err
 	}
 
+	return fedResource, err
+}
+
+func getNamespace(typeConfig typeconfig.Interface, qualifiedName ctlutil.QualifiedName) string {
+	if typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
+		return qualifiedName.Name
+	}
+	return qualifiedName.Namespace
+}
+
+func createFedResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTypeConfig, fedResource *unstructured.Unstructured, qualifiedName ctlutil.QualifiedName, dryrun bool) (*unstructured.Unstructured, error) {
+	fedAPIResource := typeConfig.GetFederatedType()
+	fedKind := fedAPIResource.Kind
+	fedClient, err := ctlutil.NewResourceClient(hostConfig, &fedAPIResource)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error creating client for %s", fedKind)
+	}
+
+	qualifiedFedName := ctlutil.NewQualifiedName(fedResource)
 	var createdResource *unstructured.Unstructured = nil
 	if !dryrun {
-		createdResource, err = fedClient.Resources(resourceNamespace).Create(fedResource, metav1.CreateOptions{})
+		createdResource, err = fedClient.Resources(fedResource.GetNamespace()).Create(fedResource, metav1.CreateOptions{})
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error creating %s %q", fedKind, qualifiedFedName)
 		}
