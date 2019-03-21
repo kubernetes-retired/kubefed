@@ -63,8 +63,6 @@ type VersionManager struct {
 
 	hasSynced bool
 
-	worker util.ReconcileWorker
-
 	versions map[string]pkgruntime.Object
 
 	client generic.Client
@@ -80,13 +78,6 @@ func NewVersionManager(client generic.Client, namespaced bool, federatedKind, ta
 		client:        client,
 	}
 
-	v.worker = util.NewReconcileWorker(v.writeVersion, util.WorkerTiming{
-		Interval:       time.Millisecond * 50,
-		RetryDelay:     time.Nanosecond * 1, // Effectively 0 delay
-		InitialBackoff: time.Second * 1,
-		MaxBackoff:     time.Second * 10,
-	})
-
 	return v
 }
 
@@ -101,8 +92,6 @@ func (m *VersionManager) Sync(stopChan <-chan struct{}) {
 	if !ok {
 		return
 	}
-
-	m.worker.Run(stopChan)
 }
 
 // HasSynced indicates whether the manager's in-memory state has been
@@ -197,9 +186,7 @@ func (m *VersionManager) Update(resource VersionedResource,
 
 	m.Unlock()
 
-	m.worker.Enqueue(qualifiedName)
-
-	return nil
+	return m.writeVersion(obj, qualifiedName)
 }
 
 // Delete removes the named propagated version from the manager.
@@ -276,146 +263,140 @@ func (m *VersionManager) versionQualifiedName(qualifiedName util.QualifiedName) 
 	return util.QualifiedName{Name: versionName, Namespace: qualifiedName.Namespace}
 }
 
-// writeVersion serializes the current state of the named propagated version to the API.
-func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+// writeVersion serializes the current state of the named propagated
+// version to the API.
+//
+// The manager is expected to be called synchronously by the sync
+// controller which should ensure that the version object for a given
+// resource is updated by at most one thread at a time.  This should
+// guarantee safe manipulation of an object retrieved from the
+// version map.
+func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.QualifiedName) error {
 	key := qualifiedName.String()
 	adapterType := m.adapter.TypeName()
 
-	m.RLock()
-	obj, ok := m.versions[key]
-	m.RUnlock()
-	if !ok {
-		// Version is no longer tracked
-		return util.StatusAllOK
-	}
-
-	// Locking shouldn't be required here since there is only a single
-	// caller (this function) whose actions will result in metadata
-	// changing.
-	metaAccessor, err := meta.Accessor(obj)
+	resourceVersion, err := getResourceVersion(obj)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to retrieve meta accessor for %s %q", adapterType, key))
-		return util.StatusError
+		return errors.Wrapf(err, "Failed to retrieve resource version for %s %q", adapterType, key)
 	}
-
-	// Locking shouldn't be required here since there is only a single
-	// caller (this function) whose actions will result in metadata
-	// changing.
-	creationNeeded := len(metaAccessor.GetResourceVersion()) == 0
-
-	if creationNeeded {
-		// Make a copy to avoid mutating the map outside of a lock.
-		createdObj := obj.DeepCopyObject()
-		err := m.client.Create(context.TODO(), createdObj)
-		if apierrors.IsAlreadyExists(err) {
-			// Version was written to the API after the version manager loaded
-			glog.V(4).Infof("Refreshing %s %q from the API due to already existing", adapterType, key)
-			err := m.refreshVersion(obj)
+	refreshVersion := false
+	// TODO(marun) Centralize polling interval and duration
+	waitDuration := 30 * time.Second
+	err = wait.PollImmediate(100*time.Millisecond, waitDuration, func() (bool, error) {
+		if refreshVersion {
+			// Version was written to the API by another process after the last manager write.
+			var err error
+			resourceVersion, err = m.getResourceVersionFromAPI(qualifiedName)
 			if err != nil {
-				runtime.HandleError(errors.Wrapf(err, "Failed to refresh existing %s %q from the API", adapterType, key))
-				return util.StatusError
+				runtime.HandleError(errors.Wrapf(err, "Failed to refresh resource version %s %q from the API", adapterType, key))
+				return false, nil
 			}
-			return util.StatusNeedsRecheck
+			refreshVersion = false
+		}
+
+		if resourceVersion == "" {
+			// Version resource needs to be created
+
+			createdObj := obj.DeepCopyObject()
+			err := setResourceVersion(createdObj, "")
+			if err != nil {
+				runtime.HandleError(errors.Wrapf(err, "Failed to clear the resource version for %s %q", adapterType, key))
+				return false, nil
+			}
+
+			glog.V(4).Infof("Creating %s %q", adapterType, qualifiedName)
+			err = m.client.Create(context.TODO(), createdObj)
+			if apierrors.IsAlreadyExists(err) {
+				glog.V(4).Infof("%s %q was created by another process.  Will refresh the resource version and attempt to update.", adapterType, qualifiedName)
+				refreshVersion = true
+				return false, nil
+			}
+			if err != nil {
+				runtime.HandleError(errors.Wrapf(err, "Failed to create version %s %q", adapterType, key))
+				return false, nil
+			}
+
+			// Update the resource version that will be used for update.
+			resourceVersion, err = getResourceVersion(createdObj)
+			if err != nil {
+				runtime.HandleError(errors.Wrapf(err, "Failed to retrieve resource version for %s %q", adapterType, key))
+				return false, nil
+			}
+		}
+
+		// Update the status of an existing object
+
+		updatedObj := obj.DeepCopyObject()
+		err := setResourceVersion(updatedObj, resourceVersion)
+		if err != nil {
+			runtime.HandleError(errors.Wrapf(err, "Failed to set the resource version for %s %q", adapterType, key))
+			return false, nil
+		}
+
+		glog.V(4).Infof("Updating the status of %s %q", adapterType, qualifiedName)
+		err = m.client.UpdateStatus(context.TODO(), updatedObj)
+		if apierrors.IsConflict(err) {
+			glog.V(4).Infof("%s %q was updated by another process.  Will refresh the resource version and retry the update.", adapterType, qualifiedName)
+			refreshVersion = true
+			return false, nil
+		}
+		if apierrors.IsNotFound(err) {
+			glog.V(4).Infof("%s %q was deleted by another process.  Will clear the resource version and retry the update.", adapterType, qualifiedName)
+			resourceVersion = ""
+			return false, nil
 		}
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Failed to create version %s %q", adapterType, key))
-			return util.StatusError
+			runtime.HandleError(errors.Wrapf(err, "Failed to update the status of %s %q", adapterType, key))
+			return false, nil
 		}
 
-		// Status on the created version will have been cleared.  Set
-		// it from the in-memory instance.  Since status is referred
-		// to via a pointer and it is desirable to have the latest
-		// status, it should be ok to do this outside of a lock.
-		status := m.adapter.GetStatus(obj)
-		m.adapter.SetStatus(createdObj, status)
-		obj = createdObj
-	}
+		// Update was successful. All returns should be true even in
+		// the event of an error since the next reconcile can also
+		// refresh the resource version if necessary.
 
-	// Make a copy to avoid mutating the map outside of a lock.
-	updatedObj := obj.DeepCopyObject()
-	err = m.client.UpdateStatus(context.TODO(), updatedObj)
-	if err == nil {
-		m.Lock()
-		defer m.Unlock()
-		_, ok := m.versions[key]
-		if ok {
-			// Update the version since it is still being tracked.
-			m.versions[key] = updatedObj
-			return util.StatusAllOK
+		// Update the version resource
+		resourceVersion, err = getResourceVersion(updatedObj)
+		if err != nil {
+			runtime.HandleError(errors.Wrapf(err, "Failed to retrieve resource version for %s %q", adapterType, key))
+			return true, nil
+		}
+		err = setResourceVersion(obj, resourceVersion)
+		if err != nil {
+			runtime.HandleError(errors.Wrapf(err, "Failed to set resource version for %s %q", adapterType, key))
 		}
 
-		// Version was deleted from memory and may need to be deleted
-		// from the API
-		return util.StatusNeedsRecheck
-	}
-	if !apierrors.IsConflict(err) {
-		runtime.HandleError(errors.Wrapf(err, "Failed to update status of %s %q", adapterType, key))
-		return util.StatusError
-	}
-	glog.Warningf("Error indicating conflict occurred on status update of %s %q: %v", adapterType, key, err)
-
-	// Version has been updated or deleted since the last version
-	// manager write.  Attempt to refresh and retry.
-
-	glog.V(4).Infof("Refreshing %s %q from the API", adapterType, key)
-	err = m.refreshVersion(obj)
-	if err == nil {
-		return util.StatusNeedsRecheck
-	}
-	if apierrors.IsNotFound(err) {
-		// Version has been deleted from the API since the last version manager write.
-		// Clear the resource version to prompt creation.
-		err := m.clearResourceVersion(key)
-		if err == nil {
-			return util.StatusNeedsRecheck
-		}
-		runtime.HandleError(errors.Wrapf(err, "Failed to clear resource version for %s %q", adapterType, key))
-		return util.StatusError
-	}
-	runtime.HandleError(errors.Wrapf(err, "Failed to refresh conflicted %s %q from the API", adapterType, key))
-	return util.StatusError
-}
-
-func (m *VersionManager) refreshVersion(obj pkgruntime.Object) error {
-	// A read lock is not suggested due to the name and namespace of a
-	// resource being immutable.
-	qualifiedName := util.NewQualifiedName(obj)
-
-	glog.V(4).Infof("Refreshing %s version %q from the API", m.federatedKind, qualifiedName)
-	refreshedObj := m.adapter.NewObject()
-	err := m.client.Get(context.TODO(), refreshedObj, qualifiedName.Namespace, qualifiedName.Name)
+		return true, nil
+	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to write version map for %s %q to the API within %v", adapterType, key, waitDuration)
 	}
-	key := qualifiedName.String()
-	m.Lock()
-	defer m.Unlock()
-	_, ok := m.versions[key]
-	if !ok {
-		// Version has been deleted, no further action required
-		return nil
-	}
-
-	// Retain the status from the in-memory copy.
-	status := m.adapter.GetStatus(obj)
-	m.adapter.SetStatus(refreshedObj, status)
-	m.versions[key] = refreshedObj
 	return nil
 }
 
-func (m *VersionManager) clearResourceVersion(key string) error {
-	m.Lock()
-	defer m.Unlock()
-	obj, ok := m.versions[key]
-	if !ok {
-		// Version is deleted
-		return nil
+func (m *VersionManager) getResourceVersionFromAPI(qualifiedName util.QualifiedName) (string, error) {
+	glog.V(4).Infof("Retrieving resourceVersion for %s %q from the API", m.federatedKind, qualifiedName)
+	obj := m.adapter.NewObject()
+	err := m.client.Get(context.TODO(), obj, qualifiedName.Namespace, qualifiedName.Name)
+	if err != nil {
+		return "", err
 	}
+	return getResourceVersion(obj)
+}
+
+func getResourceVersion(obj pkgruntime.Object) (string, error) {
+	metaAccessor, err := meta.Accessor(obj)
+	if err != nil {
+		return "", err
+	}
+	return metaAccessor.GetResourceVersion(), nil
+}
+
+func setResourceVersion(obj pkgruntime.Object, resourceVersion string) error {
 	metaAccessor, err := meta.Accessor(obj)
 	if err != nil {
 		return err
 	}
-	metaAccessor.SetResourceVersion("")
+	metaAccessor.SetResourceVersion(resourceVersion)
 	return nil
 }
 
