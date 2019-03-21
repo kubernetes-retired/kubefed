@@ -539,6 +539,8 @@ employed by deployment:
 NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
 ```
 
+**NOTE:** You should set `DELETE_CLUSTER_RESOURCE=y` if it is the last namespaced federation deployment to clean all cluster scope resources of federation.
+
 ## Local Value Retention
 
 In most cases, the federation sync controller will overwrite any
