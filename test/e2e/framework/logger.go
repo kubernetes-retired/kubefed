@@ -32,11 +32,11 @@ func (e2eLogger) Errorf(format string, args ...interface{}) {
 
 func (e2eLogger) Fatal(args ...interface{}) {
 	// TODO(marun) Is there a nicer way to do this?
-	Failf("%v", args)
+	FailfWithOffset(1, "%v", args)
 }
 
 func (e2eLogger) Fatalf(format string, args ...interface{}) {
-	Failf(format, args...)
+	FailfWithOffset(1, format, args...)
 }
 
 func (e2eLogger) Log(args ...interface{}) {
