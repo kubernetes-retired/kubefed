@@ -14,29 +14,53 @@ rules:
   resources:
   - '*'
   verbs:
-  - '*'
+  - get
+  - watch
+  - list
+  - update
 - apiGroups:
   - multiclusterdns.federation.k8s.io
   resources:
   - '*'
   verbs:
-  - '*'
+  - get
+  - watch
+  - list
+  - create
+  - update
 - apiGroups:
   - core.federation.k8s.io
   resources:
   - '*'
   verbs:
-  - '*'
+  - get
+  - watch
+  - list
+  - create
+  - update
 - apiGroups:
   - types.federation.k8s.io
   resources:
   - '*'
   verbs:
-  - '*'
+  - get
+  - watch
+  - list
+  - update
 - apiGroups:
   - clusterregistry.k8s.io
   resources:
-  - '*'
+  - clusters
   verbs:
-  - '*'
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  - events
+  verbs:
+  - get
+  - create
+  - update
 {{- end }}
