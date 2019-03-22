@@ -172,13 +172,14 @@ fi
 
 # Build federation binaries and image
 if [[ ! "${USE_LATEST}" ]]; then
-  base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
-  dockerfile_dir="${base_dir}/images/federation-v2"
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "${dockerfile_dir}"/hyperfed "${base_dir}"/cmd/hyperfed/main.go
-  docker build ${dockerfile_dir} -t "${IMAGE_NAME}"
+  cd "$(dirname "$0")/.."
+  make container IMAGE_NAME=${IMAGE_NAME}
+  cd -
   ${DOCKER_PUSH_CMD}
 fi
-go build -o bin/kubefed2 cmd/kubefed2/kubefed2.go
+cd "$(dirname "$0")/.."
+make kubefed2
+cd -
 
 if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
   kubectl create ns "${NS}"
