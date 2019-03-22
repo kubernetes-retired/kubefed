@@ -88,7 +88,7 @@ func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.federationGroup, "federation-group", defaultFederationGroup, "The name of the API group to use for the generated federation type.")
 	flags.StringVar(&o.federationVersion, "federation-version", defaultFederationVersion, "The API version to use for the generated federation type.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that would be created in the API by the command are instead output to stdout in the provided format.  Valid values are ['yaml'].")
-	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output wll be accepted from the command line")
+	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output will be accepted from the command line")
 }
 
 // NewCmdTypeEnable defines the `enable` command that
