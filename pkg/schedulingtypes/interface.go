@@ -23,7 +23,7 @@ import (
 )
 
 type Scheduler interface {
-	Kind() string
+	SchedulingKind() string
 	ObjectType() pkgruntime.Object
 
 	Start()

@@ -71,7 +71,7 @@ type SchedulingPreferenceController struct {
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
-func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType) (schedulingtypes.Scheduler, error) {
+func StartSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType, stopChannel <-chan struct{}) (schedulingtypes.Scheduler, error) {
 	controller, err := newSchedulingPreferenceController(config, schedulingType)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 		controller.minimizeLatency()
 	}
 	glog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
-	controller.Run(controller.stopChannel)
+	controller.Run(stopChannel)
 	return controller.scheduler, nil
 }
 
@@ -103,7 +103,6 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 		smallDelay:              time.Second * 3,
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
-		stopChannel:             make(chan struct{}),
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -177,10 +176,6 @@ func (s *SchedulingPreferenceController) Run(stopChan <-chan struct{}) {
 	}()
 }
 
-func (s *SchedulingPreferenceController) Stop() {
-	close(s.stopChannel)
-}
-
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
 func (s *SchedulingPreferenceController) isSynced() bool {
@@ -203,7 +198,7 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 		return util.StatusNotSynced
 	}
 
-	kind := s.scheduler.Kind()
+	kind := s.scheduler.SchedulingKind()
 	key := qualifiedName.String()
 
 	glog.V(4).Infof("Starting to reconcile %s controller triggered key named %v", kind, key)

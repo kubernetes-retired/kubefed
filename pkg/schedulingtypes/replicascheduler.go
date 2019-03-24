@@ -90,7 +90,7 @@ func NewReplicaScheduler(controllerConfig *ctlutil.ControllerConfig, eventHandle
 	return scheduler, nil
 }
 
-func (s *ReplicaScheduler) Kind() string {
+func (s *ReplicaScheduler) SchedulingKind() string {
 	return RSPKind
 }
 
@@ -116,7 +116,6 @@ func (s *ReplicaScheduler) StopPlugin(kind string) {
 	}
 
 	plugin.(*Plugin).Stop()
-
 	s.plugins.Delete(kind)
 }
 
@@ -151,7 +150,7 @@ func (s *ReplicaScheduler) Stop() {
 	for _, plugin := range s.plugins.GetAll() {
 		plugin.(*Plugin).Stop()
 	}
-
+	s.plugins.DeleteAll()
 	s.podInformer.Stop()
 }
 
