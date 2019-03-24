@@ -98,16 +98,16 @@ func NewClusterControllerFixture(config *util.ControllerConfig) *ControllerFixtu
 	return f
 }
 
-func NewSchedulerControllerFixture(tl common.TestLogger, config *util.ControllerConfig) (*ControllerFixture, *schedulingmanager.SchedulerController) {
+func NewSchedulingManagerFixture(tl common.TestLogger, config *util.ControllerConfig) (*ControllerFixture, *schedulingmanager.SchedulingManager) {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 
-	controller, err := schedulingmanager.StartSchedulerController(config, f.stopChan)
+	manager, err := schedulingmanager.StartSchedulingManager(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting scheduler controller: %v", err)
 	}
-	return f, controller
+	return f, manager
 }
 
 func (f *ControllerFixture) TearDown(tl common.TestLogger) {
