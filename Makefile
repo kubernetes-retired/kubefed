@@ -81,7 +81,7 @@ vet:
 	go vet $(TEST_PKGS)
 
 fmt:
-	go fmt $(TEST_PKGS)
+	$(shell ./hack/update-gofmt.sh)
 
 container: hyperfed
 	cp -f $(HYPERFED_TARGET) images/federation-v2/hyperfed
