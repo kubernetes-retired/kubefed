@@ -298,6 +298,9 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 			return util.StatusNeedsRecheck
 		}
 	} else if !reflect.DeepEqual(existingStatus.Object["clusterStatus"], status.Object["clusterStatus"]) {
+		if status.Object["clusterStatus"] == nil {
+			status.Object["clusterStatus"] = make([]util.ResourceClusterStatus, 0)
+		}
 		existingStatus.Object["clusterStatus"] = status.Object["clusterStatus"]
 		_, err = s.statusClient.Resources(qualifiedName.Namespace).Update(existingStatus, metav1.UpdateOptions{})
 		if err != nil {
