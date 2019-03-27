@@ -43,7 +43,7 @@
       - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
       - [Distribute replicas in weighted proportions, also enforcing replica limits per cluster](#distribute-replicas-in-weighted-proportions-also-enforcing-replica-limits-per-cluster)
-      - [Distribute replicas evenly in all clusters, however not more then 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-then-20-in-c)
+      - [Distribute replicas evenly in all clusters, however not more then 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-than-20-in-c)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -729,7 +729,7 @@ spec:
 
 A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas=4.
 
-#### Distribute replicas evenly in all clusters, however not more then 20 in C
+#### Distribute replicas evenly in all clusters, however not more than 20 in C
 
 ```yaml
 apiVersion: scheduling.federation.k8s.io/v1alpha1
