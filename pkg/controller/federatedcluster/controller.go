@@ -22,8 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
-
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
@@ -32,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
@@ -75,7 +74,7 @@ func StartClusterController(config *util.ControllerConfig, stopChan <-chan struc
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting cluster controller")
+	klog.Infof("Starting cluster controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -120,7 +119,7 @@ func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 // delete the corresponding restclient from the map clusterKubeClientMap.
 // Caller must make sure that they hold the mutex
 func (cc *ClusterController) delFromClusterSetByName(clusterName string) {
-	glog.V(1).Infof("ClusterController observed a cluster deletion: %v", clusterName)
+	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", clusterName)
 	cc.knownClusterSet.Delete(clusterName)
 	delete(cc.clusterKubeClientMap, clusterName)
 	delete(cc.clusterStatusMap, clusterName)
@@ -140,12 +139,12 @@ func (cc *ClusterController) addToClusterSetWithoutLock(cluster *fedv1a1.Federat
 	if cc.knownClusterSet.Has(cluster.Name) {
 		return
 	}
-	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
+	klog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	cc.knownClusterSet.Insert(cluster.Name)
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterNamespace)
 	if err != nil || restClient == nil {
-		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
+		klog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
 	}
 	cc.clusterKubeClientMap[cluster.Name] = *restClient
@@ -158,7 +157,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 	// monitor cluster status periodically, in phase 1 we just get the health state from "/healthz"
 	go wait.Until(func() {
 		if err := cc.updateClusterStatus(); err != nil {
-			glog.Errorf("Error monitoring cluster status: %v", err)
+			klog.Errorf("Error monitoring cluster status: %v", err)
 		}
 	}, cc.clusterMonitorPeriod, stopChan)
 }
@@ -183,12 +182,12 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cc.mu.RUnlock()
 
 		if !clientFound {
-			glog.Warningf("Failed to get client for cluster %s", cluster.Name)
+			klog.Warningf("Failed to get client for cluster %s", cluster.Name)
 			continue
 		}
 		clusterStatusNew := clusterClient.GetClusterHealthStatus()
 		if !statusFound {
-			glog.Infof("There is no status stored for cluster: %v before", cluster.Name)
+			klog.Infof("There is no status stored for cluster: %v before", cluster.Name)
 		} else {
 			hasTransition := false
 			if len(clusterStatusNew.Conditions) != len(clusterStatusOld.Conditions) {
@@ -213,7 +212,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
 			zone, region, err := clusterClient.GetClusterZones()
 			if err != nil {
-				glog.Warningf("Failed to get zones and region for cluster %s: %v", cluster.Name, err)
+				klog.Warningf("Failed to get zones and region for cluster %s: %v", cluster.Name, err)
 			} else {
 				if len(zone) == 0 {
 					zone = cluster.Status.Zone
@@ -232,7 +231,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cluster.Status = *clusterStatusNew
 		err = cc.client.UpdateStatus(context.TODO(), &cluster)
 		if err != nil {
-			glog.Warningf("Failed to update the status of cluster: %v, error is : %v", cluster.Name, err)
+			klog.Warningf("Failed to update the status of cluster: %v, error is : %v", cluster.Name, err)
 			// Don't return err here, as we want to continue processing remaining clusters.
 			continue
 		}

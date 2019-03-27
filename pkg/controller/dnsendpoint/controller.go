@@ -21,7 +21,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
@@ -113,8 +113,8 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	defer d.queue.ShutDown()
 
-	glog.Infof("Starting %q DNSEndpoint controller", d.dnsObjectKind)
-	defer glog.Infof("Shutting down %q DNSEndpoint controller", d.dnsObjectKind)
+	klog.Infof("Starting %q DNSEndpoint controller", d.dnsObjectKind)
+	defer klog.Infof("Shutting down %q DNSEndpoint controller", d.dnsObjectKind)
 
 	go d.dnsObjectController.Run(stopCh)
 
@@ -124,7 +124,7 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-	glog.Infof("%q DNSEndpoint controller synced and ready", d.dnsObjectKind)
+	klog.Infof("%q DNSEndpoint controller synced and ready", d.dnsObjectKind)
 
 	for i := 0; i < numWorkers; i++ {
 		go wait.Until(d.worker, time.Second, stopCh)
@@ -136,7 +136,7 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 func (d *controller) enqueueObject(obj pkgruntime.Object) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %#v: %v", obj, err)
+		klog.Errorf("Couldn't get key for object %#v: %v", obj, err)
 		return
 	}
 	d.queue.Add(key)
@@ -162,12 +162,12 @@ func (d *controller) processNextItem() bool {
 		// No error, tell the queue to stop tracking history
 		d.queue.Forget(key)
 	} else if d.queue.NumRequeues(key) < maxRetries {
-		glog.Errorf("Error processing %s (will retry): %v", key, err)
+		klog.Errorf("Error processing %s (will retry): %v", key, err)
 		// requeue the item to work on later
 		d.queue.AddRateLimited(key)
 	} else {
 		// err != nil and too many retries
-		glog.Errorf("Error processing %s (giving up): %v", key, err)
+		klog.Errorf("Error processing %s (giving up): %v", key, err)
 		d.queue.Forget(key)
 		runtime.HandleError(err)
 	}
@@ -177,9 +177,9 @@ func (d *controller) processNextItem() bool {
 
 func (d *controller) processItem(key string) error {
 	startTime := time.Now()
-	glog.V(4).Infof("Processing change to %q DNSEndpoint %s", d.dnsObjectKind, key)
+	klog.V(4).Infof("Processing change to %q DNSEndpoint %s", d.dnsObjectKind, key)
 	defer func() {
-		glog.V(4).Infof("Finished processing %q DNSEndpoint %q (%v)", d.dnsObjectKind, key, time.Since(startTime))
+		klog.V(4).Infof("Finished processing %q DNSEndpoint %q (%v)", d.dnsObjectKind, key, time.Since(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)

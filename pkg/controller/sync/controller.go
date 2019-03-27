@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
@@ -37,6 +36,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 )
 
 const (
@@ -80,7 +80,7 @@ func StartFederationSyncController(controllerConfig *util.ControllerConfig, stop
 	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedType().Kind))
+	klog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedType().Kind))
 	controller.Run(stopChan)
 	return nil
 }
@@ -205,7 +205,7 @@ func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (s *FederationSyncController) isSynced() bool {
 	if !s.informer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	if !s.fedAccessor.HasSynced() {
@@ -253,12 +253,12 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	kind := s.typeConfig.GetFederatedType().Kind
 	key := fedResource.FederatedName().String()
 
-	glog.V(4).Infof("Starting to reconcile %s %q", kind, key)
+	klog.V(4).Infof("Starting to reconcile %s %q", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
+	defer klog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
 
 	if fedResource.MarkedForDeletion() {
-		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
+		klog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		err := fedResource.EnsureDeletion()
 		if err != nil {
 			msg := "Failed to delete %s %q: %v"
@@ -270,7 +270,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		// It should now be possible to garbage collect the finalization target.
 		return util.StatusAllOK
 	}
-	glog.V(3).Infof("Ensuring finalizers exist on %s %q", kind, key)
+	klog.V(3).Infof("Ensuring finalizers exist on %s %q", kind, key)
 	err = fedResource.EnsureFinalizers()
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizers for %s %q", kind, key))
@@ -298,7 +298,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource)
 		return util.StatusError
 	}
 
-	glog.V(3).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s, unselected clusters are: %s",
+	klog.V(3).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s, unselected clusters are: %s",
 		kind, key, selectedClusters, unselectedClusters)
 
 	operations, err := s.clusterOperations(selectedClusters, unselectedClusters, fedResource)

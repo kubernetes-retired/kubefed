@@ -19,7 +19,6 @@ package schedulingmanager
 import (
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
@@ -32,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 type SchedulerController struct {
@@ -63,7 +63,7 @@ func StartSchedulerController(config *util.ControllerConfig, stopChan <-chan str
 		return nil, err
 	}
 
-	glog.Infof("Starting scheduler controller")
+	klog.Infof("Starting scheduler controller")
 	controller.Run(stopChan)
 	return controller, nil
 }
@@ -109,7 +109,7 @@ func (c *SchedulerController) Run(stopChan <-chan struct{}) {
 func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
-	glog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
+	klog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 
 	schedulingType := schedulingtypes.GetSchedulingType(qualifiedName.Name)
 	if schedulingType == nil {
@@ -166,7 +166,7 @@ func (c *SchedulerController) reconcile(qualifiedName util.QualifiedName) util.R
 	}
 
 	federatedKind := typeConfig.GetFederatedType().Kind
-	glog.Infof("Starting plugin kind %s for scheduling type %s", federatedKind, schedulingKind)
+	klog.Infof("Starting plugin kind %s for scheduling type %s", federatedKind, schedulingKind)
 
 	err = scheduler.StartPlugin(typeConfig)
 	if err != nil {
@@ -193,7 +193,7 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 
 	kind, ok := c.federatedKindMap[qualifiedName.Name]
 	if ok {
-		glog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, kind)
+		klog.Infof("Stopping plugin for %q with kind %q", qualifiedName.Name, kind)
 		scheduler.StopPlugin(kind)
 		delete(c.federatedKindMap, qualifiedName.Name)
 	}
@@ -203,7 +203,7 @@ func (c *SchedulerController) stopScheduler(schedulingKind string, qualifiedName
 	resources := schedulingtypes.GetSchedulingKinds(qualifiedName.Name)
 	result := c.runningPlugins.Intersection(resources)
 	if result.Len() == 0 {
-		glog.Infof("Stopping scheduler schedulingpreference controller for %q", schedulingKind)
+		klog.Infof("Stopping scheduler schedulingpreference controller for %q", schedulingKind)
 		scheduler.Stop()
 
 		delete(c.scheduler, schedulingKind)

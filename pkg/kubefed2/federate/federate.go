@@ -20,7 +20,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -82,7 +82,7 @@ func (j *federateResource) Complete(args []string) error {
 
 	if j.typeName == ctlutil.NamespaceName {
 		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
-		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
+		klog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 		j.resourceNamespace = ""
 	}
 
@@ -102,12 +102,12 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				klog.Fatalf("error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				klog.Fatalf("error: %v", err)
 			}
 		},
 	}
@@ -176,7 +176,7 @@ func lookupTypeDetails(config *rest.Config, qualifiedTypeName ctlutil.QualifiedN
 		return nil, errors.Wrapf(err, "Error retrieving API resource for FederatedTypeConfig %q", qualifiedTypeName)
 	}
 
-	glog.Infof("FederatedTypeConfig: %q found", qualifiedTypeName)
+	klog.Infof("FederatedTypeConfig: %q found", qualifiedTypeName)
 	return typeConfig, nil
 }
 
@@ -193,7 +193,7 @@ func getTargetResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTyp
 		return nil, errors.Wrapf(err, "Error retrieving target %s %q", kind, qualifiedName)
 	}
 
-	glog.Infof("Target %s %q found", kind, qualifiedName)
+	klog.Infof("Target %s %q found", kind, qualifiedName)
 	return resource, nil
 }
 
@@ -267,6 +267,6 @@ func createFedResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTyp
 		}
 	}
 
-	glog.Infof("Successfully created a %s from %s %q", fedKind, typeConfig.GetTarget().Kind, qualifiedName)
+	klog.Infof("Successfully created a %s from %s %q", fedKind, typeConfig.GetTarget().Kind, qualifiedName)
 	return createdResource, nil
 }

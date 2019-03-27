@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -186,7 +186,7 @@ func (m *VersionManager) Update(resource VersionedResource,
 	}
 
 	if oldStatus != nil && util.PropagatedVersionStatusEquivalent(oldStatus, status) {
-		glog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
+		klog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
 	} else if obj == nil {
 		ownerReference := ownerReferenceForUnstructured(resource.Object())
 		obj = m.adapter.NewVersion(qualifiedName, ownerReference, status)
@@ -219,7 +219,7 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 	err := wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
 		select {
 		case <-stopChan:
-			glog.V(4).Infof("Halting version manager list due to closed stop channel")
+			klog.V(4).Infof("Halting version manager list due to closed stop channel")
 			return false, errors.New("")
 		default:
 		}
@@ -251,7 +251,7 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 	for _, obj := range items {
 		select {
 		case <-stopChan:
-			glog.V(4).Infof("Halting version manager load due to closed stop channel")
+			klog.V(4).Infof("Halting version manager load due to closed stop channel")
 			return false
 		default:
 		}
@@ -265,7 +265,7 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 	m.Lock()
 	m.hasSynced = true
 	m.Unlock()
-	glog.V(4).Infof("Version manager for %q synced", m.federatedKind)
+	klog.V(4).Infof("Version manager for %q synced", m.federatedKind)
 	return true
 }
 
@@ -309,7 +309,7 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 		err := m.client.Create(context.TODO(), createdObj)
 		if apierrors.IsAlreadyExists(err) {
 			// Version was written to the API after the version manager loaded
-			glog.V(4).Infof("Refreshing %s %q from the API due to already existing", adapterType, key)
+			klog.V(4).Infof("Refreshing %s %q from the API due to already existing", adapterType, key)
 			err := m.refreshVersion(obj)
 			if err != nil {
 				runtime.HandleError(errors.Wrapf(err, "Failed to refresh existing %s %q from the API", adapterType, key))
@@ -352,12 +352,12 @@ func (m *VersionManager) writeVersion(qualifiedName util.QualifiedName) util.Rec
 		runtime.HandleError(errors.Wrapf(err, "Failed to update status of %s %q", adapterType, key))
 		return util.StatusError
 	}
-	glog.Warningf("Error indicating conflict occurred on status update of %s %q: %v", adapterType, key, err)
+	klog.Warningf("Error indicating conflict occurred on status update of %s %q: %v", adapterType, key, err)
 
 	// Version has been updated or deleted since the last version
 	// manager write.  Attempt to refresh and retry.
 
-	glog.V(4).Infof("Refreshing %s %q from the API", adapterType, key)
+	klog.V(4).Infof("Refreshing %s %q from the API", adapterType, key)
 	err = m.refreshVersion(obj)
 	if err == nil {
 		return util.StatusNeedsRecheck
@@ -381,7 +381,7 @@ func (m *VersionManager) refreshVersion(obj pkgruntime.Object) error {
 	// resource being immutable.
 	qualifiedName := util.NewQualifiedName(obj)
 
-	glog.V(4).Infof("Refreshing %s version %q from the API", m.federatedKind, qualifiedName)
+	klog.V(4).Infof("Refreshing %s version %q from the API", m.federatedKind, qualifiedName)
 	refreshedObj := m.adapter.NewObject()
 	err := m.client.Get(context.TODO(), refreshedObj, qualifiedName.Namespace, qualifiedName.Name)
 	if err != nil {

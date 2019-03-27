@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	"github.com/spf13/cobra"
@@ -33,6 +32,7 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
@@ -75,7 +75,7 @@ member clusters and does the necessary reconciliation`,
 		},
 	}
 
-	// Add the command line flags from other dependencies(glog, kubebuilder, etc.)
+	// Add the command line flags from other dependencies(klog, kubebuilder, etc.)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	opts.AddFlags(cmd.Flags())
@@ -92,7 +92,7 @@ func Run(opts *options.Options) error {
 	defer logs.FlushLogs()
 
 	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
-		glog.Fatalf("Invalid Feature Gate: %v", err)
+		klog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
 	stopChan := signals.SetupSignalHandler()
@@ -105,16 +105,16 @@ func Run(opts *options.Options) error {
 
 	if opts.InstallCRDs {
 		if err := install.NewInstaller(opts.Config.KubeConfig).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
-			glog.Fatalf("Could not create CRDs: %v", err)
+			klog.Fatalf("Could not create CRDs: %v", err)
 		}
 	}
 
 	if opts.LimitedScope {
 		opts.Config.TargetNamespace = opts.Config.FederationNamespace
-		glog.Infof("Federation will be limited to the %q namespace", opts.Config.FederationNamespace)
+		klog.Infof("Federation will be limited to the %q namespace", opts.Config.FederationNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
-		glog.Info("Federation will target all namespaces")
+		klog.Info("Federation will target all namespaces")
 	}
 
 	elector, err := leaderelection.NewFederationLeaderElector(opts, startControllers)
@@ -135,44 +135,44 @@ func Run(opts *options.Options) error {
 
 	elector.Run(ctx)
 
-	glog.Errorf("lost lease")
+	klog.Errorf("lost lease")
 	return errors.New("lost lease")
 }
 
 func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	if err := federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod); err != nil {
-		glog.Fatalf("Error starting cluster controller: %v", err)
+		klog.Fatalf("Error starting cluster controller: %v", err)
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		if _, err := schedulingmanager.StartSchedulerController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting scheduler controller: %v", err)
+			klog.Fatalf("Error starting scheduler controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
 		if err := servicedns.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting dns controller: %v", err)
+			klog.Fatalf("Error starting dns controller: %v", err)
 		}
 
 		if err := dnsendpoint.StartServiceDNSEndpointController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting dns endpoint controller: %v", err)
+			klog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
 		if err := ingressdns.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting ingress dns controller: %v", err)
+			klog.Fatalf("Error starting ingress dns controller: %v", err)
 		}
 
 		if err := dnsendpoint.StartIngressDNSEndpointController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
+			klog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
 		if err := federatedtypeconfig.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting federated type config controller: %v", err)
+			klog.Fatalf("Error starting federated type config controller: %v", err)
 		}
 	}
 }
@@ -189,6 +189,6 @@ func (s *InstallStrategy) GetCRDs() []*extv1b1.CustomResourceDefinition {
 // PrintFlags logs the flags in the flagset
 func PrintFlags(flags *pflag.FlagSet) {
 	flags.VisitAll(func(flag *pflag.Flag) {
-		glog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
+		klog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
 }

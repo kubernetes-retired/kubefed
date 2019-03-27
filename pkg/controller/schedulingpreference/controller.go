@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -35,6 +34,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 )
 
 const (
@@ -79,7 +79,7 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
+	klog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
 	controller.Run(controller.stopChannel)
 	return controller.scheduler, nil
 }
@@ -206,9 +206,9 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 	kind := s.scheduler.Kind()
 	key := qualifiedName.String()
 
-	glog.V(4).Infof("Starting to reconcile %s controller triggered key named %v", kind, key)
+	klog.V(4).Infof("Starting to reconcile %s controller triggered key named %v", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
+	defer klog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
 
 	obj, err := s.objFromCache(s.store, kind, key)
 	if err != nil {

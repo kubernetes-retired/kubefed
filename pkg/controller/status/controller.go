@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
@@ -36,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 const (
@@ -85,7 +85,7 @@ func StartFederationStatusController(controllerConfig *util.ControllerConfig, st
 	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting status controller for %q", typeConfig.GetFederatedType().Kind))
+	klog.Infof(fmt.Sprintf("Starting status controller for %q", typeConfig.GetFederatedType().Kind))
 	controller.Run(stopChan)
 	return nil
 }
@@ -192,15 +192,15 @@ func (s *FederationStatusController) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (s *FederationStatusController) isSynced() bool {
 	if !s.informer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	if !s.federatedController.HasSynced() {
-		glog.V(2).Infof("Federated type not synced")
+		klog.V(2).Infof("Federated type not synced")
 		return false
 	}
 	if !s.statusController.HasSynced() {
-		glog.V(2).Infof("Status not synced")
+		klog.V(2).Infof("Status not synced")
 		return false
 	}
 
@@ -235,9 +235,9 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	statusKind := s.typeConfig.GetStatus().Kind
 	key := qualifiedName.String()
 
-	glog.V(4).Infof("Starting to reconcile %v %v", statusKind, key)
+	klog.V(4).Infof("Starting to reconcile %v %v", statusKind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %v %v (duration: %v)", statusKind, key, time.Since(startTime))
+	defer klog.V(4).Infof("Finished reconciling %v %v (duration: %v)", statusKind, key, time.Since(startTime))
 
 	fedObject, err := s.objFromCache(s.federatedStore, federatedKind, key)
 	if err != nil {
@@ -245,7 +245,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	}
 
 	if fedObject == nil || fedObject.GetDeletionTimestamp() != nil {
-		glog.V(4).Infof("No federated type for %v %v found", federatedKind, key)
+		klog.V(4).Infof("No federated type for %v %v found", federatedKind, key)
 		// Status object is removed by GC. So we don't have to do anything more here.
 		return util.StatusAllOK
 	}
@@ -289,7 +289,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	}
 	status, err := util.GetUnstructured(federatedResource)
 	if err != nil {
-		glog.Errorf("Failed to convert to Unstructured: %s %q: %v", statusKind, key, err)
+		klog.Errorf("Failed to convert to Unstructured: %s %q: %v", statusKind, key, err)
 		return util.StatusError
 	}
 

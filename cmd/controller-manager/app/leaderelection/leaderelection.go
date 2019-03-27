@@ -20,8 +20,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -30,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
 )
@@ -41,7 +41,7 @@ func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		glog.Infof("unable to get hostname: %v", err)
+		klog.Infof("unable to get hostname: %v", err)
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*
 			EventRecorder: eventRecorder,
 		})
 	if err != nil {
-		glog.Infof("couldn't create resource lock: %v", err)
+		klog.Infof("couldn't create resource lock: %v", err)
 		return nil, err
 	}
 
@@ -72,13 +72,13 @@ func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*
 		RetryPeriod:   opts.LeaderElection.RetryPeriod,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(ctx context.Context) {
-				glog.Info("promoted as leader")
+				klog.Info("promoted as leader")
 				stopChan := ctx.Done()
 				fnStartControllers(opts, stopChan)
 				<-stopChan
 			},
 			OnStoppedLeading: func() {
-				glog.Info("leader election lost")
+				klog.Info("leader election lost")
 			},
 		},
 	})

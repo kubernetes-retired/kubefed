@@ -22,9 +22,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
-
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+
+	"k8s.io/klog"
 )
 
 type TestContextType struct {
@@ -70,14 +70,14 @@ func registerFlags(t *TestContextType) {
 
 func validateFlags(t *TestContextType) {
 	if len(t.KubeConfig) == 0 {
-		glog.Warning("kubeconfig not provided - enabling test-managed federation.")
+		klog.Warning("kubeconfig not provided - enabling test-managed federation.")
 		t.TestManagedFederation = true
 	} else if t.TestManagedFederation {
-		glog.Warningf("kubeconfig %q will be ignored due to test-managed-federation being true.", t.KubeConfig)
+		klog.Warningf("kubeconfig %q will be ignored due to test-managed-federation being true.", t.KubeConfig)
 	}
 
 	if !t.TestManagedFederation && t.InMemoryControllers {
-		glog.Info("in-memory-controllers=true while test-managed-federation=false - this will launch the federation controllers outside the unmanaged cluster.")
+		klog.Info("in-memory-controllers=true while test-managed-federation=false - this will launch the federation controllers outside the unmanaged cluster.")
 	}
 }
 

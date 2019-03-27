@@ -22,7 +22,6 @@ import (
 	"io"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -35,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -104,12 +104,12 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				klog.Fatalf("error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				klog.Fatalf("error: %v", err)
 			}
 		},
 	}
@@ -199,7 +199,7 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 	if err != nil {
 		return nil, err
 	}
-	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
+	klog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
 
 	typeConfig := typeConfigForTarget(*apiResource, enableTypeDirective)
 

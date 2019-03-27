@@ -22,10 +22,11 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
 
-	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/gomega"
+
+	"k8s.io/klog"
 )
 
 // RunE2ETests checks configuration parameters (specified through flags) and then runs
@@ -33,7 +34,7 @@ import (
 // This function is called on each Ginkgo node in parallel mode.
 func RunE2ETests(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgowrapper.Fail)
-	glog.Infof("Starting e2e run %q on Ginkgo node %d", framework.RunId, config.GinkgoConfig.ParallelNode)
+	klog.Infof("Starting e2e run %q on Ginkgo node %d", framework.RunId, config.GinkgoConfig.ParallelNode)
 	ginkgo.RunSpecs(t, "Federation e2e suite")
 }
 
