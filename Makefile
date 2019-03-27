@@ -19,11 +19,15 @@ IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
 BIN_DIR := bin
 DOCKER ?= docker
+HOST_OS ?= $(shell uname -s | tr A-Z a-z)
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
 GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
 GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+# Note: this is allowed to be overridden for scripts/deploy-federation.sh
+IMAGE_NAME = $(REGISTRY)/$(TARGET):$(GIT_VERSION)
 
 GIT_TREESTATE = "clean"
 DIFF = $(shell git diff --quiet >/dev/null 2>&1; if [ $$? -eq 1 ]; then echo "1"; fi)
@@ -37,27 +41,16 @@ endif
 BUILDMNT = /go/src/$(GOTARGET)
 BUILD_IMAGE ?= golang:1.11.2
 
-HYPERFED_TARGET = bin/hyperfed-linux
-CONTROLLER_TARGET = bin/controller-manager-linux
-KUBEFED2_TARGET = bin/kubefed2-linux
-
-CONTROLLER_TARGET_NATIVE = bin/controller-manager
+HYPERFED_TARGET = bin/hyperfed
+CONTROLLER_TARGET = bin/controller-manager
+KUBEFED2_TARGET = bin/kubefed2
 
 LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/version.version=$(GIT_VERSION) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitTreeState=$(GIT_TREESTATE) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.buildDate=$(BUILDDATE)"
-BUILDCMD_HYPERFED = CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(HYPERFED_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
-BUILDCMD_CONTROLLER = CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(CONTROLLER_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
-BUILDCMD_KUBEFED2 = go build -o $(KUBEFED2_TARGET) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
-BUILDCMD_CONTROLLER_NATIVE = CGO_ENABLED=0 go build -o $(CONTROLLER_TARGET_NATIVE) $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
-
-BUILD_HYPERFED = $(BUILDCMD_HYPERFED) cmd/hyperfed/main.go
-BUILD_CONTROLLER = $(BUILDCMD_CONTROLLER) cmd/controller-manager/main.go
-BUILD_KUBEFED2 = $(BUILDCMD_KUBEFED2) cmd/kubefed2/kubefed2.go
-
-BUILD_CONTROLLER_NATIVE = $(BUILDCMD_CONTROLLER_NATIVE) cmd/controller-manager/main.go
+GO_BUILDCMD = CGO_ENABLED=0 go build $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
 TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
 TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
@@ -67,7 +60,7 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build
+.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build bindir
 
 all: container hyperfed controller kubefed2
 
@@ -84,25 +77,36 @@ fmt:
 	go fmt $(TEST_PKGS)
 
 container: hyperfed
-	cp -f $(HYPERFED_TARGET) images/federation-v2/hyperfed
-	$(DOCKER) build images/federation-v2 \
-		-t $(REGISTRY)/$(TARGET):$(GIT_VERSION)
+	cp -f $(HYPERFED_TARGET)-linux images/federation-v2/hyperfed
+	$(DOCKER) build images/federation-v2 -t $(IMAGE_NAME)
 	rm -f images/federation-v2/hyperfed
 
-$(BIN_DIR):
-	mkdir $(BIN_DIR)
+bindir:
+	mkdir -p $(BIN_DIR)
 
-hyperfed: $(BIN_DIR)
-	$(DOCKER_BUILD) '$(BUILD_HYPERFED)'
+COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFED2_TARGET)
+OSES := linux darwin
+ALL_BINS :=
 
-controller: $(BIN_DIR)
-	$(DOCKER_BUILD) '$(BUILD_CONTROLLER)'
+define OS_template
+$(1)-$(2): bindir
+	$(DOCKER_BUILD) 'GOARCH=amd64 GOOS=$(2) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
+ALL_BINS := $(ALL_BINS) $(1)-$(2)
+endef
+$(foreach cmd, $(COMMANDS), $(foreach os, $(OSES), $(eval $(call OS_template, $(cmd),$(os),$(notdir $(cmd))))))
 
-kubefed2: $(BIN_DIR)
-	$(DOCKER_BUILD) '$(BUILD_KUBEFED2)'
+define CMD_template
+$(1): $(1)-$(HOST_OS)
+	ln -sf $(notdir $(1)-$(HOST_OS)) $(1)
+ALL_BINS := $(ALL_BINS) $(1)
+endef
+$(foreach cmd, $(COMMANDS), $(eval $(call CMD_template,$(cmd))))
 
-controller-native: $(BIN_DIR)
-	$(BUILD_CONTROLLER_NATIVE)
+hyperfed: $(HYPERFED_TARGET)
+
+controller: $(CONTROLLER_TARGET)
+
+kubefed2: $(KUBEFED2_TARGET)
 
 push:
 	$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION)
@@ -115,5 +119,5 @@ push:
 	fi
 
 clean:
-	rm -f $(KUBEFED2_TARGET) $(CONTROLLER_TARGET) $(HYPERFED_TARGET)
+	rm -f $(ALL_BINS)
 	$(DOCKER) rmi $(REGISTRY)/$(TARGET):$(GIT_VERSION) || true

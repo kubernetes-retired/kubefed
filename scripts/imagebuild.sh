@@ -21,7 +21,6 @@ set -o pipefail
 base_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 dockerfile_dir="${base_dir}/images/federation-v2"
 
-[ -f "$base_dir/bin/hyperfed-linux" ] || { echo "$base_dir/bin/hyperfed-linux not found" ; exit 1 ;}
 echo "travis tag: ${TRAVIS_TAG}"
 echo "travis branch:${TRAVIS_BRANCH}"
 if [[ "${TRAVIS_TAG}" =~ ^v([0-9]\.)+([0-9])[-a-zA-Z0-9]*([.0-9])* ]]; then
@@ -41,14 +40,13 @@ echo "Starting image build"
 export REGISTRY=quay.io/
 export REPO=kubernetes-multicluster
 
-echo "Copy hyperfed"
-cp ${base_dir}/bin/hyperfed-linux ${dockerfile_dir}/hyperfed
-
 echo "Logging into registry ${REGISTRY///}"
 docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 
 echo "Building Federation-v2 docker image"
-docker build ${dockerfile_dir} -t ${REGISTRY}${REPO}/federation-v2:${TAG}
+cd ${base_dir}
+make container IMAGE_NAME=${REGISTRY}${REPO}/federation-v2:${TAG}
+cd -
 
 echo "Pushing image with tag '${TAG}'."
 docker push ${REGISTRY}${REPO}/federation-v2:${TAG}
@@ -59,5 +57,3 @@ if [ "$LATEST" == "latest" ]; then
    echo "Pushing image with tag '${LATEST}'."
    docker push ${REGISTRY}${REPO}/federation-v2:${LATEST}
 fi
-
-rm ${dockerfile_dir}/hyperfed
