@@ -100,18 +100,6 @@ func (c *FakeFederationConfigs) Update(federationConfig *v1alpha1.FederationConf
 	return obj.(*v1alpha1.FederationConfig), err
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederationConfigs) UpdateStatus(federationConfig *v1alpha1.FederationConfig) (*v1alpha1.FederationConfig, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(federationconfigsResource, "status", c.ns, federationConfig), &v1alpha1.FederationConfig{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.FederationConfig), err
-}
-
 // Delete takes name of the federationConfig and deletes it. Returns an error if one occurs.
 func (c *FakeFederationConfigs) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.

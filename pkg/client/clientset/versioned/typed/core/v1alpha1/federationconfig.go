@@ -37,7 +37,6 @@ type FederationConfigsGetter interface {
 type FederationConfigInterface interface {
 	Create(*v1alpha1.FederationConfig) (*v1alpha1.FederationConfig, error)
 	Update(*v1alpha1.FederationConfig) (*v1alpha1.FederationConfig, error)
-	UpdateStatus(*v1alpha1.FederationConfig) (*v1alpha1.FederationConfig, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.FederationConfig, error)
@@ -115,22 +114,6 @@ func (c *federationConfigs) Update(federationConfig *v1alpha1.FederationConfig) 
 		Namespace(c.ns).
 		Resource("federationconfigs").
 		Name(federationConfig.Name).
-		Body(federationConfig).
-		Do().
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federationConfigs) UpdateStatus(federationConfig *v1alpha1.FederationConfig) (result *v1alpha1.FederationConfig, err error) {
-	result = &v1alpha1.FederationConfig{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("federationconfigs").
-		Name(federationConfig.Name).
-		SubResource("status").
 		Body(federationConfig).
 		Do().
 		Into(result)
