@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	finalizersutil "sigs.k8s.io/federation-v2/pkg/controller/util/finalizers"
 )
 
 const (

@@ -19,14 +19,14 @@ package framework
 import (
 	"fmt"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/test/common"
+	"sigs.k8s.io/federation-v2/test/e2e/framework/managed"
 )
 
 var (

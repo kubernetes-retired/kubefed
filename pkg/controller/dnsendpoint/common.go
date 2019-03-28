@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	feddnsv1a1 "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 )
 
 const (

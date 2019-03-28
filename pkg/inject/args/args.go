@@ -22,8 +22,8 @@ import (
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/args"
 	"k8s.io/client-go/rest"
 
-	clientset "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	informer "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions"
+	clientset "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned"
+	informer "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions"
 )
 
 // InjectArgs are the arguments need to initialize controllers

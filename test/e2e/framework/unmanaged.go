@@ -23,12 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +31,12 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/test/common"
+	"sigs.k8s.io/federation-v2/test/e2e/framework/managed"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

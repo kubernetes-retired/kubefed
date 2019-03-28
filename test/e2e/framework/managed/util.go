@@ -21,12 +21,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kubernetes-sigs/federation-v2/test/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"sigs.k8s.io/federation-v2/test/common"
 )
 
 const (

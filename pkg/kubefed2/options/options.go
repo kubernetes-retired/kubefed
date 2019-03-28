@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 // SubcommandOptions holds the configuration required by the subcommands of

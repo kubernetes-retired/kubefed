@@ -24,16 +24,16 @@ import (
 
 	"github.com/golang/glog"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/cache"
+	fedv1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/features"
 
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
 )
 
 // ClusterController is responsible for maintaining the health status of each

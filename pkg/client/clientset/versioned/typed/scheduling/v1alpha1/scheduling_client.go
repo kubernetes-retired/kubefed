@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
+	v1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/scheduling/v1alpha1"
+	"sigs.k8s.io/federation-v2/pkg/client/clientset/versioned/scheme"
 )
 
 type SchedulingV1alpha1Interface interface {

@@ -19,7 +19,7 @@ package enable
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/common"
 )
 
 // EnableTypeDirectiveSpec defines the desired state of EnableTypeDirective.

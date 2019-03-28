@@ -13,7 +13,7 @@
 # limitations under the License.
 
 TARGET = federation-v2
-GOTARGET = github.com/kubernetes-sigs/$(TARGET)
+GOTARGET = sigs.k8s.io/$(TARGET)
 REGISTRY ?= quay.io/kubernetes-multicluster
 IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}

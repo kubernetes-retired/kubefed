@@ -21,8 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedv1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 // computeNamespacedPlacement determines placement for namespaced

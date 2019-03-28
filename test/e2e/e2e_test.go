@@ -19,8 +19,8 @@ package e2e
 import (
 	"testing"
 
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, etc
+	"sigs.k8s.io/federation-v2/test/e2e/framework"
 )
 
 func init() {

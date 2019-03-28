@@ -26,13 +26,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
+	fedv1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	dnsv1a1 "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	"sigs.k8s.io/federation-v2/pkg/controller/dnsendpoint"
+	"sigs.k8s.io/federation-v2/test/common"
+	"sigs.k8s.io/federation-v2/test/e2e/framework"
+	"sigs.k8s.io/federation-v2/test/e2e/framework/managed"
 
 	. "github.com/onsi/ginkgo"
 )

@@ -19,12 +19,12 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	scheme "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
+	v1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	scheme "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned/scheme"
 )
 
 // DomainsGetter has a method to return a DomainInterface.

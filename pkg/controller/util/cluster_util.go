@@ -24,8 +24,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	apiv1 "k8s.io/api/core/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -33,6 +31,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crcv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	fedv1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/federation-v2/pkg/client/generic"
 )
 
 const (

@@ -25,14 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
+	"sigs.k8s.io/kubebuilder/pkg/install"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -44,6 +38,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	fedv1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/inject"
+	kfenable "sigs.k8s.io/federation-v2/pkg/kubefed2/enable"
+	"sigs.k8s.io/federation-v2/test/common"
 )
 
 // TODO(marun) In fedv1 namespace cleanup required that a kube api

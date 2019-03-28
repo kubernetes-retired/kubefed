@@ -25,7 +25,7 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	flagutil "k8s.io/apiserver/pkg/util/flag"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 // Options contains everything necessary to create and run controller-manager.

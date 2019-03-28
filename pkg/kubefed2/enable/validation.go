@@ -19,7 +19,7 @@ package enable
 import (
 	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {

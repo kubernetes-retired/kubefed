@@ -21,11 +21,11 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	multiclusterdns_v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	scheduling_v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
+	v1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	multiclusterdns_v1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	scheduling_v1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/scheduling/v1alpha1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other

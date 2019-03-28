@@ -24,11 +24,11 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	"sigs.k8s.io/federation-v2/pkg/controller/sync/version"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/controller/util/deletionhelper"
 )
 
 // FederatedResourceAccessor provides a way to retrieve and visit

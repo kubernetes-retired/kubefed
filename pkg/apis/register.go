@@ -17,13 +17,13 @@ limitations under the License.
 package apis
 
 import (
-	corev1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	schedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	corev1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	multiclusterdnsv1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	schedulingv1alpha1 "sigs.k8s.io/federation-v2/pkg/apis/scheduling/v1alpha1"
 )
 
 var Scheme = runtime.NewScheme()

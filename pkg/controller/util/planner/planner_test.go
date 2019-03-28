@@ -19,8 +19,8 @@ package planner
 import (
 	"testing"
 
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	fedschedulingv1a1 "sigs.k8s.io/federation-v2/pkg/apis/scheduling/v1alpha1"
 )
 
 func doCheck(t *testing.T, pref map[string]fedschedulingv1a1.ClusterPreferences, replicas int64, clusters []string, expected map[string]int64) {

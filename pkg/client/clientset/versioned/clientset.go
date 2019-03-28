@@ -19,12 +19,12 @@ limitations under the License.
 package versioned
 
 import (
-	corev1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
-	multiclusterdnsv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
-	schedulingv1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned/typed/scheduling/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+	corev1alpha1 "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned/typed/core/v1alpha1"
+	multiclusterdnsv1alpha1 "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned/typed/multiclusterdns/v1alpha1"
+	schedulingv1alpha1 "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned/typed/scheduling/v1alpha1"
 )
 
 type Interface interface {

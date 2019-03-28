@@ -23,15 +23,15 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
-	core "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/core"
-	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/internalinterfaces"
-	multiclusterdns "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/multiclusterdns"
-	scheduling "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/scheduling"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
+	versioned "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned"
+	core "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions/core"
+	internalinterfaces "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions/internalinterfaces"
+	multiclusterdns "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions/multiclusterdns"
+	scheduling "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions/scheduling"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

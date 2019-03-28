@@ -19,7 +19,7 @@ package managed
 import (
 	"testing"
 
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/federation-v2/test/common"
 )
 
 type integrationLogger struct {

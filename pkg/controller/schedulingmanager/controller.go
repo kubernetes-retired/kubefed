@@ -24,11 +24,11 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	corev1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/federation-v2/pkg/controller/schedulingpreference"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/schedulingtypes"
 )
 
 type SchedulingManager struct {

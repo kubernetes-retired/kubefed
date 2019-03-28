@@ -25,9 +25,9 @@ import (
 	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+	"sigs.k8s.io/federation-v2/pkg/kubefed2/enable"
+	"sigs.k8s.io/federation-v2/pkg/kubefed2/federate"
+	"sigs.k8s.io/federation-v2/pkg/kubefed2/util"
 )
 
 // NewKubeFed2Command creates the `kubefed2` command and its nested children.
@@ -36,7 +36,7 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "kubefed2",
 		Short: "kubefed2 controls a Kubernetes Cluster Federation",
-		Long:  "kubefed2 controls a Kubernetes Cluster Federation. Find more information at https://github.com/kubernetes-sigs/federation-v2.",
+		Long:  "kubefed2 controls a Kubernetes Cluster Federation. Find more information at https://sigs.k8s.io/federation-v2.",
 
 		Run: runHelp,
 	}

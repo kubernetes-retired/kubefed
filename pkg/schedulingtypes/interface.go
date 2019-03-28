@@ -17,9 +17,9 @@ limitations under the License.
 package schedulingtypes
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	. "sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 type Scheduler interface {

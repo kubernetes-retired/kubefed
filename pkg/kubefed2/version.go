@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/federation-v2/pkg/version"
 )
 
 var (

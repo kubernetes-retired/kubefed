@@ -25,17 +25,17 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	fedschedulingv1a1 "sigs.k8s.io/federation-v2/pkg/apis/scheduling/v1alpha1"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	ctlutil "sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/controller/util/planner"
+	"sigs.k8s.io/federation-v2/pkg/controller/util/podanalyzer"
 )
 
 const (

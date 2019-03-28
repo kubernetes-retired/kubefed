@@ -26,4 +26,4 @@ dep ensure doesn't need to be rerun after "kubebuilder create resource".
 This is necessary for subsequent commands - such as building docs, tests, etc - to work without rerunning "dep ensure"
 afterward.
 */
-import _ "github.com/kubernetes-sigs/kubebuilder/pkg/imports"
+import _ "sigs.k8s.io/kubebuilder/pkg/imports"

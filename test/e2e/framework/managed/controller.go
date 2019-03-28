@@ -21,16 +21,16 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	"sigs.k8s.io/federation-v2/pkg/controller/dnsendpoint"
+	"sigs.k8s.io/federation-v2/pkg/controller/federatedcluster"
+	"sigs.k8s.io/federation-v2/pkg/controller/ingressdns"
+	"sigs.k8s.io/federation-v2/pkg/controller/schedulingmanager"
+	"sigs.k8s.io/federation-v2/pkg/controller/servicedns"
+	"sigs.k8s.io/federation-v2/pkg/controller/status"
+	"sigs.k8s.io/federation-v2/pkg/controller/sync"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/test/common"
 )
 
 // ControllerFixture manages a federation controller for testing.

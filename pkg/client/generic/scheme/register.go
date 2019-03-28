@@ -17,13 +17,13 @@ limitations under the License.
 package scheme
 
 import (
-	fedapis "github.com/kubernetes-sigs/federation-v2/pkg/apis"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 	crapis "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	fedapis "sigs.k8s.io/federation-v2/pkg/apis"
 )
 
 var Scheme = runtime.NewScheme()

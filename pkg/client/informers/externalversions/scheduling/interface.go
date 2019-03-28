@@ -19,8 +19,8 @@ limitations under the License.
 package scheduling
 
 import (
-	internalinterfaces "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/kubernetes-sigs/federation-v2/pkg/client/informers/externalversions/scheduling/v1alpha1"
+	internalinterfaces "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "sigs.k8s.io/federation-v2/pkg/client/informers/externalversions/scheduling/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

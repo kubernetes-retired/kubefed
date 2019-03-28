@@ -30,12 +30,12 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	statuscontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
-	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/federation-v2/pkg/apis/core/typeconfig"
+	corev1a1 "sigs.k8s.io/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/federation-v2/pkg/client/generic"
+	statuscontroller "sigs.k8s.io/federation-v2/pkg/controller/status"
+	synccontroller "sigs.k8s.io/federation-v2/pkg/controller/sync"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 const finalizer string = "core.federation.k8s.io/federated-type-config"

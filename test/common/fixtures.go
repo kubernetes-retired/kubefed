@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kfenable "sigs.k8s.io/federation-v2/pkg/kubefed2/enable"
 )
 
 var fixtures map[string]*unstructured.Unstructured

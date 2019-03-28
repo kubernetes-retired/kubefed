@@ -34,17 +34,17 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
-	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/features"
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
-	"github.com/kubernetes-sigs/federation-v2/pkg/version"
+	"sigs.k8s.io/federation-v2/cmd/controller-manager/app/leaderelection"
+	"sigs.k8s.io/federation-v2/cmd/controller-manager/app/options"
+	"sigs.k8s.io/federation-v2/pkg/controller/dnsendpoint"
+	"sigs.k8s.io/federation-v2/pkg/controller/federatedcluster"
+	"sigs.k8s.io/federation-v2/pkg/controller/federatedtypeconfig"
+	"sigs.k8s.io/federation-v2/pkg/controller/ingressdns"
+	"sigs.k8s.io/federation-v2/pkg/controller/schedulingmanager"
+	"sigs.k8s.io/federation-v2/pkg/controller/servicedns"
+	"sigs.k8s.io/federation-v2/pkg/features"
+	"sigs.k8s.io/federation-v2/pkg/inject"
+	"sigs.k8s.io/federation-v2/pkg/version"
 )
 
 var (

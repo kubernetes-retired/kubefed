@@ -19,7 +19,7 @@ package managed
 import (
 	"net/url"
 
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/federation-v2/test/common"
 	"sigs.k8s.io/testing_frameworks/integration"
 )
 

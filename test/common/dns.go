@@ -28,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 
-	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	dnsv1a1 "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+	"sigs.k8s.io/federation-v2/pkg/controller/util"
 )
 
 func NewDomainObject(federation, domain string) *dnsv1a1.Domain {

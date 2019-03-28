@@ -20,7 +20,7 @@ import (
 	injectargs "github.com/kubernetes-sigs/kubebuilder/pkg/inject/args"
 	"github.com/kubernetes-sigs/kubebuilder/pkg/inject/run"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject/args"
+	"sigs.k8s.io/federation-v2/pkg/inject/args"
 )
 
 var (

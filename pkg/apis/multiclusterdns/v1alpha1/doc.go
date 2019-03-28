@@ -21,8 +21,8 @@ limitations under the License.
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns
+// +k8s:conversion-gen=sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=multiclusterdns.federation.k8s.io
-package v1alpha1 // import "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+package v1alpha1 // import "sigs.k8s.io/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
 

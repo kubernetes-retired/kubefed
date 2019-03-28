@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
+	"sigs.k8s.io/federation-v2/cmd/controller-manager/app/options"
 )
 
 func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*options.Options, <-chan struct{})) (*leaderelection.LeaderElector, error) {

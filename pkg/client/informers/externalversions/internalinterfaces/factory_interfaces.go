@@ -21,10 +21,10 @@ package internalinterfaces
 import (
 	time "time"
 
-	versioned "github.com/kubernetes-sigs/federation-v2/pkg/client/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
+	versioned "sigs.k8s.io/federation-v2/pkg/client/clientset/versioned"
 )
 
 type NewInformerFunc func(versioned.Interface, time.Duration) cache.SharedIndexInformer
