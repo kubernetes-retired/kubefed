@@ -205,7 +205,7 @@ func lookupTypeDetails(config *rest.Config, qualifiedTypeName ctlutil.QualifiedN
 		return nil, errors.Wrapf(err, "Error retrieving API resource for FederatedTypeConfig %q", qualifiedTypeName)
 	}
 
-	glog.Infof("FederatedTypeConfig: %q found", qualifiedTypeName)
+	glog.V(2).Infof("FederatedTypeConfig: %q found", qualifiedTypeName)
 	return typeConfig, nil
 }
 
@@ -222,7 +222,7 @@ func getTargetResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTyp
 		return nil, errors.Wrapf(err, "Error retrieving target %s %q", kind, qualifiedName)
 	}
 
-	glog.Infof("Target %s %q found", kind, qualifiedName)
+	glog.V(2).Infof("Target %s %q found", kind, qualifiedName)
 	return resource, nil
 }
 
