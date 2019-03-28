@@ -26,4 +26,6 @@ type FederatedServiceStatusExpansion interface{}
 
 type FederatedTypeConfigExpansion interface{}
 
+type FederationConfigExpansion interface{}
+
 type PropagatedVersionExpansion interface{}

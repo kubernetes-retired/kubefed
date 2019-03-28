@@ -303,6 +303,38 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.4
+  name: federationconfigs.core.federation.k8s.io
+spec:
+  group: core.federation.k8s.io
+  names:
+    kind: FederationConfig
+    plural: federationconfigs
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    api: federation
+    kubebuilder.k8s.io: 1.0.4
   name: propagatedversions.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io

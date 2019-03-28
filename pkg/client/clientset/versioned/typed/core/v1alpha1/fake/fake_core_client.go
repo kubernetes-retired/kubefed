@@ -44,6 +44,10 @@ func (c *FakeCoreV1alpha1) FederatedTypeConfigs(namespace string) v1alpha1.Feder
 	return &FakeFederatedTypeConfigs{c, namespace}
 }
 
+func (c *FakeCoreV1alpha1) FederationConfigs(namespace string) v1alpha1.FederationConfigInterface {
+	return &FakeFederationConfigs{c, namespace}
+}
+
 func (c *FakeCoreV1alpha1) PropagatedVersions(namespace string) v1alpha1.PropagatedVersionInterface {
 	return &FakePropagatedVersions{c, namespace}
 }

@@ -32,6 +32,8 @@ type Interface interface {
 	FederatedServiceStatuses() FederatedServiceStatusInformer
 	// FederatedTypeConfigs returns a FederatedTypeConfigInformer.
 	FederatedTypeConfigs() FederatedTypeConfigInformer
+	// FederationConfigs returns a FederationConfigInformer.
+	FederationConfigs() FederationConfigInformer
 	// PropagatedVersions returns a PropagatedVersionInformer.
 	PropagatedVersions() PropagatedVersionInformer
 }
@@ -65,6 +67,11 @@ func (v *version) FederatedServiceStatuses() FederatedServiceStatusInformer {
 // FederatedTypeConfigs returns a FederatedTypeConfigInformer.
 func (v *version) FederatedTypeConfigs() FederatedTypeConfigInformer {
 	return &federatedTypeConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederationConfigs returns a FederationConfigInformer.
+func (v *version) FederationConfigs() FederationConfigInformer {
+	return &federationConfigInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // PropagatedVersions returns a PropagatedVersionInformer.

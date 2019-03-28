@@ -46,6 +46,14 @@ type FederatedTypeConfigListerExpansion interface{}
 // FederatedTypeConfigNamespaceLister.
 type FederatedTypeConfigNamespaceListerExpansion interface{}
 
+// FederationConfigListerExpansion allows custom methods to be added to
+// FederationConfigLister.
+type FederationConfigListerExpansion interface{}
+
+// FederationConfigNamespaceListerExpansion allows custom methods to be added to
+// FederationConfigNamespaceLister.
+type FederationConfigNamespaceListerExpansion interface{}
+
 // PropagatedVersionListerExpansion allows custom methods to be added to
 // PropagatedVersionLister.
 type PropagatedVersionListerExpansion interface{}

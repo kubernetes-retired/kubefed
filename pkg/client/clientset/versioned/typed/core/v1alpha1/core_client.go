@@ -31,6 +31,7 @@ type CoreV1alpha1Interface interface {
 	FederatedClustersGetter
 	FederatedServiceStatusesGetter
 	FederatedTypeConfigsGetter
+	FederationConfigsGetter
 	PropagatedVersionsGetter
 }
 
@@ -53,6 +54,10 @@ func (c *CoreV1alpha1Client) FederatedServiceStatuses(namespace string) Federate
 
 func (c *CoreV1alpha1Client) FederatedTypeConfigs(namespace string) FederatedTypeConfigInterface {
 	return newFederatedTypeConfigs(c, namespace)
+}
+
+func (c *CoreV1alpha1Client) FederationConfigs(namespace string) FederationConfigInterface {
+	return newFederationConfigs(c, namespace)
 }
 
 func (c *CoreV1alpha1Client) PropagatedVersions(namespace string) PropagatedVersionInterface {
