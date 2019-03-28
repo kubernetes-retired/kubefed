@@ -25,6 +25,7 @@ import (
 var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}
 
 func RemoveUnwantedFields(resource *unstructured.Unstructured) {
+	unstructured.RemoveNestedField(resource.Object, "status")
 	for _, field := range systemMetadataFields {
 		unstructured.RemoveNestedField(resource.Object, "metadata", field)
 		// For resources with pod template subresource (jobs, deployments, replicasets)
