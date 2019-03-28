@@ -549,7 +549,7 @@ exceptions appear in the following table.  Where retention is
 conditional, an explanation will be provided in a subsequent section.
 
 | Resource Type  | Fields                    | Retention   | Requirement                                                                  |
-|----------------|---------------------------|--------------------------------------------------------------------------------------------|
+|----------------|---------------------------|-------------|------------------------------------------------------------------------------|
 | All            | metadata.resourceVersion  | Always      | Updates require the most recent resourceVersion for concurrency control.     |
 | Scalable       | spec.replicas             | Conditional | The HPA controller may be managing the replica count of a scalable resource. |
 | Service        | spec.clusterIP,spec.ports | Always      | A controller may be managing these fields.                                   |
