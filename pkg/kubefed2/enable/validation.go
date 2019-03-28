@@ -146,7 +146,7 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 			if replicasField, ok := templateSpec.Properties["replicas"]; ok {
 				if replicasField.Type == "integer" && replicasField.Format == "int32" {
 					specProperties[util.RetainReplicasField] = v1beta1.JSONSchemaProps{
-						Type: "bool",
+						Type: "boolean",
 					}
 				}
 			}

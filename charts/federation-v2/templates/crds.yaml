@@ -561,7 +561,7 @@ spec:
                   type: object
               type: object
             retainReplicas:
-              type: bool
+              type: boolean
             template:
               properties:
                 apiVersion:
@@ -5405,7 +5405,7 @@ spec:
                   type: object
               type: object
             retainReplicas:
-              type: bool
+              type: boolean
             template:
               properties:
                 apiVersion:
