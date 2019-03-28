@@ -30,22 +30,17 @@ trap 'logEnd $?' EXIT
 
 echo "About to download some binaries. This might take a while..."
 
-GOPATH=$(go env GOPATH)
-GOBIN="${GOPATH}/bin"
+root_dir="$(cd "$(dirname "$0")/.." ; pwd)"
+dest_dir="${root_dir}/bin"
+mkdir -p "${dest_dir}"
 
 # kind
-# TODO(font): kind does not have versioning yet.
-kind_version="4d7dded365359afeb1831292cd1a3a3e15fff0b2"
-kind_bin="kind"
-kind_url="sigs.k8s.io"
-go get -d ${kind_url}/${kind_bin}
-pushd ${GOPATH}/src/${kind_url}/${kind_bin}
-git checkout ${kind_version}
-popd
-go install ${kind_url}/${kind_bin}
+kind_version="0.2.0"
+kind_path="${dest_dir}/kind"
+kind_url="https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-linux-amd64"
+curl -Lo "${kind_path}" "${kind_url}" && chmod +x "${kind_path}"
 
 # Pull the busybox image (used in tests of workload types)
 docker pull busybox
 
-echo    "# bin destination:    ${GOBIN}"
-echo    "# kind installation:  ${GOBIN}/kind"
+echo    "# kind installation:  ${kind_path}"
