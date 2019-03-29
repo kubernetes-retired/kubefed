@@ -191,17 +191,19 @@ if [[ ! "${NAMESPACED}" ]]; then
   fi
 fi
 
+USE_CHART="${USE_CHART:-}"
 # Create a permissive clusterrolebinding to allow federation controllers to run.
 if [[ "${NAMESPACED}" ]]; then
-  # TODO(marun) Investigate why cluster-admin is required to view cluster registry clusters in a namespace
-  kubectl -n "${NS}" create rolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
+  if [[ ! "${USE_CHART}" ]]; then
+    # TODO(marun) Investigate why cluster-admin is required to view cluster registry clusters in a namespace
+    kubectl -n "${NS}" create rolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
+  fi
 else
   # TODO(marun) Make this more restrictive.
   kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
 fi
 
 # Deploy federation resources
-USE_CHART="${USE_CHART:-}"
 if [[ "${USE_CHART}" ]]; then
   deploy-with-helm
 else
