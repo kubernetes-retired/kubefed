@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -346,25 +345,7 @@ func writeObjectToYAML(obj pkgruntime.Object, w io.Writer) error {
 		return err
 	}
 
-	// Convert to unstructured to filter status out of the output.  If
-	// status is included in the yaml, attempting to create it in a
-	// kube API will cause an error.
 	unstructuredObj := &unstructured.Unstructured{}
 	unstructured.UnstructuredJSONScheme.Decode(json, nil, unstructuredObj)
-	delete(unstructuredObj.Object, "status")
-	// Also remove unnecessary field
-	metadataMap := unstructuredObj.Object["metadata"].(map[string]interface{})
-	delete(metadataMap, "creationTimestamp")
-
-	updatedJSON, err := unstructuredObj.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	data, err := yaml.JSONToYAML(updatedJSON)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(data)
-	return err
+	return util.WriteUnstructuredToYaml(unstructuredObj, w)
 }
