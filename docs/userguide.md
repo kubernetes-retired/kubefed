@@ -107,6 +107,13 @@ kubectl config use-context cluster1
 You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md)
 to install and uninstall a federation-v2 control plane.
 
+### Fix Cluster Registry meta (Optional)
+Cluster registry meta-data address need to be fixed if you are running hyperkit docker under `Darwin`. Run following script to fix this.
+Specify the clusters you need to be fixed, Comma seperated.
+```bash
+./scripts/fix-joined-kind-clusters.sh cluster1,cluster2
+``` 
+
 ## Operations
 
 ### Join Clusters
