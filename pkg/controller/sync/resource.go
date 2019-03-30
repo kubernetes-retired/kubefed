@@ -50,7 +50,7 @@ type FederatedResource interface {
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	MarkedForDeletion() bool
 	EnsureDeletion() error
-	EnsureFinalizers() error
+	EnsureFinalizer() error
 }
 
 type federatedResource struct {
@@ -200,8 +200,8 @@ func (r *federatedResource) EnsureDeletion() error {
 	return err
 }
 
-func (r *federatedResource) EnsureFinalizers() error {
-	updatedObj, err := r.deletionHelper.EnsureFinalizers(r.federatedResource)
+func (r *federatedResource) EnsureFinalizer() error {
+	updatedObj, err := r.deletionHelper.EnsureFinalizer(r.federatedResource)
 	if updatedObj != nil {
 		// Retain the updated template for use in future API calls.
 		r.federatedResource = updatedObj.(*unstructured.Unstructured)

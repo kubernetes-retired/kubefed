@@ -25,22 +25,25 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
 )
 
 const (
-	// Add this finalizer to a federation resource if the resource should be
-	// deleted from all underlying clusters before being deleted from
-	// federation control plane.
-	// This is ignored if FinalizerOrphan is also present on the resource.
-	// In that case, both finalizers are removed from the resource and the
-	// resource is deleted from federation control plane without affecting
-	// the underlying clusters.
-	FinalizerDeleteFromUnderlyingClusters string = "federation.kubernetes.io/delete-from-underlying-clusters"
+	// If this finalizer is present on a federated resource, the sync
+	// controller will have the opportunity to perform pre-deletion operations
+	// (like deleting managed resources from member clusters).
+	FinalizerSyncController = "federation.k8s.io/sync-controller"
+
+	// If this annotation is present on a federated resource, resources in the
+	// member clusters managed by the federated resource should be orphaned.
+	// If the annotation is not present (the default), resources in member
+	// clusters will be deleted before the federated resource is deleted.
+	OrphanManagedResources = "federation.k8s.io/orphan"
 )
 
 type UpdateObjFunc func(runtime.Object) (runtime.Object, error)
@@ -64,68 +67,53 @@ func NewDeletionHelper(
 	}
 }
 
-// Ensures that the given object has both FinalizerDeleteFromUnderlyingClusters
-// and FinalizerOrphan finalizers.
-// We do this so that the controller is always notified when a federation resource is deleted.
-// If user deletes the resource with nil DeleteOptions or
-// DeletionOptions.OrphanDependents = true then the apiserver removes the orphan finalizer
-// and deletion helper does a cascading deletion.
-// Otherwise, deletion helper just removes the federation resource and orphans
-// the corresponding resources in underlying clusters.
-// This method should be called before creating objects in underlying clusters.
-func (dh *DeletionHelper) EnsureFinalizers(obj runtime.Object) (
-	runtime.Object, error) {
-	finalizers := sets.String{}
-	hasFinalizer, err := finalizersutil.HasFinalizer(obj, FinalizerDeleteFromUnderlyingClusters)
-	if err != nil {
+// Ensures that the given object has the FinalizerSyncController finalizer.
+// The finalizer ensures that the controller is always notified when a
+// federated resource is deleted so that host and member cluster cleanup can be
+// performed.
+func (dh *DeletionHelper) EnsureFinalizer(obj runtime.Object) (runtime.Object, error) {
+	isUpdated, err := finalizersutil.AddFinalizers(obj, sets.NewString(FinalizerSyncController))
+	if err != nil || !isUpdated {
 		return nil, err
 	}
-	if !hasFinalizer {
-		finalizers.Insert(FinalizerDeleteFromUnderlyingClusters)
-	}
-	hasFinalizer, err = finalizersutil.HasFinalizer(obj, metav1.FinalizerOrphanDependents)
+	glog.V(2).Infof("Adding finalizer %s to %s", FinalizerSyncController, dh.objNameFunc(obj))
+	// Send the update to apiserver.
+	updatedObj, err := dh.updateObjFunc(obj)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to add finalizer %s to object %s", FinalizerSyncController, dh.objNameFunc(obj))
 	}
-	if !hasFinalizer {
-		finalizers.Insert(metav1.FinalizerOrphanDependents)
-	}
-	if finalizers.Len() != 0 {
-		glog.V(2).Infof("Adding finalizers %v to %s", finalizers.List(), dh.objNameFunc(obj))
-		return dh.addFinalizers(obj, finalizers)
-	}
-	return nil, nil
+	return updatedObj, nil
 }
 
-// Deletes the resources corresponding to the given federated resource from
-// all underlying clusters, unless it has the FinalizerOrphan finalizer.
-// Removes FinalizerOrphan and FinalizerDeleteFromUnderlyingClusters finalizers
-// when done.
-// Callers are expected to keep calling this (with appropriate backoff) until
-// it succeeds.
+// Deletes the resources in member clusters managed by the given federated
+// resource unless the OrphanManagedResources annotation is present and has a
+// value of 'true'.  Callers are expected to keep calling this (with
+// appropriate backoff) until it succeeds.
 func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, targetKey string, skipDelete func(runtime.Object) bool) (
 	runtime.Object, error) {
+
 	objName := dh.objNameFunc(obj)
 	glog.V(2).Infof("Handling deletion of federated dependents for object: %s", objName)
-	hasFinalizer, err := finalizersutil.HasFinalizer(obj, FinalizerDeleteFromUnderlyingClusters)
+
+	metaAccessor, err := meta.Accessor(obj)
 	if err != nil {
 		return obj, err
 	}
-	if !hasFinalizer {
-		glog.V(2).Infof("obj does not have %s finalizer. Nothing to do", FinalizerDeleteFromUnderlyingClusters)
+
+	finalizers := sets.NewString(metaAccessor.GetFinalizers()...)
+	if !finalizers.Has(FinalizerSyncController) {
+		glog.V(2).Infof("obj does not have the %q finalizer. Nothing to do", FinalizerSyncController)
 		return obj, nil
 	}
-	hasOrphanFinalizer, err := finalizersutil.HasFinalizer(obj, metav1.FinalizerOrphanDependents)
-	if err != nil {
-		return obj, err
-	}
-	if hasOrphanFinalizer {
-		glog.V(2).Infof("Found finalizer orphan. Nothing to do, just remove the finalizer")
-		// If the obj has FinalizerOrphan finalizer, then we need to orphan the
-		// corresponding objects in underlying clusters.
-		// Just remove both the finalizers in that case.
-		finalizers := sets.NewString(FinalizerDeleteFromUnderlyingClusters, metav1.FinalizerOrphanDependents)
-		return dh.removeFinalizers(obj, finalizers)
+
+	annotations := metaAccessor.GetAnnotations()
+	orphanResources := annotations != nil && annotations[OrphanManagedResources] == "true"
+	if orphanResources {
+		glog.V(2).Infof("Found %q annotation. Nothing to do, just remove the finalizer", OrphanManagedResources)
+		// If the obj has the OrphanManagedResources annotation, then we need to
+		// orphan the corresponding objects in underlying clusters.  Just
+		// remove the finalizer.
+		return dh.removeFinalizers(obj, sets.NewString(FinalizerSyncController))
 	}
 
 	glog.V(2).Infof("Deleting obj %s from underlying clusters", objName)
@@ -181,21 +169,7 @@ func (dh *DeletionHelper) HandleObjectInUnderlyingClusters(obj runtime.Object, t
 	}
 
 	// All done. Just remove the finalizer.
-	return dh.removeFinalizers(obj, sets.NewString(FinalizerDeleteFromUnderlyingClusters))
-}
-
-// Adds the given finalizers to the given objects ObjectMeta.
-func (dh *DeletionHelper) addFinalizers(obj runtime.Object, finalizers sets.String) (runtime.Object, error) {
-	isUpdated, err := finalizersutil.AddFinalizers(obj, finalizers)
-	if err != nil || !isUpdated {
-		return nil, err
-	}
-	// Send the update to apiserver.
-	updatedObj, err := dh.updateObjFunc(obj)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to add finalizers %v to object %s", finalizers, dh.objNameFunc(obj))
-	}
-	return updatedObj, nil
+	return dh.removeFinalizers(obj, sets.NewString(FinalizerSyncController))
 }
 
 // Removes the given finalizers from the given objects ObjectMeta.

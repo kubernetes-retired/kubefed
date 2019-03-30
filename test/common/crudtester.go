@@ -38,6 +38,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 )
 
@@ -90,9 +91,10 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(targetObject *unstructured.Unst
 	c.CheckUpdate(fedObject)
 	c.CheckPlacementChange(fedObject)
 
-	// Validate the golden path - removal of dependents
-	orphanDependents := false
-	c.CheckDelete(fedObject, &orphanDependents)
+	// Validate the golden path - removal of resources from member
+	// clusters.  A test of orphaning is performed in the
+	// namespace-scoped crd crud test.
+	c.CheckDelete(fedObject, false)
 }
 
 func (c *FederatedTypeCrudTester) Create(targetObject *unstructured.Unstructured, overrides []interface{}) *unstructured.Unstructured {
@@ -266,7 +268,7 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(fedObject *unstructured.U
 	c.CheckPropagation(updatedFedObject)
 }
 
-func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructured, orphanDependents *bool) {
+func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructured, orphanDependents bool) {
 	apiResource := c.typeConfig.GetFederatedType()
 	federatedKind := apiResource.Kind
 	qualifiedName := util.NewQualifiedName(fedObject)
@@ -275,13 +277,48 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 
 	client := c.resourceClient(apiResource)
 
+	if orphanDependents {
+		orphanKey := deletionhelper.OrphanManagedResources
+		err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+			var err error
+			if fedObject == nil {
+				fedObject, err = client.Resources(namespace).Get(name, metav1.GetOptions{})
+				if err != nil {
+					c.tl.Logf("Error retrieving %s %q to add the %q annotation: %v", federatedKind, qualifiedName, orphanKey, err)
+					return false, nil
+				}
+			}
+			// Set the orphan annotation if necessary
+			annotations := fedObject.GetAnnotations()
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			if annotations[orphanKey] == "true" {
+				return true, nil
+			}
+			annotations[orphanKey] = "true"
+			fedObject.SetAnnotations(annotations)
+			fedObject, err = client.Resources(namespace).Update(fedObject, metav1.UpdateOptions{})
+			if err == nil {
+				return true, nil
+			}
+			c.tl.Logf("Error updating %s %q to include the %q annotation: %v", federatedKind, qualifiedName, orphanKey, err)
+			// Clear fedObject to ensure its attempted retrieval in the next iteration
+			fedObject = nil
+			return false, nil
+		})
+		if err != nil {
+			c.tl.Fatalf("Timed out trying to add %q annotation to %s %q", orphanKey, federatedKind, qualifiedName)
+		}
+	}
+
 	c.tl.Logf("Deleting %s %q", federatedKind, qualifiedName)
-	err := client.Resources(namespace).Delete(name, &metav1.DeleteOptions{OrphanDependents: orphanDependents})
+	err := client.Resources(namespace).Delete(name, nil)
 	if err != nil {
 		c.tl.Fatalf("Error deleting %s %q: %v", federatedKind, qualifiedName, err)
 	}
 
-	deletingInCluster := (orphanDependents != nil && *orphanDependents == false)
+	deletingInCluster := !orphanDependents
 
 	waitTimeout := wait.ForeverTestTimeout
 	if deletingInCluster {

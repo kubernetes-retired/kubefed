@@ -92,8 +92,7 @@ var _ = Describe("Placement", func() {
 		crudTester, desiredTargetObject, _ := initCrudTest(f, tl, selectedTypeConfig, testObjectsFunc)
 		fedObject := crudTester.CheckCreate(desiredTargetObject, nil)
 		defer func() {
-			orphanDependents := false
-			crudTester.CheckDelete(fedObject, &orphanDependents)
+			crudTester.CheckDelete(fedObject, false)
 		}()
 
 		// Wait until pending events for the templates have cleared
