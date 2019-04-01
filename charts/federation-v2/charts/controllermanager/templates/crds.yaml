@@ -1,4 +1,5 @@
 {{ if (or (not .Values.global.limitedScope) (not (.Capabilities.APIVersions.Has "core.federation.k8s.io/v1alpha1"))) }}
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -6,8 +7,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: clusterpropagatedversions.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -21,8 +21,14 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -31,17 +37,23 @@ spec:
         status:
           properties:
             clusterVersions:
+              description: The last versions produced in each cluster for this resource.
               items:
                 properties:
                   clusterName:
+                    description: The name of the cluster the version is for.
                     type: string
                   version:
+                    description: The last version produced for the resource by a federation
+                      operation.
                     type: string
                 type: object
               type: array
             overridesVersion:
+              description: The observed version of the overrides for this resource.
               type: string
             templateVersion:
+              description: The observed version of the template for this resource.
               type: string
           type: object
   version: v1alpha1
@@ -49,7 +61,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -58,8 +71,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: federatedclusters.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -73,36 +85,61 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             clusterRef:
+              description: Name of the cluster registry Cluster resource from which
+                to source api endpoints. TODO(marun) should this go away in favor
+                of a 1:1 mapping?
               type: object
             secretRef:
+              description: Name of the secret containing kubeconfig to access the
+                referenced cluster.  Admin needs to ensure that the required secret
+                exists. Secret should be in the same namespace where federation control
+                plane is hosted and it should have kubeconfig in its data with key
+                "kubeconfig".  This will later be changed to a reference to secret
+                in federation control plane when the federation control plane supports
+                secrets.  This can be left empty if the cluster allows insecure access.
               type: object
           type: object
         status:
           properties:
             conditions:
+              description: Conditions is an array of current cluster conditions.
               items:
                 properties:
                   lastProbeTime:
+                    description: Last time the condition was checked.
                     format: date-time
                     type: string
                   lastTransitionTime:
+                    description: Last time the condition transit from one status to
+                      another.
                     format: date-time
                     type: string
                   message:
+                    description: Human readable message indicating details about last
+                      transition.
                     type: string
                   reason:
+                    description: (brief) reason for the condition's last transition.
                     type: string
                   status:
+                    description: Status of the condition, one of True, False, Unknown.
                     type: string
                   type:
+                    description: Type of cluster condition, Ready or Offline.
                     type: string
                 required:
                 - type
@@ -110,8 +147,12 @@ spec:
                 type: object
               type: array
             region:
+              description: Region is the name of the region in which all of the nodes
+                in the cluster exist.  e.g. 'us-east1'.
               type: string
             zone:
+              description: Zone is the name of availability zone in which the nodes
+                of the cluster exist, e.g. 'us-east1-a'.
               type: string
           type: object
   version: v1alpha1
@@ -119,7 +160,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -128,8 +170,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: federatedservicestatuses.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -141,6 +182,9 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         clusterStatus:
           items:
@@ -152,6 +196,9 @@ spec:
             type: object
           type: array
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -160,7 +207,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -169,8 +217,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: federatedtypeconfigs.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -184,54 +231,95 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             enableStatus:
+              description: Whether or not Status object should be populated.
               type: boolean
             federatedType:
+              description: Configuration for the federated type that defines (via
+                template, placement and overrides fields) how the target type should
+                appear in multiple cluster.
               properties:
                 group:
+                  description: Group of the resource.
                   type: string
                 kind:
+                  description: Camel-cased singular name of the resource (e.g. ConfigMap)
                   type: string
                 pluralName:
+                  description: Lower-cased plural name of the resource (e.g. configmaps).  If
+                    not provided, it will be computed by lower-casing the kind and
+                    suffixing an 's'.
                   type: string
                 version:
+                  description: Version of the resource.
                   type: string
               required:
               - kind
               type: object
             namespaced:
+              description: Whether or not the target type is namespaced. The federation
+                types (FederatedType, Status) for the type will share this characteristic.  TODO(marun)
+                Remove in favor of using the value from Target and FederatedType (depending
+                on context).
               type: boolean
             propagationEnabled:
+              description: Whether or not propagation to member clusters should be
+                enabled.
               type: boolean
             status:
+              description: Configuration for the status type that holds information
+                about which type holds the status of the federated resource. If not
+                provided, the group and version will default to those provided for
+                the federated type api resource.
               properties:
                 group:
+                  description: Group of the resource.
                   type: string
                 kind:
+                  description: Camel-cased singular name of the resource (e.g. ConfigMap)
                   type: string
                 pluralName:
+                  description: Lower-cased plural name of the resource (e.g. configmaps).  If
+                    not provided, it will be computed by lower-casing the kind and
+                    suffixing an 's'.
                   type: string
                 version:
+                  description: Version of the resource.
                   type: string
               required:
               - kind
               type: object
             target:
+              description: The configuration of the target type. If not set, the pluralName
+                and groupName fields will be set from the metadata.name of this resource.
+                The kind field must be set.
               properties:
                 group:
+                  description: Group of the resource.
                   type: string
                 kind:
+                  description: Camel-cased singular name of the resource (e.g. ConfigMap)
                   type: string
                 pluralName:
+                  description: Lower-cased plural name of the resource (e.g. configmaps).  If
+                    not provided, it will be computed by lower-casing the kind and
+                    suffixing an 's'.
                   type: string
                 version:
+                  description: Version of the resource.
                   type: string
               required:
               - kind
@@ -245,11 +333,15 @@ spec:
         status:
           properties:
             observedGeneration:
+              description: ObservedGeneration is the generation as observed by the
+                controller consuming the FederatedTypeConfig.
               format: int64
               type: integer
             propagationController:
+              description: PropagationController tracks the status of the sync controller.
               type: string
             statusController:
+              description: StatusController tracks the status of the status controller.
               type: string
           type: object
   version: v1alpha1
@@ -257,7 +349,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -266,8 +359,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: federationconfigs.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -279,8 +371,14 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -291,7 +389,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -300,8 +399,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: propagatedversions.core.federation.k8s.io
 spec:
   group: core.federation.k8s.io
@@ -315,8 +413,14 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -325,17 +429,23 @@ spec:
         status:
           properties:
             clusterVersions:
+              description: The last versions produced in each cluster for this resource.
               items:
                 properties:
                   clusterName:
+                    description: The name of the cluster the version is for.
                     type: string
                   version:
+                    description: The last version produced for the resource by a federation
+                      operation.
                     type: string
                 type: object
               type: array
             overridesVersion:
+              description: The observed version of the overrides for this resource.
               type: string
             templateVersion:
+              description: The observed version of the template for this resource.
               type: string
           type: object
   version: v1alpha1
@@ -343,7 +453,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -352,8 +463,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: dnsendpoints.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -367,8 +477,14 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -378,15 +494,21 @@ spec:
               items:
                 properties:
                   dnsName:
+                    description: The FQDN of the DNS record.
                     type: string
                   labels:
+                    description: Labels stores labels defined for the Endpoint.
                     type: object
                   recordTTL:
+                    description: TTL for the record in seconds.
                     format: int64
                     type: integer
                   recordType:
+                    description: RecordType type of record, e.g. CNAME, A, SRV, TXT
+                      etc.
                     type: string
                   targets:
+                    description: The targets that the DNS record points to.
                     items:
                       type: string
                     type: array
@@ -396,6 +518,8 @@ spec:
         status:
           properties:
             observedGeneration:
+              description: ObservedGeneration is the generation as observed by the
+                controller consuming the DNSEndpoint.
               format: int64
               type: integer
           type: object
@@ -404,7 +528,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -413,8 +538,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: domains.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -426,14 +550,23 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         domain:
+          description: Domain is the DNS zone associated with the federation
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         nameServer:
+          description: NameServer is the authoritative DNS name server for the federation
+            domain
           type: string
       required:
       - domain
@@ -442,7 +575,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -451,8 +585,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: ingressdnsrecords.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -466,29 +599,41 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             hosts:
+              description: Host from the IngressRule in Cluster Ingress Spec
               items:
                 type: string
               type: array
             recordTTL:
+              description: RecordTTL is the TTL in seconds for DNS records created
+                for the Ingress, if omitted a default would be used
               format: int64
               type: integer
           type: object
         status:
           properties:
             dns:
+              description: Array of Ingress Controller LoadBalancers
               items:
                 properties:
                   cluster:
+                    description: Cluster name
                     type: string
                   loadBalancer:
+                    description: LoadBalancer for the corresponding ingress controller
                     type: object
                 type: object
               type: array
@@ -498,7 +643,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -507,8 +653,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: servicednsrecords.multiclusterdns.federation.k8s.io
 spec:
   group: multiclusterdns.federation.k8s.io
@@ -522,22 +667,38 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             allowServiceWithoutEndpoints:
+              description: AllowServiceWithoutEndpoints allows DNS records to be written
+                for Service shards without endpoints
               type: boolean
             dnsPrefix:
+              description: DNSPrefix when specified, an additional DNS record would
+                be created with <DNSPrefix>.<FederationDomain>
               type: string
             domainRef:
+              description: DomainRef is the name of the domain object to which the
+                corresponding federated service belongs
               type: string
             externalName:
+              description: ExternalName when specified, replaces the service name
+                portion of a resource record with the value of ExternalName.
               type: string
             recordTTL:
+              description: RecordTTL is the TTL in seconds for DNS records created
+                for this Service, if omitted a default would be used
               format: int64
               type: integer
           required:
@@ -549,16 +710,22 @@ spec:
               items:
                 properties:
                   cluster:
+                    description: Cluster name
                     type: string
                   loadBalancer:
+                    description: LoadBalancer for the corresponding service
                     type: object
                   region:
+                    description: Region to which the cluster belongs
                     type: string
                   zone:
+                    description: Zone to which the cluster belongs
                     type: string
                 type: object
               type: array
             domain:
+              description: Domain is the DNS domain of the federation as in Domain
+                API
               type: string
           type: object
   version: v1alpha1
@@ -566,7 +733,8 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -575,8 +743,7 @@ metadata:
     "helm.sh/hook": crd-install
   creationTimestamp: null
   labels:
-    api: federation
-    kubebuilder.k8s.io: 1.0.4
+    controller-tools.k8s.io: "1.0"
   name: replicaschedulingpreferences.scheduling.federation.k8s.io
 spec:
   group: scheduling.federation.k8s.io
@@ -588,20 +755,48 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             clusters:
+              description: A mapping between cluster names and preferences regarding
+                a local workload object (dep, rs, .. ) in these clusters. "*" (if
+                provided) applies to all clusters if an explicit mapping is not provided.
+                If omitted, clusters without explicit preferences should not have
+                any replicas scheduled.
               type: object
             rebalance:
+              description: If set to true then already scheduled and running replicas
+                may be moved to other clusters in order to match current state to
+                the specified preferences. Otherwise, if set to false, up and running
+                replicas will not be moved.
               type: boolean
             targetKind:
+              description: TODO (@irfanurrehman); upgrade this to label selector only
+                if need be. The idea of this API is to have a a set of preferences
+                which can be used for a target FederatedDeployment or FederatedReplicaset.
+                Although the set of preferences in question can be applied to multiple
+                target objects using label selectors, but there are no clear advantages
+                of doing that as of now. To keep the implementation and usage simple,
+                matching ns/name of RSP resource to the target resource is sufficient
+                and only additional information needed in RSP resource is a target
+                kind (FederatedDeployment or FederatedReplicaset).
               type: string
             totalReplicas:
+              description: Total number of pods desired across federated clusters.
+                Replicas specified in the spec for target deployment template or replicaset
+                template will be discarded/overridden when scheduling preferences
+                are specified.
               format: int32
               type: integer
           required:
@@ -615,5 +810,7 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: null
+  conditions: []
+  storedVersions: []
+---
 {{ end }}

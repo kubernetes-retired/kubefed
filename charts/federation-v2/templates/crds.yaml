@@ -1520,6 +1520,8 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
+                                      procMount:
+                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -1610,6 +1612,8 @@ spec:
                               type: object
                             dnsPolicy:
                               type: string
+                            enableServiceLinks:
+                              type: boolean
                             hostAliases:
                               items:
                                 properties:
@@ -2010,6 +2014,8 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
+                                      procMount:
+                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -2099,6 +2105,8 @@ spec:
                                 type: object
                               type: array
                             restartPolicy:
+                              type: string
+                            runtimeClassName:
                               type: string
                             schedulerName:
                               type: string
@@ -4028,6 +4036,8 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
+                                      procMount:
+                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -4118,6 +4128,8 @@ spec:
                               type: object
                             dnsPolicy:
                               type: string
+                            enableServiceLinks:
+                              type: boolean
                             hostAliases:
                               items:
                                 properties:
@@ -4518,6 +4530,8 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
+                                      procMount:
+                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -4607,6 +4621,8 @@ spec:
                                 type: object
                               type: array
                             restartPolicy:
+                              type: string
+                            runtimeClassName:
                               type: string
                             schedulerName:
                               type: string
@@ -5242,6 +5258,9 @@ spec:
                           - containers
                           type: object
                       type: object
+                    ttlSecondsAfterFinished:
+                      format: int32
+                      type: integer
                   required:
                   - template
                   type: object
@@ -6338,6 +6357,8 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
+                                      procMount:
+                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -6428,6 +6449,8 @@ spec:
                               type: object
                             dnsPolicy:
                               type: string
+                            enableServiceLinks:
+                              type: boolean
                             hostAliases:
                               items:
                                 properties:
@@ -6828,6 +6851,8 @@ spec:
                                         type: object
                                       privileged:
                                         type: boolean
+                                      procMount:
+                                        type: string
                                       readOnlyRootFilesystem:
                                         type: boolean
                                       runAsGroup:
@@ -6917,6 +6942,8 @@ spec:
                                 type: object
                               type: array
                             restartPolicy:
+                              type: string
+                            runtimeClassName:
                               type: string
                             schedulerName:
                               type: string
