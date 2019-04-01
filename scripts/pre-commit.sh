@@ -91,15 +91,6 @@ function check-kubebuilder-output() {
   check-git-state
 }
 
-function check-install-yaml() {
-  PATH="${PATH}:${base_dir}/bin" FEDERATION_NAMESPACE=federation-system \
-    INSTALL_YAML=./hack/install-latest.yaml \
-    ./scripts/generate-install-yaml.sh \
-    ${CONTAINER_REGISTRY_HOST}/federation-v2:latest
-  echo "Checking state of working tree after generating install yaml"
-  check-git-state
-}
-
 function check-git-state() {
   local output
   if output=$(git status --porcelain) && [ -z "${output}" ]; then
@@ -136,9 +127,6 @@ echo "Checking that correct Error Package is used."
 echo "Checking that 'kubebuilder generate' is up-to-date"
 check-kubebuilder-output
 
-echo "Checking that hack/install-latest.yaml is up-to-date"
-check-install-yaml
-
 echo "Checking that fixture is available for all federate directives"
 ./scripts/check-directive-fixtures.sh
 
@@ -146,7 +134,7 @@ echo "Building federation binaries"
 build-binaries
 
 echo "Checking sync up status of helm chart"
-BUILD_KUBEFED="false" PATH="${PATH}:${base_dir}/bin" ./scripts/sync-up-helm-chart.sh
+./scripts/sync-up-helm-chart.sh
 
 echo "Checking helm chart state of working tree"
 check-git-state
@@ -168,35 +156,20 @@ CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY=y OVERWRITE_KUBECONFIG=y 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null
 
-echo "Deploying cluster-scoped federation-v2 with script"
+echo "Deploying cluster-scoped federation-v2"
 ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
 
-echo "Running go e2e tests with cluster-scoped unmanaged fixture deployed with script"
+echo "Running go e2e tests with cluster-scoped unmanaged fixture"
 run-e2e-tests-with-unmanaged-fixture
 
 echo "Deleting cluster-scoped federation-v2"
 ./scripts/delete-federation.sh
 
-echo "Deploying cluster-scoped federation-v2 with helm chart"
-USE_CHART=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
-
-echo "Running go e2e tests with cluster-scoped unmanaged fixture deployed by helm chart"
-run-e2e-tests-with-unmanaged-fixture
-
-echo "Deleting cluster-scoped federation-v2 with helm chart"
-USE_CHART=y ./scripts/delete-federation.sh
-
 echo "Deploying namespace-scoped federation-v2"
 FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
 
-echo "Running go e2e tests with namespace-scoped unmanaged fixture deployed by script"
+echo "Running go e2e tests with namespace-scoped unmanaged fixture"
 run-namespaced-e2e-tests-with-unmanaged-fixture
 
 echo "Deleting namespace-scoped federation-v2"
 FEDERATION_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-federation.sh
-
-echo "Deploying namespaced-scoped federation-v2 with helm chart"
-FEDERATION_NAMESPACE=foo NAMESPACED=y USE_CHART=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
-
-echo "Running go e2e tests with namespace-scoped unmanaged fixture deployed by helm chart"
-run-namespaced-e2e-tests-with-unmanaged-fixture

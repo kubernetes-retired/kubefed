@@ -29,11 +29,6 @@ INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML:-hack/install-crds-latest.yaml}"
 
 INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML}" scripts/generate-install-crds-yaml.sh
 
-BUILD_KUBEFED="${BUILD_KUBEFED:-true}"
-if [[ "${BUILD_KUBEFED}" == true ]]; then
-  make -C "${ROOT_DIR}" kubefed2
-fi
-
 # "diff -U 4" will take 1 as return code which will cause the script failed to execute, here
 # I was force returning true to get a return code as 0.
 crd_diff=`(diff -U 4 $INSTALL_CRDS_YAML $CHART_FEDERATED_CRD_DIR/crds.yaml; true;)`
