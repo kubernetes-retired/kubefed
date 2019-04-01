@@ -43,7 +43,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 )
 
@@ -101,12 +100,6 @@ func Run(opts *options.Options) error {
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		panic(err)
-	}
-
-	if opts.InstallCRDs {
-		if err := install.NewInstaller(opts.Config.KubeConfig).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
-			glog.Fatalf("Could not create CRDs: %v", err)
-		}
 	}
 
 	if opts.LimitedScope {
