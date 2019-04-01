@@ -67,3 +67,16 @@ type FederationConfig struct {
 
 	Spec FederationConfigSpec `json:"spec,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// FederationConfigList contains a list of FederationConfig
+type FederationConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederationConfig `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&FederationConfig{}, &FederationConfigList{})
+}

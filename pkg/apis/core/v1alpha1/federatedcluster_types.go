@@ -97,3 +97,16 @@ type ClusterCondition struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// FederatedClusterList contains a list of FederatedCluster
+type FederatedClusterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedCluster `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&FederatedCluster{}, &FederatedClusterList{})
+}

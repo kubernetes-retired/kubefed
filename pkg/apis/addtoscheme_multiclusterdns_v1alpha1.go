@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains API Schema definitions for the multiclusterdns v1alpha1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=multiclusterdns.federation.k8s.io
-package v1alpha1
+package apis
+
+import (
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
+)
+
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, v1alpha1.SchemeBuilder.AddToScheme)
+}

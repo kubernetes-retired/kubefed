@@ -117,6 +117,19 @@ type FederatedTypeConfig struct {
 	Status FederatedTypeConfigStatus `json:"status,omitempty"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// FederatedTypeConfigList contains a list of FederatedTypeConfig
+type FederatedTypeConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedTypeConfig `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&FederatedTypeConfig{}, &FederatedTypeConfigList{})
+}
+
 func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 	// TODO(marun) will name always be populated?
 	nameParts := strings.SplitN(obj.Name, ".", 2)

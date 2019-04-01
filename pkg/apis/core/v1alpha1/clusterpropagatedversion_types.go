@@ -48,3 +48,17 @@ type ClusterPropagatedVersion struct {
 	Spec   ClusterPropagatedVersionSpec `json:"spec,omitempty"`
 	Status PropagatedVersionStatus      `json:"status,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+
+// ClusterPropagatedVersionList contains a list of ClusterPropagatedVersion
+type ClusterPropagatedVersionList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ClusterPropagatedVersion `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&ClusterPropagatedVersion{}, &ClusterPropagatedVersionList{})
+}

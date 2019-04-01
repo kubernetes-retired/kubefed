@@ -39,3 +39,16 @@ type FederatedServiceStatus struct {
 
 	ClusterStatus []FederatedServiceClusterStatus `json:"clusterStatus,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// FederatedServiceStatusList contains a list of FederatedServiceStatus
+type FederatedServiceStatusList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []FederatedServiceStatus `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&FederatedServiceStatus{}, &FederatedServiceStatusList{})
+}
