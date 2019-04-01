@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
@@ -52,8 +53,8 @@ var (
 		flag otherwise.`
 
 	federate_example = `
-		# Federate resource named "my-dep" in namespace "my-ns" of type identified by FederatedTypeConfig "deployment.apps"
-		kubefed2 federate deployment.apps my-dep -n "my-ns" --host-cluster-context=cluster1`
+		# Federate resource named "my-dep" in namespace "my-ns" of kubernetes type "deploy"
+		kubefed2 federate deploy my-dep -n "my-ns" --host-cluster-context=cluster1`
 	// TODO(irfanurrehman): implement —contents flag applicable to namespaces
 )
 
@@ -74,7 +75,7 @@ func (j *federateResource) Bind(flags *pflag.FlagSet) {
 // Complete ensures that options are valid.
 func (j *federateResource) Complete(args []string) error {
 	if len(args) == 0 {
-		return errors.New("FEDERATED-TYPE-NAME is required")
+		return errors.New("TYPE-NAME is required")
 	}
 	j.typeName = args[0]
 
@@ -82,12 +83,6 @@ func (j *federateResource) Complete(args []string) error {
 		return errors.New("RESOURCE-NAME is required")
 	}
 	j.resourceName = args[1]
-
-	if j.typeName == ctlutil.NamespaceName {
-		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
-		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
-		j.resourceNamespace = ""
-	}
 
 	if j.output == "yaml" {
 		j.outputYAML = true
@@ -104,7 +99,7 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 	opts := &federateResource{}
 
 	cmd := &cobra.Command{
-		Use:     "federate FEDERATED-TYPE-NAME RESOURCE-NAME",
+		Use:     "federate TYPE-NAME RESOURCE-NAME",
 		Short:   "Federate creates a federated resource from a kubernetes resource",
 		Long:    federate_long,
 		Example: federate_example,
@@ -188,24 +183,28 @@ func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName c
 	}, nil
 }
 
-func lookupTypeDetails(config *rest.Config, qualifiedTypeName ctlutil.QualifiedName) (*fedv1a1.FederatedTypeConfig, error) {
-	client, err := genericclient.New(config)
+func lookupTypeDetails(hostConfig *rest.Config, typeName ctlutil.QualifiedName) (*fedv1a1.FederatedTypeConfig, error) {
+	apiResource, err := enable.LookupAPIResource(hostConfig, typeName.Name, "")
+	if err != nil {
+		return nil, err
+	}
+	typeName.Name = typeconfig.GroupQualifiedName(*apiResource)
+
+	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get federation client")
 	}
 
 	typeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = client.Get(context.TODO(), typeConfig, qualifiedTypeName.Namespace, qualifiedTypeName.Name)
+	err = client.Get(context.TODO(), typeConfig, typeName.Namespace, typeName.Name)
+	if apierrors.IsNotFound(err) {
+		return nil, errors.Wrapf(err, "FederatedTypeConfig %q not found. Try 'kubefed2 enable type %s' before federating the resource", typeName, typeName.Name)
+	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", qualifiedTypeName)
+		return nil, errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeName)
 	}
 
-	_, err = enable.LookupAPIResource(config, typeConfig.Name, typeConfig.APIVersion)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error retrieving API resource for FederatedTypeConfig %q", qualifiedTypeName)
-	}
-
-	glog.V(2).Infof("FederatedTypeConfig: %q found", qualifiedTypeName)
+	glog.V(2).Infof("API Resource and FederatedTypeConfig found for %q", typeName)
 	return typeConfig, nil
 }
 
@@ -280,6 +279,11 @@ func getNamespace(typeConfig typeconfig.Interface, qualifiedName ctlutil.Qualifi
 }
 
 func CreateFedResource(hostConfig *rest.Config, resources *fedResources, dryrun bool) error {
+	if resources.typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
+		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
+		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
+	}
+
 	fedAPIResource := resources.typeConfig.GetFederatedType()
 	fedKind := fedAPIResource.Kind
 	fedClient, err := ctlutil.NewResourceClient(hostConfig, &fedAPIResource)
