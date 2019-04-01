@@ -167,7 +167,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 
 	s.fedAccessor, err = NewFederatedResourceAccessor(
 		controllerConfig, typeConfig, fedNamespaceAPIResource,
-		client, s.worker.EnqueueObject, s.informer, s.updater)
+		client, s.worker.EnqueueObject, s.informer, s.updater, recorder)
 	if err != nil {
 		return nil, err
 	}

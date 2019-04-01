@@ -24,9 +24,12 @@ import (
 
 	"github.com/pkg/errors"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -51,6 +54,7 @@ type FederatedResource interface {
 	MarkedForDeletion() bool
 	EnsureDeletion() error
 	EnsureFinalizer() error
+	RecordError(errorCode string, err error)
 }
 
 type federatedResource struct {
@@ -66,6 +70,7 @@ type federatedResource struct {
 	overridesMap      util.OverridesMap
 	namespace         *unstructured.Unstructured
 	fedNamespace      *unstructured.Unstructured
+	eventRecorder     record.EventRecorder
 }
 
 func (r *federatedResource) FederatedName() util.QualifiedName {
@@ -207,6 +212,11 @@ func (r *federatedResource) EnsureFinalizer() error {
 		r.federatedResource = updatedObj.(*unstructured.Unstructured)
 	}
 	return err
+}
+
+// TODO(marun) Use an enumeration for errorCode.
+func (r *federatedResource) RecordError(errorCode string, err error) {
+	r.eventRecorder.Eventf(r.Object(), corev1.EventTypeWarning, errorCode, fmt.Sprintf("%s", err))
 }
 
 func (r *federatedResource) overridesForCluster(clusterName string) (util.ClusterOverridesMap, error) {
