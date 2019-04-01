@@ -65,7 +65,7 @@ var _ = Describe("Scheduling", func() {
 	var namespace string
 	var clusterNames []string
 	var controllerFixture *managed.ControllerFixture
-	var controller *schedulingmanager.SchedulerController
+	var controller *schedulingmanager.SchedulingManager
 	typeConfigs := make(map[string]typeconfig.Interface)
 
 	BeforeEach(func() {
@@ -90,7 +90,7 @@ var _ = Describe("Scheduling", func() {
 		}
 		namespace = f.TestNamespaceName()
 		if framework.TestContext.RunControllers() {
-			controllerFixture, controller = managed.NewSchedulerControllerFixture(tl, f.ControllerConfig())
+			controllerFixture, controller = managed.NewSchedulingManagerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(controllerFixture)
 		}
 	})
@@ -213,15 +213,11 @@ var _ = Describe("Scheduling", func() {
 	})
 })
 
-func waitForSchedulerDeleted(tl common.TestLogger, controller *schedulingmanager.SchedulerController, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
+func waitForSchedulerDeleted(tl common.TestLogger, controller *schedulingmanager.SchedulingManager, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		if controller.HasScheduler(schedulingtypes.RSPKind) {
+		scheduler := controller.GetScheduler(schedulingtypes.RSPKind)
+		if scheduler != nil {
 			return false, nil
-		}
-		for targetTypeName := range schedulingTypes {
-			if controller.HasSchedulerPlugin(targetTypeName) {
-				return false, nil
-			}
 		}
 
 		return true, nil
@@ -231,13 +227,14 @@ func waitForSchedulerDeleted(tl common.TestLogger, controller *schedulingmanager
 	}
 }
 
-func waitForSchedulerStarted(tl common.TestLogger, controller *schedulingmanager.SchedulerController, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
+func waitForSchedulerStarted(tl common.TestLogger, controller *schedulingmanager.SchedulingManager, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		if !controller.HasScheduler(schedulingtypes.RSPKind) {
+		scheduler := controller.GetScheduler(schedulingtypes.RSPKind)
+		if scheduler == nil {
 			return false, nil
 		}
 		for targetTypeName := range schedulingTypes {
-			if !controller.HasSchedulerPlugin(targetTypeName) {
+			if !scheduler.HasPlugin(targetTypeName) {
 				return false, nil
 			}
 		}

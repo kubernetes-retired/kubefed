@@ -59,3 +59,17 @@ func (s *SafeMap) Delete(key string) {
 	defer s.Unlock()
 	delete(s.m, key)
 }
+
+func (s *SafeMap) DeleteAll() {
+	s.Lock()
+	defer s.Unlock()
+	for key := range s.m {
+		delete(s.m, key)
+	}
+}
+
+func (s *SafeMap) Size() int {
+	s.Lock()
+	defer s.Unlock()
+	return len(s.m)
+}

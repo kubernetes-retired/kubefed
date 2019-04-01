@@ -145,8 +145,8 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
-		if _, err := schedulingmanager.StartSchedulerController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting scheduler controller: %v", err)
+		if _, err := schedulingmanager.StartSchedulingManager(opts.Config, stopChan); err != nil {
+			glog.Fatalf("Error starting scheduling manager: %v", err)
 		}
 	}
 
