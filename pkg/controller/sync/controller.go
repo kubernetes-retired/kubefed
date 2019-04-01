@@ -242,15 +242,17 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusNotSynced
 	}
 
+	kind := s.typeConfig.GetFederatedType().Kind
+
 	fedResource, err := s.fedAccessor.FederatedResource(qualifiedName)
 	if err != nil {
+		runtime.HandleError(errors.Wrapf(err, "Error creating FederatedResource helper for %s %q", kind, qualifiedName))
 		return util.StatusError
 	}
 	if fedResource == nil {
 		return util.StatusAllOK
 	}
 
-	kind := s.typeConfig.GetFederatedType().Kind
 	key := fedResource.FederatedName().String()
 
 	glog.V(4).Infof("Starting to reconcile %s %q", kind, key)
