@@ -39,77 +39,71 @@ import (
 // because the single namespace by definition must exist on member
 // clusters, so namespace placement becomes a mechanism for limiting
 // rather than allowing propagation.
-func computeNamespacedPlacement(resource, namespace *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster, limitedScope bool) (selectedClusters, unselectedClusters []string, err error) {
-	selectedClusters, unselectedClusters, err = computePlacement(resource, clusters)
+func computeNamespacedPlacement(resource, namespace *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster, limitedScope bool) (selectedClusters sets.String, err error) {
+	resourceClusters, err := computePlacement(resource, clusters)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	clusterNames := getClusterNames(clusters)
 
 	if namespace == nil {
 		if limitedScope {
 			// Use the resource placement verbatim if no federated
 			// namespace is present and federation is targeting a
 			// single namespace.
-			return selectedClusters, unselectedClusters, nil
+			return resourceClusters, nil
 		}
 		// Resource should not exist in any member clusters.
-		return []string{}, clusterNames, nil
+		return sets.String{}, nil
 	}
 
-	namespaceSelectedClusters, _, err := computePlacement(namespace, clusters)
+	namespaceClusters, err := computePlacement(namespace, clusters)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	resourceClusterSet := sets.NewString(selectedClusters...)
-	namespaceClusterSet := sets.NewString(namespaceSelectedClusters...)
-	clusterSet := sets.NewString(clusterNames...)
 
 	// If both namespace and resource placement exist, the desired
 	// list of clusters is their intersection.
-	selectedSet := resourceClusterSet.Intersection(namespaceClusterSet)
-
-	return selectedSet.List(), clusterSet.Difference(selectedSet).List(), nil
+	return resourceClusters.Intersection(namespaceClusters), nil
 }
 
-// computePlacement determines the selected and unselected clusters
-// for a federated resource.
-func computePlacement(resource *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) (selectedClusters, unselectedClusters []string, err error) {
+// computePlacement determines the selected clusters for a federated
+// resource.
+func computePlacement(resource *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error) {
 	selectedNames, err := selectedClusterNames(resource, clusters)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	clusterNames := getClusterNames(clusters)
-	clusterSet := sets.NewString(clusterNames...)
-	selectedSet := sets.NewString(selectedNames...)
-	return clusterSet.Intersection(selectedSet).List(), clusterSet.Difference(selectedSet).List(), nil
+	return clusterNames.Intersection(selectedNames), nil
 }
 
-func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) ([]string, error) {
+func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) (sets.String, error) {
 	directive, err := util.GetPlacementDirective(resource)
 	if err != nil {
 		return nil, err
 	}
 
+	selectedNames := sets.String{}
+	// Explicit cluster names take precedence over a selector.
 	if directive.ClusterNames != nil {
-		return directive.ClusterNames, nil
-	}
-
-	selectedNames := []string{}
-	for _, cluster := range clusters {
-		if directive.ClusterSelector.Matches(labels.Set(cluster.Labels)) {
-			selectedNames = append(selectedNames, cluster.Name)
+		for _, clusterName := range directive.ClusterNames {
+			selectedNames.Insert(clusterName)
+		}
+	} else {
+		for _, cluster := range clusters {
+			if directive.ClusterSelector.Matches(labels.Set(cluster.Labels)) {
+				selectedNames.Insert(cluster.Name)
+			}
 		}
 	}
+
 	return selectedNames, nil
 }
 
-func getClusterNames(clusters []*fedv1a1.FederatedCluster) []string {
-	clusterNames := []string{}
+func getClusterNames(clusters []*fedv1a1.FederatedCluster) sets.String {
+	clusterNames := sets.String{}
 	for _, cluster := range clusters {
-		clusterNames = append(clusterNames, cluster.Name)
+		clusterNames.Insert(cluster.Name)
 	}
 	return clusterNames
 }
