@@ -89,12 +89,15 @@ func NewIngressDNSControllerFixture(tl common.TestLogger, config *util.Controlle
 }
 
 // NewClusterControllerFixture initializes a new cluster controller fixture.
-func NewClusterControllerFixture(config *util.ControllerConfig) *ControllerFixture {
+func NewClusterControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
 	monitorPeriod := 1 * time.Second
-	federatedcluster.StartClusterController(config, f.stopChan, monitorPeriod)
+	err := federatedcluster.StartClusterController(config, f.stopChan, monitorPeriod)
+	if err != nil {
+		tl.Fatalf("Error starting cluster controller: %v", err)
+	}
 	return f
 }
 

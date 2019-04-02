@@ -83,7 +83,7 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	tl.Logf("Starting cluster controller")
-	f.ClusterController = NewClusterControllerFixture(f.ControllerConfig(tl))
+	f.ClusterController = NewClusterControllerFixture(tl, f.ControllerConfig(tl))
 	tl.Log("Federation started.")
 
 	client := genericclient.NewForConfigOrDie(f.KubeApi.NewConfig(tl))
