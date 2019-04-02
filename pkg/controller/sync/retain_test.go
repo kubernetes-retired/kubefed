@@ -24,7 +24,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-func TestObjectForUpdateOp(t *testing.T) {
+func TestRetainClusterFields(t *testing.T) {
 	testCases := map[string]struct {
 		retainReplicas   bool
 		desiredReplicas  int64
@@ -68,7 +68,7 @@ func TestObjectForUpdateOp(t *testing.T) {
 					},
 				},
 			}
-			objectForUpdateOp("", desiredObj, clusterObj, fedObj)
+			RetainClusterFields("", desiredObj, clusterObj, fedObj)
 			replicas, ok, err := unstructured.NestedInt64(desiredObj.Object, util.SpecField, util.ReplicasField)
 			if !ok {
 				t.Fatalf("Field 'spec.replicas' not found")
