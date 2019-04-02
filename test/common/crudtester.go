@@ -18,6 +18,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -461,15 +462,25 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverridesMap, expectedVersion func() string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverridesMap, expectedVersionFunc func() string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-		expectedVersion := expectedVersion()
+		expectedVersion := expectedVersionFunc()
 		if len(expectedVersion) == 0 {
 			return false, nil
 		}
 
 		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if err == nil && util.ObjectVersion(clusterObj) == expectedVersion {
+			// Validate that the resource has been labeled properly,
+			// indicating creation or adoption by the sync controller.  This
+			// labeling also ensures that the federated informer will be able
+			// to cache the resource.
+			labels := clusterObj.GetLabels()
+			if labels == nil || labels[util.ManagedByFederationLabelKey] != util.ManagedByFederationLabelValue {
+				c.tl.Errorf("Expected resource to be labeled with %q", fmt.Sprintf("%s: %s", util.ManagedByFederationLabelKey, util.ManagedByFederationLabelValue))
+				return false, nil
+			}
+
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
 				for path, expectedValue := range expectedOverrides {
