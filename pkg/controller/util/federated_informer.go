@@ -140,7 +140,7 @@ func NewFederatedInformer(
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) (FederatedInformer, error) {
 
 	targetInformerFactory := func(cluster *fedv1a1.FederatedCluster, client ResourceClient) (cache.Store, cache.Controller) {
-		return NewResourceInformer(client, config.TargetNamespace, triggerFunc)
+		return NewManagedResourceInformer(client, config.TargetNamespace, triggerFunc)
 	}
 
 	federatedInformer := &federatedInformerImpl{

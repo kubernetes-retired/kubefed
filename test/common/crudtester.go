@@ -18,7 +18,7 @@ package common
 
 import (
 	"context"
-	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -172,7 +172,8 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 
 	key := "metadata.labels"
 	value := map[string]interface{}{
-		"crudtester-operation": "update",
+		"crudtester-operation":           "update",
+		util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
 	}
 
 	c.tl.Logf("Updating %s %q", kind, qualifiedName)
@@ -480,10 +481,13 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 					if !ok {
 						c.tl.Fatalf("Missing overridden path %s", path)
 					}
-					// Lacking type information for the override
-					// field, use string conversion as a cheap way to
-					// determine equality.
-					if fmt.Sprintf("%v", expectedValue) != fmt.Sprintf("%v", value) {
+					// Because the result of deserializing an override field differs from the value
+					// retrieved by NestedFieldCopy, reflection is not able to accurately compare
+					// numeric types that should otherwise be equal. For example, an override value
+					// of 2 is deserialized as %!q(float64=2), but the same value retrieved by
+					// NestedFieldCopy would be '\x02'.  String conversion is a hacky way of working
+					// around this problem, with a fallback to reflection for non-numeric types.
+					if fmt.Sprintf("%v", expectedValue) != fmt.Sprintf("%v", value) && !reflect.DeepEqual(expectedValue, value) {
 						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedValue, value)
 						return false, nil
 					}
