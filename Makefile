@@ -60,7 +60,7 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build bindir
+.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build bindir generate
 
 all: container hyperfed controller kubefed2
 
@@ -107,6 +107,14 @@ hyperfed: $(HYPERFED_TARGET)
 controller: $(CONTROLLER_TARGET)
 
 kubefed2: $(KUBEFED2_TARGET)
+
+# Generate code
+generate: kubefed2
+ifndef GOPATH
+	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
+endif
+	go generate ./pkg/... ./cmd/...
+	./scripts/sync-up-helm-chart.sh
 
 push:
 	$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION)

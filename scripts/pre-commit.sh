@@ -48,18 +48,10 @@ function download-dependencies() {
 }
 
 function run-unit-tests() {
-  # Ensure the test binaries are in the path.
-  export TEST_ASSET_PATH="${base_dir}/bin"
-  export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
-  export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
   ${MAKE_CMD} test
 }
 
 function run-e2e-tests-with-managed-fixture() {
-  # Ensure the test binaries are in the path.
-  export TEST_ASSET_PATH="${base_dir}/bin"
-  export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
-  export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
   ${MANAGED_E2E_TEST_CMD}
 }
 
@@ -85,9 +77,9 @@ function run-namespaced-e2e-tests-with-unmanaged-fixture() {
   ${namespaced_e2e_test_cmd} --ginkgo.focus=Placement
 }
 
-function check-kubebuilder-output() {
-  ./bin/kubebuilder generate
-  echo "Checking state of working tree after running 'kubebuilder generate'"
+function check-make-generate-output() {
+  ${MAKE_CMD} generate
+  echo "Checking state of working tree after running 'make generate'"
   check-git-state
 }
 
@@ -112,6 +104,12 @@ cd "$base_dir" || {
   exit 1
 }
 
+# Ensure the test binaries are in the path.
+export TEST_ASSET_PATH="${base_dir}/bin"
+export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
+export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
+export PATH=${TEST_ASSET_PATH}:${PATH}
+
 echo "Downloading test dependencies"
 download-dependencies
 
@@ -124,20 +122,14 @@ echo "Verifying Gofmt"
 echo "Checking that correct Error Package is used."
 ./hack/verify-errpkg.sh
 
-echo "Checking that 'kubebuilder generate' is up-to-date"
-check-kubebuilder-output
+echo "Checking that 'make generate' is up-to-date"
+check-make-generate-output
 
 echo "Checking that fixture is available for all federate directives"
 ./scripts/check-directive-fixtures.sh
 
 echo "Building federation binaries"
 build-binaries
-
-echo "Checking sync up status of helm chart"
-./scripts/sync-up-helm-chart.sh
-
-echo "Checking helm chart state of working tree"
-check-git-state
 
 echo "Running unit tests"
 run-unit-tests
@@ -147,8 +139,6 @@ run-e2e-tests-with-managed-fixture
 
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
-
-export PATH=${TEST_ASSET_PATH}:${PATH}
 
 CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY=y OVERWRITE_KUBECONFIG=y \
     ./scripts/create-clusters.sh
