@@ -1,4 +1,7 @@
 # Unreleased
+ - [#549](https://github.com/kubernetes-sigs/federation-v2/pull/549) -
+   As a result of watching only labled resources, unlabled resources
+   in unselected clusters will no longer be deleted.
 
 # v0.0.8
  - [#652](https://github.com/kubernetes-sigs/federation-v2/pull/652) -
