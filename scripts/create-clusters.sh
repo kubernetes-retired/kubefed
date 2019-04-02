@@ -88,8 +88,7 @@ function create-clusters() {
   local num_clusters=${1}
 
   for i in $(seq ${num_clusters}); do
-    # kind will create cluster with name: kind-${i}
-    kind create cluster --name ${i}
+    kind create cluster --name "cluster${i}"
     # TODO(font): remove once all workarounds are addressed.
     fixup-cluster ${i}
     echo
@@ -114,22 +113,24 @@ function create-clusters() {
 function fixup-cluster() {
   local i=${1} # cluster num
 
-  local kubeconfig_path="$(kind get kubeconfig-path --name ${i})"
+  local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
   export KUBECONFIG="${KUBECONFIG:-}:${kubeconfig_path}"
 
   # Simplify context name
-  kubectl config rename-context kubernetes-admin@kind-${i} cluster${i}
+  kubectl config rename-context "kubernetes-admin@cluster${i}" "cluster${i}"
 
   # TODO(font): Need to set container IP address in order for clusters to reach
   # kube API servers in other clusters until
   # https://github.com/kubernetes-sigs/kind/issues/111 is resolved.
-  local container_ip_addr=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kind-${i}-control-plane)
-  sed -i "s/localhost/${container_ip_addr}/" ${kubeconfig_path}
+  local container_ip_addr=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cluster${i}-control-plane)
+  # Using the container ip allows the use of port 6443 instead of the
+  # random port intended to be exposed on localhost.
+  sed -i "s/localhost.*$/${container_ip_addr}:6443/" ${kubeconfig_path}
 
   # TODO(font): Need to rename auth user name to avoid conflicts when using
   # multiple cluster kubeconfigs. Remove once
   # https://github.com/kubernetes-sigs/kind/issues/112 is resolved.
-  sed -i "s/kubernetes-admin/kubernetes-kind-${i}-admin/" ${kubeconfig_path}
+  sed -i "s/kubernetes-admin/kubernetes-cluster${i}-admin/" ${kubeconfig_path}
 }
 
 function check-clusters-ready() {
@@ -139,7 +140,7 @@ function check-clusters-ready() {
 }
 
 function configure-insecure-registry-on-cluster() {
-  configure-insecure-registry-and-reload "docker exec kind-${1}-control-plane bash -c" '$(pgrep dockerd)'
+  configure-insecure-registry-and-reload "docker exec cluster${1}-control-plane bash -c" '$(pgrep dockerd)'
 }
 
 if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
