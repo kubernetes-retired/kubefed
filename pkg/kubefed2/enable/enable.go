@@ -38,7 +38,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
@@ -316,15 +315,8 @@ func typeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *En
 
 func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, shortNames []string) *apiextv1b1.CustomResourceDefinition {
 	var templateSchema map[string]apiextv1b1.JSONSchemaProps
-	// Define the template field for everything but namespaces.
-	// A FederatedNamespace uses the containing namespace as the
-	// template.
-	if typeConfig.GetTarget().Kind != ctlutil.NamespaceKind {
-		templateSchema = accessor.templateSchema()
-	}
-
+	templateSchema = accessor.templateSchema()
 	schema := federatedTypeValidationSchema(templateSchema)
-
 	return CrdForAPIResource(typeConfig.GetFederatedType(), schema, shortNames)
 }
 

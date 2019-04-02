@@ -397,12 +397,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 		return
 	}
 
-	templateFieldMap := fedObject.Object
-	if c.targetIsNamespace {
-		namespace := c.getNamespace(qualifiedName.Namespace)
-		templateFieldMap = namespace.Object
-	}
-	templateVersion, err := sync.GetTemplateHash(templateFieldMap, c.targetIsNamespace)
+	templateVersion, err := sync.GetTemplateHash(fedObject.Object)
 	if err != nil {
 		c.tl.Fatalf("Error computing template hash for %s %q: %v", federatedKind, qualifiedName, err)
 	}
@@ -421,13 +416,13 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 
 	// TODO(marun) run checks in parallel
 	for clusterName, testCluster := range c.testClusters {
-		// The crudtester is not responsible for creating or deleting
-		// the namespace in the primary cluster.
-		if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
+		objExpected := selectedClusters.Has(clusterName)
+
+		// The crudtester is not responsible for deleting the namespace in the
+		// primary cluster.
+		if !objExpected && c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
 			continue
 		}
-
-		objExpected := selectedClusters.Has(clusterName)
 
 		operation := "to be deleted from"
 		if objExpected {
@@ -620,13 +615,6 @@ func (c *FederatedTypeCrudTester) removeOneClusterName(clusterNames []string, cl
 }
 
 func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedVersionStatus, clusterName string) string {
-	// For namespaces, since we do not store the primary cluster's namespace
-	// version in PropagatedVersion's ClusterVersions slice, grab it from the
-	// TemplateVersion field instead.
-	if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
-		return version.TemplateVersion
-	}
-
 	for _, clusterVersion := range version.ClusterVersions {
 		if clusterVersion.ClusterName == clusterName {
 			return clusterVersion.Version

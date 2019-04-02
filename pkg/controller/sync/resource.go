@@ -103,10 +103,7 @@ func (r *federatedResource) Object() *unstructured.Unstructured {
 
 func (r *federatedResource) TemplateVersion() (string, error) {
 	obj := r.federatedResource
-	if r.targetIsNamespace {
-		obj = r.namespace
-	}
-	return GetTemplateHash(obj.Object, r.targetIsNamespace)
+	return GetTemplateHash(obj.Object)
 }
 
 func (r *federatedResource) OverrideVersion() (string, error) {
@@ -158,45 +155,29 @@ func (r *federatedResource) SkipClusterChange(clusterObj pkgruntime.Object) bool
 
 // TODO(marun) Marshall the template once per reconcile, not per-cluster
 func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.Unstructured, error) {
-	// Federation of namespaces uses Namespace resources as the
-	// template for resource creation in member clusters. All other
-	// federated types rely on a template type distinct from the
-	// target type.
-	//
-	// Namespace is the only type that can contain other resources,
-	// and adding a federation-specific container type would be
-	// difficult or impossible. This implies that federated types need
-	// to exist in regular namespaces.
-	//
-	// TODO(marun) Ensure this is reflected in documentation
-	obj := &unstructured.Unstructured{}
-	if r.targetIsNamespace {
-		var err error
-		obj, err = namespaceFromTemplate(r.namespace.Object)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		var ok bool
-		var err error
-		obj.Object, ok, err = unstructured.NestedMap(r.federatedResource.Object, util.SpecField, util.TemplateField)
-		if err != nil {
-			return nil, errors.Wrap(err, "Error retrieving template body")
-		}
-		if !ok {
-			return nil, errors.New("Unable to retrieve template body")
-		}
-		// Avoid having to duplicate these details in the template or have
-		// the name/namespace vary between the federation api and member
-		// clusters.
-		//
-		// TODO(marun) this should be documented
-		obj.SetName(r.federatedResource.GetName())
-		obj.SetNamespace(r.federatedResource.GetNamespace())
-		targetApiResource := r.typeConfig.GetTarget()
-		obj.SetKind(targetApiResource.Kind)
-		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
+	templateBody, ok, err := unstructured.NestedMap(r.federatedResource.Object, util.SpecField, util.TemplateField)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error retrieving template body")
 	}
+	if !ok {
+		// Some resources (like namespaces) can be created from an
+		// empty template.
+		templateBody = make(map[string]interface{})
+	}
+	obj := &unstructured.Unstructured{Object: templateBody}
+
+	// Avoid having to duplicate these details in the template or have
+	// the name/namespace vary between the federation api and member
+	// clusters.
+	//
+	// TODO(marun) this should be documented
+	obj.SetName(r.federatedResource.GetName())
+	if !r.targetIsNamespace {
+		obj.SetNamespace(r.federatedResource.GetNamespace())
+	}
+	targetApiResource := r.typeConfig.GetTarget()
+	obj.SetKind(targetApiResource.Kind)
+	obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
 
 	overrides, err := r.overridesForCluster(clusterName)
 	if err != nil {
@@ -265,52 +246,17 @@ func (r *federatedResource) overridesForCluster(clusterName string) (util.Cluste
 	return r.overridesMap[clusterName], nil
 }
 
-func namespaceFromTemplate(fieldMap map[string]interface{}) (*unstructured.Unstructured, error) {
-	metadata, ok, err := unstructured.NestedMap(fieldMap, "metadata")
+func GetTemplateHash(fieldMap map[string]interface{}) (string, error) {
+	fields := []string{util.SpecField, util.TemplateField}
+	fieldMap, ok, err := unstructured.NestedMap(fieldMap, fields...)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error retrieving namespace metadata")
+		return "", errors.Wrapf(err, "Error retrieving %q", strings.Join(fields, "."))
 	}
 	if !ok {
-		return nil, errors.New("Unable to retrieve namespace metadata")
+		return "", nil
 	}
-	// Retain only the target fields from the template
-	targetFields := sets.NewString("name", "labels", "annotations")
-	for key := range metadata {
-		if !targetFields.Has(key) {
-			delete(metadata, key)
-		}
-	}
-	obj := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"metadata": metadata,
-		},
-	}
-	return obj, nil
-}
-
-func GetTemplateHash(fieldMap map[string]interface{}, namespaceIsTarget bool) (string, error) {
-	var obj *unstructured.Unstructured
-	var description string
-	if namespaceIsTarget {
-		var err error
-		obj, err = namespaceFromTemplate(fieldMap)
-		if err != nil {
-			return "", err
-		}
-		description = "namespace"
-	} else {
-		fields := []string{util.SpecField, util.TemplateField}
-		fieldMap, ok, err := unstructured.NestedMap(fieldMap, fields...)
-		if err != nil {
-			return "", errors.Wrapf(err, "Error retrieving %q", strings.Join(fields, "."))
-		}
-		if !ok {
-			return "", nil
-		}
-		obj = &unstructured.Unstructured{Object: fieldMap}
-		description = strings.Join(fields, ".")
-	}
-
+	obj := &unstructured.Unstructured{Object: fieldMap}
+	description := strings.Join(fields, ".")
 	return hashUnstructured(obj, description)
 }
 

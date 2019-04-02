@@ -261,7 +261,7 @@ var _ = Describe("VersionManager", func() {
 				fedObject.SetResourceVersion(metaAccessor.GetResourceVersion())
 				fedObjectName = util.NewQualifiedName(fedObject)
 
-				templateVersion, err := sync.GetTemplateHash(fedObject.Object, false)
+				templateVersion, err := sync.GetTemplateHash(fedObject.Object)
 				if err != nil {
 					tl.Fatalf("Failed to determine template version: %v", err)
 				}
