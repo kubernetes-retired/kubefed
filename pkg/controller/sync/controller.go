@@ -244,6 +244,10 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	kind := s.typeConfig.GetFederatedType().Kind
 
+	// TODO(marun) Handle the case where the resource has the managed
+	// label but does not have a managing resource.  Strip the label
+	// or remove the resource?
+
 	fedResource, err := s.fedAccessor.FederatedResource(qualifiedName)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Error creating FederatedResource helper for %s %q", kind, qualifiedName))
@@ -263,10 +267,12 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		err := fedResource.EnsureDeletion()
 		if err != nil {
-			msg := "Failed to delete %s %q: %v"
-			args := []interface{}{kind, key, err}
-			runtime.HandleError(errors.Errorf(msg, args...))
-			s.eventRecorder.Eventf(fedResource.Object(), corev1.EventTypeWarning, "DeleteFailed", msg, args...)
+			// TODO(marun) Log a warning rather than handle an error
+			// when waiting for resources to be deleted in underlying
+			// clusters.
+
+			// It is not possible to record events on resources marked for deletion.
+			runtime.HandleError(errors.Wrapf(err, "Unable to delete %s %q", kind, key))
 			return util.StatusError
 		}
 		// It should now be possible to garbage collect the finalization target.
@@ -275,159 +281,93 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	glog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
 	err = fedResource.EnsureFinalizer()
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizer for %s %q", kind, key))
+		fedResource.RecordError("EnsureFinalizerError", errors.Wrap(err, "Failed to ensure finalizer"))
 		return util.StatusError
 	}
-
-	return s.syncToClusters(fedResource)
-}
-
-// syncToClusters ensures that the state of the given object is synchronized to
-// member clusters.
-func (s *FederationSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
-	kind := s.typeConfig.GetFederatedType().Kind
-	key := fedResource.FederatedName().String()
 
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
-		runtime.HandleError(errors.Wrap(err, "Failed to get cluster list"))
+		fedResource.RecordError("ClusterRetrievalError", errors.Wrap(err, "Failed to get cluster list"))
 		return util.StatusNotSynced
 	}
 
-	selectedClusters, err := fedResource.ComputePlacement(clusters)
-	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to compute placement for %s %q", kind, key))
-		return util.StatusError
-	}
-	unselectedClusters := getClusterNames(clusters).Difference(selectedClusters)
+	return s.syncToClusters(fedResource, clusters)
+}
 
-	glog.V(3).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s, unselected clusters are: %s",
-		kind, key, selectedClusters, unselectedClusters)
-
-	operations, err := s.clusterOperations(selectedClusters.List(), unselectedClusters.List(), fedResource)
+// syncToClusters ensures that the state of the given object is
+// synchronized to the provided clusters.
+func (s *FederationSyncController) syncToClusters(fedResource FederatedResource, clusters []*fedv1a1.FederatedCluster) util.ReconciliationStatus {
+	selectedClusterNames, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
-		s.eventRecorder.Eventf(fedResource.Object(), corev1.EventTypeWarning, "FedClusterOperationsError",
-			"Error obtaining sync operations for %s %q: %v", kind, key, err)
+		fedResource.RecordError("ComputePlacementError", errors.Wrap(err, "Failed to compute placement"))
 		return util.StatusError
 	}
 
-	if len(operations) == 0 {
-		return util.StatusAllOK
+	kind := fedResource.TargetKind()
+	key := fedResource.TargetName().String()
+	glog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
+
+	updater := fedResource.NewUpdater()
+
+	status := util.StatusAllOK
+	for _, cluster := range clusters {
+		clusterName := cluster.Name
+
+		rawClusterObj, _, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
+		if err != nil {
+			fedResource.RecordError("TargetRetrievalError",
+				errors.Wrapf(err, "Failed to retrieve cluster object for cluster %q", clusterName))
+			// Ensure an error status is returned but continue
+			// processing updates for other clusters.
+			status = util.StatusError
+			continue
+		}
+
+		var clusterObj *unstructured.Unstructured
+		if rawClusterObj != nil {
+			clusterObj = rawClusterObj.(*unstructured.Unstructured)
+		}
+
+		if clusterObj != nil && fedResource.SkipClusterChange(clusterObj) {
+			continue
+		}
+
+		// Resource should not exist in the named cluster
+		if !selectedClusterNames.Has(clusterName) {
+			if clusterObj != nil {
+				updater.Delete(clusterName)
+			}
+			continue
+		}
+
+		// Resource should appear in the named cluster
+
+		// TODO(marun) Consider waiting until the result of resource
+		// creation has reached the target store before attempting
+		// subsequent operations.  Otherwise the object won't be found
+		// but an add operation will fail with AlreadyExists.
+		if clusterObj == nil {
+			updater.Create(clusterName)
+		} else {
+			updater.Update(clusterName, clusterObj)
+		}
+	}
+	if updater.NoChanges() {
+		return status
 	}
 
-	// TODO(marun) raise the visibility of operationErrors to aid in debugging
-	versionMap, operationErrors := s.updater.Update(operations)
-
-	err = fedResource.UpdateVersions(selectedClusters.List(), versionMap)
+	updatedVersionMap, ok := updater.Wait()
+	if !ok {
+		status = util.StatusError
+	}
+	// Always attempt to update versions even if the updater reported errors.
+	err = fedResource.UpdateVersions(selectedClusterNames.List(), updatedVersionMap)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to update version status for %s %q", kind, key))
+		fedResource.RecordError("VersionUpdateError", errors.Wrapf(err, "Failed to update version status"))
 		// Versioning of federated resources is an optimization to
 		// avoid unnecessary updates, and failure to record version
 		// information does not indicate a failure of propagation.
 	}
 
-	if len(operationErrors) > 0 {
-		runtime.HandleError(errors.Errorf("Failed to execute updates for %s %q: %v", kind,
-			key, operationErrors))
-		return util.StatusError
-	}
-
-	return util.StatusAllOK
-}
-
-// clusterOperations returns the list of operations needed to synchronize the
-// state of the given object to the provided clusters.
-func (s *FederationSyncController) clusterOperations(selectedClusters, unselectedClusters []string, fedResource FederatedResource) ([]util.FederatedOperation, error) {
-	// Cluster operations require the target kind (which differs from
-	// the federated kind) and target name (which may differ from the
-	// federated name).
-	kind := s.typeConfig.GetTarget().Kind
-	key := fedResource.TargetName().String()
-
-	operations := make([]util.FederatedOperation, 0)
-
-	versionMap, err := fedResource.GetVersions()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error retrieving version map for %s %q", kind, key)
-	}
-
-	targetKind := s.typeConfig.GetTarget().Kind
-
-	for _, clusterName := range selectedClusters {
-		// TODO(marun) Create the desired object only if needed
-		desiredObj, err := fedResource.ObjectForCluster(clusterName)
-		if err != nil {
-			return nil, err
-		}
-
-		// TODO(marun) Wait until result of add operation has reached
-		// the target store before attempting subsequent operations?
-		// Otherwise the object won't be found but an add operation
-		// will fail with AlreadyExists.
-		clusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
-		if err != nil {
-			wrappedErr := errors.Wrapf(err, "Failed to get %s %q from cluster %q", kind, key, clusterName)
-			runtime.HandleError(wrappedErr)
-			return nil, wrappedErr
-		}
-
-		var operationType util.FederatedOperationType = ""
-
-		if found {
-			clusterObj := clusterObj.(*unstructured.Unstructured)
-
-			if fedResource.SkipClusterChange(clusterObj) {
-				continue
-			}
-
-			err = RetainClusterFields(targetKind, desiredObj, clusterObj, fedResource.Object())
-			if err != nil {
-				wrappedErr := errors.Wrapf(err, "Failed to determine desired object %s %q for cluster %q", kind, key, clusterName)
-				runtime.HandleError(wrappedErr)
-				return nil, wrappedErr
-			}
-
-			version, ok := versionMap[clusterName]
-			if !ok || util.ObjectNeedsUpdate(desiredObj, clusterObj, version) {
-				operationType = util.OperationTypeUpdate
-			}
-		} else {
-			// A namespace in the host cluster will never need to be
-			// added since by definition it must already exist.
-
-			operationType = util.OperationTypeAdd
-		}
-
-		if len(operationType) > 0 {
-			operations = append(operations, util.FederatedOperation{
-				Type:        operationType,
-				Obj:         desiredObj,
-				ClusterName: clusterName,
-				Key:         key,
-			})
-		}
-	}
-
-	for _, clusterName := range unselectedClusters {
-		rawClusterObj, found, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
-		if err != nil {
-			wrappedErr := errors.Wrapf(err, "Failed to get %s %q from cluster %q", kind, key, clusterName)
-			runtime.HandleError(wrappedErr)
-			return nil, wrappedErr
-		}
-		if found {
-			clusterObj := rawClusterObj.(pkgruntime.Object)
-			if fedResource.SkipClusterChange(clusterObj) {
-				continue
-			}
-			operations = append(operations, util.FederatedOperation{
-				Type:        util.OperationTypeDelete,
-				Obj:         clusterObj,
-				ClusterName: clusterName,
-				Key:         key,
-			})
-		}
-	}
-
-	return operations, nil
+	return status
 }

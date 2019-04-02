@@ -21,13 +21,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 
@@ -43,9 +43,11 @@ import (
 // resources in the cluster hosting the federation control plane.
 type FederatedResource interface {
 	FederatedName() util.QualifiedName
+	FederatedKind() string
 	TargetName() util.QualifiedName
+	TargetKind() string
 	Object() *unstructured.Unstructured
-	GetVersions() (map[string]string, error)
+	VersionForCluster(clusterName string) (string, error)
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
 	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error)
@@ -55,9 +57,13 @@ type FederatedResource interface {
 	EnsureDeletion() error
 	EnsureFinalizer() error
 	RecordError(errorCode string, err error)
+	RecordEvent(reason, messageFmt string, args ...interface{})
+	NewUpdater() FederatedUpdater
 }
 
 type federatedResource struct {
+	sync.RWMutex
+
 	limitedScope      bool
 	typeConfig        typeconfig.Interface
 	targetIsNamespace bool
@@ -68,17 +74,27 @@ type federatedResource struct {
 	versionManager    *version.VersionManager
 	deletionHelper    *deletionhelper.DeletionHelper
 	overridesMap      util.OverridesMap
+	versionMap        map[string]string
 	namespace         *unstructured.Unstructured
 	fedNamespace      *unstructured.Unstructured
 	eventRecorder     record.EventRecorder
+	informer          util.FederatedInformer
 }
 
 func (r *federatedResource) FederatedName() util.QualifiedName {
 	return r.federatedName
 }
 
+func (r *federatedResource) FederatedKind() string {
+	return r.typeConfig.GetFederatedType().Kind
+}
+
 func (r *federatedResource) TargetName() util.QualifiedName {
 	return r.targetName
+}
+
+func (r *federatedResource) TargetKind() string {
+	return r.typeConfig.GetTarget().Kind
 }
 
 func (r *federatedResource) Object() *unstructured.Unstructured {
@@ -99,8 +115,17 @@ func (r *federatedResource) OverrideVersion() (string, error) {
 	return GetOverrideHash(r.federatedResource)
 }
 
-func (r *federatedResource) GetVersions() (map[string]string, error) {
-	return r.versionManager.Get(r)
+func (r *federatedResource) VersionForCluster(clusterName string) (string, error) {
+	r.Lock()
+	defer r.Unlock()
+	if r.versionMap == nil {
+		var err error
+		r.versionMap, err = r.versionManager.Get(r)
+		if err != nil {
+			return "", err
+		}
+	}
+	return r.versionMap[clusterName], nil
 }
 
 func (r *federatedResource) UpdateVersions(selectedClusters []string, versionMap map[string]string) error {
@@ -216,10 +241,20 @@ func (r *federatedResource) EnsureFinalizer() error {
 
 // TODO(marun) Use an enumeration for errorCode.
 func (r *federatedResource) RecordError(errorCode string, err error) {
-	r.eventRecorder.Eventf(r.Object(), corev1.EventTypeWarning, errorCode, fmt.Sprintf("%s", err))
+	r.eventRecorder.Eventf(r.Object(), corev1.EventTypeWarning, errorCode, err.Error())
+}
+
+func (r *federatedResource) RecordEvent(reason, messageFmt string, args ...interface{}) {
+	r.eventRecorder.Eventf(r.Object(), corev1.EventTypeNormal, reason, messageFmt, args...)
+}
+
+func (r *federatedResource) NewUpdater() FederatedUpdater {
+	return NewFederatedUpdater(r.informer, r)
 }
 
 func (r *federatedResource) overridesForCluster(clusterName string) (util.ClusterOverridesMap, error) {
+	r.Lock()
+	defer r.Unlock()
 	if r.overridesMap == nil {
 		overridesMap, err := util.GetOverrides(r.federatedResource)
 		if err != nil {
