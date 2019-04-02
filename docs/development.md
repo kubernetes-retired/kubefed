@@ -18,9 +18,6 @@
         - [Unmanaged and Hybrid Cleanup](#unmanaged-and-hybrid-cleanup)
   - [Test Your Changes](#test-your-changes)
     - [Automated Deployment](#automated-deployment)
-    - [Manual Deployment](#manual-deployment)
-      - [Build Federation Container Image](#build-federation-container-image)
-      - [Create Deployment Config](#create-deployment-config)
   - [Test Latest Master Changes (`canary`)](#test-latest-master-changes-canary)
   - [Test Latest Stable Version (`latest`)](#test-latest-stable-version-latest)
   - [Updating Document](#updating-document)
@@ -54,7 +51,7 @@ accomplished as follows:
 
 ```bash
 # Bootstrap and commit a new type
-$ kubebuilder create resource --group <your-group> --version v1alpha1 --kind <your-kind>
+$ kubebuilder create api --group <your-group> --version v1alpha1 --kind <your-kind>
 $ git add .
 $ git commit -m 'Bootstrapped a new api resource <your-group>.federation.k8s.io./v1alpha1/<your-kind>'
 
@@ -63,7 +60,7 @@ $ vi pkg/apis/<your-group>/v1alpha1/<your-kind>_types.go
 $ git commit -a -m 'Added fields to <your-kind>'
 
 # Update the generated code and commit
-$ kubebuilder generate
+$ make generate
 $ git add .
 $ git commit -m 'Updated generated code'
 ```
@@ -248,9 +245,9 @@ to build an image and a deployment config.
 
 **NOTE:** When federation CRDs are changed, you need to run:
 ```bash
-./scripts/sync-up-helm-chart.sh
+make generate
 ```
-This script ensures that the CRD resources in helm chart can be synced.
+This step ensures that the CRD resources in helm chart are synced.
 Ensure binaries from kubebuilder for `etcd` and `kube-apiserver` are in the path (see [prerequisites](#prerequisites)).
 
 ### Automated Deployment
@@ -271,69 +268,22 @@ the steps [documented
 above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
 to create your clusters.
 
-### Manual Deployment
-
-If you'd like to understand what the script is automating for you, then proceed
-by following the below instructions.
-
-#### Build Federation Container Image
-
-Run the following commands using the committed `images/federation-v2/Dockerfile` to build
-and push a container image to use for deployment:
-
-```bash
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/federation-v2/hyperfed cmd/hyperfed/main.go
-docker build images/federation-v2 -t <containerregistry>/<username>/federation-v2:test
-docker push <containerregistry>/<username>/federation-v2:test
-```
-
-If intending to use the docker hub `docker.io` as the `<containerregistry>` to push
-the federation image to, make sure to login to the local docker daemon
-to ensure credentials are available for push:
-
-```bash
-docker login --username <username>
-```
-
-#### Create Deployment Config
-
-Run the following command to build the deployment config `hack/install.yaml`
-that includes all the necessary kubernetes resources:
-
-```bash
-INSTALL_YAML="hack/install.yaml"
-IMAGE_NAME="<containerregistry>/<username>/federation-v2:test"
-INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-install-yaml.sh
-```
-
-Once the installation YAML config `hack/install.yaml` is created, you are able
-to apply this configuration by following the [manual deployment steps in the
-user guide](userguide.md#manual-deployment). Be sure to use this newly
-generated configuration instead of `hack/install-latest.yaml`.
-
 ## Test Latest Master Changes (`canary`)
 
 In order to test the latest master changes (tagged as `canary`) on your
 kubernetes cluster, you'll need to generate a config that specifies the correct
-image. To do that, run the following command:
+image and generated CRDs. To do that, run the following command:
 
 ```bash
-INSTALL_YAML="hack/install.yaml"
-IMAGE_NAME="quay.io/kubernetes-multicluster/federation-v2:canary"
-INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-install-yaml.sh
+make generate
+./scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:canary cluster2
 ```
-
-Once the installation YAML config `hack/install.yaml` is created, you are able
-to apply this configuration by following the [manual deployment steps in the
-user guide](userguide.md#manual-deployment). Be sure to use this newly
-generated configuration instead of `hack/install-latest.yaml`.
 
 ## Test Latest Stable Version (`latest`)
 
 In order to test the latest stable released version (tagged as `latest`) on
 your kubernetes cluster, follow the
-[automated](userguide.md#automated-deployment) or
-[manual](userguide.md#manual-deployment) instructions from the user guide.
+[Automated Deployment](userguide.md#automated-deployment) instructions from the user guide.
 
 ## Updating Document
 

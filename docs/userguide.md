@@ -5,7 +5,6 @@
 - [User Guide](#user-guide)
   - [Prerequisites](#prerequisites)
     - [Binaries](#binaries)
-      - [kubebuilder](#kubebuilder)
     - [Deployment Image](#deployment-image)
     - [Create Clusters](#create-clusters)
   - [Helm Chart Deployment](#helm-chart-deployment)
@@ -36,7 +35,8 @@
     - [Joining Clusters](#joining-clusters)
     - [Deployment Cleanup](#deployment-cleanup-1)
   - [Local Value Retention](#local-value-retention)
-    - [Scalable Resources](#scalable-resources)
+    - [Scalable](#scalable)
+    - [ServiceAccount](#serviceaccount)
   - [Higher order behaviour](#higher-order-behaviour)
     - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
     - [Multi-Cluster Service DNS](#multi-cluster-service-dns)
@@ -44,7 +44,7 @@
       - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
       - [Distribute replicas in weighted proportions, also enforcing replica limits per cluster](#distribute-replicas-in-weighted-proportions-also-enforcing-replica-limits-per-cluster)
-      - [Distribute replicas evenly in all clusters, however not more then 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-than-20-in-c)
+      - [Distribute replicas evenly in all clusters, however not more than 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-than-20-in-c)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -63,8 +63,8 @@ is a detailed list of binaries required.
 ### Binaries
 
 The federation deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
-`kube-apiserver` >= v1.11 being installed in the path. The `kubebuilder`
-([v1.0.4](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.4)
+`kube-apiserver` >= v1.13 being installed in the path. The `kubebuilder`
+([v1.0.8](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.8)
 as of this writing) release packages all of these dependencies together.
 
 These binaries can be installed via the `download-binaries.sh` script, which
@@ -77,14 +77,6 @@ export PATH=$(pwd)/bin:${PATH}
 
 Or you can install them manually yourself using the guidelines provided below.
 
-#### kubebuilder
-
-This repo depends on
-[kubebuilder](https://github.com/kubernetes-sigs/kubebuilder)
-to generate code and build binaries. Download the [v1.0.4
-release](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.4)
-and install it in your `PATH`.
-
 ### Deployment Image
 
 If you follow this user guide without any changes you will be using the latest
@@ -95,7 +87,7 @@ custom image](development.md#test-your-changes).
 
 ### Create Clusters
 
-The federation v2 control plane can run on any v1.11 or greater Kubernetes clusters. The following is a list of
+The federation v2 control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
 Kubernetes environments that have been tested and are supported by the Federation v2 community:
 
 - [kind](./environments/kind.md)
