@@ -52,8 +52,8 @@ type EnableTypeDirective struct {
 }
 
 func (ft *EnableTypeDirective) SetDefaults() {
-	ft.Spec.FederationGroup = defaultFederationGroup
-	ft.Spec.FederationVersion = defaultFederationVersion
+	ft.Spec.FederationGroup = DefaultFederationGroup
+	ft.Spec.FederationVersion = DefaultFederationVersion
 }
 
 func NewEnableTypeDirective() *EnableTypeDirective {
