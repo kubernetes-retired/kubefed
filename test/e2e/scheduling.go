@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
@@ -72,12 +71,12 @@ var _ = Describe("Scheduling", func() {
 		// The following setup is shared across tests but must be
 		// performed at test time rather than at test collection.
 		if kubeConfig == nil {
-			dynClient, err := client.New(f.KubeConfig(), client.Options{})
+			client, err := genericclient.New(f.KubeConfig())
 			if err != nil {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
 			}
 			for targetTypeName := range schedulingTypes {
-				typeConfig, err := common.GetTypeConfig(dynClient, targetTypeName, f.FederationSystemNamespace())
+				typeConfig, err := common.GetTypeConfig(client, targetTypeName, f.FederationSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
 				}

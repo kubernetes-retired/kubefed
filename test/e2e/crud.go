@@ -21,9 +21,9 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -57,11 +57,11 @@ var _ = Describe("Federated", func() {
 				}
 
 				// Lookup the type config from the api
-				dynClient, err := client.New(f.KubeConfig(), client.Options{})
+				client, err := genericclient.New(f.KubeConfig())
 				if err != nil {
 					tl.Fatalf("Error initializing dynamic client: %v", err)
 				}
-				typeConfig, err := common.GetTypeConfig(dynClient, typeConfigName, f.FederationSystemNamespace())
+				typeConfig, err := common.GetTypeConfig(client, typeConfigName, f.FederationSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 				}
