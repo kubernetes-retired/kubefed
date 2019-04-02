@@ -277,7 +277,7 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 
 	resourceVersion, err := getResourceVersion(obj)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to retrieve resource version for %s %q", adapterType, key)
+		return errors.Wrapf(err, "Failed to retrieve the resourceVersion from %s %q", adapterType, key)
 	}
 	refreshVersion := false
 	// TODO(marun) Centralize polling interval and duration
@@ -288,7 +288,7 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 			var err error
 			resourceVersion, err = m.getResourceVersionFromAPI(qualifiedName)
 			if err != nil {
-				runtime.HandleError(errors.Wrapf(err, "Failed to refresh resource version %s %q from the API", adapterType, key))
+				runtime.HandleError(errors.Wrapf(err, "Failed to refresh the resourceVersion for %s %q from the API", adapterType, key))
 				return false, nil
 			}
 			refreshVersion = false
@@ -300,26 +300,26 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 			createdObj := obj.DeepCopyObject()
 			err := setResourceVersion(createdObj, "")
 			if err != nil {
-				runtime.HandleError(errors.Wrapf(err, "Failed to clear the resource version for %s %q", adapterType, key))
+				runtime.HandleError(errors.Wrapf(err, "Failed to clear the resourceVersion for %s %q", adapterType, key))
 				return false, nil
 			}
 
 			glog.V(4).Infof("Creating %s %q", adapterType, qualifiedName)
 			err = m.client.Create(context.TODO(), createdObj)
 			if apierrors.IsAlreadyExists(err) {
-				glog.V(4).Infof("%s %q was created by another process.  Will refresh the resource version and attempt to update.", adapterType, qualifiedName)
+				glog.V(4).Infof("%s %q was created by another process. Will refresh the resourceVersion and attempt to update.", adapterType, qualifiedName)
 				refreshVersion = true
 				return false, nil
 			}
 			if err != nil {
-				runtime.HandleError(errors.Wrapf(err, "Failed to create version %s %q", adapterType, key))
+				runtime.HandleError(errors.Wrapf(err, "Failed to create %s %q", adapterType, key))
 				return false, nil
 			}
 
 			// Update the resource version that will be used for update.
 			resourceVersion, err = getResourceVersion(createdObj)
 			if err != nil {
-				runtime.HandleError(errors.Wrapf(err, "Failed to retrieve resource version for %s %q", adapterType, key))
+				runtime.HandleError(errors.Wrapf(err, "Failed to retrieve the resourceVersion for %s %q", adapterType, key))
 				return false, nil
 			}
 		}
@@ -329,19 +329,19 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 		updatedObj := obj.DeepCopyObject()
 		err := setResourceVersion(updatedObj, resourceVersion)
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Failed to set the resource version for %s %q", adapterType, key))
+			runtime.HandleError(errors.Wrapf(err, "Failed to set the resourceVeresion for %s %q", adapterType, key))
 			return false, nil
 		}
 
 		glog.V(4).Infof("Updating the status of %s %q", adapterType, qualifiedName)
 		err = m.client.UpdateStatus(context.TODO(), updatedObj)
 		if apierrors.IsConflict(err) {
-			glog.V(4).Infof("%s %q was updated by another process.  Will refresh the resource version and retry the update.", adapterType, qualifiedName)
+			glog.V(4).Infof("%s %q was updated by another process. Will refresh the resourceVersion and retry the update.", adapterType, qualifiedName)
 			refreshVersion = true
 			return false, nil
 		}
 		if apierrors.IsNotFound(err) {
-			glog.V(4).Infof("%s %q was deleted by another process.  Will clear the resource version and retry the update.", adapterType, qualifiedName)
+			glog.V(4).Infof("%s %q was deleted by another process. Will clear the resourceVersion and retry the update.", adapterType, qualifiedName)
 			resourceVersion = ""
 			return false, nil
 		}
@@ -357,18 +357,18 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 		// Update the version resource
 		resourceVersion, err = getResourceVersion(updatedObj)
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Failed to retrieve resource version for %s %q", adapterType, key))
+			runtime.HandleError(errors.Wrapf(err, "Failed to retrieve the resourceVersion for %s %q", adapterType, key))
 			return true, nil
 		}
 		err = setResourceVersion(obj, resourceVersion)
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Failed to set resource version for %s %q", adapterType, key))
+			runtime.HandleError(errors.Wrapf(err, "Failed to set the resourceVersion for %s %q", adapterType, key))
 		}
 
 		return true, nil
 	})
 	if err != nil {
-		return errors.Wrapf(err, "Failed to write version map for %s %q to the API within %v", adapterType, key, waitDuration)
+		return errors.Wrapf(err, "Failed to write the version map for %s %q to the API within %v", adapterType, key, waitDuration)
 	}
 	return nil
 }
