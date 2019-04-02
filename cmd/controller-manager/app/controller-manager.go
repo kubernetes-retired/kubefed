@@ -205,12 +205,12 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	for _, v := range fedConfig.Spec.FeatureGates {
 		featureGates[v.Name] = v.Enabled
 	}
-	if len(featureGates) < 1 {
+	if len(featureGates) == 0 {
 		return
 	}
 
 	opts.FeatureGates = featureGates
-	glog.V(1).Infof("\"feature-gates\" are setting with %v", featureGates)
+	glog.V(1).Infof("\"feature-gates\" will be set to %v", featureGates)
 }
 
 // PrintFlags logs the flags in the flagset
