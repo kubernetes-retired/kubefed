@@ -64,6 +64,9 @@ func NewServiceObject(name, namespace string) *apiv1.Service {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Labels: map[string]string{
+				util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+			},
 		},
 		Spec: apiv1.ServiceSpec{
 			Type: apiv1.ServiceTypeLoadBalancer,
@@ -80,6 +83,9 @@ func NewEndpointObject(name, namespace string) *apiv1.Endpoints {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Labels: map[string]string{
+				util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+			},
 		},
 		Subsets: []apiv1.EndpointSubset{{
 			Addresses: []apiv1.EndpointAddress{{IP: "1.2.3.4"}},
@@ -93,6 +99,9 @@ func NewIngressObject(name, namespace string) *extv1b1.Ingress {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Labels: map[string]string{
+				util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+			},
 		},
 		Spec: extv1b1.IngressSpec{
 			Rules: []extv1b1.IngressRule{{
