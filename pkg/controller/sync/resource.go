@@ -51,7 +51,7 @@ type FederatedResource interface {
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
 	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error)
-	SkipClusterDeletion(clusterObj pkgruntime.Object) bool
+	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	MarkedForDeletion() bool
 	EnsureDeletion() error
@@ -140,7 +140,11 @@ func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.FederatedCluste
 	return computePlacement(r.federatedResource, clusters)
 }
 
-func (r *federatedResource) SkipClusterDeletion(clusterObj pkgruntime.Object) bool {
+func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool {
+	// TODO(marun) This comment should be added to the documentation
+	// and removed from this function (where it is no longer
+	// relevant).
+	//
 	// `Namespace` is the only Kubernetes type that can contain other
 	// types, and adding a federation-specific container type would be
 	// difficult or impossible. This requires that namespaced

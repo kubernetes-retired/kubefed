@@ -38,6 +38,7 @@ type FederatedUpdater interface {
 	Create(clusterName string)
 	Update(clusterName string, clusterObj *unstructured.Unstructured)
 	Delete(clusterName string)
+	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 }
 
 type updaterResult struct {
@@ -182,6 +183,27 @@ func (u *federatedUpdaterImpl) Delete(clusterName string) {
 		if apierrors.IsNotFound(err) {
 			err = nil
 		}
+		return "", err
+	})
+}
+
+func (u *federatedUpdaterImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {
+	u.incrementOperationCount()
+	const op = "remove managed label"
+	go u.clusterOperation(clusterName, op, func(client util.ResourceClient) (string, error) {
+		// Avoid mutating the resource in the informer cache
+		updateObj := clusterObj.DeepCopy()
+
+		// Remove the managed label if necessary
+		labels := updateObj.GetLabels()
+		_, ok := labels[util.ManagedByFederationLabelKey]
+		if !ok {
+			return "", nil
+		}
+		u.recordEvent(clusterName, op, "Removing managed label")
+		delete(labels, util.ManagedByFederationLabelKey)
+		updateObj.SetLabels(labels)
+		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
 		return "", err
 	})
 }

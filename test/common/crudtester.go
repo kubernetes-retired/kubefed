@@ -212,36 +212,12 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(fedObject *unstructured.U
 	kind := apiResource.Kind
 	qualifiedName := util.NewQualifiedName(fedObject)
 
-	clusterNames, err := util.GetClusterNames(fedObject)
-	if err != nil {
-		c.tl.Fatalf("Error retrieving cluster names: %v", err)
-	}
-
-	primaryClusterName := c.getPrimaryClusterName()
-
-	// Skip if we're a namespace, we only have 2 or fewer member
-	// clusters, and the host cluster is also a member cluster.
-	// Otherwise the remainder of this function will ensure that the
-	// namespace is removed from non-host member clusters such that a
-	// subsequent CheckDelete will always succeed even if the deletion
-	// helper is broken.
-	//
-	// TODO(marun) This leaves namespace placement changes untested in
-	// the default 2 cluster CI configuration.  The code path is
-	// common, but it may make sense to remove and then add back the
-	// removed cluster for namespaces.
-	clusterNamesSet := sets.NewString(clusterNames...)
-	if c.targetIsNamespace && clusterNamesSet.Len() <= 2 && clusterNamesSet.Has(primaryClusterName) {
-		c.tl.Logf("Skipping check for placement change for %s %q due to only one non-host cluster",
-			kind, qualifiedName)
-		return
-	}
-
 	// Any cluster can be removed for non-namespace targets.
-	clusterNameToRetain := ""
+	clusterNameToRemove := ""
 	if c.targetIsNamespace {
-		// The primary cluster should not be removed for namespace targets.
-		clusterNameToRetain = primaryClusterName
+		// The primary cluster should be removed for namespace targets.  This
+		// will ensure that unlabeling is validated.
+		clusterNameToRemove = c.getPrimaryClusterName()
 	}
 
 	c.tl.Logf("Updating %s %q", kind, qualifiedName)
@@ -250,7 +226,7 @@ func (c *FederatedTypeCrudTester) CheckPlacementChange(fedObject *unstructured.U
 		if err != nil {
 			c.tl.Fatalf("Error retrieving cluster names: %v", err)
 		}
-		updatedClusterNames := c.removeOneClusterName(clusterNames, clusterNameToRetain)
+		updatedClusterNames := c.removeOneClusterName(clusterNames, clusterNameToRemove)
 		if len(updatedClusterNames) != len(clusterNames)-1 {
 			// This test depends on a cluster name being removed from
 			// the placement resource to validate that the sync
@@ -362,6 +338,8 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 			case deletingInCluster && err == nil:
 				// The namespace in the host cluster should not be removed.
 				if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
+					// TODO(marun) Validate removal of the managed label once
+					// the deletion helper is updated to support the capability.
 					return true, nil
 				}
 				// Continue checking for deletion
@@ -391,14 +369,6 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 	}
 	selectedClusters := sets.NewString(clusterNames...)
 
-	// If we are a namespace, there is only one cluster, and the cluster is the
-	// host cluster, then do not check for a propagated version as it will never
-	// be created.
-	if c.targetIsNamespace && len(clusterNames) == 1 &&
-		clusterNames[0] == c.getPrimaryClusterName() {
-		return
-	}
-
 	templateVersion, err := sync.GetTemplateHash(fedObject.Object)
 	if err != nil {
 		c.tl.Fatalf("Error computing template hash for %s %q: %v", federatedKind, qualifiedName, err)
@@ -417,14 +387,9 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 	targetKind := c.typeConfig.GetTarget().Kind
 
 	// TODO(marun) run checks in parallel
+	primaryClusterName := c.getPrimaryClusterName()
 	for clusterName, testCluster := range c.testClusters {
 		objExpected := selectedClusters.Has(clusterName)
-
-		// The crudtester is not responsible for deleting the namespace in the
-		// primary cluster.
-		if !objExpected && c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
-			continue
-		}
 
 		operation := "to be deleted from"
 		if objExpected {
@@ -443,6 +408,8 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 			case err != nil:
 				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 			}
+		} else if c.targetIsNamespace && clusterName == primaryClusterName {
+			c.checkHostNamespaceUnlabeled(testCluster.Client, qualifiedName, targetKind, clusterName)
 		} else {
 			err := c.waitForResourceDeletion(testCluster.Client, qualifiedName, func() bool {
 				version, ok := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
@@ -459,6 +426,28 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 				c.tl.Fatalf("Failed to verify deletion of %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 			}
 		}
+	}
+}
+
+func (c *FederatedTypeCrudTester) checkHostNamespaceUnlabeled(client util.ResourceClient, qualifiedName util.QualifiedName, targetKind, clusterName string) {
+	// A namespace in the host cluster should end up unlabeled instead of
+	// deleted when it is not targeted by placement.
+
+	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+		hostNamespace, err := client.Resources("").Get(qualifiedName.Name, metav1.GetOptions{})
+		if err != nil {
+			c.tl.Errorf("Error retrieving %s %q in host cluster %q: %v", targetKind, qualifiedName, clusterName, err)
+			return false, nil
+		}
+		// Validate that the namespace is without the managed label
+		labels := hostNamespace.GetLabels()
+		if labels == nil || labels[util.ManagedByFederationLabelKey] != util.ManagedByFederationLabelValue {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		c.tl.Fatalf("Timeout verifying removal of managed label from %s %q in host cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 	}
 }
 
@@ -616,17 +605,18 @@ func (c *FederatedTypeCrudTester) getPrimaryClusterName() string {
 	return ""
 }
 
-func (c *FederatedTypeCrudTester) removeOneClusterName(clusterNames []string, clusterNameToRetain string) []string {
-	for i, name := range clusterNames {
-		if name == clusterNameToRetain {
-			continue
-		} else {
-			clusterNames = append(clusterNames[:i], clusterNames[i+1:]...)
-			break
-		}
+func (c *FederatedTypeCrudTester) removeOneClusterName(clusterNames []string, clusterNameToRemove string) []string {
+	if len(clusterNameToRemove) == 0 {
+		return clusterNames[:len(clusterNames)-1]
 	}
-
-	return clusterNames
+	newClusterNames := []string{}
+	for _, name := range clusterNames {
+		if name == clusterNameToRemove {
+			continue
+		}
+		newClusterNames = append(newClusterNames, name)
+	}
+	return newClusterNames
 }
 
 func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedVersionStatus, clusterName string) string {

@@ -330,8 +330,14 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 
 		// Resource should not exist in the named cluster
 		if !selectedClusterNames.Has(clusterName) {
-			if clusterObj != nil && !fedResource.SkipClusterDeletion(clusterObj) {
-				updater.Delete(clusterName)
+			if clusterObj != nil {
+				if fedResource.IsNamespaceInHostCluster(clusterObj) {
+					// Host cluster namespace needs to have the managed
+					// label removed so it won't be cached anymore.
+					updater.RemoveManagedLabel(clusterName, clusterObj)
+				} else {
+					updater.Delete(clusterName)
+				}
 			}
 			continue
 		}
