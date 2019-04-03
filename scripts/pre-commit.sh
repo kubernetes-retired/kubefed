@@ -52,6 +52,10 @@ function run-unit-tests() {
 }
 
 function run-e2e-tests-with-managed-fixture() {
+  # Ensure the test binaries are in the path.
+  export TEST_ASSET_PATH="${ROOT_DIR}/bin"
+  export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
+  export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
   ${MANAGED_E2E_TEST_CMD}
 }
 
@@ -98,17 +102,12 @@ function check-git-state() {
 
 # Make sure, we run in the root of the repo and
 # therefore run the tests on all packages
-base_dir="$( cd "$(dirname "$0")/.." && pwd )"
-cd "$base_dir" || {
-  echo "Cannot cd to '$base_dir'. Aborting." >&2
+cd "$ROOT_DIR" || {
+  echo "Cannot cd to '$ROOT_DIR'. Aborting." >&2
   exit 1
 }
 
-# Ensure the test binaries are in the path.
-export TEST_ASSET_PATH="${base_dir}/bin"
-export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
-export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
-export PATH=${TEST_ASSET_PATH}:${PATH}
+export PATH=${ROOT_DIR}/bin:${PATH}
 
 echo "Downloading test dependencies"
 download-dependencies
