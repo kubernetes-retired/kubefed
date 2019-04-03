@@ -70,6 +70,7 @@ type FederatedClusterStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=federatedclusters
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
 type FederatedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
