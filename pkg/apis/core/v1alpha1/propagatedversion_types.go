@@ -63,3 +63,16 @@ type PropagatedVersion struct {
 	Spec   PropagatedVersionSpec   `json:"spec,omitempty"`
 	Status PropagatedVersionStatus `json:"status,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// PropagatedVersionList contains a list of PropagatedVersion
+type PropagatedVersionList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []PropagatedVersion `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&PropagatedVersion{}, &PropagatedVersionList{})
+}

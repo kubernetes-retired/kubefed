@@ -2,32 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: null
-  labels:
-    api: federation
-    control-plane: controller-manager
-    kubebuilder.k8s.io: 1.0.4
   name: federation-controller-manager
   namespace: {{ .Release.Namespace }}
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      api: federation
       control-plane: controller-manager
-      kubebuilder.k8s.io: 1.0.4
+      controller-tools.k8s.io: "1.0"
   strategy: {}
   template:
     metadata:
-      creationTimestamp: null
       labels:
-        api: federation
         control-plane: controller-manager
-        kubebuilder.k8s.io: 1.0.4
+        controller-tools.k8s.io: "1.0"
     spec:
       containers:
       - args:
-        - --install-crds=false
 {{- if .Values.featureGates }}
         - --feature-gates={{ .Values.featureGates }}
 {{- end }}
@@ -53,6 +47,10 @@ spec:
 {{- end }}
 {{- if .Values.global.limitedScope }}
         env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: FEDERATION_NAMESPACE
           valueFrom:
             fieldRef:

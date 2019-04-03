@@ -34,13 +34,11 @@ type Options struct {
 	FeatureGates         map[string]bool
 	ClusterMonitorPeriod time.Duration
 	LimitedScope         bool
-	InstallCRDs          bool
 	LeaderElection       *util.LeaderElectionConfiguration
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.BoolVar(&o.InstallCRDs, "install-crds", true, "install the CRDs used by the controller as part of startup")
 	fs.Var(flagutil.NewMapStringBool(&o.FeatureGates), "feature-gates", "A set of key=value pairs that describe feature gates for alpha/experimental features. "+
 		"Options are:\n"+strings.Join(utilfeature.DefaultFeatureGate.KnownFeatures(), "\n"))
 

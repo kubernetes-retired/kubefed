@@ -2,9 +2,7 @@
 /bin
 /default.etcd
 /kubeconfig
-/hack/install.yaml
-/hack/install-crds-latest.yaml
-/hack/install-namespaced.yaml
+/config/crds/
 /images/federation-v2/hyperfed
 # temporarily added below file to ignore list to avoid someone pushing this file in a pr by accident.
 /images/federation-v2/controller-manager

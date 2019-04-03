@@ -92,3 +92,16 @@ type ServiceDNSRecord struct {
 	Spec   ServiceDNSRecordSpec   `json:"spec,omitempty"`
 	Status ServiceDNSRecordStatus `json:"status,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ServiceDNSRecordList contains a list of ServiceDNSRecord
+type ServiceDNSRecordList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ServiceDNSRecord `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&ServiceDNSRecord{}, &ServiceDNSRecordList{})
+}

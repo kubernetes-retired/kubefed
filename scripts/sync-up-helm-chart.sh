@@ -25,20 +25,33 @@ WORKDIR=$(mktemp -d)
 NS="${FEDERATION_NAMESPACE:-federation-system}"
 CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/federation-v2/charts/controllermanager/templates}"
 CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/federation-v2/templates}"
-INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML:-hack/install-crds-latest.yaml}"
+TEMP_CRDS_YAML="/tmp/federation-crds.yaml"
 
-INSTALL_CRDS_YAML="${INSTALL_CRDS_YAML}" scripts/generate-install-crds-yaml.sh
-
-BUILD_KUBEFED="${BUILD_KUBEFED:-true}"
-if [[ "${BUILD_KUBEFED}" == true ]]; then
-  make -C "${ROOT_DIR}" kubefed2
+# Check for existence of kube-apiserver and etcd binaries in bin directory
+if [[ ! -f ${ROOT_DIR}/bin/etcd || ! -f ${ROOT_DIR}/bin/kube-apiserver ]];
+then
+  echo "Missing 'etcd' and/or 'kube-apiserver' binaries in bin directory. Call './scripts/download-binaries.sh' to download them first"
+  exit 1
 fi
+
+# Generate CRD manifest files
+go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+
+# Merge all CRD manifest files into one file
+echo "---" > ${TEMP_CRDS_YAML}
+for filename in ./config/crds/*.yaml; do
+  cat $filename >> ${TEMP_CRDS_YAML}
+  echo "---" >> ${TEMP_CRDS_YAML}
+done
+
+# Add crd-install to make sure the CRDs can be installed first in a helm chart.
+sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/g' "${TEMP_CRDS_YAML}"
 
 # "diff -U 4" will take 1 as return code which will cause the script failed to execute, here
 # I was force returning true to get a return code as 0.
-crd_diff=`(diff -U 4 $INSTALL_CRDS_YAML $CHART_FEDERATED_CRD_DIR/crds.yaml; true;)`
+crd_diff=`(diff -U 4 ${TEMP_CRDS_YAML} ${CHART_FEDERATED_CRD_DIR}/crds.yaml; true;)`
 if [ -n "${crd_diff}" ]; then
-  cp -f $INSTALL_CRDS_YAML $CHART_FEDERATED_CRD_DIR/crds.yaml
+  cp -f ${TEMP_CRDS_YAML} $CHART_FEDERATED_CRD_DIR/crds.yaml
   sed -i '1i{{ if (or (not .Values.global.limitedScope) (not (.Capabilities.APIVersions.Has "core.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
   sed -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
 fi
@@ -62,9 +75,10 @@ users: []
 EOF
 
 # Start kube-apiserver to generate CRDs
-./bin/etcd --data-dir ${WORKDIR} &
+${ROOT_DIR}/bin/etcd --data-dir ${WORKDIR} &
 util::wait-for-condition 'ok' "curl http://127.0.0.1:2379/version &> /dev/null" 30
-./bin/kube-apiserver --etcd-servers=http://127.0.0.1:2379 --service-cluster-ip-range=10.0.0.0/16 --cert-dir ${WORKDIR} &
+
+${ROOT_DIR}/bin/kube-apiserver --etcd-servers=http://127.0.0.1:2379 --service-cluster-ip-range=10.0.0.0/16 --cert-dir ${WORKDIR} &
 util::wait-for-condition 'ok' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --context federation get --raw=/healthz &> /dev/null" 60
 
 # Generate YAML templates to enable resource propagation for helm chart.

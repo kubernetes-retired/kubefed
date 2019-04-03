@@ -17,28 +17,28 @@ limitations under the License.
 package managed
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
-
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	apiv1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	extensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -51,15 +51,6 @@ import (
 // Will this be required?
 
 const userAgent = "federation-framework"
-
-type InstallStrategy struct {
-	install.EmptyInstallStrategy
-	crds []*extensionsv1beta1.CustomResourceDefinition
-}
-
-func (s *InstallStrategy) GetCRDs() []*extensionsv1beta1.CustomResourceDefinition {
-	return s.crds
-}
 
 // FederationFixture manages servers for kube, cluster registry and
 // federation along with a set of member clusters.
@@ -92,7 +83,7 @@ func (f *FederationFixture) setUp(tl common.TestLogger, clusterCount int) {
 	// TODO(marun) Consider running the cluster controller as soon as
 	// the kube api is available to speed up setting cluster status.
 	tl.Logf("Starting cluster controller")
-	f.ClusterController = NewClusterControllerFixture(f.ControllerConfig(tl))
+	f.ClusterController = NewClusterControllerFixture(tl, f.ControllerConfig(tl))
 	tl.Log("Federation started.")
 
 	client := genericclient.NewForConfigOrDie(f.KubeApi.NewConfig(tl))
@@ -299,27 +290,24 @@ func (f *FederationFixture) ControllerConfig(tl common.TestLogger) *util.Control
 
 func (f *FederationFixture) installCrds(tl common.TestLogger) {
 	config := f.KubeApi.NewConfig(tl)
-	installer := install.NewInstaller(config)
 
 	tl.Logf("Creating Cluster Registry CRD")
 	crds := []*apiextv1b1.CustomResourceDefinition{&crv1a1.ClusterCRD}
-	err := installer.Install(&InstallStrategy{crds: crds})
-	if err != nil {
-		tl.Fatalf("Could not create Cluster Registry CRD: %v", err)
+	registerCrds(tl, config, crds)
+	for _, crd := range crds {
+		waitForCrd(tl, config, crd)
 	}
 
 	tl.Logf("Creating Federation CRDs")
-	err = installer.Install(&InstallStrategy{crds: inject.Injector.CRDs})
-	if err != nil {
-		tl.Fatalf("Could not create Federation CRDs: %v", err)
+	federationCRDs := getFederationCRDS(tl)
+	registerCrds(tl, config, federationCRDs)
+	for _, crd := range federationCRDs {
+		waitForCrd(tl, config, crd)
 	}
 
 	tl.Logf("Federating core types")
 	primitiveCRDs := federateCoreTypes(tl, config, f.SystemNamespace)
-	crds = append(crds, primitiveCRDs...)
-
-	crds = append(crds, inject.Injector.CRDs...)
-	for _, crd := range inject.Injector.CRDs {
+	for _, crd := range primitiveCRDs {
 		waitForCrd(tl, config, crd)
 	}
 }
@@ -412,4 +400,59 @@ func enableTypeDirectivesPath(tl common.TestLogger) string {
 		tl.Fatalf("Error discovering the path to FederatedType resources: %v", err)
 	}
 	return path
+}
+
+func getRepoDirPath(tl common.TestLogger) string {
+	// Get the directory of the current executable
+	_, filename, _, _ := runtime.Caller(0)
+	managedPath := filepath.Dir(filename)
+	path, err := filepath.Abs(fmt.Sprintf("%s/../../../..", managedPath))
+	if err != nil {
+		tl.Fatalf("Error discovering the repo directory path: %v", err)
+	}
+	return path
+}
+
+func registerCrds(tl common.TestLogger, config *rest.Config, crds []*apiextv1b1.CustomResourceDefinition) {
+	crdClient, err := apiextv1b1client.NewForConfig(config)
+	if err != nil {
+		tl.Fatal("Failed to create CRD client")
+	}
+
+	for _, crd := range crds {
+		_, err = crdClient.CustomResourceDefinitions().Create(crd)
+		// TODO: Do not fail if CRDs already exist, instead update.
+		if err != nil {
+			tl.Fatalf("Error creating federation CRD %q", crd.Name)
+		}
+		tl.Logf("Creating CRD %s", crd.Name)
+	}
+}
+
+func getFederationCRDS(tl common.TestLogger) []*apiextv1b1.CustomResourceDefinition {
+	filename := getRepoDirPath(tl) + "/charts/federation-v2/charts/controllermanager/templates/crds.yaml"
+	buffer, err := ioutil.ReadFile(filename)
+	if err != nil {
+		tl.Fatalf("Failed to read federation CRD manifest file: %v", err)
+	}
+
+	crds := []*apiextv1b1.CustomResourceDefinition{}
+	for _, f := range strings.Split(string(buffer), "---") {
+		if f == "\n" || f == "" {
+			// ignore empty cases
+			continue
+		}
+
+		crd := &apiextv1b1.CustomResourceDefinition{}
+		decoder := yaml.NewYAMLToJSONDecoder(bytes.NewReader([]byte(f)))
+
+		err = decoder.Decode(crd)
+		if err != nil {
+			// Ignore decode error, as some non-yaml contents would be present in charts/federation-v2/charts/controllermanager/templates/crds.yaml
+			continue
+		}
+
+		crds = append(crds, crd)
+	}
+	return crds
 }

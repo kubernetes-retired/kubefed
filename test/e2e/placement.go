@@ -24,10 +24,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
@@ -52,7 +52,7 @@ var _ = Describe("Placement", func() {
 			framework.Skipf("Considering namespace placement when determining resource placement is not supported for cluster-scoped federation.")
 		}
 
-		dynClient, err := client.New(f.KubeConfig(), client.Options{})
+		client, err := genericclient.New(f.KubeConfig())
 		if err != nil {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
@@ -62,8 +62,7 @@ var _ = Describe("Placement", func() {
 		var fixture *unstructured.Unstructured
 		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
 			typeConfig := &fedv1a1.FederatedTypeConfig{}
-			key := client.ObjectKey{Name: typeConfigName, Namespace: f.FederationSystemNamespace()}
-			err = dynClient.Get(context.Background(), key, typeConfig)
+			err = client.Get(context.Background(), typeConfig, f.FederationSystemNamespace(), typeConfigName)
 			if errors.IsNotFound(err) {
 				continue
 			}
@@ -107,18 +106,13 @@ var _ = Describe("Placement", func() {
 
 		namespace := f.TestNamespaceName()
 
-		dynclient, err := client.New(f.KubeConfig(), client.Options{})
-		if err != nil {
-			tl.Fatalf("Error initializing dynamic client: %v", err)
-		}
-
 		// Ensure federated namespace with placement selecting no
 		// clusters exist for the test namespace.
 		fedNamespace := f.EnsureTestFederatedNamespace(false)
 		fedNamespaceKey := util.NewQualifiedName(fedNamespace).String()
 		// Ensure the removal of the namespace placement to avoid affecting other tests.
 		defer func() {
-			err := dynclient.Delete(context.Background(), fedNamespace)
+			err := client.Delete(context.Background(), fedNamespace, fedNamespace.GetNamespace(), fedNamespace.GetName())
 			if err != nil && !errors.IsNotFound(err) {
 				tl.Fatalf("Error deleting FederatedNamespace %q: %v", fedNamespaceKey, err)
 			}

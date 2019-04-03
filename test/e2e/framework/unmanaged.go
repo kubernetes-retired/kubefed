@@ -60,7 +60,7 @@ func SetUpUnmanagedFederation() {
 	config, _, err := loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
 	Expect(err).NotTo(HaveOccurred())
 
-	clusterControllerFixture = managed.NewClusterControllerFixture(&util.ControllerConfig{
+	clusterControllerFixture = managed.NewClusterControllerFixture(NewE2ELogger(), &util.ControllerConfig{
 		FederationNamespaces: util.FederationNamespaces{
 			FederationNamespace: TestContext.FederationSystemNamespace,
 			ClusterNamespace:    TestContext.ClusterNamespace,

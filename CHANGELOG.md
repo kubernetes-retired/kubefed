@@ -1,4 +1,11 @@
 # Unreleased
+ - [#716](https://github.com/kubernetes-sigs/federation-v2/pull/716) -
+   Upgrade kubebuilder version to v1.0.8
+   - Removed generated typed clients for federation apis from tree.
+     Use generic client to operate on federation apis as shown
+     [here](https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/client/example_test.go)
+   - Helm based deployment method will be the only supported
+     deployment method to install federation control plane.
  - [#622](https://github.com/kubernetes-sigs/federation-v2/pull/622) -
    Switched the sync controller to using a new finalizer
    (`federation.k8s.io/sync-controller` instead of

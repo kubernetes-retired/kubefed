@@ -57,3 +57,16 @@ type IngressDNSRecord struct {
 	Spec   IngressDNSRecordSpec   `json:"spec,omitempty"`
 	Status IngressDNSRecordStatus `json:"status,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// IngressDNSRecordList contains a list of IngressDNSRecord
+type IngressDNSRecordList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []IngressDNSRecord `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&IngressDNSRecord{}, &IngressDNSRecordList{})
+}

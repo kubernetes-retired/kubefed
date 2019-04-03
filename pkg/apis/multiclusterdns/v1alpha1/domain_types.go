@@ -35,3 +35,16 @@ type Domain struct {
 	// NameServer is the authoritative DNS name server for the federation domain
 	NameServer string `json:"nameServer,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// DomainList contains a list of Domain
+type DomainList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Domain `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Domain{}, &DomainList{})
+}

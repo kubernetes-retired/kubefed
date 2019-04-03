@@ -17,11 +17,6 @@ limitations under the License.
 package managed
 
 import (
-	"net/url"
-	"os"
-
-	"github.com/pborman/uuid"
-
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -30,7 +25,7 @@ import (
 
 // KubernetesApiFixture manages a kubernetes api server
 type KubernetesApiFixture struct {
-	EtcdUrl   *url.URL
+	Etcd      *integration.Etcd
 	Host      string
 	ApiServer *integration.APIServer
 	IsPrimary bool
@@ -45,30 +40,25 @@ func SetUpKubernetesApiFixture(tl common.TestLogger) *KubernetesApiFixture {
 func (f *KubernetesApiFixture) setUp(tl common.TestLogger) {
 	defer TearDownOnPanic(tl, f)
 
-	f.EtcdUrl = SetUpEtcd(tl)
+	if f.Etcd == nil {
+		f.Etcd = &integration.Etcd{}
+	}
+	if err := f.Etcd.Start(); err != nil {
+		tl.Fatalf("Error starting etcd: %v", err)
+		return
+	}
 
 	// TODO(marun) Enable https apiserver for integration.APIServer
-
-	args := []string{
-		"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
-		"--cert-dir={{ .CertDir }}",
-		"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
-		"--insecure-bind-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}",
-		"--secure-port=0",
-		"--etcd-prefix", uuid.New(),
+	if f.ApiServer == nil {
+		f.ApiServer = &integration.APIServer{}
 	}
+	f.ApiServer.EtcdURL = f.Etcd.URL
 
-	apiServer := &integration.APIServer{
-		EtcdURL: f.EtcdUrl,
-		Args:    args,
-		Out:     os.Stdout,
-		Err:     os.Stderr,
-	}
-	err := apiServer.Start()
+	err := f.ApiServer.Start()
 	if err != nil {
 		tl.Fatalf("Error starting kubernetes apiserver: %v", err)
 	}
-	f.ApiServer = apiServer
+
 	f.Host = f.ApiServer.URL.String()
 }
 
@@ -77,9 +67,9 @@ func (f *KubernetesApiFixture) TearDown(tl common.TestLogger) {
 		f.ApiServer.Stop()
 		f.ApiServer = nil
 	}
-	if f.EtcdUrl != nil {
-		TearDownEtcd(tl)
-		f.EtcdUrl = nil
+	if f.Etcd != nil {
+		f.Etcd.Stop()
+		f.Etcd = nil
 	}
 }
 

@@ -21,13 +21,12 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	client "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
 
 func GetTypeConfig(genericClient client.Client, name, namespace string) (typeconfig.Interface, error) {
 	typeConfig := &fedv1a1.FederatedTypeConfig{}
-	key := client.ObjectKey{Name: name, Namespace: namespace}
-	err := genericClient.Get(context.Background(), key, typeConfig)
+	err := genericClient.Get(context.Background(), typeConfig, namespace, name)
 	if err != nil {
 		return nil, err
 	}

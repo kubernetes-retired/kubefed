@@ -73,3 +73,16 @@ type DNSEndpoint struct {
 	Spec   DNSEndpointSpec   `json:"spec,omitempty"`
 	Status DNSEndpointStatus `json:"status,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// DNSEndpointList contains a list of DNSEndpoint
+type DNSEndpointList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []DNSEndpoint `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&DNSEndpoint{}, &DNSEndpointList{})
+}

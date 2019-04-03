@@ -22,13 +22,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/golang/glog"
-	"github.com/kubernetes-sigs/kubebuilder/pkg/install"
-	"github.com/kubernetes-sigs/kubebuilder/pkg/signals"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	extv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
@@ -43,7 +42,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
-	"github.com/kubernetes-sigs/federation-v2/pkg/inject"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 )
 
@@ -95,18 +93,12 @@ func Run(opts *options.Options) error {
 		glog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
-	stopChan := signals.SetupSignalHandler()
+	stopChan := setupSignalHandler()
 
 	var err error
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		panic(err)
-	}
-
-	if opts.InstallCRDs {
-		if err := install.NewInstaller(opts.Config.KubeConfig).Install(&InstallStrategy{crds: inject.Injector.CRDs}); err != nil {
-			glog.Fatalf("Could not create CRDs: %v", err)
-		}
 	}
 
 	if opts.LimitedScope {
@@ -177,18 +169,31 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 }
 
-type InstallStrategy struct {
-	install.EmptyInstallStrategy
-	crds []*extv1b1.CustomResourceDefinition
-}
-
-func (s *InstallStrategy) GetCRDs() []*extv1b1.CustomResourceDefinition {
-	return s.crds
-}
-
 // PrintFlags logs the flags in the flagset
 func PrintFlags(flags *pflag.FlagSet) {
 	flags.VisitAll(func(flag *pflag.Flag) {
 		glog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
+}
+
+var onlyOneSignalHandler = make(chan struct{})
+var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
+
+// setupSignalHandler registered for SIGTERM and SIGINT. A stop channel is returned
+// which is closed on one of these signals. If a second signal is caught, the program
+// is terminated with exit code 1.
+func setupSignalHandler() (stopCh <-chan struct{}) {
+	close(onlyOneSignalHandler) // panics when called twice
+
+	stop := make(chan struct{})
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, shutdownSignals...)
+	go func() {
+		<-c
+		close(stop)
+		<-c
+		os.Exit(1) // second signal. Exit directly.
+	}()
+
+	return stop
 }

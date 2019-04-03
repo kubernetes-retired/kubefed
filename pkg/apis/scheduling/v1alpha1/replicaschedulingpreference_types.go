@@ -87,3 +87,16 @@ type ReplicaSchedulingPreference struct {
 	Spec   ReplicaSchedulingPreferenceSpec   `json:"spec,omitempty"`
 	Status ReplicaSchedulingPreferenceStatus `json:"status,omitempty"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ReplicaSchedulingPreferenceList contains a list of ReplicaSchedulingPreference
+type ReplicaSchedulingPreferenceList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ReplicaSchedulingPreference `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&ReplicaSchedulingPreference{}, &ReplicaSchedulingPreferenceList{})
+}

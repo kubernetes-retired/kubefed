@@ -49,44 +49,6 @@ set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
-function deploy-with-script() {
-  # Create a permissive clusterrolebinding to allow federation controllers to run.
-  if [[ "${NAMESPACED}" ]]; then
-    # TODO(marun) Investigate why cluster-admin is required to view cluster registry clusters in a namespace
-    kubectl -n "${NS}" create rolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
-  else
-    # TODO(marun) Make this more restrictive.
-    kubectl create clusterrolebinding federation-admin --clusterrole=cluster-admin --serviceaccount="${NS}:default"
-  fi
-
-  if [[ ! "${USE_LATEST}" ]]; then
-    if [[ "${NAMESPACED}" ]]; then
-      INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" scripts/generate-namespaced-install-yaml.sh
-    else
-      INSTALL_YAML="${INSTALL_YAML}" IMAGE_NAME="${IMAGE_NAME}" FEDERATION_NAMESPACE="${NS}" scripts/generate-install-yaml.sh
-    fi
-  fi
-
-  # TODO(marun) kubebuilder-generated installation yaml fails validation
-  # for seemingly harmless reasons on kube >= 1.11.  Ignore validation
-  # until the generated crd yaml can pass it.
-  kubectl -n "${NS}" apply --validate=false -f "${INSTALL_YAML}"
-  kubectl apply --validate=false -f vendor/k8s.io/cluster-registry/cluster-registry-crd.yaml
-
-  # TODO(marun) Ensure federatdtypeconfig is available before creating instances
-  # TODO(marun) Ensure crds are created for a given federated type before starting sync controller for that type
-
-  # Wait for the propagation of the clusterregistry CRD
-  util::wait-for-condition "propagation of the clusterregistry CRD" \
-    "kubectl api-resources | grep clusterregistry.k8s.io > /dev/null" \
-    10
-
-  # Enable available types
-  for filename in ./config/enabletypedirectives/*.yaml; do
-    ./bin/kubefed2 enable -f "${filename}" --federation-namespace="${NS}"
-  done
-}
-
 function deploy-with-helm() {
   # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
   cat <<EOF | kubectl apply -f -
@@ -136,16 +98,13 @@ NAMESPACED="${NAMESPACED:-}"
 LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
-  INSTALL_YAML=hack/install-latest.yaml
 else
   USE_LATEST=
-  INSTALL_YAML=hack/install.yaml
 fi
 
 KF_NS_ARGS="--federation-namespace=${NS} "
 if [[ "${NAMESPACED}" ]]; then
   KF_NS_ARGS+="--registry-namespace=${NS} --limited-scope=true"
-  INSTALL_YAML=hack/install-namespaced.yaml
 fi
 
 if [[ -z "${IMAGE_NAME}" ]]; then
@@ -200,13 +159,8 @@ if [[ ! "${NAMESPACED}" ]]; then
   fi
 fi
 
-USE_CHART="${USE_CHART:-}"
 # Deploy federation resources
-if [[ "${USE_CHART}" ]]; then
-  deploy-with-helm
-else
-  deploy-with-script
-fi
+deploy-with-helm
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
