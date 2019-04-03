@@ -87,8 +87,9 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 // newSchedulingPreferenceController returns a new SchedulingPreference Controller for the given type
 func newSchedulingPreferenceController(config *util.ControllerConfig, schedulingType schedulingtypes.SchedulingType) (*SchedulingPreferenceController, error) {
 	userAgent := fmt.Sprintf("%s-controller", schedulingType.Kind)
-	restclient.AddUserAgent(config.KubeConfig, userAgent)
-	kubeClient, err := kubeclientset.NewForConfig(config.KubeConfig)
+	kubeConfig := restclient.CopyConfig(config.KubeConfig)
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	kubeClient, err := kubeclientset.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, err
 	}

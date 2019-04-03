@@ -182,8 +182,9 @@ func (f *UnmanagedFramework) KubeConfig() *restclient.Config {
 }
 
 func (f *UnmanagedFramework) KubeClient(userAgent string) kubeclientset.Interface {
-	restclient.AddUserAgent(f.Config, userAgent)
-	return kubeclientset.NewForConfigOrDie(f.Config)
+	config := restclient.CopyConfig(f.Config)
+	restclient.AddUserAgent(config, userAgent)
+	return kubeclientset.NewForConfigOrDie(config)
 }
 
 func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
