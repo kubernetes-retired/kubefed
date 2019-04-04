@@ -35,12 +35,15 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
+	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 	"github.com/kubernetes-sigs/federation-v2/pkg/version"
 )
@@ -89,16 +92,18 @@ func Run(opts *options.Options) error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
-		glog.Fatalf("Invalid Feature Gate: %v", err)
-	}
-
 	stopChan := setupSignalHandler()
 
 	var err error
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		panic(err)
+	}
+
+	setOptionsByFederationConfig(opts)
+
+	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
+		glog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
 	if opts.LimitedScope {
@@ -167,6 +172,45 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 			glog.Fatalf("Error starting federated type config controller: %v", err)
 		}
 	}
+}
+
+func setOptionsByFederationConfig(opts *options.Options) {
+	client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "federationconfig")
+
+	name := util.FederationConfigName
+	namespace := opts.Config.FederationNamespace
+	fedConfig := &corev1a1.FederationConfig{}
+	err := client.Get(context.Background(), fedConfig, namespace, name)
+	if err != nil {
+		glog.V(1).Infof("Cannot retrieve FederationConfig %q in namespace %q: %v. Command line options are used.", name, namespace, err)
+		return
+	}
+
+	glog.Infof("Setting Options with FederationConfig %q in namespace %q", name, namespace)
+
+	spec := fedConfig.Spec
+	opts.LimitedScope = spec.LimitedScope
+	opts.ClusterMonitorPeriod = spec.ControllerDuration.ClusterMonitorPeriod.Duration
+
+	opts.Config.ClusterNamespace = spec.RegistryNamespace
+	opts.Config.ClusterAvailableDelay = spec.ControllerDuration.AvailableDelay.Duration
+	opts.Config.ClusterUnavailableDelay = spec.ControllerDuration.UnavailableDelay.Duration
+
+	opts.LeaderElection.ResourceLock = spec.LeaderElect.ResourceLock
+	opts.LeaderElection.RetryPeriod = spec.LeaderElect.RetryPeriod.Duration
+	opts.LeaderElection.RenewDeadline = spec.LeaderElect.RenewDeadline.Duration
+	opts.LeaderElection.LeaseDuration = spec.LeaderElect.LeaseDuration.Duration
+
+	var featureGates = make(map[string]bool)
+	for _, v := range fedConfig.Spec.FeatureGates {
+		featureGates[v.Name] = v.Enabled
+	}
+	if len(featureGates) == 0 {
+		return
+	}
+
+	opts.FeatureGates = featureGates
+	glog.V(1).Infof("\"feature-gates\" will be set to %v", featureGates)
 }
 
 // PrintFlags logs the flags in the flagset

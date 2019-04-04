@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -40,15 +38,15 @@ type FederationConfigSpec struct {
 }
 
 type DurationConfig struct {
-	AvailableDelay       time.Duration `json:"available-delay,omitempty"`
-	UnavailableDelay     time.Duration `json:"unavailable-delay,omitempty"`
-	ClusterMonitorPeriod time.Duration `json:"cluster-monitor-period,omitempty"`
+	AvailableDelay       metav1.Duration `json:"available-delay,omitempty"`
+	UnavailableDelay     metav1.Duration `json:"unavailable-delay,omitempty"`
+	ClusterMonitorPeriod metav1.Duration `json:"cluster-monitor-period,omitempty"`
 }
 type LeaderElectConfig struct {
-	LeaseDuration time.Duration `json:"lease-duration,omitempty"`
-	RenewDeadline time.Duration `json:"renew-deadline,omitempty"`
-	RetryPeriod   time.Duration `json:"retry-period,omitempty"`
-	ResourceLock  string        `json:"resource-lock,omitempty"`
+	LeaseDuration metav1.Duration `json:"lease-duration,omitempty"`
+	RenewDeadline metav1.Duration `json:"renew-deadline,omitempty"`
+	RetryPeriod   metav1.Duration `json:"retry-period,omitempty"`
+	ResourceLock  string          `json:"resource-lock,omitempty"`
 }
 type FeatureGatesConfig struct {
 	Name    string `json:"name,omitempty"`

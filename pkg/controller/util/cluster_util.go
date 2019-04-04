@@ -49,6 +49,8 @@ const (
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second
 	DefaultLeaderElectionRetryPeriod   = 5 * time.Second
+
+	FederationConfigName = "federation-v2"
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
