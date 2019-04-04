@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
@@ -45,6 +46,9 @@ type resourceAccessor struct {
 	typeConfig        typeconfig.Interface
 	targetIsNamespace bool
 	fedNamespace      string
+
+	// The informer for target types in the member clusters
+	federatedInformer util.FederatedInformer
 
 	// The informer for the federated type.
 	federatedStore      cache.Store
@@ -69,6 +73,9 @@ type resourceAccessor struct {
 
 	// Adds finalizers to resources and performs cleanup of target resources.
 	deletionHelper *deletionhelper.DeletionHelper
+
+	// Records events on the federated resource
+	eventRecorder record.EventRecorder
 }
 
 func NewFederatedResourceAccessor(
@@ -78,7 +85,8 @@ func NewFederatedResourceAccessor(
 	client genericclient.Client,
 	enqueueObj func(pkgruntime.Object),
 	informer util.FederatedInformer,
-	updater util.FederatedUpdater) (FederatedResourceAccessor, error) {
+	updater util.FederatedUpdater,
+	eventRecorder record.EventRecorder) (FederatedResourceAccessor, error) {
 
 	a := &resourceAccessor{
 		limitedScope:            controllerConfig.LimitedScope(),
@@ -86,6 +94,8 @@ func NewFederatedResourceAccessor(
 		targetIsNamespace:       typeConfig.GetTarget().Kind == util.NamespaceKind,
 		fedNamespace:            controllerConfig.FederationNamespace,
 		fedNamespaceAPIResource: fedNamespaceAPIResource,
+		eventRecorder:           eventRecorder,
+		federatedInformer:       informer,
 	}
 
 	targetNamespace := controllerConfig.TargetNamespace
@@ -279,6 +289,8 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 		deletionHelper:    a.deletionHelper,
 		namespace:         namespace,
 		fedNamespace:      fedNamespace,
+		eventRecorder:     a.eventRecorder,
+		informer:          a.federatedInformer,
 	}, nil
 }
 

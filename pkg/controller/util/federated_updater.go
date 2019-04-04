@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO(marun) Remove this once its use is entirely replaced with the
+// new sync controller updater.
+
 package util
 
 import (
