@@ -74,6 +74,10 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: federatedclusters.core.federation.k8s.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.conditions[?(@.type=='Ready')].status
+    name: ready
+    type: string
   group: core.federation.k8s.io
   names:
     kind: FederatedCluster
