@@ -35,6 +35,8 @@ ifeq ($(DIFF), 1)
     GIT_TREESTATE = "dirty"
 endif
 
+BRANCH = $(shell git symbolic-ref -q --short HEAD)
+
 ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
 endif
@@ -116,8 +118,12 @@ endif
 	go generate ./pkg/... ./cmd/...
 	./scripts/sync-up-helm-chart.sh
 
-push:
-	$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION)
+push: container
+        ifeq ($(BRANCH), master)
+		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):canary; \
+		$(DOCKER) push $(REGISTRY)/$(TARGET):canary;
+        endif
+
 	if git describe --tags --exact-match >/dev/null 2>&1; \
 	then \
 		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):$(GIT_TAG); \
