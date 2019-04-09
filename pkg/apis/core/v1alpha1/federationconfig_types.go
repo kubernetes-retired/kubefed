@@ -30,7 +30,9 @@ type FederationConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
 
-	LimitedScope       bool                 `json:"limited-scope,omitempty"`
+	// Whether the federation namespace will be the only target for federation.
+	LimitedScope bool `json:"limited-scope,omitempty"`
+	// The cluster registry namespace.
 	RegistryNamespace  string               `json:"registry-namespace,omitempty"`
 	ControllerDuration DurationConfig       `json:"controller-duration,omitempty"`
 	LeaderElect        LeaderElectConfig    `json:"leader-elect,omitempty"`
@@ -38,15 +40,30 @@ type FederationConfigSpec struct {
 }
 
 type DurationConfig struct {
-	AvailableDelay       metav1.Duration `json:"available-delay,omitempty"`
-	UnavailableDelay     metav1.Duration `json:"unavailable-delay,omitempty"`
+	// Time to wait before reconciling on a healthy cluster.
+	AvailableDelay metav1.Duration `json:"available-delay,omitempty"`
+	// Time to wait before giving up on an unhealthy cluster.
+	UnavailableDelay metav1.Duration `json:"unavailable-delay,omitempty"`
+	// How often to monitor the cluster health.
 	ClusterMonitorPeriod metav1.Duration `json:"cluster-monitor-period,omitempty"`
 }
 type LeaderElectConfig struct {
+	// The duration that non-leader candidates will wait after observing a leadership
+	// renewal until attempting to acquire leadership of a led but unrenewed leader
+	// slot. This is effectively the maximum duration that a leader can be stopped
+	// before it is replaced by another candidate. This is only applicable if leader
+	// election is enabled.
 	LeaseDuration metav1.Duration `json:"lease-duration,omitempty"`
+	// The interval between attempts by the acting master to renew a leadership slot
+	// before it stops leading. This must be less than or equal to the lease duration.
+	// This is only applicable if leader election is enabled.
 	RenewDeadline metav1.Duration `json:"renew-deadline,omitempty"`
-	RetryPeriod   metav1.Duration `json:"retry-period,omitempty"`
-	ResourceLock  string          `json:"resource-lock,omitempty"`
+	// The duration the clients should wait between attempting acquisition and renewal
+	// of a leadership. This is only applicable if leader election is enabled.
+	RetryPeriod metav1.Duration `json:"retry-period,omitempty"`
+	// The type of resource object that is used for locking during
+	// leader election. Supported options are `configmaps` (default) and `endpoints`.
+	ResourceLock string `json:"resource-lock,omitempty"`
 }
 type FeatureGatesConfig struct {
 	Name    string `json:"name,omitempty"`

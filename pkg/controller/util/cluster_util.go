@@ -38,6 +38,7 @@ import (
 const (
 	DefaultFederationSystemNamespace = "federation-system"
 	MulticlusterPublicNamespace      = "kube-multicluster-public"
+	DefaultClusterMonitorPeriod      = 40 * time.Second
 	DefaultClusterAvailableDelay     = 20 * time.Second
 	DefaultClusterUnavailableDelay   = 60 * time.Second
 
