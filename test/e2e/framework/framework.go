@@ -25,7 +25,6 @@ import (
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +37,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+// TODO(marun) Replace the framework with the unmanaged
+// implementation.
 
 type FederationFrameworkImpl interface {
 	BeforeEach()
@@ -64,7 +66,7 @@ type FederationFrameworkImpl interface {
 
 	// Internal method that accepts the namespace placement api
 	// resource to support namespaced controllers.
-	setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) managed.TestFixture
+	setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) TestFixture
 }
 
 // FederationFramework provides an interface to a test federation so
@@ -74,12 +76,12 @@ type FederationFramework interface {
 
 	// Registering a fixture ensures it will be torn down after the
 	// current test has executed.
-	RegisterFixture(fixture managed.TestFixture)
+	RegisterFixture(fixture TestFixture)
 
 	// Setup a sync controller if necessary and return the fixture.
 	// This is implemented commonly to support running a sync
 	// controller for tests that require it.
-	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture
+	SetUpSyncControllerFixture(typeConfig typeconfig.Interface) TestFixture
 
 	// Ensure propagation of the test namespace to member clusters
 	EnsureTestNamespacePropagation()
@@ -101,13 +103,13 @@ type frameworkWrapper struct {
 	namespaceTypeConfig typeconfig.Interface
 
 	// Fixtures to cleanup after each test
-	fixtures []managed.TestFixture
+	fixtures []TestFixture
 }
 
 func NewFederationFramework(baseName string) FederationFramework {
 	f := &frameworkWrapper{
 		baseName: baseName,
-		fixtures: []managed.TestFixture{},
+		fixtures: []TestFixture{},
 	}
 	AfterEach(f.AfterEach)
 	BeforeEach(f.BeforeEach)
@@ -116,11 +118,7 @@ func NewFederationFramework(baseName string) FederationFramework {
 
 func (f *frameworkWrapper) framework() FederationFrameworkImpl {
 	if f.impl == nil {
-		if TestContext.TestManagedFederation {
-			f.impl = NewManagedFramework(f.baseName)
-		} else {
-			f.impl = NewUnmanagedFramework(f.baseName)
-		}
+		f.impl = NewUnmanagedFramework(f.baseName)
 	}
 	return f.impl
 }
@@ -193,17 +191,17 @@ func (f *frameworkWrapper) TestNamespaceName() string {
 // setUpSyncControllerFixture is not intended to be called on the
 // wrapper.  It's only implemented by the concrete frameworks to avoid
 // having callers pass in the namespacePlacement arg.
-func (f *frameworkWrapper) setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) managed.TestFixture {
+func (f *frameworkWrapper) setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) TestFixture {
 	return nil
 }
 
-func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) managed.TestFixture {
+func (f *frameworkWrapper) SetUpSyncControllerFixture(typeConfig typeconfig.Interface) TestFixture {
 	namespaceTypeConfig := f.namespaceTypeConfigOrDie()
 	fedNamespaceAPIResource := namespaceTypeConfig.GetFederatedType()
 	return f.framework().setUpSyncControllerFixture(typeConfig, &fedNamespaceAPIResource)
 }
 
-func (f *frameworkWrapper) RegisterFixture(fixture managed.TestFixture) {
+func (f *frameworkWrapper) RegisterFixture(fixture TestFixture) {
 	if fixture != nil {
 		f.fixtures = append(f.fixtures, fixture)
 	}

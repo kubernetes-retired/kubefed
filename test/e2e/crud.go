@@ -49,13 +49,6 @@ var _ = Describe("Federated", func() {
 		fixture := typeConfigFixtures[key]
 		Describe(fmt.Sprintf("%q", typeConfigName), func() {
 			It("should be created, read, updated and deleted successfully", func() {
-				// TODO (font): e2e tests for federated Namespace using a
-				// test managed federation does not work until k8s
-				// namespace controller is added.
-				if typeConfigName == util.NamespaceName && framework.TestContext.TestManagedFederation {
-					framework.Skipf("Federated %s not supported for test managed federation.", typeConfigName)
-				}
-
 				// Lookup the type config from the api
 				client, err := genericclient.New(f.KubeConfig())
 				if err != nil {

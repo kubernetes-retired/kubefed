@@ -28,7 +28,6 @@ import (
 )
 
 type TestContextType struct {
-	TestManagedFederation           bool
 	InMemoryControllers             bool
 	KubeConfig                      string
 	KubeContext                     string
@@ -41,18 +40,16 @@ type TestContextType struct {
 }
 
 func (t *TestContextType) RunControllers() bool {
-	return t.TestManagedFederation || t.InMemoryControllers
+	return t.InMemoryControllers
 }
 
 var TestContext *TestContextType = &TestContextType{}
 
 func registerFlags(t *TestContextType) {
-	flag.BoolVar(&t.TestManagedFederation, "test-managed-federation",
-		false, "Whether the test run should rely on a test-managed federation.")
 	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", false,
-		"Whether federation controllers should be started in memory. This works like a hybrid setup if test-managed-federation is false by launching the federation controllers outside the unmanaged cluster.")
+		"Whether federation controllers should be started in memory.")
 	flag.StringVar(&t.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"),
-		"Path to kubeconfig containing embedded authinfo.  Ignored if test-managed-federation is true.")
+		"Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&t.KubeContext, "context", "",
 		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
 	flag.StringVar(&t.FederationSystemNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
@@ -70,14 +67,10 @@ func registerFlags(t *TestContextType) {
 
 func validateFlags(t *TestContextType) {
 	if len(t.KubeConfig) == 0 {
-		glog.Warning("kubeconfig not provided - enabling test-managed federation.")
-		t.TestManagedFederation = true
-	} else if t.TestManagedFederation {
-		glog.Warningf("kubeconfig %q will be ignored due to test-managed-federation being true.", t.KubeConfig)
+		glog.Fatalf("kubeconfig is required")
 	}
-
-	if !t.TestManagedFederation && t.InMemoryControllers {
-		glog.Info("in-memory-controllers=true while test-managed-federation=false - this will launch the federation controllers outside the unmanaged cluster.")
+	if t.InMemoryControllers {
+		glog.Info("in-memory-controllers=true - this will launch the federation controllers outside the cluster hosting the federation control plane.")
 	}
 }
 

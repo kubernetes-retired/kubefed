@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
 
 	. "github.com/onsi/ginkgo"
@@ -84,4 +85,10 @@ func ExpectNoErrorWithOffset(offset int, err error, explain ...interface{}) {
 		Logf("Unexpected error occurred: %v", err)
 	}
 	ExpectWithOffset(1+offset, err).NotTo(HaveOccurred(), explain...)
+}
+
+// SetUp is likely to be fixture-specific, but TearDown needs to be
+// consistent to enable TearDownOnPanic.
+type TestFixture interface {
+	TearDown(tl common.TestLogger)
 }

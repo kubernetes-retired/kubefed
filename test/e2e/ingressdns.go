@@ -31,7 +31,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -55,7 +54,7 @@ var _ = Describe("IngressDNS", func() {
 	BeforeEach(func() {
 		client = f.Client(userAgent)
 		if framework.TestContext.RunControllers() {
-			fixture := managed.NewIngressDNSControllerFixture(tl, f.ControllerConfig())
+			fixture := framework.NewIngressDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
 		f.EnsureTestNamespacePropagation()

@@ -7,15 +7,11 @@
     - [kubernetes](#kubernetes)
     - [docker](#docker)
   - [Adding a new API type](#adding-a-new-api-type)
-  - [Running Tests](#running-tests)
-    - [Environment Setup](#environment-setup)
-    - [E2E](#e2e)
-      - [Managed](#managed)
-      - [Unmanaged and Hybrid Cluster Setup](#unmanaged-and-hybrid-cluster-setup)
-        - [Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
-        - [Unmanaged](#unmanaged)
-        - [Hybrid](#hybrid)
-        - [Unmanaged and Hybrid Cleanup](#unmanaged-and-hybrid-cleanup)
+  - [Running E2E Tests](#running-e2e-tests)
+    - [Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
+    - [Running Tests](#running-tests)
+    - [Running Tests With In-Memory Controllers](#running-tests-with-in-memory-controllers)
+    - [Cleanup](#cleanup)
   - [Test Your Changes](#test-your-changes)
     - [Automated Deployment](#automated-deployment)
   - [Test Latest Master Changes (`canary`)](#test-latest-master-changes-canary)
@@ -39,7 +35,7 @@ user guide](userguide.md#prerequisites).
 
 ### docker
 
-This repo depends on `docker` >= 1.12 to do the docker build work. 
+This repo depends on `docker` >= 1.12 to do the docker build work.
 Set up your [Docker environment](https://docs.docker.com/install/)
 
 ## Adding a new API type
@@ -69,84 +65,26 @@ The generated code will need to be updated whenever the code for a
 type is modified. Care should be taken to separate generated from
 non-generated code in the commit history.
 
-## Running Tests
+## Running E2E Tests
 
-### Environment Setup
+The federation-v2 E2E tests must be executed against a deployed
+federation of one or more clusters.  Optionally, the federation
+controllers can be run in-memory to enable debugging.
 
-Before running tests, make sure your environment is setup.
-
-- Ensure binaries for `etcd` and `kube-apiserver` are in the path (see
-  [prerequisites](#prerequisites)).
-- Export required variables:
-  ```bash
-  export TEST_ASSET_PATH="$(pwd)/bin"
-  export TEST_ASSET_ETCD="${TEST_ASSET_PATH}/etcd"
-  export TEST_ASSET_KUBE_APISERVER="${TEST_ASSET_PATH}/kube-apiserver"
-  ```
-
-### E2E
-
-The federation-v2 E2E tests can run in an _unmanaged_, _managed_, or _hybrid_
-modes. For both unmanaged and hybrid modes, you will need to bring your own
-clusters. The managed mode will spin up a test-managed federation consisting
-of a kube API server (hosting the federation and cluster registry APIs) and 2
-member clusters. All of these modes run CRUD operations. CRUD here means that
-the tests will run through each of the requested federated types and verify
-that:
+Many of the tests validate CRUD operations for each of the federated
+types enabled by default:
 
 1. the objects are created in the target clusters.
-1. an annotation update is reflected in the objects stored in the target
+1. a label update is reflected in the objects stored in the target
    clusters.
 1. a placement update for the object is reflected in the target clusters.
 1. deleted resources are removed from the target clusters.
 
 The read operation is implicit.
 
-#### Managed
+### Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane
 
-The E2E managed tests will spin up a federation consisting of kube
-api + cluster registry api + federation api + 2 member clusters and
-run [CRUD (create-read-update-delete)
-checks](https://github.com/kubernetes-sigs/federation-v2/blob/master/test/e2e/crud.go)
-for federated types against that federation. To run:
-
-- ensure the same binaries are available as described in the
-  [Environment Setup](development.md#environment-setup) section.
-
-To run tests for all types:
-
-```bash
-cd test/e2e
-go test -v
-```
-
-To run tests for a single type:
-
-```bash
-cd test/e2e
-go test -args -v=4 -test.v --ginkgo.focus='Federated "secrets"'
-```
-
-It may be helpful to use the [delve
-debugger](https://github.com/derekparker/delve) to gain insight into
-the components involved in the test:
-
-```bash
-cd test/e2e
-dlv test -- -v=4 -test.v --ginkgo.focus='Federated "secrets"'
-```
-
-#### Unmanaged and Hybrid Cluster Setup
-
-The difference between unmanaged and hybrid is that with hybrid, you run
-the federation-v2 controllers in-process as part of executing the test. This
-helps in running a debugger to debug anything in the controllers. On the other
-hand with unmanaged, the controllers are already running in the K8s cluster.
-Both methods require the clusters to have already been joined.
-
-##### Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane
-
-In order to run E2E tests in an unmanaged or hybrid setup, you first need to:
+In order to run E2E tests, you first need to:
 
 1. Create clusters
    - See the [user guide for a way to deploy clusters](userguide.md#create-clusters)
@@ -157,16 +95,11 @@ In order to run E2E tests in an unmanaged or hybrid setup, you first need to:
    - To deploy your own changes, follow the [Test Your Changes](#test-your-changes)
      section of this guide.
 
-Once completed, return here for instructions on running tests in an unmanaged or hybrid setup.
+Once completed, return here for instructions on running the e2e tests.
 
-From here, the unmanaged and hybrid setups differ slightly. Proceed to the
-corresponding subsection depending on what you're interested in. If you are unsure,
-the hybrid setup is best for debugging as you can run the controllers
-in-process with delve. If you're just wanting to run E2E tests, use unmanaged.
+### Running Tests
 
-##### Unmanaged
-
-Follow the below instructions to run E2E tests in your unmanaged federation setup.
+Follow the below instructions to run E2E tests against a test federation.
 
 To run E2E tests for all types:
 
@@ -193,20 +126,19 @@ dlv test -- -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
     --ginkgo.focus='Federated "secrets"'
 ```
 
-##### Hybrid
+### Running Tests With In-Memory Controllers
 
-Since hybrid mode runs the federation-v2 controllers as part of the test
-executable to aid in debugging, we need to kill the existing
-`federation-controller-manager` pod so that they will not step on each other. Follow
-these steps:
+Running the federation controllers in-memory for a test run allows the
+controllers to be targeted by a debugger (e.g. delve) or the golang
+race detector.  The prerequisite for this mode is scaling down the
+federation controller manager:
 
 1. Reduce the `federation-controller-manager` deployment replicas to 0. This way
    we can launch the necessary federation-v2 controllers ourselves via the test
    binary.
 
    ```bash
-   kubectl -n federation-system patch deployment.apps \
-       federation-controller-manager -p '{"spec":{"replicas": 0}}'
+   kubectl scale deployments federation-controller-manager -n federation-system --replicas=0
    ```
 
    Once you've reduced the replicas to 0, you should see the
@@ -222,7 +154,7 @@ these steps:
 
    ```bash
    cd test/e2e
-   go test -args -kubeconfig=/path/to/kubeconfig -in-memory-controllers=true \
+   go test -race -args -kubeconfig=/path/to/kubeconfig -in-memory-controllers=true \
        --v=4 -test.v --ginkgo.focus='Federated "secrets"'
    ```
 
@@ -234,7 +166,7 @@ these steps:
        -v=4 -test.v --ginkgo.focus='Federated "secrets"'
    ```
 
-##### Unmanaged and Hybrid Cleanup
+### Cleanup
 
 Follow the [cleanup instructions in the user guide](userguide.md#cleanup).
 
