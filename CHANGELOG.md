@@ -1,4 +1,8 @@
 # Unreleased
+ - [#652](https://github.com/kubernetes-sigs/federation-v2/pull/652) -
+   Switch to sourcing the template for a FederatedNamespace from a
+   field rather than the containing namespace.  This ensures
+   uniformity in template handling across all federated types.
  - [#716](https://github.com/kubernetes-sigs/federation-v2/pull/716) -
    Upgrade kubebuilder version to v1.0.8
    - Removed generated typed clients for federation apis from tree.

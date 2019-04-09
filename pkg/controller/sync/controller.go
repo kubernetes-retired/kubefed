@@ -328,13 +328,9 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 			clusterObj = rawClusterObj.(*unstructured.Unstructured)
 		}
 
-		if clusterObj != nil && fedResource.SkipClusterChange(clusterObj) {
-			continue
-		}
-
 		// Resource should not exist in the named cluster
 		if !selectedClusterNames.Has(clusterName) {
-			if clusterObj != nil {
+			if clusterObj != nil && !fedResource.SkipClusterDeletion(clusterObj) {
 				updater.Delete(clusterName)
 			}
 			continue
