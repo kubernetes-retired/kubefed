@@ -51,7 +51,7 @@ type FederatedResource interface {
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
 	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error)
-	SkipClusterChange(clusterObj pkgruntime.Object) bool
+	SkipClusterDeletion(clusterObj pkgruntime.Object) bool
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	MarkedForDeletion() bool
 	EnsureDeletion() error
@@ -140,16 +140,22 @@ func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.FederatedCluste
 	return computePlacement(r.federatedResource, clusters)
 }
 
-func (r *federatedResource) SkipClusterChange(clusterObj pkgruntime.Object) bool {
-	// Updates should not be performed on namespaces in the host
-	// cluster.  Such operations need to be performed via the Kube
-	// API.
+func (r *federatedResource) SkipClusterDeletion(clusterObj pkgruntime.Object) bool {
+	// `Namespace` is the only Kubernetes type that can contain other
+	// types, and adding a federation-specific container type would be
+	// difficult or impossible. This requires that namespaced
+	// federated resources exist in regular namespaces.
 	//
-	// The Namespace type is a special case because it is the only
-	// container in the Kubernetes API.  Federation presumes a
-	// separation between the template and target resources, but a
-	// namespace in the host cluster is necessarily both template and
-	// target.
+	// An implication of using regular namespaces is that the sync
+	// controller cannot delete a namespace in the host cluster in
+	// response to a contained federated namespace not selecting the
+	// host cluster for placement.  Doing so would remove the
+	// federated namespace and result in the removal of the namespace
+	// from all clusters (not just from the host cluster).
+	//
+	// Deletion of a federated namespace should also not result in
+	// deletion of its containing namespace, since that could result
+	// in the deletion of a namespaced federation control plane.
 	return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
 }
 
