@@ -50,8 +50,10 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function deploy-with-helm() {
-  # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
-  cat <<EOF | kubectl apply -f -
+  # Don't install tiller if we already have a working install.
+  if ! helm version --server; then
+    # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
+    cat <<EOF | cat # kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -72,8 +74,9 @@ subjects:
     namespace: kube-system
 EOF
 
-  helm init --service-account tiller
-  util::wait-for-condition "Tiller is ready" "helm version --server &> /dev/null" 120
+    helm init --service-account tiller
+    util::wait-for-condition "Tiller to become ready" "helm version --server &> /dev/null" 120
+  fi
 
   REPOSITORY=${IMAGE_NAME%/*}
   IMAGE_TAG=${IMAGE_NAME##*/}
@@ -128,7 +131,8 @@ to ensure credentials are available for push:
 fi
 
 shift
-JOIN_CLUSTERS="${*}"
+# Allow for no specific JOIN_CLUSTERS: they probably want to kubefed2 themselves.
+JOIN_CLUSTERS="${*-}"
 
 # Use DOCKER_PUSH= ./scripts/deploy-federation.sh <image> to skip docker
 # push on container image when not using latest image.
