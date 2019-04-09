@@ -17,9 +17,16 @@ limitations under the License.
 package federate
 
 import (
+	"github.com/pkg/errors"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest"
+
+	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 )
 
 var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}
@@ -48,4 +55,69 @@ func SetBasicMetaFields(resource *unstructured.Unstructured, apiResource metav1.
 	if apiResource.Namespaced {
 		resource.SetNamespace(namespace)
 	}
+}
+
+func getAPIResourceList(config *rest.Config) ([]metav1.APIResource, error) {
+	apiResourceLists, err := enable.GetServerPreferredResources(config)
+	if err != nil {
+		return nil, err
+	}
+	var apiResources []metav1.APIResource
+	for _, apiResourceList := range apiResourceLists {
+		if len(apiResourceList.APIResources) == 0 {
+			continue
+		}
+
+		for _, apiResource := range apiResourceList.APIResources {
+			if !apiResource.Namespaced {
+				continue
+			}
+			apiResources = append(apiResources, apiResource)
+		}
+	}
+
+	return apiResources, nil
+}
+
+// targetResources stores a list of resources for an api type
+type targetResources struct {
+	// resource list
+	resources []*unstructured.Unstructured
+	// resource type information
+	apiResource metav1.APIResource
+}
+
+func getResourcesInNamespace(config *rest.Config, namespace string) ([]targetResources, error) {
+	apiResources, err := getAPIResourceList(config)
+	if err != nil {
+		return nil, err
+	}
+
+	resourcesInNamespace := []targetResources{}
+	for _, apiResource := range apiResources {
+		client, err := ctlutil.NewResourceClient(config, &apiResource)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Error creating client for %s", apiResource.Kind)
+		}
+
+		resourceList, err := client.Resources(namespace).List(metav1.ListOptions{})
+		if apierrors.IsNotFound(err) || resourceList == nil {
+			continue
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "Error listing resources for %s", apiResource.Kind)
+		}
+
+		targetResources := targetResources{apiResource: apiResource}
+		for _, resource := range resourceList.Items {
+			targetResources.resources = append(targetResources.resources, resource)
+		}
+
+		// It would be a waste of cycles to iterate through empty slices while federating resource
+		if len(targetResources.resources) > 0 {
+			resourcesInNamespace = append(resourcesInNamespace, targetResources)
+		}
+	}
+
+	return resourcesInNamespace, nil
 }

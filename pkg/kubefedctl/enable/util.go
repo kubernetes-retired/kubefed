@@ -79,17 +79,6 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 }
 
 func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.APIResource, error) {
-	client, err := discovery.NewDiscoveryClientForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "Error creating discovery client")
-	}
-
-	resourceLists, err := client.ServerPreferredResources()
-	if err != nil {
-		return nil, errors.Wrap(err, "Error listing api resources")
-	}
-
-	// TODO(marun) Consider using a caching scheme ala kubectl
 	lowerKey := strings.ToLower(key)
 	var targetResource *metav1.APIResource
 	var matchedResources []string
@@ -103,6 +92,10 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 		matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
 	}
 
+	resourceLists, err := GetServerPreferredResources(config)
+	if err != nil {
+		return nil, err
+	}
 	for _, resourceList := range resourceLists {
 		// The list holds the GroupVersion for its list of APIResources
 		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
@@ -139,6 +132,20 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 	}
 
 	return nil, errors.Errorf("Unable to find api resource named %q.", key)
+}
+
+func GetServerPreferredResources(config *rest.Config) ([]*metav1.APIResourceList, error) {
+	// TODO(marun) Consider using a caching scheme ala kubectl
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error creating discovery client")
+	}
+
+	resourceLists, err := client.ServerPreferredResources()
+	if err != nil {
+		return nil, errors.Wrap(err, "Error listing api resources")
+	}
+	return resourceLists, nil
 }
 
 func resourceKey(apiResource metav1.APIResource) string {
