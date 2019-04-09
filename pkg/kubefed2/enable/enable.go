@@ -69,7 +69,7 @@ var (
 )
 
 type enableType struct {
-	options.SubcommandOptions
+	options.GlobalSubcommandOptions
 	enableTypeOptions
 }
 
@@ -118,7 +118,7 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	opts.CommonBind(flags)
+	opts.GlobalSubcommandBind(flags)
 	opts.Bind(flags)
 
 	return cmd

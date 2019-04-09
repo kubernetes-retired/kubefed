@@ -59,7 +59,7 @@ var (
 )
 
 type federateResource struct {
-	options.SubcommandOptions
+	options.GlobalSubcommandOptions
 	typeName          string
 	resourceName      string
 	resourceNamespace string
@@ -117,7 +117,7 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 	}
 
 	flags := cmd.Flags()
-	opts.CommonBind(flags)
+	opts.GlobalSubcommandBind(flags)
 	opts.Bind(flags)
 
 	return cmd

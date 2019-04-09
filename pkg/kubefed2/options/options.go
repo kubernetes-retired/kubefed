@@ -23,9 +23,9 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
-// SubcommandOptions holds the configuration required by the subcommands of
+// GlobalSubcommandOptions holds the configuration required by the subcommands of
 // `kubefed2`.
-type SubcommandOptions struct {
+type GlobalSubcommandOptions struct {
 	ClusterName         string
 	HostClusterContext  string
 	FederationNamespace string
@@ -34,8 +34,8 @@ type SubcommandOptions struct {
 	DryRun              bool
 }
 
-// CommonBind adds the common flags to the flagset passed in.
-func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
+// GlobalSubcommandBind adds the global subcommand flags to the flagset passed in.
+func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
 	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
@@ -48,7 +48,7 @@ func (o *SubcommandOptions) CommonBind(flags *pflag.FlagSet) {
 
 // SetName sets the name from the args passed in for the required positional
 // argument.
-func (o *SubcommandOptions) SetName(args []string) error {
+func (o *GlobalSubcommandOptions) SetName(args []string) error {
 	if len(args) == 0 {
 		return errors.New("NAME is required")
 	}
