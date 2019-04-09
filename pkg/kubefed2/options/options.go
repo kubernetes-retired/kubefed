@@ -26,10 +26,8 @@ import (
 // GlobalSubcommandOptions holds the configuration required by the subcommands of
 // `kubefed2`.
 type GlobalSubcommandOptions struct {
-	ClusterName         string
 	HostClusterContext  string
 	FederationNamespace string
-	ClusterNamespace    string
 	Kubeconfig          string
 	DryRun              bool
 }
@@ -40,15 +38,32 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
 	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
 		"Namespace in the host cluster where the federation system components are installed.  This namespace will also be the target of propagation if the controller manager is configured with --limited-scope and clusters are joined with --limited-scope.")
-	flags.StringVar(&o.ClusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
-		"Namespace in the host cluster where clusters are registered")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
 
+// CommonSubcommandOptions holds the common configuration required by some of
+// the subcommands of `kubefed2`.
+type CommonSubcommandOptions struct {
+	ClusterName      string
+	ClusterContext   string
+	ClusterNamespace string
+	HostClusterName  string
+}
+
+// CommonSubcommandBind adds the common subcommand flags to the flagset passed in.
+func (o *CommonSubcommandOptions) CommonSubcommandBind(flags *pflag.FlagSet) {
+	flags.StringVar(&o.ClusterContext, "cluster-context", "",
+		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
+	flags.StringVar(&o.ClusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
+		"Namespace in the host cluster where clusters are registered")
+	flags.StringVar(&o.HostClusterName, "host-cluster-name", "",
+		"If set, overrides the use of host-cluster-context name in resource names created in the target cluster. This option must be used when the context name has characters invalid for kubernetes resources like \"/\" and \":\".")
+}
+
 // SetName sets the name from the args passed in for the required positional
 // argument.
-func (o *GlobalSubcommandOptions) SetName(args []string) error {
+func (o *CommonSubcommandOptions) SetName(args []string) error {
 	if len(args) == 0 {
 		return errors.New("NAME is required")
 	}
