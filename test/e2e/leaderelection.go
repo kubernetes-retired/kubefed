@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -35,13 +34,12 @@ var _ = Describe("Leader Elector", func() {
 	tl := framework.NewE2ELogger()
 
 	It("should chose secondary instance, primary goes down", func() {
-		if !framework.TestContext.TestManagedFederation {
-			framework.Skipf("leader election is valid only in managed federation setup")
-		}
-
 		const leaderIdentifier = "promoted as leader"
 
-		primaryControllerManager, primaryLogStream, err := spawnControllerManagerProcess(f.KubeConfig().Host, f.FederationSystemNamespace())
+		kubeConfigPath := framework.TestContext.KubeConfig
+		systemNamespace := f.TestNamespaceName()
+
+		primaryControllerManager, primaryLogStream, err := spawnControllerManagerProcess(kubeConfigPath, systemNamespace)
 		framework.ExpectNoError(err)
 		if waitUntilLogStreamContains(tl, primaryLogStream, leaderIdentifier) {
 			tl.Log("Primary controller manager became leader")
@@ -51,7 +49,7 @@ var _ = Describe("Leader Elector", func() {
 		}
 
 		done := make(chan bool, 1)
-		secondaryControllerManager, secondaryLogStream, err := spawnControllerManagerProcess(f.KubeConfig().Host, f.FederationSystemNamespace())
+		secondaryControllerManager, secondaryLogStream, err := spawnControllerManagerProcess(kubeConfigPath, systemNamespace)
 		framework.ExpectNoError(err)
 		go func() {
 			if waitUntilLogStreamContains(tl, secondaryLogStream, leaderIdentifier) {
@@ -73,15 +71,14 @@ var _ = Describe("Leader Elector", func() {
 	})
 })
 
-func spawnControllerManagerProcess(master, federationNamespace string) (*exec.Cmd, io.ReadCloser, error) {
-	binPath, _ := os.LookupEnv("TEST_ASSET_PATH")
-	args := []string{fmt.Sprintf("--master=%s", master),
-		fmt.Sprintf("--federation-namespace=%s", federationNamespace),
+func spawnControllerManagerProcess(kubeConfigPath, namespace string) (*exec.Cmd, io.ReadCloser, error) {
+	args := []string{fmt.Sprintf("--kubeconfig=%s", kubeConfigPath),
+		fmt.Sprintf("--federation-namespace=%s", namespace),
 		"--leader-elect-lease-duration=1500ms",
 		"--leader-elect-renew-deadline=1000ms",
 		"--leader-elect-retry-period=500ms",
 	}
-	cmd := exec.Command(binPath+"/controller-manager", args...)
+	cmd := exec.Command("controller-manager", args...)
 
 	logStream, err := cmd.StderrPipe()
 	if err != nil {

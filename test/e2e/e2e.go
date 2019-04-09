@@ -48,23 +48,17 @@ func RunE2ETests(t *testing.T) {
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only on Ginkgo node 1
 
-	if framework.TestContext.TestManagedFederation {
-		framework.SetUpManagedFederation()
-		// TODO(marun) support parallel execution by sending
-		// configuration for test-managed federation to other nodes
-	} else {
-		if framework.TestContext.InMemoryControllers {
-			// This supports a hybrid setup where the user asks for an unmanaged
-			// federation with in memory controllers. This means the k8s clusters
-			// are already running along with the federation and cluster registry
-			// API servers. This will then join the clusters and launch the
-			// required federation controllers e.g. cluster and sync controllers.
-			framework.SetUpUnmanagedFederation()
-		}
-		// Wait for readiness of registered clusters to ensure tests
-		// run against a healthy federation.
-		framework.WaitForUnmanagedClusterReadiness()
+	if framework.TestContext.InMemoryControllers {
+		// This supports a hybrid setup where the user asks for an unmanaged
+		// federation with in memory controllers. This means the k8s clusters
+		// are already running along with the federation and cluster registry
+		// API servers. This will then join the clusters and launch the
+		// required federation controllers e.g. cluster and sync controllers.
+		framework.SetUpUnmanagedFederation()
 	}
+	// Wait for readiness of registered clusters to ensure tests
+	// run against a healthy federation.
+	framework.WaitForUnmanagedClusterReadiness()
 
 	return nil
 
@@ -82,9 +76,5 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 }, func() {
 	// Run only Ginkgo on node 1
 	framework.Logf("Running AfterSuite actions on node 1")
-	if framework.TestContext.TestManagedFederation {
-		framework.TearDownManagedFederation()
-	} else {
-		framework.TearDownUnmanagedFederation()
-	}
+	framework.TearDownUnmanagedFederation()
 })

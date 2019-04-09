@@ -308,14 +308,6 @@ var _ = Describe("VersionManager", func() {
 						tl.Errorf("Error deleting %s %q: %v", adapter.FederatedType(), fedObjectName, err)
 					}
 				}
-				// Managed fixture doesn't run the garbage collector, so
-				// manual cleanup of propagated versions is required.
-				if len(versionName.Name) > 0 && framework.TestContext.TestManagedFederation {
-					err := client.Delete(context.TODO(), adapter.NewObject(), versionName.Namespace, versionName.Name)
-					if err != nil && !errors.IsNotFound(err) {
-						tl.Errorf("Error deleting %s %q: %v", versionType, versionName, err)
-					}
-				}
 			})
 
 			inSupportedScopeIt("should create a new version in the API", namespaced, func() {
@@ -426,10 +418,6 @@ var _ = Describe("VersionManager", func() {
 			})
 
 			inSupportedScopeIt("should add owner reference that ensures garbage collection when template is deleted", namespaced, func() {
-				if framework.TestContext.TestManagedFederation {
-					// Test-managed fixture does not run the garbage collector.
-					framework.Skipf("Validation of garbage collection is not supported for test-managed federation.")
-				}
 				if framework.TestContext.LimitedScope {
 					// Garbage collection of a namespaced resource
 					// takes an arbitrary amount of time and

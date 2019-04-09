@@ -36,7 +36,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/managed"
 	restclient "k8s.io/client-go/rest"
 
 	. "github.com/onsi/ginkgo"
@@ -63,7 +62,7 @@ var _ = Describe("Scheduling", func() {
 	var genericClient genericclient.Client
 	var namespace string
 	var clusterNames []string
-	var controllerFixture *managed.ControllerFixture
+	var controllerFixture *framework.ControllerFixture
 	var controller *schedulingmanager.SchedulingManager
 	typeConfigs := make(map[string]typeconfig.Interface)
 
@@ -89,7 +88,7 @@ var _ = Describe("Scheduling", func() {
 		}
 		namespace = f.TestNamespaceName()
 		if framework.TestContext.RunControllers() {
-			controllerFixture, controller = managed.NewSchedulingManagerFixture(tl, f.ControllerConfig())
+			controllerFixture, controller = framework.NewSchedulingManagerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(controllerFixture)
 		}
 	})
@@ -373,7 +372,7 @@ func int32MapToInt64(original map[string]int32) map[string]int64 {
 }
 
 func enableTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
-	for _, enableTypeDirective := range managed.LoadEnableTypeDirectives(tl) {
+	for _, enableTypeDirective := range framework.LoadEnableTypeDirectives(tl) {
 		resources, err := kfenable.GetResources(config, enableTypeDirective)
 		if err != nil {
 			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
