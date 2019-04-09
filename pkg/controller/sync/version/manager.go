@@ -311,6 +311,12 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 				refreshVersion = true
 				return false, nil
 			}
+			// Forbidden is likely to be a permanent failure and
+			// likely the result of the containing namespace being
+			// deleted.
+			if apierrors.IsForbidden(err) {
+				return false, err
+			}
 			if err != nil {
 				runtime.HandleError(errors.Wrapf(err, "Failed to create %s %q", adapterType, key))
 				return false, nil
@@ -368,7 +374,7 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 		return true, nil
 	})
 	if err != nil {
-		return errors.Wrapf(err, "Failed to write the version map for %s %q to the API within %v", adapterType, key, waitDuration)
+		return errors.Wrapf(err, "Failed to write the version map for %s %q to the API", adapterType, key)
 	}
 	return nil
 }

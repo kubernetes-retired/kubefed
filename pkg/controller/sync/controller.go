@@ -365,10 +365,10 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 	// Always attempt to update versions even if the updater reported errors.
 	err = fedResource.UpdateVersions(selectedClusterNames.List(), updatedVersionMap)
 	if err != nil {
-		fedResource.RecordError("VersionUpdateError", errors.Wrapf(err, "Failed to update version status"))
 		// Versioning of federated resources is an optimization to
 		// avoid unnecessary updates, and failure to record version
 		// information does not indicate a failure of propagation.
+		runtime.HandleError(err)
 	}
 
 	return status
