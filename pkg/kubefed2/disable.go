@@ -51,13 +51,13 @@ var (
 
 	disable_example = `
 		# Disable propagation of the kubernetes API type 'Deployment', named
-		in FederatedTypeConfig as 'deployment.apps'
-		kubefed2 disable deployment.apps
+		in FederatedTypeConfig as 'deployments.apps'
+		kubefed2 disable deployments.apps
 
 		# Disable propagation of the kubernetes API type 'Deployment', named
-		in FederatedTypeConfig as 'deployment.apps', and delete corresponding
+		in FederatedTypeConfig as 'deployments.apps', and delete corresponding
 		Federated API resources
-		kubefed2 disable deployment.apps --delete-from-api`
+		kubefed2 disable deployments.apps --delete-from-api`
 )
 
 type disableType struct {
