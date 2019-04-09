@@ -1,0 +1,37 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederationConfig
+metadata:
+  name: federation-v2
+  namespace: {{ .Release.Namespace }}
+spec:
+  limited-scope: {{ .Values.global.limitedScope }}
+{{- if .Values.registryNamespace }}
+  registry-namespace: {{ .Values.registryNamespace }}
+{{- else }}
+{{- if .Values.global.limitedScope }}
+  registry-namespace: {{ .Release.Namespace }}
+{{- else }}
+  registry-namespace: kube-multicluster-public
+{{- end }}
+{{- end }}
+  controller-duration:
+    available-delay: {{ .Values.clusterAvailableDelay | default "20s" | quote }}
+    unavailable-delay: {{ .Values.clusterUnavailableDelay | default "60s" | quote }}
+    cluster-monitor-period: {{ .Values.clusterMonitorPeriod | default "40s" | quote }}
+  leader-elect:
+    lease-duration: {{ .Values.leaderElectLeaseDuration | default "15s" | quote }}
+    renew-deadline: {{ .Values.leaderElectRenewDeadline | default "10s" | quote }}
+    retry-period: {{ .Values.leaderElectRetryPeriod | default "5s" | quote }}
+    resource-lock: {{ .Values.leaderElectResourceLock | default "configmaps" | quote }}
+  feature-gates:
+{{- if .Values.featureGates }}
+  - name: PushReconciler
+    enabled: {{ .Values.featureGates.PushReconciler | default true }}
+  - name: SchedulerPreferences
+    enabled: {{ .Values.featureGates.SchedulerPreferences | default true }}
+  - name: CrossClusterServiceDiscovery
+    enabled: {{ .Values.featureGates.CrossClusterServiceDiscovery | default true }}
+  - name: FederatedIngress
+    enabled: {{ .Values.featureGates.FederatedIngress | default true }}
+{{- end }}
+
