@@ -61,7 +61,11 @@ var (
 
 	enable_example = `
 		# Enable federation of Deployments
-		kubefed2 enable deployments.apps --host-cluster-context=cluster1`
+		kubefed2 enable deployments.apps --host-cluster-context=cluster1
+
+		# Enable federation of Deployments identified by name specified in
+		# deployment.yaml
+		kubefed2 enable -f deployment.yaml`
 )
 
 type enableType struct {
@@ -96,7 +100,7 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &enableType{}
 
 	cmd := &cobra.Command{
-		Use:     "enable NAME",
+		Use:     "enable (NAME | -f FILENAME)",
 		Short:   "Enables propagation of a Kubernetes API type",
 		Long:    enable_long,
 		Example: enable_example,
