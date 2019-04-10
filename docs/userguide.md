@@ -8,7 +8,6 @@
     - [Deployment Image](#deployment-image)
     - [Create Clusters](#create-clusters)
   - [Helm Chart Deployment](#helm-chart-deployment)
-  - [Automated Deployment](#automated-deployment)
   - [Operations](#operations)
     - [Join Clusters](#join-clusters)
     - [Check Status of Joined Clusters](#check-status-of-joined-clusters)
@@ -28,12 +27,9 @@
         - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
     - [Example Cleanup](#example-cleanup)
     - [Troubleshooting](#troubleshooting)
-  - [Cleanup](#cleanup)
-    - [Deployment Cleanup](#deployment-cleanup)
   - [Namespaced Federation](#namespaced-federation)
-    - [Automated Deployment](#automated-deployment-1)
+    - [Helm Configuration](#helm-configuration)
     - [Joining Clusters](#joining-clusters)
-    - [Deployment Cleanup](#deployment-cleanup-1)
   - [Local Value Retention](#local-value-retention)
     - [Scalable](#scalable)
     - [ServiceAccount](#serviceaccount)
@@ -109,27 +105,7 @@ kubectl config use-context cluster1
 ## Helm Chart Deployment
 
 You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md)
-to install federation-v2.
-
-## Automated Deployment
-
-If you would like to have the deployment of the federation-v2 control plane
-automated, then invoke the deployment script by running:
-
-```bash
-./scripts/deploy-federation-latest.sh cluster2
-```
-
-The above script joins the host cluster to the federation control plane it deploys, by default.
-The argument(s) used is/are the list of context names of the additional clusters that needs to be
-joined to this federation control plane. Clarifying, say the `host-cluster-context` used is `cluster1`,
-then on successful completion of the script used in example, both `cluster1` and `cluster2` will be
-joined to the deployed federation control plane.
-
-**NOTE:** You can list multiple joining cluster names in the above command.
-Also, please make sure the joining cluster name(s) provided matches the joining
-cluster context from your kubeconfig. This will already be the case if you used
-the minikube instructions above to create your clusters.
+to install and uninstall a federation-v2 control plane.
 
 ## Operations
 
@@ -478,24 +454,6 @@ It may also be useful to inspect the federation controller log as follows:
 kubectl logs -f federation-controller-manager-0 -n federation-system
 ```
 
-## Cleanup
-
-### Deployment Cleanup
-
-Resources such as `namespaces` associated with a `FederatedNamespace` or `FederatedClusterRoles`
-should be deleted before cleaning up the deployment, otherwise, the process will fail.
-
-Run the following command to perform a cleanup of the cluster registry and
-federation deployments:
-
-```bash
-./scripts/delete-federation.sh
-```
-
-The above script unjoins the all of the clusters from the federation control plane it deploys,
-by default. On successful completion of the script used in example, both `cluster1` and
-`cluster2` will be unjoined from the deployed federation control plane.
-
 ## Namespaced Federation
 
 All prior instructions referred to the deployment and use of a
@@ -505,28 +463,12 @@ federation controllers will target resources in a single namespace on
 both host and member clusters. This may be desirable when
 experimenting with federation on a production cluster.
 
-### Automated Deployment
+### Helm Configuration
 
-The only supported method to deploy namespaced federation is via the
-deployment script configured with environment variables:
+To deploy a federation in a namespaced configuration, set
+`global.limitedScope` to `true` as per the Helm chart [install
+instructions](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md#configuration).
 
-```bash
-NAMESPACED=y FEDERATION_NAMESPACE=<namespace> scripts/deploy-federation.sh <image name> <joining cluster list>
-```
-
-- `NAMESPACED` indicates that the control plane should target a
-  single namespace - the same namespace it is deployed to.
-- `FEDERATION_NAMESPACE`indicates the namespace to deploy the control
-  plane to. The control plane will only have permission to access this
-  on both the host and member clusters.
-
-It may be useful to supply `FEDERATION_NAMESPACE=test-namespace` to
-allow the examples to work unmodified. You can run following command
-to set up the test environment with `cluster1` and `cluster2`.
-
-```bash
-NAMESPACED=y FEDERATION_NAMESPACE=test-namespace scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
-```
 
 ### Joining Clusters
 
@@ -548,17 +490,6 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
     --federation-namespace=test-namespace --registry-namespace=test-namespace \
     --limited-scope=true
 ```
-
-### Deployment Cleanup
-
-Cleanup similarly requires the use of the same environment variables
-employed by deployment:
-
-```bash
-NAMESPACED=y FEDERATION_NAMESPACE=<namespace> ./scripts/delete-federation.sh
-```
-
-**NOTE:** You should set `DELETE_CLUSTER_RESOURCE=y` if it is the last namespaced federation deployment to clean all cluster scope resources of federation.
 
 ## Local Value Retention
 
