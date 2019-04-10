@@ -229,28 +229,35 @@ func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, target
 	fedAPIResource := typeConfig.GetFederatedType()
 
 	// Special handling is needed for some controller set fields.
-	if typeConfig.GetTarget().Kind == ctlutil.ServiceAccountKind {
-		unstructured.RemoveNestedField(targetResource.Object, ctlutil.SecretsField)
-	}
-
-	if typeConfig.GetTarget().Kind == ctlutil.ServiceKind {
-		var targetPorts []interface{}
-		targetPorts, ok, err := unstructured.NestedSlice(targetResource.Object, "spec", "ports")
-		if err != nil {
-			return nil, err
+	switch typeConfig.GetTarget().Kind {
+	case ctlutil.NamespaceKind:
+		{
+			unstructured.RemoveNestedField(targetResource.Object, "spec", "finalizers")
 		}
-		if ok {
-			for index := range targetPorts {
-				port := targetPorts[index].(map[string]interface{})
-				delete(port, "nodePort")
-				targetPorts[index] = port
-			}
-			err := unstructured.SetNestedSlice(targetResource.Object, targetPorts, "spec", "ports")
+	case ctlutil.ServiceAccountKind:
+		{
+			unstructured.RemoveNestedField(targetResource.Object, ctlutil.SecretsField)
+		}
+	case ctlutil.ServiceKind:
+		{
+			var targetPorts []interface{}
+			targetPorts, ok, err := unstructured.NestedSlice(targetResource.Object, "spec", "ports")
 			if err != nil {
 				return nil, err
 			}
+			if ok {
+				for index := range targetPorts {
+					port := targetPorts[index].(map[string]interface{})
+					delete(port, "nodePort")
+					targetPorts[index] = port
+				}
+				err := unstructured.SetNestedSlice(targetResource.Object, targetPorts, "spec", "ports")
+				if err != nil {
+					return nil, err
+				}
+			}
+			unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIP")
 		}
-		unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIP")
 	}
 
 	qualifiedName := ctlutil.NewQualifiedName(targetResource)
