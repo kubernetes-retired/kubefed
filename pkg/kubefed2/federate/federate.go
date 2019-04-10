@@ -225,8 +225,9 @@ func getTargetResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTyp
 	return resource, nil
 }
 
-func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, targetResource *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resource *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	fedAPIResource := typeConfig.GetFederatedType()
+	targetResource := resource.DeepCopy()
 
 	// Special handling is needed for some controller set fields.
 	switch typeConfig.GetTarget().Kind {
