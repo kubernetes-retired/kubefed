@@ -53,8 +53,8 @@ var (
 		flag otherwise.`
 
 	federate_example = `
-		# Federate resource named "my-dep" in namespace "my-ns" of kubernetes type "deploy"
-		kubefed2 federate deploy my-dep -n "my-ns" --host-cluster-context=cluster1`
+		# Federate resource named "my-cm" in namespace "my-ns" of kubernetes type "configmaps" (identified by short name "cm")
+		kubefed2 federate cm "my-cm" -n "my-ns" --host-cluster-context=cluster1`
 	// TODO(irfanurrehman): implement —contents flag applicable to namespaces
 )
 
