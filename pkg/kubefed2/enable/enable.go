@@ -197,9 +197,9 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 	if err != nil {
 		return nil, err
 	}
-	glog.V(2).Infof("Found resource %q", resourceKey(*apiResource))
+	glog.V(2).Infof("Found type %q", resourceKey(*apiResource))
 
-	typeConfig := typeConfigForTarget(*apiResource, enableTypeDirective)
+	typeConfig := GenerateTypeConfigForTarget(*apiResource, enableTypeDirective)
 
 	accessor, err := newSchemaAccessor(config, *apiResource)
 	if err != nil {
@@ -278,7 +278,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	return nil
 }
 
-func typeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *EnableTypeDirective) typeconfig.Interface {
+func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirective *EnableTypeDirective) typeconfig.Interface {
 	spec := enableTypeDirective.Spec
 	kind := apiResource.Kind
 	pluralName := apiResource.Name
@@ -325,7 +325,7 @@ func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
 		w.Write([]byte("---\n"))
 		err := writeObjectToYAML(obj, w)
 		if err != nil {
-			return errors.Wrap(err, "Error encoding resource to yaml")
+			return errors.Wrap(err, "Error encoding object to yaml")
 		}
 	}
 	return nil

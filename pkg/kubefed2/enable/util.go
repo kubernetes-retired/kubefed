@@ -137,6 +137,7 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 	if targetResource != nil {
 		return targetResource, nil
 	}
+
 	return nil, errors.Errorf("Unable to find api resource named %q.", key)
 }
 

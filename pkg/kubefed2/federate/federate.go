@@ -43,10 +43,11 @@ var (
 	federate_long = `
 		Federate creates a federated resource from a kubernetes resource.
 		The target resource must exist in the cluster hosting the federation
-		control plane. The control plane must have a FederatedTypeConfig
-		for the type of the kubernetes resource. The new federated resource
-		will be created with the same name and namespace (if namespaced) as
-		the kubernetes resource.
+		control plane. If the federated resource needs to be created in the
+		API, the control plane must have a FederatedTypeConfig for the type
+		of the kubernetes resource. If using with flag '-o yaml', it is not
+		necessary for the FederatedTypeConfig to exist (or even for the
+		federation API to be installed in the cluster).
 
 		Current context is assumed to be a Kubernetes cluster hosting
 		the federation control plane. Please use the --host-cluster-context
@@ -140,7 +141,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      j.resourceName,
 	}
 
-	resources, err := GetFedResources(hostConfig, qualifiedTypeName, qualifiedResourceName)
+	resources, err := GetFedResources(hostConfig, qualifiedTypeName, qualifiedResourceName, j.outputYAML)
 	if err != nil {
 		return err
 	}
@@ -161,8 +162,8 @@ type fedResources struct {
 	FedResource *unstructured.Unstructured
 }
 
-func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName) (*fedResources, error) {
-	typeConfig, err := lookupTypeDetails(hostConfig, qualifiedTypeName)
+func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName, outputYAML bool) (*fedResources, error) {
+	typeConfig, err := getTypeConfig(hostConfig, qualifiedTypeName.Name, qualifiedTypeName.Namespace, outputYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -183,32 +184,45 @@ func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName c
 	}, nil
 }
 
-func lookupTypeDetails(hostConfig *rest.Config, typeName ctlutil.QualifiedName) (*fedv1a1.FederatedTypeConfig, error) {
-	apiResource, err := enable.LookupAPIResource(hostConfig, typeName.Name, "")
+func getTypeConfig(hostConfig *rest.Config, typeName, namespace string, outputYAML bool) (typeconfig.Interface, error) {
+	// Lookup kubernetes API availability
+	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to find target API resource %s", typeName)
+	}
+	glog.V(2).Infof("API Resource for %s found", typeName)
+
+	resolvedTypeName := typeconfig.GroupQualifiedName(*apiResource)
+	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, namespace)
+	if err == nil {
+		return installedTypeConfig, nil
+	}
+	if apierrors.IsNotFound(err) && !outputYAML {
+		return nil, errors.Errorf("%v. Try 'kubefed2 enable type %s' before federating the resource", err, typeName)
+	}
+	if outputYAML {
+		glog.V(1).Infof("Falling back to a generated type config due to lookup failure: %v", err)
+		return enable.GenerateTypeConfigForTarget(*apiResource, enable.NewEnableTypeDirective()), nil
+	}
+
+	return nil, err
+}
+
+func getInstalledTypeConfig(hostConfig *rest.Config, typeName, namespace string) (typeconfig.Interface, error) {
+	client, err := genericclient.New(hostConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get generic client")
+	}
+
+	concreteTypeConfig := &fedv1a1.FederatedTypeConfig{}
+	err = client.Get(context.TODO(), concreteTypeConfig, namespace, typeName)
 	if err != nil {
 		return nil, err
 	}
-	typeName.Name = typeconfig.GroupQualifiedName(*apiResource)
-
-	client, err := genericclient.New(hostConfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get federation client")
-	}
-
-	typeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = client.Get(context.TODO(), typeConfig, typeName.Namespace, typeName.Name)
-	if apierrors.IsNotFound(err) {
-		return nil, errors.Wrapf(err, "FederatedTypeConfig %q not found. Try 'kubefed2 enable type %s' before federating the resource", typeName, typeName.Name)
-	}
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeName)
-	}
-
-	glog.V(2).Infof("API Resource and FederatedTypeConfig found for %q", typeName)
-	return typeConfig, nil
+	return concreteTypeConfig, nil
 }
 
-func getTargetResource(hostConfig *rest.Config, typeConfig *fedv1a1.FederatedTypeConfig, qualifiedName ctlutil.QualifiedName) (*unstructured.Unstructured, error) {
+func getTargetResource(hostConfig *rest.Config, typeConfig typeconfig.Interface, qualifiedName ctlutil.QualifiedName) (*unstructured.Unstructured, error) {
 	targetAPIResource := typeConfig.GetTarget()
 	targetClient, err := ctlutil.NewResourceClient(hostConfig, &targetAPIResource)
 	if err != nil {
@@ -284,7 +298,8 @@ func CreateFedResource(hostConfig *rest.Config, resources *fedResources, dryrun 
 		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 	}
 
-	fedAPIResource := resources.typeConfig.GetFederatedType()
+	typeConfig := resources.typeConfig
+	fedAPIResource := typeConfig.GetFederatedType()
 	fedKind := fedAPIResource.Kind
 	fedClient, err := ctlutil.NewResourceClient(hostConfig, &fedAPIResource)
 	if err != nil {
@@ -299,6 +314,6 @@ func CreateFedResource(hostConfig *rest.Config, resources *fedResources, dryrun 
 		}
 	}
 
-	glog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, resources.typeConfig.GetTarget().Kind)
+	glog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, typeConfig.GetTarget().Kind)
 	return nil
 }
