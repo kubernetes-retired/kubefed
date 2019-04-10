@@ -54,8 +54,8 @@ var (
 		flag otherwise.`
 
 	federate_example = `
-		# Federate resource named "my-dep" in namespace "my-ns" of kubernetes type "deploy"
-		kubefed2 federate deploy my-dep -n "my-ns" --host-cluster-context=cluster1`
+		# Federate resource named "my-cm" in namespace "my-ns" of kubernetes type "configmaps" (identified by short name "cm")
+		kubefed2 federate cm "my-cm" -n "my-ns" --host-cluster-context=cluster1`
 	// TODO(irfanurrehman): implement —contents flag applicable to namespaces
 )
 
@@ -107,12 +107,12 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				glog.Fatalf("Error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				glog.Fatalf("Error: %v", err)
 			}
 		},
 	}
@@ -239,32 +239,40 @@ func getTargetResource(hostConfig *rest.Config, typeConfig typeconfig.Interface,
 	return resource, nil
 }
 
-func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, targetResource *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resource *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	fedAPIResource := typeConfig.GetFederatedType()
+	targetResource := resource.DeepCopy()
 
 	// Special handling is needed for some controller set fields.
-	if typeConfig.GetTarget().Kind == ctlutil.ServiceAccountKind {
-		unstructured.RemoveNestedField(targetResource.Object, ctlutil.SecretsField)
-	}
-
-	if typeConfig.GetTarget().Kind == ctlutil.ServiceKind {
-		var targetPorts []interface{}
-		targetPorts, ok, err := unstructured.NestedSlice(targetResource.Object, "spec", "ports")
-		if err != nil {
-			return nil, err
+	switch typeConfig.GetTarget().Kind {
+	case ctlutil.NamespaceKind:
+		{
+			unstructured.RemoveNestedField(targetResource.Object, "spec", "finalizers")
 		}
-		if ok {
-			for index := range targetPorts {
-				port := targetPorts[index].(map[string]interface{})
-				delete(port, "nodePort")
-				targetPorts[index] = port
-			}
-			err := unstructured.SetNestedSlice(targetResource.Object, targetPorts, "spec", "ports")
+	case ctlutil.ServiceAccountKind:
+		{
+			unstructured.RemoveNestedField(targetResource.Object, ctlutil.SecretsField)
+		}
+	case ctlutil.ServiceKind:
+		{
+			var targetPorts []interface{}
+			targetPorts, ok, err := unstructured.NestedSlice(targetResource.Object, "spec", "ports")
 			if err != nil {
 				return nil, err
 			}
+			if ok {
+				for index := range targetPorts {
+					port := targetPorts[index].(map[string]interface{})
+					delete(port, "nodePort")
+					targetPorts[index] = port
+				}
+				err := unstructured.SetNestedSlice(targetResource.Object, targetPorts, "spec", "ports")
+				if err != nil {
+					return nil, err
+				}
+			}
+			unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIP")
 		}
-		unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIP")
 	}
 
 	qualifiedName := ctlutil.NewQualifiedName(targetResource)

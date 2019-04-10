@@ -125,12 +125,12 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				glog.Fatalf("Error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("error: %v", err)
+				glog.Fatalf("Error: %v", err)
 			}
 		},
 	}
