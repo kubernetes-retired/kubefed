@@ -267,14 +267,30 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
 	}
+
 	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
 	concreteTypeConfig.Namespace = namespace
-	err = client.Create(context.TODO(), concreteTypeConfig)
+	existingTypeConfig := &fedv1a1.FederatedTypeConfig{}
+	err = client.Get(context.TODO(), existingTypeConfig, namespace, concreteTypeConfig.Name)
+	createdOrUpdated := "created"
 	if err != nil {
-		return errors.Wrapf(err, "Error creating FederatedTypeConfig %q", concreteTypeConfig.Name)
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", concreteTypeConfig.Name)
+		}
+		err = client.Create(context.TODO(), concreteTypeConfig)
+		if err != nil {
+			return errors.Wrapf(err, "Error creating FederatedTypeConfig %q", concreteTypeConfig.Name)
+		}
+	} else {
+		existingTypeConfig.Spec = concreteTypeConfig.Spec
+		err = client.Update(context.TODO(), existingTypeConfig)
+		if err != nil {
+			return errors.Wrapf(err, "Error updating FederatedTypeConfig %q", concreteTypeConfig.Name)
+		}
+		createdOrUpdated = "updated"
 	}
-	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s created in namespace %s\n", concreteTypeConfig.Name, namespace))
-
+	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s %s in namespace %s\n",
+		concreteTypeConfig.Name, createdOrUpdated, namespace))
 	return nil
 }
 
