@@ -139,7 +139,7 @@ func Run(opts *options.Options) error {
 }
 
 func startControllers(opts *options.Options, stopChan <-chan struct{}) {
-	if err := federatedcluster.StartClusterController(opts.Config, stopChan, opts.ClusterMonitorPeriod); err != nil {
+	if err := federatedcluster.StartClusterController(opts.Config, opts.ClusterHealthCheckConfig, stopChan); err != nil {
 		glog.Fatalf("Error starting cluster controller: %v", err)
 	}
 
@@ -224,7 +224,6 @@ func setOptionsByFederationConfig(opts *options.Options) {
 
 	spec := fedConfig.Spec
 	opts.LimitedScope = spec.LimitedScope
-	opts.ClusterMonitorPeriod = spec.ControllerDuration.ClusterMonitorPeriod.Duration
 
 	opts.Config.ClusterNamespace = spec.RegistryNamespace
 	opts.Config.ClusterAvailableDelay = spec.ControllerDuration.AvailableDelay.Duration
@@ -234,6 +233,11 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	opts.LeaderElection.RetryPeriod = spec.LeaderElect.RetryPeriod.Duration
 	opts.LeaderElection.RenewDeadline = spec.LeaderElect.RenewDeadline.Duration
 	opts.LeaderElection.LeaseDuration = spec.LeaderElect.LeaseDuration.Duration
+
+	opts.ClusterHealthCheckConfig.PeriodSeconds = spec.ClusterHealthCheck.PeriodSeconds
+	opts.ClusterHealthCheckConfig.TimeoutSeconds = spec.ClusterHealthCheck.TimeoutSeconds
+	opts.ClusterHealthCheckConfig.FailureThreshold = spec.ClusterHealthCheck.FailureThreshold
+	opts.ClusterHealthCheckConfig.SuccessThreshold = spec.ClusterHealthCheck.SuccessThreshold
 
 	var featureGates = make(map[string]bool)
 	for _, v := range fedConfig.Spec.FeatureGates {

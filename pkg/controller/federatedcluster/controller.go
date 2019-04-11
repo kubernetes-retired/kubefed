@@ -41,8 +41,8 @@ import (
 type ClusterController struct {
 	client genericclient.Client
 
-	// clusterMonitorPeriod is the period for updating status of cluster
-	clusterMonitorPeriod time.Duration
+	// clusterHealthCheckConfig is the configurable parameters for cluster health check
+	clusterHealthCheckConfig util.ClusterHealthCheckConfig
 
 	mu sync.RWMutex
 
@@ -70,8 +70,8 @@ type ClusterController struct {
 }
 
 // StartClusterController starts a new cluster controller.
-func StartClusterController(config *util.ControllerConfig, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) error {
-	controller, err := newClusterController(config, clusterMonitorPeriod)
+func StartClusterController(config *util.ControllerConfig, clusterHealthCheckConfig util.ClusterHealthCheckConfig, stopChan <-chan struct{}) error {
+	controller, err := newClusterController(config, clusterHealthCheckConfig)
 	if err != nil {
 		return err
 	}
@@ -81,17 +81,17 @@ func StartClusterController(config *util.ControllerConfig, stopChan <-chan struc
 }
 
 // newClusterController returns a new cluster controller
-func newClusterController(config *util.ControllerConfig, clusterMonitorPeriod time.Duration) (*ClusterController, error) {
+func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig util.ClusterHealthCheckConfig) (*ClusterController, error) {
 	client := genericclient.NewForConfigOrDieWithUserAgent(config.KubeConfig, "cluster-controller")
 
 	cc := &ClusterController{
-		knownClusterSet:      make(sets.String),
-		client:               client,
-		clusterMonitorPeriod: clusterMonitorPeriod,
-		clusterStatusMap:     make(map[string]fedv1a1.FederatedClusterStatus),
-		clusterKubeClientMap: make(map[string]ClusterClient),
-		fedNamespace:         config.FederationNamespace,
-		clusterNamespace:     config.ClusterNamespace,
+		knownClusterSet:          make(sets.String),
+		client:                   client,
+		clusterHealthCheckConfig: clusterHealthCheckConfig,
+		clusterStatusMap:         make(map[string]fedv1a1.FederatedClusterStatus),
+		clusterKubeClientMap:     make(map[string]ClusterClient),
+		fedNamespace:             config.FederationNamespace,
+		clusterNamespace:         config.ClusterNamespace,
 	}
 	var err error
 	_, cc.clusterController, err = util.NewGenericInformerWithEventHandler(
@@ -160,7 +160,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 		if err := cc.updateClusterStatus(); err != nil {
 			glog.Errorf("Error monitoring cluster status: %v", err)
 		}
-	}, cc.clusterMonitorPeriod, stopChan)
+	}, time.Duration(cc.clusterHealthCheckConfig.PeriodSeconds)*time.Second, stopChan)
 }
 
 // updateClusterStatus checks cluster status and get the metrics from cluster's restapi

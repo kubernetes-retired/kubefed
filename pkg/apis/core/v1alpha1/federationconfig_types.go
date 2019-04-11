@@ -20,23 +20,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!
-// Created by "kubebuilder create resource" for you to implement the FederationConfig resource schema definition
-// as a go struct.
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // FederationConfigSpec defines the desired state of FederationConfig
 type FederationConfigSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "kubebuilder generate" to regenerate code after modifying this file
-
 	// Whether the federation namespace will be the only target for federation.
 	LimitedScope bool `json:"limited-scope,omitempty"`
 	// The cluster registry namespace.
-	RegistryNamespace  string               `json:"registry-namespace,omitempty"`
-	ControllerDuration DurationConfig       `json:"controller-duration,omitempty"`
-	LeaderElect        LeaderElectConfig    `json:"leader-elect,omitempty"`
-	FeatureGates       []FeatureGatesConfig `json:"feature-gates,omitempty"`
+	RegistryNamespace  string                   `json:"registry-namespace,omitempty"`
+	ControllerDuration DurationConfig           `json:"controller-duration,omitempty"`
+	LeaderElect        LeaderElectConfig        `json:"leader-elect,omitempty"`
+	FeatureGates       []FeatureGatesConfig     `json:"feature-gates,omitempty"`
+	ClusterHealthCheck ClusterHealthCheckConfig `json:"cluster-health-check,omitempty"`
 }
 
 type DurationConfig struct {
@@ -44,8 +37,6 @@ type DurationConfig struct {
 	AvailableDelay metav1.Duration `json:"available-delay,omitempty"`
 	// Time to wait before giving up on an unhealthy cluster.
 	UnavailableDelay metav1.Duration `json:"unavailable-delay,omitempty"`
-	// How often to monitor the cluster health.
-	ClusterMonitorPeriod metav1.Duration `json:"cluster-monitor-period,omitempty"`
 }
 type LeaderElectConfig struct {
 	// The duration that non-leader candidates will wait after observing a leadership
@@ -68,6 +59,17 @@ type LeaderElectConfig struct {
 type FeatureGatesConfig struct {
 	Name    string `json:"name,omitempty"`
 	Enabled bool   `json:"enabled,omitempty"`
+}
+
+type ClusterHealthCheckConfig struct {
+	// How often to monitor the cluster health (in seconds).
+	PeriodSeconds int `json:"period-seconds,omitempty"`
+	// Minimum consecutive failures for the cluster health to be considered failed after having succeeded.
+	FailureThreshold int `json:"failure-threshold,omitempty"`
+	// Minimum consecutive successes for the cluster health to be considered successful after having failed.
+	SuccessThreshold int `json:"success-threshold,omitempty"`
+	// Number of seconds after which the cluster health check times out.
+	TimeoutSeconds int `json:"timeout-seconds,omitempty"`
 }
 
 // +genclient

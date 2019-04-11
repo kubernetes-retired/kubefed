@@ -17,8 +17,6 @@ limitations under the License.
 package framework
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
@@ -93,8 +91,8 @@ func NewClusterControllerFixture(tl common.TestLogger, config *util.ControllerCo
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	monitorPeriod := 1 * time.Second
-	err := federatedcluster.StartClusterController(config, f.stopChan, monitorPeriod)
+	clusterHealthCheckConfig := util.ClusterHealthCheckConfig{PeriodSeconds: 1, FailureThreshold: 1}
+	err := federatedcluster.StartClusterController(config, clusterHealthCheckConfig, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting cluster controller: %v", err)
 	}

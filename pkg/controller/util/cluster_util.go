@@ -38,7 +38,6 @@ import (
 const (
 	DefaultFederationSystemNamespace = "federation-system"
 	MulticlusterPublicNamespace      = "kube-multicluster-public"
-	DefaultClusterMonitorPeriod      = 40 * time.Second
 	DefaultClusterAvailableDelay     = 20 * time.Second
 	DefaultClusterUnavailableDelay   = 60 * time.Second
 
@@ -50,6 +49,11 @@ const (
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second
 	DefaultLeaderElectionRetryPeriod   = 5 * time.Second
+
+	DefaultClusterHealthCheckPeriod           = 10
+	DefaultClusterHealthCheckFailureThreshold = 3
+	DefaultClusterHealthCheckSuccessThreshold = 1
+	DefaultClusterHealthCheckTimeout          = 3
 
 	FederationConfigName = "federation-v2"
 )
