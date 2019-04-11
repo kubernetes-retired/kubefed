@@ -36,17 +36,30 @@ cluster registry:
 $ kubectl create ns kube-multicluster-public
 ```
 
-Install the chart with the release name `federation-v2`:
-
+Next, add the chart to your local repository.
 ```bash
-$ helm install charts/federation-v2 --name federation-v2 --namespace federation-system
+$ helm repo add federation-v2 https://raw.githubusercontent.com/kubernetes-sigs/federation-v2/add-chart-repo-index/charts/
+
+$ helm repo list
+NAME            URL                                        
+federation-v2   https://raw.githubusercontent.com/kubernetes-sigs/federation-v2/add-chart-repo-index/charts/
+```
+
+With the repo added, available charts and versions can be viewed.
+```bash
+$ helm search federation-v2
+```
+
+Install the chart and append the version you would like using the `--version` tag. Here, we specify version 0.0.7 and name it federation-v2.
+```bash
+$ helm install fedv2-charts/federation-v2 --name=federation-v2 --version=0.0.7 v2 --namespace federation-system
 ```
 
 If you already have clusterregistry installed, skip installing it during federation-v2 installation
 as follows:
 
 ```bash
-$ helm install charts/federation-v2 --name federation-v2 --namespace federation-system --set clusterregistry.enabled=false
+$ helm install fedv2-charts/federation-v2 --name federation-v2 --namespace federation-system --set clusterregistry.enabled=false
 ```
 
 ## Uninstalling the Chart
