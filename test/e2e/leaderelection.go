@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/kubernetes-sigs/federation-v2/test/common"
@@ -34,12 +36,16 @@ var _ = Describe("Leader Elector", func() {
 	tl := framework.NewE2ELogger()
 
 	It("should chose secondary instance, primary goes down", func() {
+		if framework.TestContext.LimitedScope {
+			framework.Skipf("Testing of leader election requires an isolated test namespace which is only possible with cluster-scoped federation")
+		}
+
 		const leaderIdentifier = "promoted as leader"
 
 		kubeConfigPath := framework.TestContext.KubeConfig
 		systemNamespace := f.TestNamespaceName()
 
-		primaryControllerManager, primaryLogStream, err := spawnControllerManagerProcess(kubeConfigPath, systemNamespace)
+		primaryControllerManager, primaryLogStream, err := spawnControllerManagerProcess(tl, kubeConfigPath, systemNamespace)
 		framework.ExpectNoError(err)
 		if waitUntilLogStreamContains(tl, primaryLogStream, leaderIdentifier) {
 			tl.Log("Primary controller manager became leader")
@@ -49,7 +55,7 @@ var _ = Describe("Leader Elector", func() {
 		}
 
 		done := make(chan bool, 1)
-		secondaryControllerManager, secondaryLogStream, err := spawnControllerManagerProcess(kubeConfigPath, systemNamespace)
+		secondaryControllerManager, secondaryLogStream, err := spawnControllerManagerProcess(tl, kubeConfigPath, systemNamespace)
 		framework.ExpectNoError(err)
 		go func() {
 			if waitUntilLogStreamContains(tl, secondaryLogStream, leaderIdentifier) {
@@ -71,12 +77,18 @@ var _ = Describe("Leader Elector", func() {
 	})
 })
 
-func spawnControllerManagerProcess(kubeConfigPath, namespace string) (*exec.Cmd, io.ReadCloser, error) {
+func spawnControllerManagerProcess(tl common.TestLogger, kubeConfigPath, namespace string) (*exec.Cmd, io.ReadCloser, error) {
+	// Get the directory of the current executable
+	_, filename, _, _ := runtime.Caller(0)
+	managedPath := filepath.Dir(filename)
+	confFile, err := filepath.Abs(fmt.Sprintf("%s/../../config/federationconfig.yaml", managedPath))
+	if err != nil {
+		tl.Fatalf("Error discovering the configuration file for FecerationConfig resources: %v", err)
+	}
+
 	args := []string{fmt.Sprintf("--kubeconfig=%s", kubeConfigPath),
 		fmt.Sprintf("--federation-namespace=%s", namespace),
-		"--leader-elect-lease-duration=1500ms",
-		"--leader-elect-renew-deadline=1000ms",
-		"--leader-elect-retry-period=500ms",
+		fmt.Sprintf("--federation-config=%s", confFile),
 	}
 	cmd := exec.Command("controller-manager", args...)
 

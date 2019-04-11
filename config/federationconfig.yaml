@@ -1,0 +1,27 @@
+apiVersion: core.federation.k8s.io/v1alpha1
+kind: FederationConfig
+metadata:
+  name: federation-v2
+  namespace: federation-system
+spec:
+  limited-scope: false
+  registry-namespace: kube-multicluster-public
+  controller-duration:
+    available-delay: 20s
+    unavailable-delay: 60s
+    cluster-monitor-period: 40s
+  leader-elect:
+    lease-duration: 1500ms
+    renew-deadline: 1000ms
+    retry-period: 500ms
+    resource-lock: configmaps
+  feature-gates:
+  - name: PushReconciler
+    enabled: true
+  - name: SchedulerPreferences
+    enabled: true
+  - name: CrossClusterServiceDiscovery
+    enabled: true
+  - name: FederatedIngress
+    enabled: true
+
