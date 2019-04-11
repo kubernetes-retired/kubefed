@@ -56,13 +56,12 @@ var (
 )
 
 type unjoinFederation struct {
-	options.SubcommandOptions
+	options.GlobalSubcommandOptions
+	options.CommonSubcommandOptions
 	unjoinFederationOptions
 }
 
 type unjoinFederationOptions struct {
-	hostClusterName    string
-	clusterContext     string
 	removeFromRegistry bool
 	forceDeletion      bool
 }
@@ -70,14 +69,10 @@ type unjoinFederationOptions struct {
 // Bind adds the unjoin specific arguments to the flagset passed in as an
 // argument.
 func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
-	flags.StringVar(&o.clusterContext, "cluster-context", "",
-		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
 	flags.BoolVar(&o.removeFromRegistry, "remove-from-registry", false,
 		"Remove the cluster from the cluster registry running in the host cluster context.")
 	flags.BoolVar(&o.forceDeletion, "force", false,
 		"Delete federated cluster and secret resources even if resources in the cluster targeted for unjoin are not removed successfully.")
-	flags.StringVar(&o.hostClusterName, "host-cluster-name", "",
-		"If set, overrides the use of host-cluster-context name in resource names created in the target cluster. This option must be used when the context name has characters invalid for kubernetes resources like \"/\" and \":\".")
 }
 
 // NewCmdUnjoin defines the `unjoin` command that unjoins a cluster from a
@@ -104,7 +99,8 @@ func NewCmdUnjoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	opts.CommonBind(flags)
+	opts.GlobalSubcommandBind(flags)
+	opts.CommonSubcommandBind(flags)
 	opts.Bind(flags)
 
 	return cmd
@@ -117,21 +113,21 @@ func (j *unjoinFederation) Complete(args []string) error {
 		return err
 	}
 
-	if j.clusterContext == "" {
+	if j.ClusterContext == "" {
 		glog.V(2).Infof("Defaulting cluster context to unjoining cluster name %s", j.ClusterName)
-		j.clusterContext = j.ClusterName
+		j.ClusterContext = j.ClusterName
 	}
 
-	if j.hostClusterName != "" && strings.ContainsAny(j.hostClusterName, ":/") {
+	if j.HostClusterName != "" && strings.ContainsAny(j.HostClusterName, ":/") {
 		return goerrors.New("host-cluster-name may not contain \"/\" or \":\"")
 	}
 
-	if j.hostClusterName == "" && strings.ContainsAny(j.HostClusterContext, ":/") {
+	if j.HostClusterName == "" && strings.ContainsAny(j.HostClusterContext, ":/") {
 		return goerrors.New("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
 	}
 
 	glog.V(2).Infof("Args and flags: name %s, host-cluster-context: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, dry-run: %v",
-		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.clusterContext, j.DryRun)
+		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.ClusterContext, j.DryRun)
 
 	return nil
 }
@@ -146,7 +142,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	clusterConfig, err := config.ClusterConfig(j.clusterContext, j.Kubeconfig)
+	clusterConfig, err := config.ClusterConfig(j.ClusterContext, j.Kubeconfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get unjoining cluster config: %v", err)
 
@@ -159,12 +155,12 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	hostClusterName := j.HostClusterContext
-	if j.hostClusterName != "" {
-		hostClusterName = j.hostClusterName
+	if j.HostClusterName != "" {
+		hostClusterName = j.HostClusterName
 	}
 
 	return UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		hostClusterName, j.HostClusterContext, j.clusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
+		hostClusterName, j.HostClusterContext, j.ClusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
 }
 
 // UnjoinCluster performs all the necessary steps to unjoin a cluster from the
