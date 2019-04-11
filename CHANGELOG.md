@@ -1,4 +1,6 @@
 # Unreleased
+
+# v0.0.8
  - [#652](https://github.com/kubernetes-sigs/federation-v2/pull/652) -
    Switch to sourcing the template for a FederatedNamespace from a
    field rather than the containing namespace.  This ensures
