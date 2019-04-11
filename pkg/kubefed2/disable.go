@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -28,6 +29,8 @@ import (
 	"github.com/spf13/pflag"
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
@@ -56,8 +59,8 @@ var (
 
 		# Disable propagation of the kubernetes API type 'Deployment', named
 		in FederatedTypeConfig as 'deployments.apps', and delete corresponding
-		Federated API resources
-		kubefed2 disable deployments.apps --delete-from-api`
+		Federated API resource
+		kubefed2 disable deployments.apps --delete-crd`
 )
 
 type disableType struct {
@@ -70,10 +73,10 @@ type disableTypeOptions struct {
 	delete     bool
 }
 
-// Bind adds the join specific arguments to the flagset passed in as an
+// Bind adds the disable specific arguments to the flagset passed in as an
 // argument.
 func (o *disableTypeOptions) Bind(flags *pflag.FlagSet) {
-	flags.BoolVar(&o.delete, "delete-from-api", false, "Whether to remove the API resources added by 'enable'.")
+	flags.BoolVar(&o.delete, "delete-crd", false, "Whether to remove the API resource added by 'enable'.")
 }
 
 // NewCmdTypeDisable defines the `disable` command that
@@ -148,15 +151,6 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
 	}
-	typeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
-	if err != nil {
-		return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeConfigName)
-	}
-
-	if dryRun {
-		return nil
-	}
 
 	write := func(data string) {
 		if cmdOut == nil {
@@ -168,9 +162,58 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 		}
 	}
 
+	typeConfig := &fedv1a1.FederatedTypeConfig{}
+	ftcExists, err := checkFederatedTypeConfigExists(client, typeConfig, typeConfigName, write)
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		return nil
+	}
+
+	if ftcExists {
+		if typeConfig.Spec.PropagationEnabled {
+			err = disablePropagationController(client, typeConfig, typeConfigName, write)
+			if err != nil {
+				return err
+			}
+		}
+		checkPropagationControllerStopped(client, typeConfigName, write)
+		err = deleteFederatedTypeConfig(client, typeConfig, typeConfigName, write)
+		if err != nil {
+			return err
+		}
+	}
+
+	if delete {
+		err = deleteFederatedType(config, typeConfig, write)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) (bool, error) {
+	err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
+	if err == nil {
+		return true, nil
+	}
+
+	if apierrors.IsNotFound(err) {
+		write(fmt.Sprintf("FederatedTypeConfig %q already removed\n", typeConfigName))
+		return false, nil
+	}
+
+	return false, errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeConfigName)
+}
+
+func disablePropagationController(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
 	if typeConfig.Spec.PropagationEnabled {
 		typeConfig.Spec.PropagationEnabled = false
-		err = client.Update(context.TODO(), typeConfig)
+		err := client.Update(context.TODO(), typeConfig)
 		if err != nil {
 			return errors.Wrapf(err, "Error disabling propagation for FederatedTypeConfig %q", typeConfigName)
 		}
@@ -178,22 +221,38 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	} else {
 		write(fmt.Sprintf("Propagation already disabled for FederatedTypeConfig %q\n", typeConfigName))
 	}
-	if !delete {
-		return nil
-	}
+	return nil
+}
 
-	// TODO(marun) consider waiting for the sync controller to be stopped before attempting deletion
-	err = deleteFederatedType(config, typeConfig, write)
+func checkPropagationControllerStopped(client genericclient.Client, typeConfigName ctlutil.QualifiedName, write func(string)) {
+	write(fmt.Sprintf("Checking propagation controller for FederatedTypeConfig %q is stopped\n", typeConfigName))
+
+	typeConfig := &fedv1a1.FederatedTypeConfig{}
+	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+		err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
+		if err != nil {
+			return false, err
+		}
+		if typeConfig.Status.PropagationController == fedv1a1.ControllerStatusNotRunning {
+			return true, nil
+		}
+
+		return false, nil
+	})
+
 	if err != nil {
-		return err
+		write(fmt.Sprintf("WARNING: unable to verify propagation controller for FederatedTypeConfig %q is stopped: %v\n", typeConfigName, err))
+	} else {
+		write(fmt.Sprintf("Propagation controller for FederatedTypeConfig %q is stopped\n", typeConfigName))
 	}
+}
 
-	err = client.Delete(context.TODO(), typeConfig, typeConfig.Namespace, typeConfig.Name)
+func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
+	err := client.Delete(context.TODO(), typeConfig, typeConfig.Namespace, typeConfig.Name)
 	if err != nil {
 		return errors.Wrapf(err, "Error deleting FederatedTypeConfig %q", typeConfigName)
 	}
-	write(fmt.Sprintf("federatedtypeconfig %q deleted\n", typeConfigName))
-
+	write(fmt.Sprintf("FederatedTypeConfig %q deleted\n", typeConfigName))
 	return nil
 }
 
