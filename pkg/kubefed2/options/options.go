@@ -48,16 +48,16 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 		"Run the command in dry-run mode, without making any server requests.")
 }
 
-// CommonSubcommandOptions holds the common configuration required by some of
-// the subcommands of `kubefed2`.
-type CommonSubcommandOptions struct {
+// CommonJoinOptions holds the common configuration required by the join and
+// unjoin subcommands of `kubefed2`.
+type CommonJoinOptions struct {
 	ClusterName     string
 	ClusterContext  string
 	HostClusterName string
 }
 
 // CommonSubcommandBind adds the common subcommand flags to the flagset passed in.
-func (o *CommonSubcommandOptions) CommonSubcommandBind(flags *pflag.FlagSet) {
+func (o *CommonJoinOptions) CommonSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ClusterContext, "cluster-context", "",
 		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
 	flags.StringVar(&o.HostClusterName, "host-cluster-name", "",
@@ -66,7 +66,7 @@ func (o *CommonSubcommandOptions) CommonSubcommandBind(flags *pflag.FlagSet) {
 
 // SetName sets the name from the args passed in for the required positional
 // argument.
-func (o *CommonSubcommandOptions) SetName(args []string) error {
+func (o *CommonJoinOptions) SetName(args []string) error {
 	if len(args) == 0 {
 		return errors.New("NAME is required")
 	}

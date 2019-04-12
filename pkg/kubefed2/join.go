@@ -84,7 +84,7 @@ var (
 
 type joinFederation struct {
 	options.GlobalSubcommandOptions
-	options.CommonSubcommandOptions
+	options.CommonJoinOptions
 	options.FederationConfigOptions
 	joinFederationOptions
 }

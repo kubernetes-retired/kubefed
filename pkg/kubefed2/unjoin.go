@@ -57,7 +57,7 @@ var (
 
 type unjoinFederation struct {
 	options.GlobalSubcommandOptions
-	options.CommonSubcommandOptions
+	options.CommonJoinOptions
 	options.FederationConfigOptions
 	unjoinFederationOptions
 }
