@@ -38,12 +38,15 @@ function create-insecure-registry() {
 function configure-insecure-registry() {
   local err=
   if sudo test -f "${docker_daemon_config}"; then
-    echo <<EOF "Error: ${docker_daemon_config} exists and \
-CONFIGURE_INSECURE_REGISTRY=${CONFIGURE_INSECURE_REGISTRY}. This script needs \
-to add an 'insecure-registries' entry with host '${CONTAINER_REGISTRY_HOST}' to \
-${docker_daemon_config}. Please make the necessary changes or backup and try again."
+    if sudo grep -q "\"insecure-registries\": \[\"${CONTAINER_REGISTRY_HOST}\"\]" ${docker_daemon_config}; then
+      return 0
+    elif sudo grep -q "\"insecure-registries\": " ${docker_daemon_config}; then
+      echo <<EOF "Error: ${docker_daemon_config} exists and \
+is already configured with an 'insecure-registries' entry but not set to ${CONTAINER_REGISTRY_HOST}. \
+Please make sure it is removed and try again."
 EOF
-    err=true
+      err=true
+    fi
   elif pgrep -a dockerd | grep -q 'insecure-registry'; then
     echo <<EOF "Error: CONFIGURE_INSECURE_REGISTRY=${CONFIGURE_INSECURE_REGISTRY} \
 and about to write ${docker_daemon_config}, but dockerd is already configured with \
@@ -72,12 +75,16 @@ function configure-insecure-registry-and-reload() {
 }
 
 function insecure-registry-config-cmd() {
-  echo "cat <<EOF > ${docker_daemon_config}
+  if test -f "${docker_daemon_config}"; then
+    sed -i "1a \    \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]" ${docker_daemon_config}
+  else
+    echo "cat <<EOF > ${docker_daemon_config}
 {
     \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]
 }
 EOF
 "
+  fi
 }
 
 function reload-docker-daemon-cmd() {
