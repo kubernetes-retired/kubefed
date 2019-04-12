@@ -42,6 +42,11 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
 )
 
+const (
+	federationGroupUsage = "The name of the API group to use for deleting the federated CRD type when the federated type config does not exist. Only used with --delete-crd."
+	targetVersionUsage   = "The API version of the target type to use for deletion of the federated CRD type when the federated type config does not exist. Only used with --delete-crd."
+)
+
 var (
 	disable_long = `
 		Disables propagation of a Kubernetes API type.  This command
@@ -65,12 +70,13 @@ var (
 
 type disableType struct {
 	options.GlobalSubcommandOptions
+	options.CommonEnableOptions
 	disableTypeOptions
 }
 
 type disableTypeOptions struct {
-	targetName string
-	delete     bool
+	delete              bool
+	enableTypeDirective *enable.EnableTypeDirective
 }
 
 // Bind adds the disable specific arguments to the flagset passed in as an
@@ -104,6 +110,7 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 	flags := cmd.Flags()
 	opts.GlobalSubcommandBind(flags)
+	opts.CommonSubcommandBind(flags, federationGroupUsage, targetVersionUsage)
 	opts.Bind(flags)
 
 	return cmd
@@ -111,10 +118,27 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *disableType) Complete(args []string) error {
-	if len(args) == 0 {
-		return errors.New("NAME is required")
+	j.enableTypeDirective = enable.NewEnableTypeDirective()
+	fd := j.enableTypeDirective
+
+	if err := j.SetName(args); err != nil {
+		return err
 	}
-	j.targetName = args[0]
+
+	if !j.delete {
+		if len(j.TargetVersion) > 0 {
+			return errors.New("--version flag valid only with --delete-crd")
+		} else if j.FederationGroup != options.DefaultFederationGroup {
+			return errors.New("--federation-group flag valid only with --delete-crd")
+		}
+	}
+
+	if len(j.TargetVersion) > 0 {
+		fd.Spec.TargetVersion = j.TargetVersion
+	}
+	if len(j.FederationGroup) > 0 {
+		fd.Spec.FederationGroup = j.FederationGroup
+	}
 
 	return nil
 }
@@ -129,9 +153,9 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	// If . is specified, the target name is assumed as a group qualified name.
 	// In such case, ignore the lookup to make sure deletion of a federatedtypeconfig
 	// for which the corresponding target has been removed.
-	name := j.targetName
-	if !strings.Contains(j.targetName, ".") {
-		apiResource, err := enable.LookupAPIResource(hostConfig, j.targetName, "")
+	name := j.TargetName
+	if !strings.Contains(j.TargetName, ".") {
+		apiResource, err := enable.LookupAPIResource(hostConfig, j.TargetName, "")
 		if err != nil {
 			return err
 		}
@@ -142,11 +166,12 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Namespace: j.FederationNamespace,
 		Name:      name,
 	}
-
-	return DisableFederation(cmdOut, hostConfig, typeConfigName, j.delete, j.DryRun)
+	j.enableTypeDirective.Name = typeConfigName.Name
+	return DisableFederation(cmdOut, hostConfig, j.enableTypeDirective, typeConfigName, j.delete, j.DryRun)
 }
 
-func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
+func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirective *enable.EnableTypeDirective,
+	typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
 	client, err := genericclient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
@@ -187,6 +212,12 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	}
 
 	if delete {
+		if !ftcExists {
+			typeConfig, err = generatedFederatedTypeConfig(config, enableTypeDirective)
+			if err != nil {
+				return err
+			}
+		}
 		err = deleteFederatedType(config, typeConfig, write)
 		if err != nil {
 			return err
@@ -203,7 +234,7 @@ func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fed
 	}
 
 	if apierrors.IsNotFound(err) {
-		write(fmt.Sprintf("FederatedTypeConfig %q already removed\n", typeConfigName))
+		write(fmt.Sprintf("FederatedTypeConfig %q does not exist\n", typeConfigName))
 		return false, nil
 	}
 
@@ -225,7 +256,7 @@ func disablePropagationController(client genericclient.Client, typeConfig *fedv1
 }
 
 func checkPropagationControllerStopped(client genericclient.Client, typeConfigName ctlutil.QualifiedName, write func(string)) {
-	write(fmt.Sprintf("Checking propagation controller for FederatedTypeConfig %q is stopped\n", typeConfigName))
+	write(fmt.Sprintf("Checking propagation controller is stopped for FederatedTypeConfig %q\n", typeConfigName))
 
 	typeConfig := &fedv1a1.FederatedTypeConfig{}
 	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
@@ -256,6 +287,15 @@ func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1a1.
 	return nil
 }
 
+func generatedFederatedTypeConfig(config *rest.Config, enableTypeDirective *enable.EnableTypeDirective) (*fedv1a1.FederatedTypeConfig, error) {
+	apiResource, err := enable.LookupAPIResource(config, enableTypeDirective.Name, enableTypeDirective.Spec.TargetVersion)
+	if err != nil {
+		return nil, err
+	}
+	typeConfig := enable.GenerateTypeConfigForTarget(*apiResource, enableTypeDirective).(*fedv1a1.FederatedTypeConfig)
+	return typeConfig, nil
+}
+
 func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
 	client, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
@@ -265,8 +305,13 @@ func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, w
 	crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
 	err = client.CustomResourceDefinitions().Delete(crdName, nil)
 	if err != nil {
-		return errors.Wrapf(err, "Error deleting crd %q", crdName)
+		if apierrors.IsNotFound(err) {
+			write(fmt.Sprintf("customresourcedefinition %q does not exist\n", crdName))
+		} else {
+			return errors.Wrapf(err, "Error deleting crd %q", crdName)
+		}
+	} else {
+		write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	}
-	write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	return nil
 }

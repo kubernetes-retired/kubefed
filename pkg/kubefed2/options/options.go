@@ -99,3 +99,35 @@ func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (
 
 	return fedConfig.Spec.Scope, fedConfig.Spec.RegistryNamespace, nil
 }
+
+// CommonEnableOptions holds the common configuration required by the enable
+// and disable subcommands of `kubefed2`.
+type CommonEnableOptions struct {
+	TargetName      string
+	FederationGroup string
+	TargetVersion   string
+}
+
+// Default value for shared Federation group across enable and
+// disable subcommands of `kubefed2`.
+const (
+	DefaultFederationGroup   = "types.federation.k8s.io"
+	DefaultFederationVersion = "v1alpha1"
+)
+
+// CommonSubcommandBind adds the common subcommand flags to the flagset passed in.
+func (o *CommonEnableOptions) CommonSubcommandBind(flags *pflag.FlagSet, federationGroupUsage, targetVersionUsage string) {
+	flags.StringVar(&o.FederationGroup, "federation-group", DefaultFederationGroup, federationGroupUsage)
+	flags.StringVar(&o.TargetVersion, "version", "", targetVersionUsage)
+}
+
+// SetName sets the name from the args passed in for the required positional
+// argument.
+func (o *CommonEnableOptions) SetName(args []string) error {
+	if len(args) == 0 {
+		return errors.New("NAME is required")
+	}
+
+	o.TargetName = args[0]
+	return nil
+}
