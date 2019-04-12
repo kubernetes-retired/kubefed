@@ -19,6 +19,7 @@ package federate
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -28,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
@@ -37,6 +39,11 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+)
+
+const (
+	createResourceRetryTimeout  = 10 * time.Second
+	createResourceRetryInterval = 1 * time.Second
 )
 
 var (
@@ -66,11 +73,13 @@ type federateResource struct {
 	resourceNamespace string
 	output            string
 	outputYAML        bool
+	enableType        bool
 }
 
 func (j *federateResource) Bind(flags *pflag.FlagSet) {
 	flags.StringVarP(&j.resourceNamespace, "namespace", "n", "default", "The namespace of the resource to federate.")
 	flags.StringVarP(&j.output, "output", "o", "", "If provided, the resource that would be created in the API by the command is instead output to stdout in the provided format.  Valid format is ['yaml'].")
+	flags.BoolVarP(&j.enableType, "enable-type", "e", false, "If true, attempt to enable federation of the API type of the resource before creating the federated resource.")
 }
 
 // Complete ensures that options are valid.
@@ -89,6 +98,10 @@ func (j *federateResource) Complete(args []string) error {
 		j.outputYAML = true
 	} else if len(j.output) > 0 {
 		return errors.Errorf("Invalid value for --output: %s", j.output)
+	}
+
+	if j.enableType && j.outputYAML {
+		return errors.New("Flag '--enable-type' cannot be used with '--output [yaml]'")
 	}
 
 	return nil
@@ -141,29 +154,39 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      j.resourceName,
 	}
 
-	resources, err := GetFedResources(hostConfig, qualifiedTypeName, qualifiedResourceName, j.outputYAML)
+	artifacts, err := GetFederateArtifacts(hostConfig, qualifiedTypeName, qualifiedResourceName, j.enableType, j.outputYAML)
 	if err != nil {
 		return err
 	}
 
 	if j.outputYAML {
-		err := util.WriteUnstructuredToYaml(resources.FedResource, cmdOut)
+		err := util.WriteUnstructuredToYaml(artifacts.fedResource, cmdOut)
 		if err != nil {
 			return errors.Wrap(err, "Failed to write federated resource to YAML")
 		}
 		return nil
 	}
 
-	return CreateFedResource(hostConfig, resources, j.DryRun)
+	return CreateResources(cmdOut, hostConfig, artifacts, j.FederationNamespace, j.enableType, j.DryRun)
 }
 
-type fedResources struct {
+type federateArtifacts struct {
+	typeConfigInstalled bool
+
 	typeConfig  typeconfig.Interface
-	FedResource *unstructured.Unstructured
+	fedResource *unstructured.Unstructured
 }
 
-func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName, outputYAML bool) (*fedResources, error) {
-	typeConfig, err := getTypeConfig(hostConfig, qualifiedTypeName.Name, qualifiedTypeName.Namespace, outputYAML)
+func GetFederateArtifacts(hostConfig *rest.Config, qualifiedTypeName, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*federateArtifacts, error) {
+	// Lookup kubernetes API availability
+	typeName := qualifiedTypeName.Name
+	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to find target API resource %s", typeName)
+	}
+	glog.V(2).Infof("API Resource for %s found", typeName)
+
+	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, qualifiedTypeName.Name, qualifiedTypeName.Namespace, enableType, outputYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -178,34 +201,33 @@ func GetFedResources(hostConfig *rest.Config, qualifiedTypeName, qualifiedName c
 		return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTarget().Kind, qualifiedName)
 	}
 
-	return &fedResources{
-		typeConfig:  typeConfig,
-		FedResource: fedResource,
+	return &federateArtifacts{
+		typeConfigInstalled: typeConfigInstalled,
+		typeConfig:          typeConfig,
+		fedResource:         fedResource,
 	}, nil
 }
 
-func getTypeConfig(hostConfig *rest.Config, typeName, namespace string, outputYAML bool) (typeconfig.Interface, error) {
-	// Lookup kubernetes API availability
-	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to find target API resource %s", typeName)
-	}
-	glog.V(2).Infof("API Resource for %s found", typeName)
-
-	resolvedTypeName := typeconfig.GroupQualifiedName(*apiResource)
+func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, typeName, namespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
+	resolvedTypeName := typeconfig.GroupQualifiedName(apiResource)
 	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, namespace)
 	if err == nil {
-		return installedTypeConfig, nil
+		return true, installedTypeConfig, nil
 	}
-	if apierrors.IsNotFound(err) && !outputYAML {
-		return nil, errors.Errorf("%v. Try 'kubefed2 enable type %s' before federating the resource", err, typeName)
-	}
-	if outputYAML {
-		glog.V(1).Infof("Falling back to a generated type config due to lookup failure: %v", err)
-		return enable.GenerateTypeConfigForTarget(*apiResource, enable.NewEnableTypeDirective()), nil
+	notFound := apierrors.IsNotFound(err)
+	if notFound && !outputYAML && !enableType {
+		return false, nil, errors.Errorf("%v. Try 'kubefed2 enable type %s' before federating the resource", err, typeName)
 	}
 
-	return nil, err
+	generatedTypeConfig := enable.GenerateTypeConfigForTarget(apiResource, enable.NewEnableTypeDirective())
+	if notFound && enableType { // We have already generated typeConfig to additionally enable type
+		return false, generatedTypeConfig, nil
+	}
+	if outputYAML { // Output as yaml does not bother what error happened while accessing typeConfig
+		glog.V(1).Infof("Falling back to a generated type config due to lookup failure: %v", err)
+		return false, generatedTypeConfig, nil
+	}
+	return false, nil, err
 }
 
 func getInstalledTypeConfig(hostConfig *rest.Config, typeName, namespace string) (typeconfig.Interface, error) {
@@ -300,13 +322,13 @@ func getNamespace(typeConfig typeconfig.Interface, qualifiedName ctlutil.Qualifi
 	return qualifiedName.Namespace
 }
 
-func CreateFedResource(hostConfig *rest.Config, resources *fedResources, dryrun bool) error {
-	if resources.typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
+func CreateFedResource(hostConfig *rest.Config, artifacts *federateArtifacts, dryrun bool) error {
+	if artifacts.typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
 		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
 		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 	}
 
-	typeConfig := resources.typeConfig
+	typeConfig := artifacts.typeConfig
 	fedAPIResource := typeConfig.GetFederatedType()
 	fedKind := fedAPIResource.Kind
 	fedClient, err := ctlutil.NewResourceClient(hostConfig, &fedAPIResource)
@@ -314,14 +336,42 @@ func CreateFedResource(hostConfig *rest.Config, resources *fedResources, dryrun 
 		return errors.Wrapf(err, "Error creating client for %s", fedKind)
 	}
 
-	qualifiedFedName := ctlutil.NewQualifiedName(resources.FedResource)
+	qualifiedFedName := ctlutil.NewQualifiedName(artifacts.fedResource)
 	if !dryrun {
-		_, err = fedClient.Resources(resources.FedResource.GetNamespace()).Create(resources.FedResource, metav1.CreateOptions{})
+		// It might take a little while for the federated type to appear if the
+		// same is being enabled while or immediately before federating the resource.
+		err = wait.PollImmediate(createResourceRetryInterval, createResourceRetryTimeout, func() (bool, error) {
+			_, err := fedClient.Resources(artifacts.fedResource.GetNamespace()).Create(artifacts.fedResource, metav1.CreateOptions{})
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		})
 		if err != nil {
-			return errors.Wrapf(err, "Error creating %s %q", fedKind, qualifiedFedName)
+			return err
 		}
 	}
 
 	glog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, typeConfig.GetTarget().Kind)
 	return nil
+}
+
+func CreateResources(cmdOut io.Writer, hostConfig *rest.Config, artifacts *federateArtifacts, namespace string, enableType, dryrun bool) error {
+	if enableType && !artifacts.typeConfigInstalled {
+		enableTypeDirective := enable.NewEnableTypeDirective()
+		enableTypeDirective.Name = artifacts.typeConfig.GetObjectMeta().Name
+		typeResources, err := enable.GetResources(hostConfig, enableTypeDirective)
+		if err != nil {
+			return err
+		}
+		err = enable.CreateResources(cmdOut, hostConfig, typeResources, namespace)
+		if err != nil {
+			return err
+		}
+	}
+
+	return CreateFedResource(hostConfig, artifacts, dryrun)
 }
