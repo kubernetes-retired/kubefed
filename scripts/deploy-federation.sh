@@ -53,7 +53,7 @@ function deploy-with-helm() {
   # Don't install tiller if we already have a working install.
   if ! helm version --server 2>/dev/null; then
     # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
-    cat <<EOF | cat # kubectl apply -f -
+    cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
