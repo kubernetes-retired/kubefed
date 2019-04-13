@@ -40,12 +40,12 @@ import (
 )
 
 var (
-	unjoin_long = `
+	unjoinLong = `
 		Unjoin removes a cluster from a federation.
 		Current context is assumed to be a Kubernetes cluster
 		hosting the federation control plane. Please use the
 		--host-cluster-context flag otherwise.`
-	unjoin_example = `
+	unjoinExample = `
 		# Unjoin a cluster from a federation by specifying the
 		# cluster name and the context name of the federation
 		# control plane's host cluster. Cluster name must be
@@ -83,8 +83,8 @@ func NewCmdUnjoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "unjoin CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
 		Short:   "Unjoin a cluster from a federation",
-		Long:    unjoin_long,
-		Example: unjoin_example,
+		Long:    unjoinLong,
+		Example: unjoinExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {

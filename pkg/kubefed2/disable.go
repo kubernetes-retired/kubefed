@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	disable_long = `
+	disableLong = `
 		Disables propagation of a Kubernetes API type.  This command
 		can also optionally delete the API resources added by the enable
 		command.
@@ -49,7 +49,7 @@ var (
 		the federation control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
-	disable_example = `
+	disableExample = `
 		# Disable propagation of the kubernetes API type 'Deployment', named
 		in FederatedTypeConfig as 'deployments.apps'
 		kubefed2 disable deployments.apps
@@ -84,8 +84,8 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "disable NAME",
 		Short:   "Disables propagation of a Kubernetes API type",
-		Long:    disable_long,
-		Example: disable_example,
+		Long:    disableLong,
+		Example: disableExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {

@@ -48,13 +48,13 @@ const (
 )
 
 var (
-	join_long = `
+	joinLong = `
 		Join adds a cluster to a federation.
 
 		Current context is assumed to be a Kubernetes cluster
 		hosting the federation control plane. Please use the
 		--host-cluster-context flag otherwise.`
-	join_example = `
+	joinExample = `
 		# Join a cluster to a federation by specifying the
 		# cluster name and the context name of the federation
 		# control plane's host cluster. Cluster name must be
@@ -115,8 +115,8 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "join CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
 		Short:   "Join a cluster to a federation",
-		Long:    join_long,
-		Example: join_example,
+		Long:    joinLong,
+		Example: joinExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {

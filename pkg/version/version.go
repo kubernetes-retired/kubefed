@@ -21,6 +21,7 @@ import (
 	"runtime"
 )
 
+// Info holds the necessary information about the overall codebase version.
 type Info struct {
 	Version      string `json:"gitVersion"`
 	GitCommit    string `json:"gitCommit"`
