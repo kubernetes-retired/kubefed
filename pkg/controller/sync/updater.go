@@ -19,7 +19,7 @@ package sync
 import (
 	"fmt"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -38,6 +38,7 @@ type FederatedUpdater interface {
 	Create(clusterName string)
 	Update(clusterName string, clusterObj *unstructured.Unstructured)
 	Delete(clusterName string)
+	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 }
 
 type updaterResult struct {
@@ -47,14 +48,12 @@ type updaterResult struct {
 }
 
 type federatedUpdaterImpl struct {
-	sync.RWMutex
-
 	fedView util.FederationView
 
 	fedResource FederatedResource
 
 	resultChan     chan updaterResult
-	operationCount int
+	operationCount int32
 
 	timeout time.Duration
 }
@@ -69,7 +68,7 @@ func NewFederatedUpdater(fedView util.FederationView, fedResource FederatedResou
 }
 
 func (u *federatedUpdaterImpl) NoChanges() bool {
-	return u.operationCount == 0
+	return atomic.LoadInt32(&u.operationCount) == 0
 }
 
 func (u *federatedUpdaterImpl) Wait() (map[string]string, bool) {
@@ -78,7 +77,7 @@ func (u *federatedUpdaterImpl) Wait() (map[string]string, bool) {
 
 	timedOut := false
 	start := time.Now()
-	for i := 0; i < u.operationCount; i++ {
+	for i := int32(0); i < atomic.LoadInt32(&u.operationCount); i++ {
 		now := time.Now()
 		if !now.Before(start.Add(u.timeout)) {
 			timedOut = true
@@ -107,7 +106,7 @@ func (u *federatedUpdaterImpl) Wait() (map[string]string, bool) {
 }
 
 func (u *federatedUpdaterImpl) Create(clusterName string) {
-	u.operationCount += 1
+	u.incrementOperationCount()
 	const op = "create"
 	go u.clusterOperation(clusterName, op, func(client util.ResourceClient) (string, error) {
 		u.recordEvent(clusterName, op, "Creating")
@@ -117,15 +116,29 @@ func (u *federatedUpdaterImpl) Create(clusterName string) {
 			return "", err
 		}
 		createdObj, err := client.Resources(obj.GetNamespace()).Create(obj, metav1.CreateOptions{})
-		if err != nil {
+		if err == nil {
+			return util.ObjectVersion(createdObj), nil
+		}
+		// TODO(marun) Figure out why attempting to create a namespace that
+		// already exists indicates ServerTimeout instead of AlreadyExists.
+		alreadyExists := apierrors.IsAlreadyExists(err) || u.fedResource.TargetKind() == util.NamespaceKind && apierrors.IsServerTimeout(err)
+		if !alreadyExists {
 			return "", err
 		}
-		return util.ObjectVersion(createdObj), err
+
+		// Attempt to update the existing resource to ensure that it
+		// is labeled as a managed resource.
+		clusterObj, err := client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return "", errors.Wrapf(err, "Failed to retrieve object potentially requiring adoption for cluster %q", clusterName)
+		}
+		u.Update(clusterName, clusterObj)
+		return "", errors.Errorf("An update will be attempted instead of a creation due to an existing resource in cluster %q", clusterName)
 	})
 }
 
 func (u *federatedUpdaterImpl) Update(clusterName string, clusterObj *unstructured.Unstructured) {
-	u.operationCount += 1
+	u.incrementOperationCount()
 	const op = "update"
 	go u.clusterOperation(clusterName, op, func(client util.ResourceClient) (string, error) {
 		obj, err := u.fedResource.ObjectForCluster(clusterName)
@@ -160,7 +173,7 @@ func (u *federatedUpdaterImpl) Update(clusterName string, clusterObj *unstructur
 }
 
 func (u *federatedUpdaterImpl) Delete(clusterName string) {
-	u.operationCount += 1
+	u.incrementOperationCount()
 	const op = "delete"
 	go u.clusterOperation(clusterName, op, func(client util.ResourceClient) (string, error) {
 		u.recordEvent(clusterName, op, "Deleting")
@@ -172,6 +185,31 @@ func (u *federatedUpdaterImpl) Delete(clusterName string) {
 		}
 		return "", err
 	})
+}
+
+func (u *federatedUpdaterImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {
+	u.incrementOperationCount()
+	const op = "remove managed label"
+	go u.clusterOperation(clusterName, op, func(client util.ResourceClient) (string, error) {
+		// Avoid mutating the resource in the informer cache
+		updateObj := clusterObj.DeepCopy()
+
+		// Remove the managed label if necessary
+		labels := updateObj.GetLabels()
+		_, ok := labels[util.ManagedByFederationLabelKey]
+		if !ok {
+			return "", nil
+		}
+		u.recordEvent(clusterName, op, "Removing managed label")
+		delete(labels, util.ManagedByFederationLabelKey)
+		updateObj.SetLabels(labels)
+		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
+		return "", err
+	})
+}
+
+func (u *federatedUpdaterImpl) incrementOperationCount() {
+	atomic.AddInt32(&u.operationCount, 1)
 }
 
 func (u *federatedUpdaterImpl) clusterOperation(clusterName, op string, opFunc func(util.ResourceClient) (string, error)) {
