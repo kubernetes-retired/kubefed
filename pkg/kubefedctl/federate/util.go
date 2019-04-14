@@ -68,10 +68,18 @@ func getAPIResourceList(config *rest.Config) ([]metav1.APIResource, error) {
 			continue
 		}
 
+		gv, err := schema.ParseGroupVersion(apiResourceList.GroupVersion)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error parsing GroupVersion")
+		}
+
 		for _, apiResource := range apiResourceList.APIResources {
 			if !apiResource.Namespaced {
 				continue
 			}
+			// The individual apiResources do not have the group and version set
+			apiResource.Group = gv.Group
+			apiResource.Version = gv.Version
 			apiResources = append(apiResources, apiResource)
 		}
 	}
@@ -79,21 +87,21 @@ func getAPIResourceList(config *rest.Config) ([]metav1.APIResource, error) {
 	return apiResources, nil
 }
 
-// targetResources stores a list of resources for an api type
-type targetResources struct {
-	// resource list
-	resources []*unstructured.Unstructured
+// resources stores a list of resources for an api type
+type resources struct {
 	// resource type information
 	apiResource metav1.APIResource
+	// resource list
+	resources []*unstructured.Unstructured
 }
 
-func getResourcesInNamespace(config *rest.Config, namespace string) ([]targetResources, error) {
+func getResourcesInNamespace(config *rest.Config, namespace string) ([]resources, error) {
 	apiResources, err := getAPIResourceList(config)
 	if err != nil {
 		return nil, err
 	}
 
-	resourcesInNamespace := []targetResources{}
+	resourcesInNamespace := []resources{}
 	for _, apiResource := range apiResources {
 		client, err := ctlutil.NewResourceClient(config, &apiResource)
 		if err != nil {
@@ -108,9 +116,9 @@ func getResourcesInNamespace(config *rest.Config, namespace string) ([]targetRes
 			return nil, errors.Wrapf(err, "Error listing resources for %s", apiResource.Kind)
 		}
 
-		targetResources := targetResources{apiResource: apiResource}
+		targetResources := resources{apiResource: apiResource}
 		for _, resource := range resourceList.Items {
-			targetResources.resources = append(targetResources.resources, resource)
+			targetResources.resources = append(targetResources.resources, &resource)
 		}
 
 		// It would be a waste of cycles to iterate through empty slices while federating resource
