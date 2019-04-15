@@ -75,16 +75,17 @@ function configure-insecure-registry-and-reload() {
 }
 
 function insecure-registry-config-cmd() {
-  if test -f "${docker_daemon_config}"; then
-    sed -i "1a \    \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]" ${docker_daemon_config}
-  else
-    echo "cat <<EOF > ${docker_daemon_config}
+  echo "
+    if test -f ${docker_daemon_config}; then
+      sed -i '1a \    \\\"insecure-registries\\\": [\\\"${CONTAINER_REGISTRY_HOST}\\\"]' ${docker_daemon_config}
+    else
+      cat <<EOF > ${docker_daemon_config}
 {
     \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]
 }
 EOF
+    fi
 "
-  fi
 }
 
 function reload-docker-daemon-cmd() {
