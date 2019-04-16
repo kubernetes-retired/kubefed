@@ -22,19 +22,11 @@ spec:
     spec:
       containers:
       - args:
-{{- if .Values.featureGates }}
-        - --feature-gates={{ .Values.featureGates }}
-{{- end }}
 {{- if .Values.global.limitedScope }}
-        - --limited-scope={{ .Values.global.limitedScope }}
         - --federation-namespace=$(FEDERATION_NAMESPACE)
-        - --registry-namespace=$(CLUSTER_REGISTRY_NAMESPACE)
 {{- else }}
 {{- if .Values.federationNamespace }}
         - --federation-namespace={{ .Values.federationNamespace }}
-{{- end }}
-{{- if .Values.registryNamespace }}
-        - --registry-namespace={{ .Values.registryNamespace }}
 {{- end }}
 {{- end }}
         command:
@@ -47,15 +39,7 @@ spec:
 {{- end }}
 {{- if .Values.global.limitedScope }}
         env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
         - name: FEDERATION_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: CLUSTER_REGISTRY_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace

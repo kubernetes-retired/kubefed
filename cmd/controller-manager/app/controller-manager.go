@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/tools/clientcmd"
@@ -49,7 +50,7 @@ import (
 )
 
 var (
-	kubeconfig, masterURL string
+	kubeconfig, federationConfig, masterURL string
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -81,6 +82,7 @@ member clusters and does the necessary reconciliation`,
 
 	opts.AddFlags(cmd.Flags())
 	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
+	cmd.Flags().StringVar(&federationConfig, "federation-config", "", "Path to a federation config yaml file. Test only.")
 	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
@@ -174,19 +176,51 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 }
 
-func setOptionsByFederationConfig(opts *options.Options) {
-	client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "federationconfig")
-
-	name := util.FederationConfigName
-	namespace := opts.Config.FederationNamespace
+func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 	fedConfig := &corev1a1.FederationConfig{}
-	err := client.Get(context.Background(), fedConfig, namespace, name)
-	if err != nil {
-		glog.V(1).Infof("Cannot retrieve FederationConfig %q in namespace %q: %v. Command line options are used.", name, namespace, err)
-		return
+	if federationConfig == "" {
+		// there is no --federation-config specified, get `federation-v2` FederationConfig from the cluster
+		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "federationconfig")
+
+		name := util.FederationConfigName
+		namespace := opts.Config.FederationNamespace
+		qualifiedName := util.QualifiedName{
+			Namespace: namespace,
+			Name:      name,
+		}
+
+		err := client.Get(context.Background(), fedConfig, namespace, name)
+		if err != nil {
+			glog.Infof("Cannot retrieve FederationConfig %q: %v. Default options are used.", qualifiedName.String(), err)
+			return nil
+		}
+
+		glog.Infof("Setting Options with FederationConfig %q", qualifiedName.String())
+		return fedConfig
 	}
 
-	glog.Infof("Setting Options with FederationConfig %q in namespace %q", name, namespace)
+	file, err := os.Open(federationConfig)
+	if err != nil {
+		// when federation config file is specified, it should be fatal error if the file does not valid
+		glog.Fatalf("Cannot open federation config file %q: %v", federationConfig, err)
+	}
+	defer file.Close()
+
+	decoder := yaml.NewYAMLToJSONDecoder(file)
+	err = decoder.Decode(fedConfig)
+	if err != nil {
+		glog.Fatalf("Cannot decode FederationConfig from file %q: %v", federationConfig, err)
+	}
+
+	glog.Infof("Setting Options with FederationConfig from file %q: %v", federationConfig, fedConfig.Spec)
+	return fedConfig
+}
+
+func setOptionsByFederationConfig(opts *options.Options) {
+	fedConfig := getFederationConfig(opts)
+	if fedConfig == nil {
+		return
+	}
 
 	spec := fedConfig.Spec
 	opts.LimitedScope = spec.LimitedScope
