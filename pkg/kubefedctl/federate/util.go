@@ -17,6 +17,8 @@ limitations under the License.
 package federate
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -57,12 +59,13 @@ func SetBasicMetaFields(resource *unstructured.Unstructured, apiResource metav1.
 	}
 }
 
-func getAPIResourceList(config *rest.Config) ([]metav1.APIResource, error) {
+func namespacedAPIResourceMap(config *rest.Config) (map[string]metav1.APIResource, error) {
 	apiResourceLists, err := enable.GetServerPreferredResources(config)
 	if err != nil {
 		return nil, err
 	}
-	var apiResources []metav1.APIResource
+
+	apiResources := make(map[string]metav1.APIResource)
 	for _, apiResourceList := range apiResourceLists {
 		if len(apiResourceList.APIResources) == 0 {
 			continue
@@ -73,18 +76,44 @@ func getAPIResourceList(config *rest.Config) ([]metav1.APIResource, error) {
 			return nil, errors.Wrap(err, "Error parsing GroupVersion")
 		}
 
+		group := gv.Group
 		for _, apiResource := range apiResourceList.APIResources {
-			if !apiResource.Namespaced {
+			if !apiResource.Namespaced || isFederatedAPIResource(apiResource.Kind, group) ||
+				apiResourceMatchesSkipNames(apiResource, group) {
 				continue
 			}
+
+			// TODO(irfanurrehman): Define a strategy to federate the latest available version
+			// Include a kind only once (if found under multiple group/versions).
+			if _, ok := apiResources[apiResource.Kind]; ok {
+				continue
+			}
+
 			// The individual apiResources do not have the group and version set
-			apiResource.Group = gv.Group
+			apiResource.Group = group
 			apiResource.Version = gv.Version
-			apiResources = append(apiResources, apiResource)
+
+			apiResources[apiResource.Kind] = apiResource
 		}
 	}
 
 	return apiResources, nil
+}
+
+func apiResourceMatchesSkipNames(apiResource metav1.APIResource, group string) bool {
+	for _, name := range controllerCreatedAPIResourceNames {
+		if name == "" {
+			continue
+		}
+		if enable.NameMatchesResource(name, apiResource, group) {
+			return true
+		}
+	}
+	return false
+}
+
+func isFederatedAPIResource(kind, group string) bool {
+	return strings.HasPrefix(kind, federationKindPrefix) && group == enable.DefaultFederationGroup
 }
 
 // resources stores a list of resources for an api type
@@ -96,7 +125,7 @@ type resources struct {
 }
 
 func getResourcesInNamespace(config *rest.Config, namespace string) ([]resources, error) {
-	apiResources, err := getAPIResourceList(config)
+	apiResources, err := namespacedAPIResourceMap(config)
 	if err != nil {
 		return nil, err
 	}
@@ -116,15 +145,16 @@ func getResourcesInNamespace(config *rest.Config, namespace string) ([]resources
 			return nil, errors.Wrapf(err, "Error listing resources for %s", apiResource.Kind)
 		}
 
+		// It would be a waste of cycles to iterate through empty slices while federating resource
+		if len(resourceList.Items) == 0 {
+			continue
+		}
+
 		targetResources := resources{apiResource: apiResource}
 		for _, resource := range resourceList.Items {
 			targetResources.resources = append(targetResources.resources, &resource)
 		}
-
-		// It would be a waste of cycles to iterate through empty slices while federating resource
-		if len(targetResources.resources) > 0 {
-			resourcesInNamespace = append(resourcesInNamespace, targetResources)
-		}
+		resourcesInNamespace = append(resourcesInNamespace, targetResources)
 	}
 
 	return resourcesInNamespace, nil

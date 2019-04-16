@@ -44,9 +44,18 @@ import (
 const (
 	createResourceRetryTimeout  = 10 * time.Second
 	createResourceRetryInterval = 1 * time.Second
+	federationKindPrefix        = "Federated"
 )
 
 var (
+	// Controller created resources should always be skipped while federating content
+	controllerCreatedAPIResourceNames = []string{
+		"endpoints",
+		"events",
+		"events.events.k8s.io",
+		"propagatedversions.core.federation.k8s.io",
+	}
+
 	federate_long = `
 		Federate creates a federated resource from a kubernetes resource.
 		The target resource must exist in the cluster hosting the federation
