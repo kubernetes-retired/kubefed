@@ -85,22 +85,22 @@ var _ = Describe("Federate resource", func() {
 				tl.Fatalf("Error creating resource: %v", err)
 			}
 
-			typeName := util.QualifiedName{
-				Name:      typeConfig.GetObjectMeta().Name,
-				Namespace: typeConfig.GetObjectMeta().Namespace,
-			}
+			typeName := typeConfig.GetObjectMeta().Name
+			typeNamespace := typeConfig.GetObjectMeta().Namespace
 			testResourceName := util.NewQualifiedName(createdTargetObject)
 
 			defer deleteResources(f, tl, typeConfig, testResourceName)
 
 			tl.Logf("Federating %s %q", kind, testResourceName)
 			fedKind := typeConfig.GetFederatedType().Kind
-			artifacts, err := federate.GetFederateArtifacts(kubeConfig, typeName, testResourceName, false, false)
+			artifacts, err := federate.GetFederateArtifacts(kubeConfig, typeName, typeNamespace, testResourceName, false, false)
 			if err != nil {
 				tl.Fatalf("Error getting %s from %s %q: %v", fedKind, kind, testResourceName, err)
 			}
 
-			err = federate.CreateFedResource(kubeConfig, artifacts, false)
+			artifactsList := []*federate.FederateArtifacts{}
+			artifactsList = append(artifactsList, artifacts)
+			err = federate.CreateResources(nil, kubeConfig, artifactsList, typeNamespace, false, false)
 			if err != nil {
 				tl.Fatalf("Error creating %s %q: %v", fedKind, testResourceName, err)
 			}

@@ -163,7 +163,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	if err != nil {
 		return err
 	}
-	artifactsList := []*federateArtifacts{}
+	artifactsList := []*FederateArtifacts{}
 	artifactsList = append(artifactsList, artifacts)
 
 	kind := artifacts.typeConfig.GetTarget().Kind
@@ -192,7 +192,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	return CreateResources(cmdOut, hostConfig, artifactsList, j.FederationNamespace, j.enableType, j.DryRun)
 }
 
-type federateArtifacts struct {
+type FederateArtifacts struct {
 	// Identifies if typeConfig for this type is installed
 	typeConfigInstalled bool
 
@@ -202,7 +202,7 @@ type federateArtifacts struct {
 	federatedResources []*unstructured.Unstructured
 }
 
-func GetFederateArtifacts(hostConfig *rest.Config, typeName, namespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*federateArtifacts, error) {
+func GetFederateArtifacts(hostConfig *rest.Config, typeName, namespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
 	// Lookup kubernetes API availability
 	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
 	if err != nil {
@@ -227,7 +227,7 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, namespace string, q
 
 	var federatedResources []*unstructured.Unstructured
 	federatedResources = append(federatedResources, federatedResource)
-	return &federateArtifacts{
+	return &FederateArtifacts{
 		typeConfigInstalled: typeConfigInstalled,
 		typeConfig:          typeConfig,
 		federatedResources:  federatedResources,
@@ -348,7 +348,7 @@ func getNamespace(typeConfig typeconfig.Interface, qualifiedName ctlutil.Qualifi
 	return qualifiedName.Namespace
 }
 
-func CreateResources(cmdOut io.Writer, hostConfig *rest.Config, artifactsList []*federateArtifacts, namespace string, enableType, dryRun bool) error {
+func CreateResources(cmdOut io.Writer, hostConfig *rest.Config, artifactsList []*FederateArtifacts, namespace string, enableType, dryRun bool) error {
 	for _, artifacts := range artifactsList {
 		if enableType && !artifacts.typeConfigInstalled {
 			enableTypeDirective := enable.NewEnableTypeDirective()
@@ -419,13 +419,13 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 	return nil
 }
 
-func getContainedResources(hostConfig *rest.Config, nsName string, enableType, outputYAML bool) ([]*federateArtifacts, error) {
+func getContainedResources(hostConfig *rest.Config, nsName string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
 	targetResourcesList, err := getResourcesInNamespace(hostConfig, nsName)
 	if err != nil {
 		return nil, err
 	}
 
-	artifactsList := []*federateArtifacts{}
+	artifactsList := []*FederateArtifacts{}
 	for _, targetResources := range targetResourcesList {
 		apiResource := targetResources.apiResource
 		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, nsName, enableType, outputYAML)
@@ -441,7 +441,7 @@ func getContainedResources(hostConfig *rest.Config, nsName string, enableType, o
 
 			federatedResources = append(federatedResources, federatedResource)
 		}
-		federateArtifacts := federateArtifacts{
+		federateArtifacts := FederateArtifacts{
 			typeConfigInstalled: typeConfigInstalled,
 			typeConfig:          typeConfig,
 			federatedResources:  federatedResources,
