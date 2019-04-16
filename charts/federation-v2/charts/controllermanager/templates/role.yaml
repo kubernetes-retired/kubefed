@@ -63,4 +63,5 @@ rules:
   - get
   - create
   - update
+  - patch
 {{- end }}

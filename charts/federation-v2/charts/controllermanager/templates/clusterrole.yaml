@@ -66,4 +66,5 @@ rules:
   - list
   - create
   - update
+  - patch
 {{- end }}
