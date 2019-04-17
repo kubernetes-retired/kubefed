@@ -11,6 +11,6 @@ roleRef:
   name: federation-role
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: federation-controller
   namespace: {{ .Release.Namespace }}
 {{- end }}
