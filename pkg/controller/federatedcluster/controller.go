@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/glog"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -31,7 +30,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -208,7 +206,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.FederatedClusterStatu
 	}
 
 	threshold := clusterHealthCheckConfig.FailureThreshold
-	if isClusterReady(clusterStatus) {
+	if util.IsClusterReady(clusterStatus) {
 		threshold = clusterHealthCheckConfig.SuccessThreshold
 	}
 
@@ -238,7 +236,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.FederatedClusterStatu
 func updateClusterZoneAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, clusterSpecifics *ClusterData,
 	clusterClient *ClusterClient) *fedv1a1.FederatedClusterStatus {
 
-	if !isClusterReady(clusterStatus) {
+	if !util.IsClusterReady(clusterStatus) {
 		return clusterStatus
 	}
 
@@ -263,19 +261,8 @@ func updateClusterZoneAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, c
 	return clusterStatus
 }
 
-func isClusterReady(clusterStatus *fedv1a1.FederatedClusterStatus) bool {
-	for i := 0; i < len(clusterStatus.Conditions); i++ {
-		if clusterStatus.Conditions[i].Type == fedcommon.ClusterReady {
-			if clusterStatus.Conditions[i].Status == corev1.ConditionTrue {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func clusterStatusEqual(newClusterStatus, oldClusterStatus *fedv1a1.FederatedClusterStatus) bool {
-	return isClusterReady(newClusterStatus) == isClusterReady(oldClusterStatus)
+	return util.IsClusterReady(newClusterStatus) == util.IsClusterReady(oldClusterStatus)
 }
 
 func setProbeTime(clusterStatus *fedv1a1.FederatedClusterStatus, probeTime metav1.Time) {
