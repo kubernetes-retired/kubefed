@@ -95,12 +95,12 @@ var _ = Describe("Federate resource", func() {
 
 			tl.Logf("Federating %s %q", kind, testResourceName)
 			fedKind := typeConfig.GetFederatedType().Kind
-			resources, err := federate.GetFedResources(kubeConfig, typeName, testResourceName, false)
+			artifacts, err := federate.GetFederateArtifacts(kubeConfig, typeName, testResourceName, false, false)
 			if err != nil {
 				tl.Fatalf("Error getting %s from %s %q: %v", fedKind, kind, testResourceName, err)
 			}
 
-			err = federate.CreateFedResource(kubeConfig, resources, false)
+			err = federate.CreateFedResource(kubeConfig, artifacts, false)
 			if err != nil {
 				tl.Fatalf("Error creating %s %q: %v", fedKind, testResourceName, err)
 			}
