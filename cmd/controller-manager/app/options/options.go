@@ -34,26 +34,6 @@ type Options struct {
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Config.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace, "The namespace the federation control plane is deployed in.")
-	o.setDefaults()
-}
-
-func (o *Options) setDefaults() {
-	o.FeatureGates = make(map[string]bool)
-	o.LimitedScope = false
-
-	o.Config.ClusterNamespace = util.MulticlusterPublicNamespace
-	o.Config.ClusterAvailableDelay = util.DefaultClusterAvailableDelay
-	o.Config.ClusterUnavailableDelay = util.DefaultClusterUnavailableDelay
-
-	o.LeaderElection.LeaseDuration = util.DefaultLeaderElectionLeaseDuration
-	o.LeaderElection.RenewDeadline = util.DefaultLeaderElectionRenewDeadline
-	o.LeaderElection.RetryPeriod = util.DefaultLeaderElectionRetryPeriod
-	o.LeaderElection.ResourceLock = "configmaps"
-
-	o.ClusterHealthCheckConfig.PeriodSeconds = util.DefaultClusterHealthCheckPeriod
-	o.ClusterHealthCheckConfig.FailureThreshold = util.DefaultClusterHealthCheckFailureThreshold
-	o.ClusterHealthCheckConfig.SuccessThreshold = util.DefaultClusterHealthCheckSuccessThreshold
-	o.ClusterHealthCheckConfig.TimeoutSeconds = util.DefaultClusterHealthCheckTimeout
 }
 
 func NewOptions() *Options {

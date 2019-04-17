@@ -24,14 +24,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
@@ -190,9 +193,12 @@ func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 		}
 
 		err := client.Get(context.Background(), fedConfig, namespace, name)
-		if err != nil {
+		if apierrors.IsNotFound(err) {
 			glog.Infof("Cannot retrieve FederationConfig %q: %v. Default options are used.", qualifiedName.String(), err)
 			return nil
+		}
+		if err != nil {
+			glog.Fatalf("Error retrieving FederationConfig %q: %v.", qualifiedName.String(), err)
 		}
 
 		glog.Infof("Setting Options with FederationConfig %q", qualifiedName.String())
@@ -212,15 +218,94 @@ func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 		glog.Fatalf("Cannot decode FederationConfig from file %q: %v", federationConfig, err)
 	}
 
+	// set to current namespace to make sure `FederationConfig` is updated in correct namespace
+	fedConfig.Namespace = opts.Config.FederationNamespace
 	glog.Infof("Setting Options with FederationConfig from file %q: %v", federationConfig, fedConfig.Spec)
 	return fedConfig
+}
+
+func setDuration(target *metav1.Duration, defaultValue time.Duration) {
+	if target.Duration == 0 {
+		target.Duration = defaultValue
+	}
+}
+
+func setString(target *string, defaultValue string) {
+	if *target == "" {
+		*target = defaultValue
+	}
+}
+
+func setInt(target *int, defaultValue int) {
+	if *target == 0 {
+		*target = defaultValue
+	}
+}
+
+func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
+	spec := &fedConfig.Spec
+	if spec.LimitedScope {
+		setString(&spec.RegistryNamespace, fedConfig.Namespace)
+	} else {
+		setString(&spec.RegistryNamespace, util.MulticlusterPublicNamespace)
+	}
+
+	duration := &spec.ControllerDuration
+	setDuration(&duration.AvailableDelay, util.DefaultClusterAvailableDelay)
+	setDuration(&duration.UnavailableDelay, util.DefaultClusterUnavailableDelay)
+
+	election := &spec.LeaderElect
+	setString(&election.ResourceLock, util.DefaultLeaderElectionResourceLock)
+	setDuration(&election.RetryPeriod, util.DefaultLeaderElectionRetryPeriod)
+	setDuration(&election.RenewDeadline, util.DefaultLeaderElectionRenewDeadline)
+	setDuration(&election.LeaseDuration, util.DefaultLeaderElectionLeaseDuration)
+
+	healthCheck := &spec.ClusterHealthCheck
+	setInt(&healthCheck.PeriodSeconds, util.DefaultClusterHealthCheckPeriod)
+	setInt(&healthCheck.TimeoutSeconds, util.DefaultClusterHealthCheckTimeout)
+	setInt(&healthCheck.FailureThreshold, util.DefaultClusterHealthCheckFailureThreshold)
+	setInt(&healthCheck.SuccessThreshold, util.DefaultClusterHealthCheckSuccessThreshold)
+
+}
+
+func updateFederationConfig(config *rest.Config, fedConfig *corev1a1.FederationConfig) {
+	name := fedConfig.Name
+	namespace := fedConfig.Namespace
+	qualifiedName := util.QualifiedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+
+	configResource := &corev1a1.FederationConfig{}
+	client := genericclient.NewForConfigOrDieWithUserAgent(config, "federationconfig")
+	err := client.Get(context.Background(), configResource, namespace, name)
+	if err != nil && !apierrors.IsNotFound(err) {
+		glog.Fatalf("Error retrieving FederationConfig %q: %v", qualifiedName, err)
+	}
+	if apierrors.IsNotFound(err) {
+		// if `--federation-config` is specifed but there is not FederationConfig resource accordingly
+		err = client.Create(context.Background(), fedConfig)
+		if err != nil {
+			glog.Fatalf("Error creating FederationConfig %q: %v", qualifiedName, err)
+		}
+	} else {
+		configResource.Spec = fedConfig.Spec
+		err = client.Update(context.Background(), configResource)
+		if err != nil {
+			glog.Fatalf("Error updating FederationConfig %q: %v", qualifiedName, err)
+		}
+	}
 }
 
 func setOptionsByFederationConfig(opts *options.Options) {
 	fedConfig := getFederationConfig(opts)
 	if fedConfig == nil {
-		return
+		// FederationConfig could not be sourced from --federation-config or from the API.
+		// create a new `FederationConfig` with default values.
+		fedConfig = &corev1a1.FederationConfig{}
 	}
+
+	setDefaultFederationConfig(fedConfig)
 
 	spec := fedConfig.Spec
 	opts.LimitedScope = spec.LimitedScope
@@ -238,6 +323,8 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	opts.ClusterHealthCheckConfig.TimeoutSeconds = spec.ClusterHealthCheck.TimeoutSeconds
 	opts.ClusterHealthCheckConfig.FailureThreshold = spec.ClusterHealthCheck.FailureThreshold
 	opts.ClusterHealthCheckConfig.SuccessThreshold = spec.ClusterHealthCheck.SuccessThreshold
+
+	updateFederationConfig(opts.Config.KubeConfig, fedConfig)
 
 	var featureGates = make(map[string]bool)
 	for _, v := range fedConfig.Spec.FeatureGates {
