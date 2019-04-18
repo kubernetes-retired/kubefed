@@ -34,26 +34,23 @@ const (
 
 	// RecordTypeA is a RecordType enum value
 	RecordTypeA = "A"
+
 	// RecordTypeCNAME is a RecordType enum value
 	RecordTypeCNAME = "CNAME"
 )
 
-// Abstracting away the internet for testing purposes
+// NetWrapper abstracts away the internet for testing purposes
 type NetWrapper interface {
 	LookupHost(host string) (addrs []string, err error)
 }
 
-type NetWrapperDefaultImplementation struct{}
+type defaultNetWrapperImpl struct{}
 
-func (r *NetWrapperDefaultImplementation) LookupHost(host string) (addrs []string, err error) {
+func (r *defaultNetWrapperImpl) LookupHost(host string) (addrs []string, err error) {
 	return net.LookupHost(host)
 }
 
-var netWrapper NetWrapper
-
-func init() {
-	netWrapper = &NetWrapperDefaultImplementation{}
-}
+var netWrapper NetWrapper = &defaultNetWrapperImpl{}
 
 // getResolvedTargets performs DNS resolution on the provided slice of endpoints (which might be DNS names
 // or IPv4 addresses) and returns a list of IPv4 addresses.  If any of the endpoints are neither valid IPv4
