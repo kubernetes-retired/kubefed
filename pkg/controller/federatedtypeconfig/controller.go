@@ -289,11 +289,11 @@ func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error
 	// cluster-scoped federation control plane.  A namespace-scoped
 	// control plane would still have to use a non-shared informer due
 	// to it not being possible to limit its scope.
+	kind := tc.Spec.FederatedType.Kind
 	fedNamespaceAPIResource, err := c.getFederatedNamespaceAPIResource()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Unable to start sync controller for %q due to missing FederatedTypeConfig for namespaces", kind)
 	}
-	kind := tc.Spec.FederatedType.Kind
 	stopChan := make(chan struct{})
 	err = synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc, fedNamespaceAPIResource)
 	if err != nil {
