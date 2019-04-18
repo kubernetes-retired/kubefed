@@ -23,7 +23,7 @@ spec:
       serviceAccountName: federation-controller
       containers:
       - args:
-{{- if .Values.global.limitedScope }}
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
         - --federation-namespace=$(FEDERATION_NAMESPACE)
 {{- else }}
 {{- if .Values.federationNamespace }}
@@ -39,7 +39,7 @@ spec:
 {{- if .Values.resources }}
 {{ toYaml .Values.resources | indent 12 }}
 {{- end }}
-{{- if .Values.global.limitedScope }}
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
         env:
         - name: FEDERATION_NAMESPACE
           valueFrom:

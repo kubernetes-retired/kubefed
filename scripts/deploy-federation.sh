@@ -86,7 +86,7 @@ EOF
   local cmd
   if [[ "${NAMESPACED}" ]]; then
     cmd="$(helm-deploy-cmd federation-v2-${NS} ${NS} ${repository} ${image} ${tag})"
-    cmd="${cmd} --set global.limitedScope=true"
+    cmd="${cmd} --set global.scope=Namespaced"
   else
     cmd="$(helm-deploy-cmd federation-v2 ${NS} ${repository} ${image} ${tag})"
   fi
