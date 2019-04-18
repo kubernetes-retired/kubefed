@@ -83,14 +83,32 @@ EOF
   IMAGE=${IMAGE_TAG%:*}
   TAG=${IMAGE_TAG#*:}
 
+  local cmd
   if [[ "${NAMESPACED}" ]]; then
-      helm install charts/federation-v2 --name federation-v2-${NS} --namespace ${NS} \
-          --set controllermanager.repository=${REPOSITORY} --set controllermanager.image=${IMAGE} --set controllermanager.tag=${TAG} \
-          --set global.limitedScope=true
+    cmd="$(helm-deploy-cmd federation-v2-${NS} ${NS} ${REPOSITORY} ${IMAGE} ${TAG})"
+    cmd="${cmd} --set global.limitedScope=true"
   else
-      helm install charts/federation-v2 --name federation-v2 --namespace ${NS} \
-          --set controllermanager.repository=${REPOSITORY} --set controllermanager.image=${IMAGE} --set controllermanager.tag=${TAG}
+    cmd="$(helm-deploy-cmd federation-v2 ${NS} ${REPOSITORY} ${IMAGE} ${TAG})"
   fi
+
+  if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
+    cmd="${cmd} --set controllermanager.imagePullPolicy=${IMAGE_PULL_POLICY}"
+  fi
+
+  ${cmd}
+}
+
+function helm-deploy-cmd {
+  # Required arguments
+  local name="${1}"
+  local ns="${2}"
+  local repo="${3}"
+  local image="${4}"
+  local tag="${5}"
+
+  echo "helm install charts/federation-v2 --name ${name} --namespace ${ns} \
+      --set controllermanager.repository=${repo} --set controllermanager.image=${image} \
+      --set controllermanager.tag=${tag}"
 }
 
 NS="${FEDERATION_NAMESPACE:-federation-system}"
