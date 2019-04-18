@@ -61,9 +61,6 @@ else
 fi
 
 KF_NS_ARG="--federation-namespace=${NS} "
-if [[ "${NAMESPACED}" ]]; then
-  KF_NS_ARG+="--registry-namespace=${NS}"
-fi
 
 # Unjoin clusters by removing objects added by kubefed2.
 HOST_CLUSTER="$(kubectl config current-context)"

@@ -124,9 +124,6 @@ else
 fi
 
 KF_NS_ARGS="--federation-namespace=${NS} "
-if [[ "${NAMESPACED}" ]]; then
-  KF_NS_ARGS+="--registry-namespace=${NS} --limited-scope=true"
-fi
 
 if [[ -z "${IMAGE_NAME}" ]]; then
   >&2 echo "Usage: $0 <image> [join-cluster]...
