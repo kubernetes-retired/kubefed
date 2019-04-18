@@ -29,6 +29,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -111,7 +112,7 @@ func Run(opts *options.Options) error {
 		glog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
-	if opts.LimitedScope {
+	if opts.Scope == apiextv1b1.NamespaceScoped {
 		opts.Config.TargetNamespace = opts.Config.FederationNamespace
 		glog.Infof("Federation will be limited to the %q namespace", opts.Config.FederationNamespace)
 	} else {
@@ -244,7 +245,7 @@ func setInt(target *int, defaultValue int) {
 
 func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
 	spec := &fedConfig.Spec
-	if spec.LimitedScope {
+	if spec.Scope == apiextv1b1.NamespaceScoped {
 		setString(&spec.RegistryNamespace, fedConfig.Namespace)
 	} else {
 		setString(&spec.RegistryNamespace, util.MulticlusterPublicNamespace)
@@ -308,7 +309,7 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	setDefaultFederationConfig(fedConfig)
 
 	spec := fedConfig.Spec
-	opts.LimitedScope = spec.LimitedScope
+	opts.Scope = spec.Scope
 
 	opts.Config.ClusterNamespace = spec.RegistryNamespace
 	opts.Config.ClusterAvailableDelay = spec.ControllerDuration.AvailableDelay.Duration

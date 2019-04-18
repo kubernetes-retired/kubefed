@@ -20,13 +20,14 @@ package options
 import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/spf13/pflag"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
 // Options contains everything necessary to create and run controller-manager.
 type Options struct {
 	Config                   *util.ControllerConfig
 	FeatureGates             map[string]bool
-	LimitedScope             bool
+	Scope                    apiextv1b1.ResourceScope
 	LeaderElection           *util.LeaderElectionConfiguration
 	ClusterHealthCheckConfig util.ClusterHealthCheckConfig
 }

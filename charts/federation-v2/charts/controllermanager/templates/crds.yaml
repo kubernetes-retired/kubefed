@@ -392,6 +392,11 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            scope:
+              description: Whether the federation namespace will be the only target
+                for federation.
+              type: string
           type: object
   version: v1alpha1
 status:

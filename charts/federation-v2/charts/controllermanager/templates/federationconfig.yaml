@@ -4,7 +4,7 @@ metadata:
   name: federation-v2
   namespace: {{ .Release.Namespace }}
 spec:
-  limited-scope: {{ .Values.global.limitedScope }}
+  scope: {{ .Values.global.limitedScope }}
 {{- if .Values.registryNamespace }}
   registry-namespace: {{ .Values.registryNamespace }}
 {{- else }}

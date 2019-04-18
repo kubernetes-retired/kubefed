@@ -35,6 +35,7 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -91,7 +92,7 @@ type joinFederation struct {
 type joinFederationOptions struct {
 	secretName      string
 	addToRegistry   bool
-	limitedScope    bool
+	Scope           apiextv1b1.ResourceScope
 	errorOnExisting bool
 }
 
@@ -174,7 +175,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.limitedScope, j.ClusterNamespace, err = options.GetOptionsFromFederationConfig(hostConfig, j.FederationNamespace)
+	j.Scope, j.ClusterNamespace, err = options.GetOptionsFromFederationConfig(hostConfig, j.FederationNamespace)
 	if err != nil {
 		return err
 	}
@@ -191,13 +192,13 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return JoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		hostClusterName, j.ClusterName, j.secretName, j.addToRegistry, j.limitedScope, j.DryRun, j.errorOnExisting)
+		hostClusterName, j.ClusterName, j.secretName, j.addToRegistry, j.Scope, j.DryRun, j.errorOnExisting)
 }
 
 // JoinCluster performs all the necessary steps to join a cluster to the
 // federation provided the required set of parameters are passed in.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace,
-	hostClusterName, joiningClusterName, secretName string, addToRegistry, limitedScope, dryRun, errorOnExisting bool) error {
+	hostClusterName, joiningClusterName, secretName string, addToRegistry bool, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
@@ -252,7 +253,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 
 	secret, err := createRBACSecret(hostClientset, clusterClientset,
 		federationNamespace, joiningClusterName, hostClusterName,
-		secretName, limitedScope, dryRun, errorOnExisting)
+		secretName, Scope, dryRun, errorOnExisting)
 	if err != nil {
 		glog.V(2).Infof("Could not create cluster credentials secret: %v", err)
 		return err
@@ -467,7 +468,7 @@ func createFederationNamespace(clusterClientset kubeclient.Interface, federation
 // access the joining cluster.
 func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.Interface,
 	namespace, joiningClusterName, hostClusterName,
-	secretName string, limitedScope, dryRun, errorOnExisting bool) (*corev1.Secret, error) {
+	secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, error) {
 
 	glog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
@@ -481,7 +482,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 
 	glog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	if limitedScope {
+	if Scope == apiextv1b1.NamespaceScoped {
 		glog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)

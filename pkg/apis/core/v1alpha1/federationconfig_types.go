@@ -17,13 +17,15 @@ limitations under the License.
 package v1alpha1
 
 import (
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // FederationConfigSpec defines the desired state of FederationConfig
 type FederationConfigSpec struct {
-	// Whether the federation namespace will be the only target for federation.
-	LimitedScope bool `json:"limited-scope,omitempty"`
+	// The scope of the federation control plane should be either `Namespaced` or `Cluster`.
+	// `Namespaced` indicates that the federation namespace will be the only target for federation.
+	Scope apiextv1b1.ResourceScope `json:"scope,omitempty"`
 	// The cluster registry namespace.
 	RegistryNamespace  string                   `json:"registry-namespace,omitempty"`
 	ControllerDuration DurationConfig           `json:"controller-duration,omitempty"`
