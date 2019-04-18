@@ -18,19 +18,17 @@ limitations under the License.
 package options
 
 import (
-	"time"
-
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/spf13/pflag"
 )
 
 // Options contains everything necessary to create and run controller-manager.
 type Options struct {
-	Config               *util.ControllerConfig
-	FeatureGates         map[string]bool
-	ClusterMonitorPeriod time.Duration
-	LimitedScope         bool
-	LeaderElection       *util.LeaderElectionConfiguration
+	Config                   *util.ControllerConfig
+	FeatureGates             map[string]bool
+	LimitedScope             bool
+	LeaderElection           *util.LeaderElectionConfiguration
+	ClusterHealthCheckConfig util.ClusterHealthCheckConfig
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -42,7 +40,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 func (o *Options) setDefaults() {
 	o.FeatureGates = make(map[string]bool)
 	o.LimitedScope = false
-	o.ClusterMonitorPeriod = util.DefaultClusterMonitorPeriod
 
 	o.Config.ClusterNamespace = util.MulticlusterPublicNamespace
 	o.Config.ClusterAvailableDelay = util.DefaultClusterAvailableDelay
@@ -52,6 +49,11 @@ func (o *Options) setDefaults() {
 	o.LeaderElection.RenewDeadline = util.DefaultLeaderElectionRenewDeadline
 	o.LeaderElection.RetryPeriod = util.DefaultLeaderElectionRetryPeriod
 	o.LeaderElection.ResourceLock = "configmaps"
+
+	o.ClusterHealthCheckConfig.PeriodSeconds = util.DefaultClusterHealthCheckPeriod
+	o.ClusterHealthCheckConfig.FailureThreshold = util.DefaultClusterHealthCheckFailureThreshold
+	o.ClusterHealthCheckConfig.SuccessThreshold = util.DefaultClusterHealthCheckSuccessThreshold
+	o.ClusterHealthCheckConfig.TimeoutSeconds = util.DefaultClusterHealthCheckTimeout
 }
 
 func NewOptions() *Options {

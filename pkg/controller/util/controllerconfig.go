@@ -55,6 +55,14 @@ type FederationNamespaces struct {
 	TargetNamespace     string
 }
 
+// ClusterHealthCheckConfig defines the configurable parameters for cluster health check
+type ClusterHealthCheckConfig struct {
+	PeriodSeconds    int
+	FailureThreshold int
+	SuccessThreshold int
+	TimeoutSeconds   int
+}
+
 // ControllerConfig defines the configuration common to federation
 // controllers.
 type ControllerConfig struct {

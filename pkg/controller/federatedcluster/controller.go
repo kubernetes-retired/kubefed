@@ -18,44 +18,48 @@ package federatedcluster
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/features"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/features"
 )
+
+// ClusterData stores cluster client and previous health check probe results of individual cluster.
+type ClusterData struct {
+	// clusterKubeClient is the kube client for the cluster.
+	clusterKubeClient *ClusterClient
+
+	// clusterStatus is the cluster status as of last sampling.
+	clusterStatus *fedv1a1.FederatedClusterStatus
+
+	// How many times in a row the probe has returned the same result.
+	resultRun int
+}
 
 // ClusterController is responsible for maintaining the health status of each
 // FederatedCluster in a particular namespace.
 type ClusterController struct {
 	client genericclient.Client
 
-	// clusterMonitorPeriod is the period for updating status of cluster
-	clusterMonitorPeriod time.Duration
+	// clusterHealthCheckConfig is the configurable parameters for cluster health check
+	clusterHealthCheckConfig util.ClusterHealthCheckConfig
 
 	mu sync.RWMutex
 
-	// knownClusterSet is the set of clusters known to this controller.
-	knownClusterSet sets.String
-
-	// clusterStatusMap is a mapping of clusterName and cluster status as
-	// of last sampling.
-	clusterStatusMap map[string]fedv1a1.FederatedClusterStatus
-
-	// clusterKubeClientMap is a mapping of clusterName and the ClusterClient
-	// for that cluster.
-	clusterKubeClientMap map[string]ClusterClient
+	// clusterDataMap is a mapping of clusterName and the cluster specific details.
+	clusterDataMap map[string]*ClusterData
 
 	// clusterController is the cache.Controller where callbacks are registered
 	// for events on FederatedClusters.
@@ -70,8 +74,8 @@ type ClusterController struct {
 }
 
 // StartClusterController starts a new cluster controller.
-func StartClusterController(config *util.ControllerConfig, stopChan <-chan struct{}, clusterMonitorPeriod time.Duration) error {
-	controller, err := newClusterController(config, clusterMonitorPeriod)
+func StartClusterController(config *util.ControllerConfig, clusterHealthCheckConfig util.ClusterHealthCheckConfig, stopChan <-chan struct{}) error {
+	controller, err := newClusterController(config, clusterHealthCheckConfig)
 	if err != nil {
 		return err
 	}
@@ -81,17 +85,17 @@ func StartClusterController(config *util.ControllerConfig, stopChan <-chan struc
 }
 
 // newClusterController returns a new cluster controller
-func newClusterController(config *util.ControllerConfig, clusterMonitorPeriod time.Duration) (*ClusterController, error) {
-	client := genericclient.NewForConfigOrDieWithUserAgent(config.KubeConfig, "cluster-controller")
+func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig util.ClusterHealthCheckConfig) (*ClusterController, error) {
+	kubeConfig := restclient.CopyConfig(config.KubeConfig)
+	kubeConfig.Timeout = time.Duration(clusterHealthCheckConfig.TimeoutSeconds) * time.Second
+	client := genericclient.NewForConfigOrDieWithUserAgent(kubeConfig, "cluster-controller")
 
 	cc := &ClusterController{
-		knownClusterSet:      make(sets.String),
-		client:               client,
-		clusterMonitorPeriod: clusterMonitorPeriod,
-		clusterStatusMap:     make(map[string]fedv1a1.FederatedClusterStatus),
-		clusterKubeClientMap: make(map[string]ClusterClient),
-		fedNamespace:         config.FederationNamespace,
-		clusterNamespace:     config.ClusterNamespace,
+		client:                   client,
+		clusterHealthCheckConfig: clusterHealthCheckConfig,
+		clusterDataMap:           make(map[string]*ClusterData),
+		fedNamespace:             config.FederationNamespace,
+		clusterNamespace:         config.ClusterNamespace,
 	}
 	var err error
 	_, cc.clusterController, err = util.NewGenericInformerWithEventHandler(
@@ -107,48 +111,32 @@ func newClusterController(config *util.ControllerConfig, clusterMonitorPeriod ti
 	return cc, err
 }
 
-// delFromClusterSet delete a cluster from clusterSet and
-// delete the corresponding restclient from the map clusterKubeClientMap
+// delFromClusterSet removes a cluster from the cluster data map
 func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	cluster := obj.(*fedv1a1.FederatedCluster)
-	cc.delFromClusterSetByName(cluster.Name)
+	glog.V(1).Infof("ClusterController observed a cluster deletion: %v", cluster.Name)
+	delete(cc.clusterDataMap, cluster.Name)
 }
 
-// delFromClusterSetByName delete a cluster from clusterSet by name and
-// delete the corresponding restclient from the map clusterKubeClientMap.
-// Caller must make sure that they hold the mutex
-func (cc *ClusterController) delFromClusterSetByName(clusterName string) {
-	glog.V(1).Infof("ClusterController observed a cluster deletion: %v", clusterName)
-	cc.knownClusterSet.Delete(clusterName)
-	delete(cc.clusterKubeClientMap, clusterName)
-	delete(cc.clusterStatusMap, clusterName)
-}
-
+// addToClusterSet creates a new client for the cluster and stores it in cluster data map.
 func (cc *ClusterController) addToClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	cluster := obj.(*fedv1a1.FederatedCluster)
-	cc.addToClusterSetWithoutLock(cluster)
-}
-
-// addToClusterSetWithoutLock inserts the new cluster to clusterSet and create
-// a corresponding restclient to map clusterKubeClientMap if the cluster is not
-// known. Caller must make sure that they hold the mutex.
-func (cc *ClusterController) addToClusterSetWithoutLock(cluster *fedv1a1.FederatedCluster) {
-	if cc.knownClusterSet.Has(cluster.Name) {
+	clusterData := cc.clusterDataMap[cluster.Name]
+	if clusterData != nil && clusterData.clusterKubeClient != nil {
 		return
 	}
 	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
-	cc.knownClusterSet.Insert(cluster.Name)
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterNamespace)
 	if err != nil || restClient == nil {
 		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
 	}
-	cc.clusterKubeClientMap[cluster.Name] = *restClient
+	cc.clusterDataMap[cluster.Name] = &ClusterData{clusterKubeClient: restClient}
 }
 
 // Run begins watching and syncing.
@@ -160,10 +148,10 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 		if err := cc.updateClusterStatus(); err != nil {
 			glog.Errorf("Error monitoring cluster status: %v", err)
 		}
-	}, cc.clusterMonitorPeriod, stopChan)
+	}, time.Duration(cc.clusterHealthCheckConfig.PeriodSeconds)*time.Second, stopChan)
 }
 
-// updateClusterStatus checks cluster status and get the metrics from cluster's restapi
+// updateClusterStatus checks cluster health and updates status of all FederatedClusters
 func (cc *ClusterController) updateClusterStatus() error {
 	clusters := &fedv1a1.FederatedClusterList{}
 	err := cc.client.List(context.TODO(), clusters, cc.fedNamespace)
@@ -171,71 +159,120 @@ func (cc *ClusterController) updateClusterStatus() error {
 		return err
 	}
 
-	for _, cluster := range clusters.Items {
+	var wg sync.WaitGroup
+	for _, obj := range clusters.Items {
 		cc.mu.RLock()
-		// skip updating status of the cluster which is not yet added to knownClusterSet.
-		if !cc.knownClusterSet.Has(cluster.Name) {
-			cc.mu.RUnlock()
-			continue
-		}
-		clusterClient, clientFound := cc.clusterKubeClientMap[cluster.Name]
-		clusterStatusOld, statusFound := cc.clusterStatusMap[cluster.Name]
+		cluster := obj.DeepCopy()
+		clusterData := cc.clusterDataMap[cluster.Name]
 		cc.mu.RUnlock()
-
-		if !clientFound {
-			glog.Warningf("Failed to get client for cluster %s", cluster.Name)
+		if clusterData == nil {
+			glog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
 			continue
 		}
-		clusterStatusNew := clusterClient.GetClusterHealthStatus()
-		if !statusFound {
-			glog.Infof("There is no status stored for cluster: %v before", cluster.Name)
-		} else {
-			hasTransition := false
-			if len(clusterStatusNew.Conditions) != len(clusterStatusOld.Conditions) {
-				hasTransition = true
-			} else {
-				for i := 0; i < len(clusterStatusNew.Conditions); i++ {
-					if !(strings.EqualFold(string(clusterStatusNew.Conditions[i].Type), string(clusterStatusOld.Conditions[i].Type)) &&
-						strings.EqualFold(string(clusterStatusNew.Conditions[i].Status), string(clusterStatusOld.Conditions[i].Status))) {
-						hasTransition = true
-						break
-					}
-				}
-			}
 
-			if !hasTransition {
-				for j := 0; j < len(clusterStatusNew.Conditions); j++ {
-					clusterStatusNew.Conditions[j].LastTransitionTime = clusterStatusOld.Conditions[j].LastTransitionTime
-				}
-			}
-		}
+		wg.Add(1)
+		go cc.updateIndividualClusterStatus(cluster, clusterData, &wg)
+	}
 
-		if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-			zone, region, err := clusterClient.GetClusterZones()
-			if err != nil {
-				glog.Warningf("Failed to get zones and region for cluster %s: %v", cluster.Name, err)
-			} else {
-				if len(zone) == 0 {
-					zone = cluster.Status.Zone
-				}
-				if len(region) == 0 {
-					region = cluster.Status.Region
-				}
-				clusterStatusNew.Zone = zone
-				clusterStatusNew.Region = region
-			}
-		}
+	wg.Wait()
+	return nil
+}
 
-		cc.mu.Lock()
-		cc.clusterStatusMap[cluster.Name] = *clusterStatusNew
-		cc.mu.Unlock()
-		cluster.Status = *clusterStatusNew
-		err = cc.client.UpdateStatus(context.TODO(), &cluster)
-		if err != nil {
-			glog.Warningf("Failed to update the status of cluster: %v, error is : %v", cluster.Name, err)
-			// Don't return err here, as we want to continue processing remaining clusters.
-			continue
+func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.FederatedCluster,
+	storedData *ClusterData, wg *sync.WaitGroup) {
+	clusterClient := storedData.clusterKubeClient
+
+	currentClusterStatus := clusterClient.GetClusterHealthStatus()
+	currentClusterStatus = thresholdAdjustedClusterStatus(currentClusterStatus, storedData, cc.clusterHealthCheckConfig)
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
+		currentClusterStatus = updateClusterZoneAndRegion(currentClusterStatus, storedData, clusterClient)
+	}
+
+	storedData.clusterStatus = currentClusterStatus
+	cluster.Status = *currentClusterStatus
+	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
+		glog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
+	}
+	wg.Done()
+}
+
+func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.FederatedClusterStatus, storedData *ClusterData,
+	clusterHealthCheckConfig util.ClusterHealthCheckConfig) *fedv1a1.FederatedClusterStatus {
+
+	if storedData.clusterStatus == nil {
+		storedData.resultRun = 1
+		return clusterStatus
+	}
+
+	threshold := clusterHealthCheckConfig.FailureThreshold
+	if util.IsClusterReady(clusterStatus) {
+		threshold = clusterHealthCheckConfig.SuccessThreshold
+	}
+
+	if storedData.resultRun < threshold {
+		// Success/Failure is below threshold - leave the probe state unchanged.
+		probeTime := clusterStatus.Conditions[0].LastProbeTime
+		clusterStatus = storedData.clusterStatus
+		setProbeTime(clusterStatus, probeTime)
+	} else {
+		if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
+			// preserve the last transition time
+			setTransitionTime(clusterStatus, storedData.clusterStatus.Conditions[0].LastTransitionTime)
 		}
 	}
-	return nil
+
+	if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
+		// Increment the result run has there is no change in cluster condition
+		storedData.resultRun++
+	} else {
+		// Reset the result run
+		storedData.resultRun = 1
+	}
+
+	return clusterStatus
+}
+
+func updateClusterZoneAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, clusterSpecifics *ClusterData,
+	clusterClient *ClusterClient) *fedv1a1.FederatedClusterStatus {
+
+	if !util.IsClusterReady(clusterStatus) {
+		return clusterStatus
+	}
+
+	zone, region, err := clusterClient.GetClusterZones()
+	if err != nil {
+		glog.Warningf("Failed to get zones and region for cluster %q: %v", clusterClient.clusterName, err)
+	} else {
+		// If new zone & region are empty, preserve the old ones so that user configured zone & region
+		// labels are effective
+		if clusterSpecifics.clusterStatus != nil {
+			if len(zone) == 0 {
+				zone = clusterSpecifics.clusterStatus.Zone
+			}
+			if len(region) == 0 {
+				region = clusterSpecifics.clusterStatus.Region
+			}
+		}
+		clusterStatus.Zone = zone
+		clusterStatus.Region = region
+	}
+
+	return clusterStatus
+}
+
+func clusterStatusEqual(newClusterStatus, oldClusterStatus *fedv1a1.FederatedClusterStatus) bool {
+	return util.IsClusterReady(newClusterStatus) == util.IsClusterReady(oldClusterStatus)
+}
+
+func setProbeTime(clusterStatus *fedv1a1.FederatedClusterStatus, probeTime metav1.Time) {
+	for i := 0; i < len(clusterStatus.Conditions); i++ {
+		clusterStatus.Conditions[i].LastProbeTime = probeTime
+	}
+}
+
+func setTransitionTime(clusterStatus *fedv1a1.FederatedClusterStatus, transitionTime metav1.Time) {
+	for i := 0; i < len(clusterStatus.Conditions); i++ {
+		clusterStatus.Conditions[i].LastTransitionTime = transitionTime
+	}
 }

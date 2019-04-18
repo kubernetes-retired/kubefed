@@ -27,10 +27,13 @@ controllermanager:
   registryNamespace:
   clusterAvailableDelay:
   clusterUnavailableDelay:
-  clusterMonitorPeriod:
   leaderElectLeaseDuration:
   leaderElectRenewDeadline:
   leaderElectRetryPeriod:
+  clusterHealthCheckPeriodSeconds:
+  clusterHealthCheckFailureThreshold:
+  clusterHealthCheckSuccessThreshold:
+  clusterHealthCheckTimeoutSeconds:
   ## Supported options are `configmaps` and `endpoints`
   leaderElectResourceLock:
   ## Value of feature gates item should be either `true` or `false`

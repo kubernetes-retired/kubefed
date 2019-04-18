@@ -53,7 +53,7 @@ func clusterIsReadyOrFail(tl common.TestLogger, client genericclient.Client,
 	namespace string, interval, timeout time.Duration, cluster *fedv1a1.FederatedCluster) {
 	clusterName := cluster.Name
 	tl.Logf("Checking readiness for federated cluster %q", clusterName)
-	if util.IsClusterReady(cluster) {
+	if util.IsClusterReady(&cluster.Status) {
 		return
 	}
 	err := wait.Poll(interval, timeout, func() (bool, error) {
@@ -62,7 +62,7 @@ func clusterIsReadyOrFail(tl common.TestLogger, client genericclient.Client,
 		if err != nil {
 			return false, err
 		}
-		return util.IsClusterReady(cluster), nil
+		return util.IsClusterReady(&cluster.Status), nil
 	})
 	if err != nil {
 		tl.Fatalf("Error determining readiness for cluster %q: %+v", clusterName, err)

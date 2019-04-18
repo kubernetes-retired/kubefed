@@ -28,6 +28,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 )
@@ -43,7 +44,8 @@ const (
 // ClusterClient provides methods for determining the status and zones of a
 // particular FederatedCluster.
 type ClusterClient struct {
-	kubeClient *kubeclientset.Clientset
+	kubeClient  *kubeclientset.Clientset
+	clusterName string
 }
 
 // NewClusterClientSet returns a ClusterClient for the given FederatedCluster.
@@ -55,7 +57,7 @@ func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fed
 	if err != nil {
 		return nil, err
 	}
-	var clusterClientSet = ClusterClient{}
+	var clusterClientSet = ClusterClient{clusterName: c.Name}
 	if clusterConfig != nil {
 		clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
 		if clusterClientSet.kubeClient == nil {
@@ -85,7 +87,7 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterSta
 		LastProbeTime:      currentTime,
 		LastTransitionTime: currentTime,
 	}
-	newNodeOfflineCondition := fedv1a1.ClusterCondition{
+	newClusterOfflineCondition := fedv1a1.ClusterCondition{
 		Type:               fedcommon.ClusterOffline,
 		Status:             corev1.ConditionTrue,
 		Reason:             "ClusterNotReachable",
@@ -93,7 +95,7 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterSta
 		LastProbeTime:      currentTime,
 		LastTransitionTime: currentTime,
 	}
-	newNodeNotOfflineCondition := fedv1a1.ClusterCondition{
+	newClusterNotOfflineCondition := fedv1a1.ClusterCondition{
 		Type:               fedcommon.ClusterOffline,
 		Status:             corev1.ConditionFalse,
 		Reason:             "ClusterReachable",
@@ -103,10 +105,11 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterSta
 	}
 	body, err := self.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do().Raw()
 	if err != nil {
-		clusterStatus.Conditions = append(clusterStatus.Conditions, newNodeOfflineCondition)
+		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", self.clusterName))
+		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
 	} else {
 		if !strings.EqualFold(string(body), "ok") {
-			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterNotReadyCondition, newNodeNotOfflineCondition)
+			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterNotReadyCondition, newClusterNotOfflineCondition)
 		} else {
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
 		}
