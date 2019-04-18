@@ -78,17 +78,17 @@ EOF
     util::wait-for-condition "Tiller to become ready" "helm version --server &> /dev/null" 120
   fi
 
-  REPOSITORY=${IMAGE_NAME%/*}
-  IMAGE_TAG=${IMAGE_NAME##*/}
-  IMAGE=${IMAGE_TAG%:*}
-  TAG=${IMAGE_TAG#*:}
+  local repository=${IMAGE_NAME%/*}
+  local image_tag=${IMAGE_NAME##*/}
+  local image=${image_tag%:*}
+  local tag=${image_tag#*:}
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd federation-v2-${NS} ${NS} ${REPOSITORY} ${IMAGE} ${TAG})"
+    cmd="$(helm-deploy-cmd federation-v2-${NS} ${NS} ${repository} ${image} ${tag})"
     cmd="${cmd} --set global.limitedScope=true"
   else
-    cmd="$(helm-deploy-cmd federation-v2 ${NS} ${REPOSITORY} ${IMAGE} ${TAG})"
+    cmd="$(helm-deploy-cmd federation-v2 ${NS} ${repository} ${image} ${tag})"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
