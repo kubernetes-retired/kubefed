@@ -23,6 +23,7 @@ HOST_OS ?= $(shell uname -s | tr A-Z a-z)
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
 GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
+GIT_BRANCH = $(shell git symbolic-ref --short -q HEAD)
 GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
@@ -34,8 +35,6 @@ DIFF = $(shell git diff --quiet >/dev/null 2>&1; if [ $$? -eq 1 ]; then echo "1"
 ifeq ($(DIFF), 1)
     GIT_TREESTATE = "dirty"
 endif
-
-BRANCH = $(shell git symbolic-ref -q --short HEAD)
 
 ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
@@ -119,10 +118,19 @@ endif
 	./scripts/sync-up-helm-chart.sh
 
 push: container
-        ifeq ($(BRANCH), master)
-		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):canary; \
-		$(DOCKER) push $(REGISTRY)/$(TARGET):canary;
-        endif
+
+	if [ -z "$(TRAVIS_PULL_REQUEST)" ]; \
+	then \
+		$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION); \
+	elif [ "$(TRAVIS_PULL_REQUEST)" = "false" ]; \
+	then \
+		$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io; \
+		if [ "$(GIT_BRANCH)" = "master" ]; \
+		then \
+			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):canary; \
+			$(DOCKER) push $(REGISTRY)/$(TARGET):canary; \
+		fi \
+	fi
 
 	if git describe --tags --exact-match >/dev/null 2>&1; \
 	then \
