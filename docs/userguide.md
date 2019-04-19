@@ -477,18 +477,13 @@ providing additional arguments to `kubefed2 join`:
 
 - `--federation-namespace=<namespace>` to ensure the cluster is joined
   to the federation running in the specified namespace
-- `--registry-namespace=<namespace>` if using `--add-to-registry` to
-  ensure the cluster is registered in the correct namespace
-- `--limited-scope=true` to ensure that the scope of the service account created in
-  the target cluster is limited to the federation namespace
 
 To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for deployment:
 
 ```bash
 ./bin/kubefed2 join mycluster --cluster-context mycluster \
     --host-cluster-context mycluster --add-to-registry --v=2 \
-    --federation-namespace=test-namespace --registry-namespace=test-namespace \
-    --limited-scope=true
+    --federation-namespace=test-namespace
 ```
 
 ## Local Value Retention
