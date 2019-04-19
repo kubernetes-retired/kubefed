@@ -76,7 +76,7 @@ vet:
 fmt:
 	$(shell ./hack/update-gofmt.sh)
 
-container: hyperfed
+container: $(HYPERFED_TARGET)-linux
 	cp -f $(HYPERFED_TARGET)-linux images/federation-v2/hyperfed
 	$(DOCKER) build images/federation-v2 -t $(IMAGE_NAME)
 	rm -f images/federation-v2/hyperfed
