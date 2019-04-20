@@ -33,6 +33,7 @@ spec:
         command:
         - /root/controller-manager
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         name: controller-manager
         resources:
 {{- if .Values.resources }}

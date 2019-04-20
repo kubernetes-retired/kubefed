@@ -10,7 +10,7 @@ controllermanager:
   repository: quay.io/kubernetes-multicluster
   image: federation-v2
   tag: canary
-  pullPolicy: IfNotPresent
+  imagePullPolicy: IfNotPresent
   resources:
     limits:
       cpu: 100m
