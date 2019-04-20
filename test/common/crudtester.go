@@ -303,8 +303,8 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		waitTimeout = c.clusterWaitTimeout
 	}
 
-	// Wait for deletion.  The federation resource will only be removed once orphan deletion has been
-	// completed or deemed unnecessary.
+	// Wait for deletion.  The federation resource will only be removed once managed resources have
+	// been deleted or orphaned.
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		_, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
@@ -324,27 +324,26 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	targetKind := c.typeConfig.GetTarget().Kind
 
 	// TODO(marun) Consider using informer to detect expected deletion state.
-	var stateMsg string = "present"
+	var stateMsg string = "unlabeled"
 	if deletingInCluster {
 		stateMsg = "not present"
 	}
 	for clusterName, testCluster := range c.testClusters {
 		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
-			resource, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
+			obj, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
 			switch {
 			case !deletingInCluster && apierrors.IsNotFound(err):
 				return false, errors.Errorf("%s %q was unexpectedly deleted from cluster %q", targetKind, qualifiedName, clusterName)
 			case deletingInCluster && err == nil:
 				if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
-					// A namespace in the host cluster will have its label removed instead of being
-					// deleted.
-					labels := resource.GetLabels()
-					if _, ok := labels[util.ManagedByFederationLabelKey]; !ok {
-						return true, nil
-					}
+					// A namespace in the host cluster will have its label
+					// removed instead of being deleted.
+					return !hasManagedLabel(obj), nil
 				}
 				// Continue checking for deletion or label removal
 				return false, nil
+			case !deletingInCluster && err == nil:
+				return !hasManagedLabel(obj), nil
 			case err != nil && !apierrors.IsNotFound(err):
 				c.tl.Errorf("Error while checking whether %s %q is %s in cluster %q: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
 				// This error may be recoverable
@@ -660,4 +659,10 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 	if err != nil {
 		c.tl.Fatalf("Timed out waiting for %s %q", statusKind, qualifiedName)
 	}
+}
+
+func hasManagedLabel(obj *unstructured.Unstructured) bool {
+	labels := obj.GetLabels()
+	_, ok := labels[util.ManagedByFederationLabelKey]
+	return ok
 }

@@ -259,8 +259,9 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		err := s.ensureDeletion(fedResource)
 		if err != nil {
-			// It is not possible to record events on resources marked for deletion.
-			runtime.HandleError(errors.Wrapf(err, "Unable to delete %s %q", kind, key))
+			// Any error should already have been logged by
+			// ensureDeletion.  It was returned to indicate that
+			// reconcillation should be retried.
 			return util.StatusError
 		}
 		// If there are still outstanding operations, events for the
@@ -386,13 +387,45 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 		glog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.", OrphanManagedResources, kind, key)
 		err := s.removeFinalizer(fedResource)
 		if err != nil {
-			return errors.Wrapf(err, "failed to remove finalizer %q", OrphanManagedResources)
+			wrappedErr := errors.Wrapf(err, "failed to remove finalizer %q from %s %q", OrphanManagedResources, kind, key)
+			runtime.HandleError(wrappedErr)
+			return wrappedErr
+		}
+		glog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByFederationLabelKey, kind, key)
+		err = s.removeManagedLabel(fedResource.TargetKind(), fedResource.TargetName())
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByFederationLabelKey, kind, key)
+			runtime.HandleError(wrappedErr)
+			return wrappedErr
 		}
 		return nil
-		// TODO(marun) Implement removal of labels
 	}
 
-	return s.deleteFromClusters(fedResource)
+	glog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
+	err := s.deleteFromClusters(fedResource)
+	if err != nil {
+		wrappedErr := errors.Wrapf(err, "failed to delete %s %q", kind, key)
+		runtime.HandleError(wrappedErr)
+		return wrappedErr
+	}
+	return nil
+}
+
+// removeManagedLabel make a best-effort attempt to remove the labels
+// from resources with the given name in member clusters.  If label
+// removal is not successful for any of the resources, subsequent
+// reconciliation will be required.
+func (s *FederationSyncController) removeManagedLabel(kind string, qualifiedName util.QualifiedName) error {
+	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher DeletionDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+		dispatcher.RemoveManagedLabel(clusterName, clusterObj)
+	})
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Errorf("failed to remove the label from resources in one or more clusters.")
+	}
+	return nil
 }
 
 func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) error {
