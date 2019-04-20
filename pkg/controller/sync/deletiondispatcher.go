@@ -176,9 +176,7 @@ func (dd *deletionDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 		// Avoid mutating the resource in the informer cache
 		updateObj := clusterObj.DeepCopy()
 
-		labels := updateObj.GetLabels()
-		delete(labels, util.ManagedByFederationLabelKey)
-		updateObj.SetLabels(labels)
+		util.RemoveManagedLabel(updateObj)
 
 		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
 		if err != nil {

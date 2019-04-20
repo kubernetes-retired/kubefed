@@ -28,11 +28,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	ManagedByFederationLabelKey   = "federation.k8s.io/managed"
-	ManagedByFederationLabelValue = "true"
-)
-
 // NewManagedResourceInformer returns an unfiltered informer.
 func NewResourceInformer(client ResourceClient, namespace string, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
 	return newResourceInformer(client, namespace, triggerFunc, "")
