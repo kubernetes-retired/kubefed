@@ -203,12 +203,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	// Ensure that resources managed by federation always have the
 	// managed label.  The label is intended to be targeted by all the
 	// federation controllers.
-	labels := obj.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	labels[util.ManagedByFederationLabelKey] = util.ManagedByFederationLabelValue
-	obj.SetLabels(labels)
+	util.AddManagedLabel(obj)
 
 	return obj, nil
 }

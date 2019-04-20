@@ -191,18 +191,12 @@ func (u *federatedUpdaterImpl) RemoveManagedLabel(clusterName string, clusterObj
 	u.incrementOperationCount()
 	const op = "remove managed label"
 	go u.clusterOperation(clusterName, op, func(client util.ResourceClient) (string, error) {
+		u.recordEvent(clusterName, op, "Removing managed label")
+
 		// Avoid mutating the resource in the informer cache
 		updateObj := clusterObj.DeepCopy()
 
-		// Remove the managed label if necessary
-		labels := updateObj.GetLabels()
-		_, ok := labels[util.ManagedByFederationLabelKey]
-		if !ok {
-			return "", nil
-		}
-		u.recordEvent(clusterName, op, "Removing managed label")
-		delete(labels, util.ManagedByFederationLabelKey)
-		updateObj.SetLabels(labels)
+		util.RemoveManagedLabel(updateObj)
 		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
 		return "", err
 	})
