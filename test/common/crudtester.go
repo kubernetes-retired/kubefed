@@ -306,8 +306,8 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		waitTimeout = c.clusterWaitTimeout
 	}
 
-	// Wait for deletion.  The federation resource will only be removed once orphan deletion has been
-	// completed or deemed unnecessary.
+	// Wait for deletion.  The federation resource will only be removed once managed resources have
+	// been deleted or orphaned.
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		_, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
@@ -327,7 +327,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	targetKind := c.typeConfig.GetTarget().Kind
 
 	// TODO(marun) Consider using informer to detect expected deletion state.
-	var stateMsg string = "present"
+	var stateMsg string = "unlabeled"
 	if deletingInCluster {
 		stateMsg = "not present"
 	}
@@ -345,6 +345,8 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 				}
 				// Continue checking for deletion or label removal
 				return false, nil
+			case !deletingInCluster && err == nil:
+				return !util.HasManagedLabel(obj), nil
 			case err != nil && !apierrors.IsNotFound(err):
 				c.tl.Errorf("Error while checking whether %s %q is %s in cluster %q: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
 				// This error may be recoverable

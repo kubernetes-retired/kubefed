@@ -387,8 +387,14 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
+		glog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByFederationLabelKey, kind, key)
+		err = s.removeManagedLabel(fedResource.TargetKind(), fedResource.TargetName())
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByFederationLabelKey, kind, key)
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
 		return util.StatusAllOK
-		// TODO(marun) Implement removal of labels
 	}
 
 	glog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
@@ -402,6 +408,25 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 		return util.StatusNeedsRecheck
 	}
 	return util.StatusAllOK
+}
+
+// removeManagedLabel attempts to remove the managed label from
+// resources with the given name in member clusters.
+func (s *FederationSyncController) removeManagedLabel(kind string, qualifiedName util.QualifiedName) error {
+	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+		if clusterObj.GetDeletionTimestamp() != nil {
+			return
+		}
+
+		dispatcher.RemoveManagedLabel(clusterName, clusterObj)
+	})
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Errorf("failed to remove the label from resources in one or more clusters.")
+	}
+	return nil
 }
 
 func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) (bool, error) {
