@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -425,6 +426,12 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 // reconciliation will be required.
 func (s *FederationSyncController) removeManagedLabel(kind string, qualifiedName util.QualifiedName) error {
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher DeletionDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+		if clusterObj == nil {
+			// If the resource exists but has not yet reached the
+			// informer, the label will eventually be removed by the
+			// reconcile loop.
+			return
+		}
 		dispatcher.RemoveManagedLabel(clusterName, clusterObj)
 	})
 	if err != nil {
@@ -441,7 +448,35 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 	qualifiedName := fedResource.TargetName()
 
 	remainingClusters := []string{}
+	retrievalErrorClusters := []string{}
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher DeletionDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+		if clusterObj == nil {
+			// Attempt to retrieve the resource manually. The resource
+			// may exist in the cluster even if it has not yet reached
+			// the informer.
+
+			client, err := s.informer.GetClientForCluster(clusterName)
+			if err != nil {
+				wrappedErr := errors.Wrapf(err, "failed to retrieve client for cluster %q to retrieve %s %q", clusterName, kind, qualifiedName)
+				runtime.HandleError(wrappedErr)
+				retrievalErrorClusters = append(retrievalErrorClusters, clusterName)
+				return
+			}
+			clusterObj, err = client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				return
+			}
+			if err != nil {
+				wrappedErr := errors.Wrapf(err, "failed to retrieve %s %q from cluster %q", kind, qualifiedName, clusterName)
+				runtime.HandleError(wrappedErr)
+				retrievalErrorClusters = append(retrievalErrorClusters, clusterName)
+				return
+			}
+			if !util.HasManagedLabel(clusterObj) {
+				return
+			}
+		}
+
 		remainingClusters = append(remainingClusters, clusterName)
 
 		if fedResource.IsNamespaceInHostCluster(clusterObj) {
@@ -459,6 +494,9 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 	}
 	if !ok {
 		return errors.Errorf("failed to remove managed resources from one or more clusters.")
+	}
+	if len(retrievalErrorClusters) > 0 {
+		return errors.Errorf("failed to retrieve potentially managed resources from the following clusters: %s", strings.Join(retrievalErrorClusters, ", "))
 	}
 	if len(remainingClusters) > 0 {
 		fedKind := fedResource.FederatedKind()
@@ -499,10 +537,10 @@ func (s *FederationSyncController) handleDeletionInClusters(kind string, qualifi
 			retrievalFailureClusters = append(retrievalFailureClusters, clusterName)
 			continue
 		}
-		if rawClusterObj == nil {
-			continue
+		var clusterObj *unstructured.Unstructured
+		if rawClusterObj != nil {
+			clusterObj = rawClusterObj.(*unstructured.Unstructured)
 		}
-		clusterObj := rawClusterObj.(*unstructured.Unstructured)
 		deletionFunc(dispatcher, clusterName, clusterObj)
 	}
 	ok := dispatcher.Wait()
