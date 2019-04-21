@@ -236,14 +236,22 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	kind := s.typeConfig.GetFederatedType().Kind
 
-	// TODO(marun) Handle the case where the resource has the managed
-	// label but does not have a managing resource.  Strip the label
-	// or remove the resource?
-
-	fedResource, err := s.fedAccessor.FederatedResource(qualifiedName)
+	fedResource, possibleOrphan, err := s.fedAccessor.FederatedResource(qualifiedName)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Error creating FederatedResource helper for %s %q", kind, qualifiedName))
 		return util.StatusError
+	}
+	if possibleOrphan {
+		targetKind := s.typeConfig.GetTarget().Kind
+		glog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+		err = s.removeManagedLabel(targetKind, qualifiedName)
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
+
+		return util.StatusAllOK
 	}
 	if fedResource == nil {
 		return util.StatusAllOK

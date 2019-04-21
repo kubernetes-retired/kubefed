@@ -60,12 +60,56 @@ var _ = Describe("Federated", func() {
 				crudTester.CheckLifecycle(targetObject, overrides)
 			})
 
-			// Unlabeled resource handling behavior should not vary between
-			// types, so testing a single type is sufficient.  Picking a
-			// namespaced type minimizes the impact of teardown failure.
+			// Labeling behavior should not vary between types, so testing a
+			// single type is sufficient.  Picking a namespaced type minimizes
+			// the impact of teardown failure.
 			if typeConfigName != "configmaps" {
 				return
 			}
+
+			It("should have the managed label removed if not managed", func() {
+				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
+				crudTester, targetObject, _ := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+
+				testClusters := crudTester.TestClusters()
+
+				By("Selecting a member cluster to create an unlabeled resource in")
+				clusterName := ""
+				for key := range testClusters {
+					clusterName = key
+					break
+				}
+				clusterConfig := testClusters[clusterName].Config
+
+				By("Waiting for the test namespace to be created in the selected cluster")
+				kubeClient := kubeclientset.NewForConfigOrDie(clusterConfig)
+				common.WaitForNamespaceOrDie(tl, kubeClient, clusterName, targetObject.GetNamespace(),
+					framework.PollInterval, framework.TestContext.SingleCallTimeout)
+
+				By("Creating a labeled resource in the selected cluster")
+				util.AddManagedLabel(targetObject)
+				labeledObj, err := common.CreateResource(clusterConfig, typeConfig.GetTarget(), targetObject)
+				if err != nil {
+					tl.Fatalf("Failed to create labeled resource in cluster %q: %v", clusterName, err)
+				}
+				clusterClient := genericclient.NewForConfigOrDie(clusterConfig)
+				defer clusterClient.Delete(context.TODO(), labeledObj, labeledObj.GetNamespace(), labeledObj.GetName())
+
+				By("Checking that the labeled resource is unlabeled by the sync controller")
+				wait.PollImmediate(framework.PollInterval, wait.ForeverTestTimeout, func() (bool, error) {
+					obj := &unstructured.Unstructured{}
+					obj.SetGroupVersionKind(labeledObj.GroupVersionKind())
+					err := clusterClient.Get(context.TODO(), obj, labeledObj.GetNamespace(), labeledObj.GetName())
+					if err != nil {
+						tl.Errorf("Error retrieving labeled resource: %v", err)
+						return false, nil
+					}
+					return !util.HasManagedLabel(obj), nil
+				})
+				if err != nil {
+					tl.Fatal("Timed out waiting for the managed label to be removed")
+				}
+			})
 
 			It("should not be deleted if unlabeled", func() {
 				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
