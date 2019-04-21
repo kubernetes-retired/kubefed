@@ -1,5 +1,9 @@
 # Unreleased
--  [#720](https://github.com/kubernetes-sigs/federation-v2/issues/720) -
+ - [#612](https://github.com/kubernetes-sigs/federation-v2/pull/612) -
+   Label managed resources in member clusters and only watch resoures
+   so labeled to minimize the memory usage of the federated control
+   plane.
+ - [#720](https://github.com/kubernetes-sigs/federation-v2/issues/720) -
    `kubefed2 enable` now succeeds if federation of the type is already
    enabled.
  - [#738](https://github.com/kubernetes-sigs/federation-v2/issues/738) -
