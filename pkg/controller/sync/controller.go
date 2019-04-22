@@ -410,17 +410,23 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 
 	remainingClusters := []string{}
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
-		if fedResource.IsNamespaceInHostCluster(clusterObj) {
+		// It's not possible to remove the managed label from a
+		// resource marked for deletion.
+		if fedResource.IsNamespaceInHostCluster(clusterObj) && clusterObj.GetDeletionTimestamp() != nil {
 			return
 		}
 
 		remainingClusters = append(remainingClusters, clusterName)
 
-		if clusterObj.GetDeletionTimestamp() != nil {
-			return
+		if fedResource.IsNamespaceInHostCluster(clusterObj) {
+			// Creation or deletion of namespaces in the host cluster
+			// is not the responsibility of the sync controller.
+			// Removing the managed label will ensure a host cluster
+			// namespace is no longer cached.
+			dispatcher.RemoveManagedLabel(clusterName, clusterObj)
+		} else {
+			dispatcher.Delete(clusterName)
 		}
-
-		dispatcher.Delete(clusterName)
 	})
 	if err != nil {
 		return false, err
