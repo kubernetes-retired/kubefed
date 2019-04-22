@@ -39,7 +39,6 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
 )
 
@@ -256,7 +255,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	client := c.resourceClient(apiResource)
 
 	if orphanDependents {
-		orphanKey := deletionhelper.OrphanManagedResources
+		orphanKey := sync.OrphanManagedResources
 		err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 			var err error
 			if fedObject == nil {

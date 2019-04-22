@@ -17,6 +17,7 @@ limitations under the License.
 package sync
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -38,10 +40,22 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
 )
 
 const (
 	allClustersKey = "ALL_CLUSTERS"
+
+	// If this finalizer is present on a federated resource, the sync
+	// controller will have the opportunity to perform pre-deletion operations
+	// (like deleting managed resources from member clusters).
+	FinalizerSyncController = "federation.k8s.io/sync-controller"
+
+	// If this annotation is present on a federated resource, resources in the
+	// member clusters managed by the federated resource should be orphaned.
+	// If the annotation is not present (the default), resources in member
+	// clusters will be deleted before the federated resource is deleted.
+	OrphanManagedResources = "federation.k8s.io/orphan"
 )
 
 // FederationSyncController synchronizes the state of a federated type
@@ -56,8 +70,6 @@ type FederationSyncController struct {
 
 	// Contains resources present in members of federation.
 	informer util.FederatedInformer
-	// For updating members of federation.
-	updater util.FederatedUpdater
 
 	// For events
 	eventRecorder record.EventRecorder
@@ -70,6 +82,8 @@ type FederationSyncController struct {
 	typeConfig typeconfig.Interface
 
 	fedAccessor FederatedResourceAccessor
+
+	hostClusterClient genericclient.Client
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
@@ -106,6 +120,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
 		typeConfig:              typeConfig,
+		hostClusterClient:       client,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -142,33 +157,9 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		return nil, err
 	}
 
-	// Federated updater along with Create/Update/Delete operations.
-	s.updater = util.NewFederatedUpdater(s.informer, targetAPIResource.Kind, s.updateTimeout, s.eventRecorder,
-		func(client util.ResourceClient, rawObj pkgruntime.Object) (string, error) {
-			obj := rawObj.(*unstructured.Unstructured)
-			createdObj, err := client.Resources(obj.GetNamespace()).Create(obj, metav1.CreateOptions{})
-			if err != nil {
-				return "", err
-			}
-			return util.ObjectVersion(createdObj), err
-		},
-		func(client util.ResourceClient, rawObj pkgruntime.Object) (string, error) {
-			obj := rawObj.(*unstructured.Unstructured)
-			updatedObj, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
-			if err != nil {
-				return "", err
-			}
-			return util.ObjectVersion(updatedObj), err
-		},
-		func(client util.ResourceClient, obj pkgruntime.Object) (string, error) {
-			qualifiedName := util.NewQualifiedName(obj)
-			orphanDependents := false
-			return "", client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{OrphanDependents: &orphanDependents})
-		})
-
 	s.fedAccessor, err = NewFederatedResourceAccessor(
 		controllerConfig, typeConfig, fedNamespaceAPIResource,
-		client, s.worker.EnqueueObject, s.informer, s.updater, recorder)
+		client, s.worker.EnqueueObject, s.informer, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -266,21 +257,19 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	if fedResource.MarkedForDeletion() {
 		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
-		err := fedResource.EnsureDeletion()
+		err := s.ensureDeletion(fedResource)
 		if err != nil {
-			// TODO(marun) Log a warning rather than handle an error
-			// when waiting for resources to be deleted in underlying
-			// clusters.
-
 			// It is not possible to record events on resources marked for deletion.
 			runtime.HandleError(errors.Wrapf(err, "Unable to delete %s %q", kind, key))
 			return util.StatusError
 		}
-		// It should now be possible to garbage collect the finalization target.
+		// If there are still outstanding operations, events for the
+		// deletions and/or updates should ensure subsequent
+		// reconciliation.
 		return util.StatusAllOK
 	}
 	glog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
-	err = fedResource.EnsureFinalizer()
+	err = s.ensureFinalizer(fedResource)
 	if err != nil {
 		fedResource.RecordError("EnsureFinalizerError", errors.Wrap(err, "Failed to ensure finalizer"))
 		return util.StatusError
@@ -373,4 +362,129 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 	}
 
 	return status
+}
+
+func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource) error {
+	fedResource.DeleteVersions()
+
+	key := fedResource.FederatedName().String()
+	kind := fedResource.FederatedKind()
+
+	glog.V(2).Infof("Ensuring deletion of %s %q", kind, key)
+
+	obj := fedResource.Object()
+
+	finalizers := sets.NewString(obj.GetFinalizers()...)
+	if !finalizers.Has(FinalizerSyncController) {
+		glog.V(2).Infof("%s %q does not have the %q finalizer. Nothing to do.", kind, key, FinalizerSyncController)
+		return nil
+	}
+
+	annotations := obj.GetAnnotations()
+	orphanResources := annotations != nil && annotations[OrphanManagedResources] == "true"
+	if orphanResources {
+		glog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.", OrphanManagedResources, kind, key)
+		err := s.removeFinalizer(fedResource)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove finalizer %q", OrphanManagedResources)
+		}
+		return nil
+		// TODO(marun) Implement removal of labels
+	}
+
+	return s.deleteFromClusters(fedResource)
+}
+
+func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) error {
+	kind := fedResource.TargetKind()
+	qualifiedName := fedResource.TargetName()
+
+	remainingClusters := []string{}
+	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher DeletionDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+		if fedResource.IsNamespaceInHostCluster(clusterObj) {
+			return
+		}
+
+		remainingClusters = append(remainingClusters, clusterName)
+		dispatcher.Delete(clusterName, clusterObj)
+	})
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Errorf("failed to remove managed resources from one or more clusters.")
+	}
+	if len(remainingClusters) > 0 {
+		fedKind := fedResource.FederatedKind()
+		fedName := fedResource.FederatedName()
+		glog.Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
+		return nil
+	}
+	// Managed resources no longer exist in any member cluster
+	return s.removeFinalizer(fedResource)
+}
+
+// handleDeletionInClusters invokes the provided deletion handler for
+// each managed resource in member clusters.
+func (s *FederationSyncController) handleDeletionInClusters(kind string, qualifiedName util.QualifiedName,
+	deletionFunc func(dispatcher DeletionDispatcher, clusterName string, clusterObj *unstructured.Unstructured)) (bool, error) {
+
+	clusters, err := s.informer.GetClusters()
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get a list of clusters")
+	}
+
+	dispatcher := NewDeletionDispatcher(s.informer.GetClientForCluster, kind, qualifiedName)
+	key := qualifiedName.String()
+	retrievalFailureClusters := []string{}
+	unreadyClusters := []string{}
+	for _, cluster := range clusters {
+		clusterName := cluster.Name
+
+		if !util.IsClusterReady(&cluster.Status) {
+			unreadyClusters = append(unreadyClusters, clusterName)
+			continue
+		}
+
+		rawClusterObj, _, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to retrieve %s %q for cluster %q", kind, key, clusterName)
+			runtime.HandleError(wrappedErr)
+			retrievalFailureClusters = append(retrievalFailureClusters, clusterName)
+			continue
+		}
+		if rawClusterObj == nil {
+			continue
+		}
+		clusterObj := rawClusterObj.(*unstructured.Unstructured)
+		deletionFunc(dispatcher, clusterName, clusterObj)
+	}
+	ok := dispatcher.Wait()
+	if len(retrievalFailureClusters) > 0 {
+		return false, errors.Errorf("failed to retrieve a managed resource for the following cluster(s): %s", strings.Join(retrievalFailureClusters, ", "))
+	}
+	if len(unreadyClusters) > 0 {
+		return false, errors.Errorf("the following clusters were not ready: %s", strings.Join(unreadyClusters, ", "))
+	}
+	return ok, nil
+}
+
+func (s *FederationSyncController) ensureFinalizer(fedResource FederatedResource) error {
+	obj := fedResource.Object()
+	isUpdated, err := finalizersutil.AddFinalizers(obj, sets.NewString(FinalizerSyncController))
+	if err != nil || !isUpdated {
+		return err
+	}
+	glog.V(2).Infof("Adding finalizer %s to %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
+	return s.hostClusterClient.Update(context.TODO(), obj)
+}
+
+func (s *FederationSyncController) removeFinalizer(fedResource FederatedResource) error {
+	obj := fedResource.Object()
+	isUpdated, err := finalizersutil.RemoveFinalizers(obj, sets.NewString(FinalizerSyncController))
+	if err != nil || !isUpdated {
+		return err
+	}
+	glog.V(2).Infof("Removing finalizer %s from %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
+	return s.hostClusterClient.Update(context.TODO(), obj)
 }

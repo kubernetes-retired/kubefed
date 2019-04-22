@@ -35,7 +35,6 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
 )
 
 // FederatedResource encapsulates the behavior of a logical federated
@@ -54,8 +53,6 @@ type FederatedResource interface {
 	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	MarkedForDeletion() bool
-	EnsureDeletion() error
-	EnsureFinalizer() error
 	RecordError(errorCode string, err error)
 	RecordEvent(reason, messageFmt string, args ...interface{})
 	NewUpdater() FederatedUpdater
@@ -72,7 +69,6 @@ type federatedResource struct {
 	federatedName     util.QualifiedName
 	federatedResource *unstructured.Unstructured
 	versionManager    *version.VersionManager
-	deletionHelper    *deletionhelper.DeletionHelper
 	overridesMap      util.OverridesMap
 	versionMap        map[string]string
 	namespace         *unstructured.Unstructured
@@ -215,29 +211,6 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 
 func (r *federatedResource) MarkedForDeletion() bool {
 	return r.federatedResource.GetDeletionTimestamp() != nil
-}
-
-func (r *federatedResource) EnsureDeletion() error {
-	r.DeleteVersions()
-	_, err := r.deletionHelper.HandleObjectInUnderlyingClusters(
-		r.federatedResource,
-		r.TargetName().String(),
-		func(clusterObj pkgruntime.Object) bool {
-			// Skip deletion of a namespace in the host cluster as it will be
-			// removed by the garbage collector once its contents are removed.
-			return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
-		},
-	)
-	return err
-}
-
-func (r *federatedResource) EnsureFinalizer() error {
-	updatedObj, err := r.deletionHelper.EnsureFinalizer(r.federatedResource)
-	if updatedObj != nil {
-		// Retain the updated template for use in future API calls.
-		r.federatedResource = updatedObj.(*unstructured.Unstructured)
-	}
-	return err
 }
 
 // TODO(marun) Use an enumeration for errorCode.
