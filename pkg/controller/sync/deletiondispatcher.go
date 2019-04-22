@@ -46,6 +46,7 @@ type DeletionDispatcher interface {
 	Wait() (ok bool)
 
 	Delete(clusterName string, clusterObj *unstructured.Unstructured)
+	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 }
 
 type deletionDispatcherImpl struct {
@@ -148,6 +149,38 @@ func (dd *deletionDispatcherImpl) Delete(clusterName string, clusterObj *unstruc
 		if apierrors.IsNotFound(err) {
 			err = nil
 		}
+		if err != nil {
+			wrappedErr := dd.wrapOperationError(err, clusterName, op)
+			if dd.recorder == nil {
+				runtime.HandleError(wrappedErr)
+			} else {
+				dd.recorder.RecordError(clusterName, op, wrappedErr)
+			}
+			return util.StatusError
+		}
+		return util.StatusAllOK
+	})
+}
+
+func (dd *deletionDispatcherImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {
+	dd.incrementOperationsInitiated()
+	const op = "remove managed label"
+	const opContinuous = "Removing managed label"
+	go dd.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
+		if dd.recorder == nil {
+			glog.V(2).Infof(eventTemplate, opContinuous, dd.targetKind, dd.targetName, clusterName)
+		} else {
+			dd.recorder.RecordEvent(clusterName, op, opContinuous)
+		}
+
+		// Avoid mutating the resource in the informer cache
+		updateObj := clusterObj.DeepCopy()
+
+		labels := updateObj.GetLabels()
+		delete(labels, util.ManagedByFederationLabelKey)
+		updateObj.SetLabels(labels)
+
+		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
 		if err != nil {
 			wrappedErr := dd.wrapOperationError(err, clusterName, op)
 			if dd.recorder == nil {
