@@ -47,9 +47,6 @@ type resourceAccessor struct {
 	targetIsNamespace bool
 	fedNamespace      string
 
-	// The informer for target types in the member clusters
-	federatedInformer util.FederatedInformer
-
 	// The informer for the federated type.
 	federatedStore      cache.Store
 	federatedController cache.Controller
@@ -95,7 +92,6 @@ func NewFederatedResourceAccessor(
 		fedNamespace:            controllerConfig.FederationNamespace,
 		fedNamespaceAPIResource: fedNamespaceAPIResource,
 		eventRecorder:           eventRecorder,
-		federatedInformer:       informer,
 	}
 
 	targetNamespace := controllerConfig.TargetNamespace
@@ -290,7 +286,6 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 		namespace:         namespace,
 		fedNamespace:      fedNamespace,
 		eventRecorder:     a.eventRecorder,
-		informer:          a.federatedInformer,
 	}, nil
 }
 

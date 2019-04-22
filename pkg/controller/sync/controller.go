@@ -37,6 +37,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/dispatch"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -308,7 +309,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 	key := fedResource.TargetName().String()
 	glog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
 
-	updater := fedResource.NewUpdater()
+	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource)
 
 	status := util.StatusAllOK
 	for _, cluster := range clusters {
@@ -331,14 +332,15 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 
 		// Resource should not exist in the named cluster
 		if !selectedClusterNames.Has(clusterName) {
-			if clusterObj != nil {
-				if fedResource.IsNamespaceInHostCluster(clusterObj) {
-					// Host cluster namespace needs to have the managed
-					// label removed so it won't be cached anymore.
-					updater.RemoveManagedLabel(clusterName, clusterObj)
-				} else {
-					updater.Delete(clusterName)
-				}
+			if clusterObj == nil || clusterObj.GetDeletionTimestamp() != nil {
+				continue
+			}
+			if fedResource.IsNamespaceInHostCluster(clusterObj) {
+				// Host cluster namespace needs to have the managed
+				// label removed so it won't be cached anymore.
+				dispatcher.RemoveManagedLabel(clusterName, clusterObj)
+			} else {
+				dispatcher.Delete(clusterName)
 			}
 			continue
 		}
@@ -350,19 +352,20 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 		// subsequent operations.  Otherwise the object won't be found
 		// but an add operation will fail with AlreadyExists.
 		if clusterObj == nil {
-			updater.Create(clusterName)
+			dispatcher.Create(clusterName)
 		} else {
-			updater.Update(clusterName, clusterObj)
+			dispatcher.Update(clusterName, clusterObj)
 		}
 	}
-	if updater.NoChanges() {
-		return status
+	ok, err := dispatcher.Wait()
+	if err != nil {
+		fedResource.RecordError("OperationTimeoutError", err)
+		status = util.StatusError
 	}
-
-	updatedVersionMap, ok := updater.Wait()
 	if !ok {
 		status = util.StatusError
 	}
+	updatedVersionMap := dispatcher.VersionMap()
 	// Always attempt to update versions even if the updater reported errors.
 	err = fedResource.UpdateVersions(selectedClusterNames.List(), updatedVersionMap)
 	if err != nil {
