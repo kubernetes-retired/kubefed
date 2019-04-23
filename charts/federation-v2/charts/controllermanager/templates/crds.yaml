@@ -78,6 +78,9 @@ spec:
   - JSONPath: .status.conditions[?(@.type=='Ready')].status
     name: ready
     type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: age
+    type: date
   group: core.federation.k8s.io
   names:
     kind: FederatedCluster
