@@ -440,11 +440,7 @@ func (c *FederatedTypeCrudTester) checkHostNamespaceUnlabeled(client util.Resour
 			return false, nil
 		}
 		// Validate that the namespace is without the managed label
-		labels := hostNamespace.GetLabels()
-		if labels == nil || labels[util.ManagedByFederationLabelKey] != util.ManagedByFederationLabelValue {
-			return true, nil
-		}
-		return false, nil
+		return !util.HasManagedLabel(hostNamespace), nil
 	})
 	if err != nil {
 		c.tl.Fatalf("Timeout verifying removal of managed label from %s %q in host cluster %q: %v", targetKind, qualifiedName, clusterName, err)
@@ -464,8 +460,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			// indicating creation or adoption by the sync controller.  This
 			// labeling also ensures that the federated informer will be able
 			// to cache the resource.
-			labels := clusterObj.GetLabels()
-			if labels == nil || labels[util.ManagedByFederationLabelKey] != util.ManagedByFederationLabelValue {
+			if !util.HasManagedLabel(clusterObj) {
 				c.tl.Errorf("Expected resource to be labeled with %q", fmt.Sprintf("%s: %s", util.ManagedByFederationLabelKey, util.ManagedByFederationLabelValue))
 				return false, nil
 			}
