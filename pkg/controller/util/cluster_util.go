@@ -44,7 +44,6 @@ const (
 	KubeAPIQPS              = 20.0
 	KubeAPIBurst            = 30
 	KubeconfigSecretDataKey = "kubeconfig"
-	getSecretTimeout        = 1 * time.Minute
 
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second

@@ -229,7 +229,9 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string) error {
 	write := func(data string) {
 		if cmdOut != nil {
-			cmdOut.Write([]byte(data))
+			if _, err := cmdOut.Write([]byte(data)); err != nil {
+				glog.Fatalf("Unexpected err: %v\n", err)
+			}
 		}
 	}
 
@@ -334,17 +336,18 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 }
 
 func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, shortNames []string) *apiextv1b1.CustomResourceDefinition {
-	var templateSchema map[string]apiextv1b1.JSONSchemaProps
-	templateSchema = accessor.templateSchema()
+	templateSchema := accessor.templateSchema()
 	schema := federatedTypeValidationSchema(templateSchema)
 	return CrdForAPIResource(typeConfig.GetFederatedType(), schema, shortNames)
 }
 
 func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
 	for _, obj := range objects {
-		w.Write([]byte("---\n"))
-		err := writeObjectToYAML(obj, w)
-		if err != nil {
+		if _, err := w.Write([]byte("---\n")); err != nil {
+			return errors.Wrap(err, "Error encoding object to yaml")
+		}
+
+		if err := writeObjectToYAML(obj, w); err != nil {
 			return errors.Wrap(err, "Error encoding object to yaml")
 		}
 	}
@@ -358,6 +361,9 @@ func writeObjectToYAML(obj pkgruntime.Object, w io.Writer) error {
 	}
 
 	unstructuredObj := &unstructured.Unstructured{}
-	unstructured.UnstructuredJSONScheme.Decode(json, nil, unstructuredObj)
+	if _, _, err := unstructured.UnstructuredJSONScheme.Decode(json, nil, unstructuredObj); err != nil {
+		return err
+	}
+
 	return util.WriteUnstructuredToYaml(unstructuredObj, w)
 }

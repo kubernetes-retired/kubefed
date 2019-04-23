@@ -152,7 +152,10 @@ func (p *Plugin) Reconcile(qualifiedName util.QualifiedName, result map[string]i
 		return err
 	}
 	if PlacementUpdateNeeded(clusterNames, newClusterNames) {
-		util.SetClusterNames(fedObject, newClusterNames)
+		if err := util.SetClusterNames(fedObject, newClusterNames); err != nil {
+			return err
+		}
+
 		isDirty = true
 	}
 

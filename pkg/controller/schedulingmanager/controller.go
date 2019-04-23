@@ -166,7 +166,7 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 	}
 
 	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
-	if typeConfig.Spec.PropagationEnabled == false || typeConfig.DeletionTimestamp != nil {
+	if !typeConfig.Spec.PropagationEnabled || typeConfig.DeletionTimestamp != nil {
 		c.stopScheduler(schedulingKind, typeConfigName)
 		return util.StatusAllOK
 	}

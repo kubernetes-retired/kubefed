@@ -56,9 +56,6 @@ type controller struct {
 	dnsObjectController cache.Controller
 
 	dnsObjectKind string
-	dnsObjectType pkgruntime.Object
-	listFunc      cache.ListFunc
-	watchFunc     cache.WatchFunc
 	getEndpoints  GetEndpointsFunc
 
 	queue         workqueue.RateLimitingInterface

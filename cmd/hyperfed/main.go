@@ -89,7 +89,9 @@ func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 		Short: "Combined binary for federation-v2",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 0 || !makeSymlinksFlag {
-				cmd.Help()
+				if err := cmd.Help(); err != nil {
+					fmt.Fprintf(os.Stderr, "%v\n", err.Error())
+				}
 				os.Exit(1)
 			}
 
@@ -99,7 +101,11 @@ func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 		},
 	}
 	cmd.Flags().BoolVar(&makeSymlinksFlag, "make-symlinks", makeSymlinksFlag, "create a symlink for each server in current directory")
-	cmd.Flags().MarkHidden("make-symlinks") // hide this flag from appearing in servers' usage output
+
+	// hide this flag from appearing in servers' usage output
+	if err := cmd.Flags().MarkHidden("make-symlinks"); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err.Error())
+	}
 
 	for i := range commandFns {
 		cmd.AddCommand(commandFns[i]())

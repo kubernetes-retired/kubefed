@@ -287,7 +287,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 		return nil
 	case err != nil:
 		return err
-	case err == nil && errorOnExisting:
+	case errorOnExisting:
 		return errors.Errorf("service account: %s already exists in joining cluster: %s", saName, name)
 	default:
 		glog.V(2).Infof("Service account %s already exists in joining cluster %s", saName, name)

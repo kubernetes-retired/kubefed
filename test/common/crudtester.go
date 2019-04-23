@@ -195,7 +195,10 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 			}
 			clusterOverrides[key] = value
 		}
-		util.SetOverrides(obj, overrides)
+
+		if err := util.SetOverrides(obj, overrides); err != nil {
+			c.tl.Fatalf("Unexpected error: %v", err)
+		}
 	})
 	if err != nil {
 		c.tl.Fatalf("Error updating %s %q: %v", kind, qualifiedName, err)
@@ -623,17 +626,8 @@ func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedV
 	return ""
 }
 
-func (c *FederatedTypeCrudTester) getNamespace(namespace string) *unstructured.Unstructured {
-	client := c.resourceClient(c.typeConfig.GetTarget())
-	obj, err := client.Resources("").Get(namespace, metav1.GetOptions{})
-	if err != nil {
-		c.tl.Errorf("An unexpected error occurred while retrieving the namespace for a federated namespace: %v", err)
-	}
-	return obj
-}
-
 func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.QualifiedName) {
-	if c.typeConfig.GetEnableStatus() == false {
+	if !c.typeConfig.GetEnableStatus() {
 		return
 	}
 

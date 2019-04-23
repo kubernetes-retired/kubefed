@@ -246,7 +246,7 @@ func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstr
 	if err == nil {
 		return obj
 	}
-	if err != nil && !errors.IsNotFound(err) {
+	if !errors.IsNotFound(err) {
 		tl.Fatalf("Error retrieving %s %q: %v", apiResource.Kind, err)
 	}
 
@@ -306,7 +306,7 @@ func createNamespace(client kubeclientset.Interface, baseName string) (string, e
 	// TODO(marun) should all api calls be made 'robustly'?
 	var namespaceName string
 	if err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
-		namespace, err := client.Core().Namespaces().Create(namespaceObj)
+		namespace, err := client.CoreV1().Namespaces().Create(namespaceObj)
 		if err != nil {
 			Logf("Unexpected error while creating namespace: %v", err)
 			return false, nil

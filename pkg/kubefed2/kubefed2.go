@@ -38,7 +38,7 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 		Short: "kubefed2 controls a Kubernetes Cluster Federation",
 		Long:  "kubefed2 controls a Kubernetes Cluster Federation. Find more information at https://github.com/kubernetes-sigs/federation-v2.",
 
-		Run: runHelp,
+		RunE: runHelp,
 	}
 
 	// Add the command line flags from other dependencies (e.g., glog), but do not
@@ -51,7 +51,7 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	rootCmd.SetGlobalNormalizationFunc(apiserverflag.WarnWordSepNormalizeFunc)
 
 	// Prevent glog errors about logging before parsing.
-	flag.CommandLine.Parse(nil)
+	_ = flag.CommandLine.Parse(nil)
 
 	fedConfig := util.NewFedConfig(clientcmd.NewDefaultPathOptions())
 	rootCmd.AddCommand(enable.NewCmdTypeEnable(out, fedConfig))
@@ -64,6 +64,6 @@ func NewKubeFed2Command(out io.Writer) *cobra.Command {
 	return rootCmd
 }
 
-func runHelp(cmd *cobra.Command, args []string) {
-	cmd.Help()
+func runHelp(cmd *cobra.Command, args []string) error {
+	return cmd.Help()
 }

@@ -159,8 +159,12 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, typeConfigName ctl
 	}
 
 	write := func(data string) {
-		if cmdOut != nil {
-			cmdOut.Write([]byte(data))
+		if cmdOut == nil {
+			return
+		}
+
+		if _, err := cmdOut.Write([]byte(data)); err != nil {
+			glog.Fatalf("Unexpected err: %v\n", err)
 		}
 	}
 

@@ -92,7 +92,12 @@ var _ = Describe("Federated", func() {
 					tl.Fatalf("Failed to create unlabeled resource in cluster %q: %v", clusterName, err)
 				}
 				clusterClient := genericclient.NewForConfigOrDie(clusterConfig)
-				defer clusterClient.Delete(context.TODO(), unlabeledObj, unlabeledObj.GetNamespace(), unlabeledObj.GetName())
+				defer func() {
+					err := clusterClient.Delete(context.TODO(), unlabeledObj, unlabeledObj.GetNamespace(), unlabeledObj.GetName())
+					if err != nil {
+						tl.Fatalf("Unexpected error: %v", err)
+					}
+				}()
 
 				By("Intitializing a federated resource with placement excluding all clusters")
 				fedObject, err := federate.FederatedResourceFromTargetResource(typeConfig, unlabeledObj)
@@ -111,11 +116,16 @@ var _ = Describe("Federated", func() {
 					tl.Fatalf("Error creating federated resource: %v", err)
 				}
 				hostClient := genericclient.NewForConfigOrDie(f.KubeConfig())
-				defer hostClient.Delete(context.TODO(), createdObj, createdObj.GetNamespace(), createdObj.GetName())
+				defer func() {
+					err := hostClient.Delete(context.TODO(), createdObj, createdObj.GetNamespace(), createdObj.GetName())
+					if err != nil {
+						tl.Fatalf("Unexpected error: %v", err)
+					}
+				}()
 
 				waitDuration := 10 * time.Second // Arbitrary amount of time to wait for deletion
 				By(fmt.Sprintf("Checking that the unlabeled resource is not deleted within %v", waitDuration))
-				wait.PollImmediate(framework.PollInterval, waitDuration, func() (bool, error) {
+				_ = wait.PollImmediate(framework.PollInterval, waitDuration, func() (bool, error) {
 					obj := &unstructured.Unstructured{}
 					obj.SetGroupVersionKind(unlabeledObj.GroupVersionKind())
 					err := clusterClient.Get(context.TODO(), obj, unlabeledObj.GetNamespace(), unlabeledObj.GetName())

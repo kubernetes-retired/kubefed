@@ -65,31 +65,45 @@ func NewPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *Pla
 // * a map that contains information how many extra replicas would be nice to schedule in a cluster so,
 //   if by chance, they are scheduled we will be closer to the desired replicas layout.
 func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[string]int64,
-	estimatedCapacity map[string]int64, replicaSetKey string) (map[string]int64, map[string]int64) {
+	estimatedCapacity map[string]int64, replicaSetKey string) (map[string]int64, map[string]int64, error) {
 
 	preferences := make([]*namedClusterPreferences, 0, len(availableClusters))
 	plan := make(map[string]int64, len(preferences))
 	overflow := make(map[string]int64, len(preferences))
 
-	named := func(name string, pref fedschedulingv1a1.ClusterPreferences) *namedClusterPreferences {
+	named := func(name string, pref fedschedulingv1a1.ClusterPreferences) (*namedClusterPreferences, error) {
 		// Seems to work better than addler for our case.
 		hasher := fnv.New32()
-		hasher.Write([]byte(name))
-		hasher.Write([]byte(replicaSetKey))
+		if _, err := hasher.Write([]byte(name)); err != nil {
+			return nil, err
+		}
+		if _, err := hasher.Write([]byte(replicaSetKey)); err != nil {
+			return nil, err
+		}
 
 		return &namedClusterPreferences{
 			clusterName:        name,
 			hash:               hasher.Sum32(),
 			ClusterPreferences: pref,
-		}
+		}, nil
 	}
 
 	for _, cluster := range availableClusters {
 		if localRSP, found := p.preferences.Spec.Clusters[cluster]; found {
-			preferences = append(preferences, named(cluster, localRSP))
+			preference, err := named(cluster, localRSP)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			preferences = append(preferences, preference)
 		} else {
 			if localRSP, found := p.preferences.Spec.Clusters["*"]; found {
-				preferences = append(preferences, named(cluster, localRSP))
+				preference, err := named(cluster, localRSP)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				preferences = append(preferences, preference)
 			} else {
 				plan[cluster] = int64(0)
 			}
@@ -216,7 +230,7 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 	}
 
 	if p.preferences.Spec.Rebalance {
-		return plan, overflow
+		return plan, overflow, nil
 	} else {
 		// If rebalance = false then overflow is trimmed at the level
 		// of replicas that it failed to place somewhere.
@@ -227,7 +241,7 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 				newOverflow[key] = value
 			}
 		}
-		return plan, newOverflow
+		return plan, newOverflow, nil
 	}
 }
 

@@ -22,7 +22,6 @@ import (
 	"time"
 
 	api_v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -72,21 +71,6 @@ func TestAnalyze(t *testing.T) {
 		RunningAndReady: 0,
 		Unschedulable:   0,
 	}, result)
-}
-
-func newReplicaSet(selectorMap map[string]string) *v1beta1.ReplicaSet {
-	replicas := int32(3)
-	rs := &v1beta1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foobar",
-			Namespace: metav1.NamespaceDefault,
-		},
-		Spec: v1beta1.ReplicaSetSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{MatchLabels: selectorMap},
-		},
-	}
-	return rs
 }
 
 func newPod(t *testing.T, name string, status api_v1.PodStatus) *unstructured.Unstructured {
