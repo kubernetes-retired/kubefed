@@ -36,6 +36,7 @@ const (
 	c2Region = "eu"
 	c1Zone   = "us1"
 	c2Zone   = "eu1"
+	c3Zone   = "us2"
 )
 
 func TestGetEndpointsForServiceDNSObject(t *testing.T) {
@@ -50,11 +51,13 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 	c1ZoneDNSPrefix := strings.Join([]string{namespace, federation, "svc", c1Zone, c1Region, dnsZone}, ".")
 	c2RegionDNSPrefix := strings.Join([]string{namespace, federation, "svc", c2Region, dnsZone}, ".")
 	c2ZoneDNSPrefix := strings.Join([]string{namespace, federation, "svc", c2Zone, c2Region, dnsZone}, ".")
+	c3ZoneDNSPrefix := strings.Join([]string{namespace, federation, "svc", c3Zone, c1Region, dnsZone}, ".")
 	globalDNSName := strings.Join([]string{name, globalDNSPrefix}, ".")
 	c1RegionDNSName := strings.Join([]string{name, c1RegionDNSPrefix}, ".")
 	c1ZoneDNSName := strings.Join([]string{name, c1ZoneDNSPrefix}, ".")
 	c2RegionDNSName := strings.Join([]string{name, c2RegionDNSPrefix}, ".")
 	c2ZoneDNSName := strings.Join([]string{name, c2ZoneDNSPrefix}, ".")
+	c3ZoneDNSName := strings.Join([]string{name, c3ZoneDNSPrefix}, ".")
 
 	labels := map[string]string{"serviceName": name}
 
@@ -88,7 +91,7 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
 						},
 					},
@@ -114,11 +117,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
 						},
 						{
-							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
 						},
 					},
@@ -146,11 +149,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
 						},
 						{
-							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
 						},
 					},
 				},
@@ -177,10 +180,10 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 						},
 						{
-							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
 						},
 					},
 				},
@@ -190,6 +193,38 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				{DNSName: c1ZoneDNSName, Targets: []string{c1RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
 				{DNSName: c2RegionDNSName, Targets: []string{globalDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
 				{DNSName: c2ZoneDNSName, Targets: []string{c2RegionDNSName}, RecordType: RecordTypeCNAME, RecordTTL: defaultDNSTTL},
+			},
+			expectError: false,
+		},
+		"MultipleLBsInClusters": {
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
+					DomainRef: federation,
+				},
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
+					DNS: []feddnsv1a1.ClusterDNS{
+						{
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}, {IP: lb3}}},
+						},
+						{
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
+						},
+					},
+				},
+			},
+			expectEndpoints: []*feddnsv1a1.Endpoint{
+				{DNSName: globalDNSName, Targets: []string{lb1, lb2, lb3}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1, lb3}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1, lb3}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
@@ -206,11 +241,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{Hostname: "a9.us-west-2.elb.amazonaws.test"}}},
 						},
 						{
-							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
 						},
 					},
@@ -239,7 +274,7 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
 						},
 					},
@@ -266,11 +301,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
 						},
 						{
-							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
 						},
 					},
@@ -300,11 +335,11 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 					Domain: dnsZone,
 					DNS: []feddnsv1a1.ClusterDNS{
 						{
-							Cluster: c1, Zone: c1Zone, Region: c1Region,
+							Cluster: c1, Zones: []string{c1Zone}, Region: c1Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
 						},
 						{
-							Cluster: c2, Zone: c2Zone, Region: c2Region,
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
 							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
 						},
 					},
@@ -316,6 +351,39 @@ func TestGetEndpointsForServiceDNSObject(t *testing.T) {
 				{DNSName: "foo" + "." + c1ZoneDNSPrefix, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
 				{DNSName: "foo" + "." + c2RegionDNSPrefix, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
 				{DNSName: "foo" + "." + c2ZoneDNSPrefix, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL, Labels: labels},
+			},
+			expectError: false,
+		},
+		"MultiZoneCluster": {
+			dnsObject: feddnsv1a1.ServiceDNSRecord{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+				Spec: feddnsv1a1.ServiceDNSRecordSpec{
+					DomainRef: federation,
+				},
+				Status: feddnsv1a1.ServiceDNSRecordStatus{
+					Domain: dnsZone,
+					DNS: []feddnsv1a1.ClusterDNS{
+						{
+							Cluster: c1, Zones: []string{c1Zone, c3Zone}, Region: c1Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb1}}},
+						},
+						{
+							Cluster: c2, Zones: []string{c2Zone}, Region: c2Region,
+							LoadBalancer: v1.LoadBalancerStatus{Ingress: []v1.LoadBalancerIngress{{IP: lb2}}},
+						},
+					},
+				},
+			},
+			expectEndpoints: []*feddnsv1a1.Endpoint{
+				{DNSName: globalDNSName, Targets: []string{lb1, lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1RegionDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c1ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c3ZoneDNSName, Targets: []string{lb1}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2RegionDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
+				{DNSName: c2ZoneDNSName, Targets: []string{lb2}, RecordType: RecordTypeA, RecordTTL: defaultDNSTTL},
 			},
 			expectError: false,
 		},
