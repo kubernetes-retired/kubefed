@@ -194,6 +194,11 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 			c.stopController(statusKey, statusStopChan)
 		}
 
+		if typeConfig.GetTarget().Kind == util.NamespaceKind {
+			glog.Infof("Reconciling all namespaced FederatedTypeConfig resources on deletion of %q", key)
+			c.reconcileOnNamespaceFTCDelete()
+		}
+
 		err := c.removeFinalizer(typeConfig)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to remove finalizer from FederatedTypeConfig %q", key))
@@ -209,7 +214,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	}
 
 	startNewSyncController := !syncRunning && syncEnabled
-	stopSyncController := syncRunning && !syncEnabled
+	stopSyncController := syncRunning && (!syncEnabled || (typeConfig.GetNamespaced() && !c.namespaceFTCExists()))
 	if startNewSyncController {
 		if err := c.startSyncController(typeConfig); err != nil {
 			runtime.HandleError(err)
@@ -360,6 +365,11 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	return err
 }
 
+func (c *Controller) namespaceFTCExists() bool {
+	_, err := c.getFederatedNamespaceAPIResource()
+	return err == nil
+}
+
 func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, error) {
 	// TODO(marun) Document the requirement to restart the controller
 	// manager if the federated namespace resource changes.
@@ -387,4 +397,13 @@ func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, er
 	apiResource := namespaceTypeConfig.GetFederatedType()
 	c.fedNamespaceAPIResource = &apiResource
 	return c.fedNamespaceAPIResource, nil
+}
+
+func (c *Controller) reconcileOnNamespaceFTCDelete() {
+	for _, cachedObj := range c.store.List() {
+		typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
+		if typeConfig.GetTarget().Kind != util.NamespaceKind && typeConfig.GetNamespaced() {
+			c.worker.EnqueueObject(typeConfig)
+		}
+	}
 }
