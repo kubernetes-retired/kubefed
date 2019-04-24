@@ -201,10 +201,16 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return util.StatusAllOK
 	}
 
-	err = c.ensureFinalizer(typeConfig)
+	updated, err := c.ensureFinalizer(typeConfig)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizer for FederatedTypeConfig %q", key))
 		return util.StatusError
+	} else if updated && typeConfig.GetTarget().Kind == util.NamespaceKind {
+		// Detected creation of the namespace FTC. If there are existing FTCs
+		// which did not start their sync controllers due to the lack of a
+		// namespace FTC, then reconcile them now so they can start.
+		glog.Infof("Reconciling all namespaced FederatedTypeConfig resources on finalizer update for %q", key)
+		c.reconcileOnNamespaceFTCUpdate()
 	}
 
 	startNewSyncController := !syncRunning && syncEnabled
@@ -329,19 +335,19 @@ func (c *Controller) stopController(key string, stopChan chan struct{}) {
 	delete(c.stopChannels, key)
 }
 
-func (c *Controller) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) error {
+func (c *Controller) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) (bool, error) {
 	accessor, err := meta.Accessor(tc)
 	if err != nil {
-		return err
+		return false, err
 	}
 	finalizers := sets.NewString(accessor.GetFinalizers()...)
 	if finalizers.Has(finalizer) {
-		return nil
+		return false, nil
 	}
 	finalizers.Insert(finalizer)
 	accessor.SetFinalizers(finalizers.List())
 	err = c.client.Update(context.TODO(), tc)
-	return err
+	return true, err
 }
 
 func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
@@ -385,7 +391,7 @@ func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, er
 	return &apiResource, nil
 }
 
-func (c *Controller) reconcileOnNamespaceFTCDelete() {
+func (c *Controller) reconcileOnNamespaceFTCUpdate() {
 	for _, cachedObj := range c.store.List() {
 		typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 		if typeConfig.GetTarget().Kind != util.NamespaceKind && typeConfig.GetNamespaced() {
