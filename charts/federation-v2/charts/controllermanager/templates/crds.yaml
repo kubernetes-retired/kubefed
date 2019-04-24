@@ -157,10 +157,12 @@ spec:
               description: Region is the name of the region in which all of the nodes
                 in the cluster exist.  e.g. 'us-east1'.
               type: string
-            zone:
-              description: Zone is the name of availability zone in which the nodes
-                of the cluster exist, e.g. 'us-east1-a'.
-              type: string
+            zones:
+              description: Zones are the names of availability zones in which the
+                nodes of the cluster exist, e.g. 'us-east1-a'.
+              items:
+                type: string
+              type: array
           type: object
   version: v1alpha1
 status:
@@ -725,9 +727,11 @@ spec:
                   region:
                     description: Region to which the cluster belongs
                     type: string
-                  zone:
-                    description: Zone to which the cluster belongs
-                    type: string
+                  zones:
+                    description: Zones to which the cluster belongs
+                    items:
+                      type: string
+                    type: array
                 type: object
               type: array
             domain:

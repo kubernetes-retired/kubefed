@@ -295,6 +295,11 @@ func (in *FederatedClusterStatus) DeepCopyInto(out *FederatedClusterStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Zones != nil {
+		in, out := &in.Zones, &out.Zones
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
