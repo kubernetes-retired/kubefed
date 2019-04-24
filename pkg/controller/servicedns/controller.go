@@ -299,10 +299,14 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	var fedDNSStatus []dnsv1a1.ClusterDNS
 	// Iterate through all ready clusters and aggregate the service status for the key
 	for _, cluster := range clusters {
+		if cluster.Status.Region == "" || len(cluster.Status.Zones) == 0 {
+			runtime.HandleError(errors.Wrapf(err, "Cluster %q does not have Region or Zones Attributes", cluster.Name))
+			return util.StatusError
+		}
 		clusterDNS := dnsv1a1.ClusterDNS{
 			Cluster: cluster.Name,
 			Region:  cluster.Status.Region,
-			Zone:    cluster.Status.Zone,
+			Zones:   cluster.Status.Zones,
 		}
 
 		// If there are no endpoints for the service, the service is not backed by pods
