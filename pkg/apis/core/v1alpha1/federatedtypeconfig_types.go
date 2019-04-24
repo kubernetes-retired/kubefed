@@ -212,12 +212,16 @@ func (f *FederatedTypeConfig) GetFederatedNamespaced() bool {
 	// type differing from the scope of its target.
 
 	// TODO(marun) Use the constant in pkg/controller/util
-	if f.Name == "namespaces" {
+	if f.IsNamespace() {
 		// Namespace placement is namespaced to allow the control
 		// plane to run with only namespace-scoped permissions.
 		return true
 	}
 	return f.Spec.Namespaced
+}
+
+func (f *FederatedTypeConfig) IsNamespace() bool {
+	return f.Name == "namespaces"
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {

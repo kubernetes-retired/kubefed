@@ -188,9 +188,9 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 			c.stopController(statusKey, statusStopChan)
 		}
 
-		if typeConfig.GetTarget().Kind == util.NamespaceKind {
+		if typeConfig.IsNamespace() {
 			glog.Infof("Reconciling all namespaced FederatedTypeConfig resources on deletion of %q", key)
-			c.reconcileOnNamespaceFTCDelete()
+			c.reconcileOnNamespaceFTCUpdate()
 		}
 
 		err := c.removeFinalizer(typeConfig)
@@ -205,7 +205,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to ensure finalizer for FederatedTypeConfig %q", key))
 		return util.StatusError
-	} else if updated && typeConfig.GetTarget().Kind == util.NamespaceKind {
+	} else if updated && typeConfig.IsNamespace() {
 		// Detected creation of the namespace FTC. If there are existing FTCs
 		// which did not start their sync controllers due to the lack of a
 		// namespace FTC, then reconcile them now so they can start.
@@ -394,7 +394,7 @@ func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, er
 func (c *Controller) reconcileOnNamespaceFTCUpdate() {
 	for _, cachedObj := range c.store.List() {
 		typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
-		if typeConfig.GetTarget().Kind != util.NamespaceKind && typeConfig.GetNamespaced() {
+		if typeConfig.GetNamespaced() && !typeConfig.IsNamespace() {
 			c.worker.EnqueueObject(typeConfig)
 		}
 	}
