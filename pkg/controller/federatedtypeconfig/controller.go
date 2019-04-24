@@ -230,12 +230,15 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	}
 
 	typeConfig.Status.ObservedGeneration = typeConfig.Generation
-	if syncRunning {
+	syncControllerRunning := startNewSyncController || (syncRunning && !stopSyncController)
+	if syncControllerRunning {
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusRunning
 	} else {
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
 	}
-	if statusRunning {
+
+	statusControllerRunning := startNewStatusController || (statusRunning && !stopStatusController)
+	if statusControllerRunning {
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusRunning
 	} else {
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
