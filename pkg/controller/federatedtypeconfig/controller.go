@@ -46,12 +46,6 @@ type Controller struct {
 	// Arguments to use when starting new controllers
 	controllerConfig *util.ControllerConfig
 
-	// The federated namespace api resource will be needed to start
-	// sync controllers for namespaced federated types.  The placement
-	// for a federated namespace is used in determining the placement
-	// of resources contained by that namespace.
-	fedNamespaceAPIResource *metav1.APIResource
-
 	client genericclient.Client
 
 	// Map of running sync controllers keyed by qualified target type
@@ -371,15 +365,8 @@ func (c *Controller) namespaceFTCExists() bool {
 }
 
 func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, error) {
-	// TODO(marun) Document the requirement to restart the controller
-	// manager if the federated namespace resource changes.
-
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
-	if c.fedNamespaceAPIResource != nil {
-		return c.fedNamespaceAPIResource, nil
-	}
 
 	qualifiedName := util.QualifiedName{
 		Namespace: c.controllerConfig.FederationNamespace,
@@ -395,8 +382,7 @@ func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, er
 	}
 	namespaceTypeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
 	apiResource := namespaceTypeConfig.GetFederatedType()
-	c.fedNamespaceAPIResource = &apiResource
-	return c.fedNamespaceAPIResource, nil
+	return &apiResource, nil
 }
 
 func (c *Controller) reconcileOnNamespaceFTCDelete() {
