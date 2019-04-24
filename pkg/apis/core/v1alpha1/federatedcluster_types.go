@@ -52,9 +52,9 @@ type FederatedClusterStatus struct {
 	// Conditions is an array of current cluster conditions.
 	// +optional
 	Conditions []ClusterCondition `json:"conditions,omitempty"`
-	// Zone is the name of availability zone in which the nodes of the cluster exist, e.g. 'us-east1-a'.
+	// Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.
 	// +optional
-	Zone string `json:"zone,omitempty"`
+	Zones []string `json:"zones,omitempty"`
 	// Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.
 	// +optional
 	Region string `json:"region,omitempty"`
