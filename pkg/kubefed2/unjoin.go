@@ -58,6 +58,7 @@ var (
 type unjoinFederation struct {
 	options.GlobalSubcommandOptions
 	options.CommonSubcommandOptions
+	options.FederationConfigOptions
 	unjoinFederationOptions
 }
 
@@ -139,6 +140,10 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
 		glog.V(2).Infof("Failed to get host cluster config: %v", err)
+		return err
+	}
+	_, j.ClusterNamespace, err = options.GetOptionsFromFederationConfig(hostConfig, j.FederationNamespace)
+	if err != nil {
 		return err
 	}
 

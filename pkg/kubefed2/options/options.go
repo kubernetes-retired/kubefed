@@ -17,10 +17,15 @@ limitations under the License.
 package options
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"k8s.io/client-go/rest"
 )
 
 // GlobalSubcommandOptions holds the configuration required by the subcommands of
@@ -37,7 +42,7 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
 	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
-		"Namespace in the host cluster where the federation system components are installed.  This namespace will also be the target of propagation if the controller manager is configured with --limited-scope and clusters are joined with --limited-scope.")
+		"Namespace in the host cluster where the federation system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
@@ -45,18 +50,15 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 // CommonSubcommandOptions holds the common configuration required by some of
 // the subcommands of `kubefed2`.
 type CommonSubcommandOptions struct {
-	ClusterName      string
-	ClusterContext   string
-	ClusterNamespace string
-	HostClusterName  string
+	ClusterName     string
+	ClusterContext  string
+	HostClusterName string
 }
 
 // CommonSubcommandBind adds the common subcommand flags to the flagset passed in.
 func (o *CommonSubcommandOptions) CommonSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ClusterContext, "cluster-context", "",
 		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
-	flags.StringVar(&o.ClusterNamespace, "registry-namespace", util.MulticlusterPublicNamespace,
-		"Namespace in the host cluster where clusters are registered")
 	flags.StringVar(&o.HostClusterName, "host-cluster-name", "",
 		"If set, overrides the use of host-cluster-context name in resource names created in the target cluster. This option must be used when the context name has characters invalid for kubernetes resources like \"/\" and \":\".")
 }
@@ -70,4 +72,29 @@ func (o *CommonSubcommandOptions) SetName(args []string) error {
 
 	o.ClusterName = args[0]
 	return nil
+}
+
+type FederationConfigOptions struct {
+	ClusterNamespace string
+}
+
+func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (bool, string, error) {
+	client, err := genericclient.New(hostConfig)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to get federation clientset")
+		return false, "", err
+	}
+
+	fedConfig := &fedv1a1.FederationConfig{}
+	err = client.Get(context.TODO(), fedConfig, namespace, util.FederationConfigName)
+	if err != nil {
+		config := util.QualifiedName{
+			Namespace: namespace,
+			Name:      util.FederationConfigName,
+		}
+		err = errors.Wrapf(err, "Error retrieving FederationConfig %q", config)
+		return false, "", err
+	}
+
+	return fedConfig.Spec.LimitedScope, fedConfig.Spec.RegistryNamespace, nil
 }

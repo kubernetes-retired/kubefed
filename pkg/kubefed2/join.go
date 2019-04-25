@@ -84,6 +84,7 @@ var (
 type joinFederation struct {
 	options.GlobalSubcommandOptions
 	options.CommonSubcommandOptions
+	options.FederationConfigOptions
 	joinFederationOptions
 }
 
@@ -101,8 +102,6 @@ func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. If unspecified, defaults to a generated name containing the cluster name.")
 	flags.BoolVar(&o.addToRegistry, "add-to-registry", false,
 		"Add the cluster to the cluster registry that is aggregated with the kubernetes API server running in the host cluster context.")
-	flags.BoolVar(&o.limitedScope, "limited-scope", false,
-		"Whether the federation namespace (configurable via --federation-namespace) will be the only target for federation.  If true, join will add a service account with access only to the federation namespace in the target cluster.")
 	flags.BoolVar(&o.errorOnExisting, "error-on-existing", false,
 		"Whether the join operation will throw an error if it encounters existing artifacts with the same name as those it's trying to create. If false, the join operation will update existing artifacts to match its own specification.")
 }
@@ -158,9 +157,9 @@ func (j *joinFederation) Complete(args []string) error {
 		glog.Fatal("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
 	}
 
-	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, registry-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, limited-scope: %v, dry-run: %v",
-		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.ClusterNamespace, j.Kubeconfig, j.ClusterContext,
-		j.secretName, j.limitedScope, j.DryRun)
+	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
+		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.ClusterContext,
+		j.secretName, j.DryRun)
 
 	return nil
 }
@@ -172,6 +171,11 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
 		glog.V(2).Infof("Failed to get host cluster config: %v", err)
+		return err
+	}
+
+	j.limitedScope, j.ClusterNamespace, err = options.GetOptionsFromFederationConfig(hostConfig, j.FederationNamespace)
+	if err != nil {
 		return err
 	}
 
