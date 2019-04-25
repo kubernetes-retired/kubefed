@@ -63,10 +63,6 @@ func (s *SchedulerWrapper) HasPlugin(typeConfigName string) bool {
 }
 
 func StartSchedulingManager(config *util.ControllerConfig, stopChan <-chan struct{}) (*SchedulingManager, error) {
-	userAgent := "SchedulingManager"
-	kubeConfig := config.KubeConfig
-	restclient.AddUserAgent(kubeConfig, userAgent)
-
 	manager, err := newSchedulingManager(config)
 	if err != nil {
 		return nil, err
@@ -86,6 +82,10 @@ func newSchedulerWrapper(schedulerInterface schedulingtypes.Scheduler, stopChan 
 }
 
 func newSchedulingManager(config *util.ControllerConfig) (*SchedulingManager, error) {
+	userAgent := "SchedulingManager"
+	kubeConfig := restclient.CopyConfig(config.KubeConfig)
+	restclient.AddUserAgent(kubeConfig, userAgent)
+
 	c := &SchedulingManager{
 		config:     config,
 		schedulers: util.NewSafeMap(),
@@ -95,7 +95,7 @@ func newSchedulingManager(config *util.ControllerConfig) (*SchedulingManager, er
 
 	var err error
 	c.store, c.controller, err = util.NewGenericInformer(
-		config.KubeConfig,
+		kubeConfig,
 		config.FederationNamespace,
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,

@@ -79,7 +79,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 // newController returns a new controller to manage FederatedTypeConfig objects.
 func newController(config *util.ControllerConfig) (*Controller, error) {
 	userAgent := "FederatedTypeConfig"
-	kubeConfig := config.KubeConfig
+	kubeConfig := restclient.CopyConfig(config.KubeConfig)
 	restclient.AddUserAgent(kubeConfig, userAgent)
 	genericclient, err := genericclient.New(kubeConfig)
 	if err != nil {
@@ -98,7 +98,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// restrictive authz can be applied to a namespaced
 	// control plane.
 	c.store, c.controller, err = util.NewGenericInformer(
-		config.KubeConfig,
+		kubeConfig,
 		config.FederationNamespace,
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
