@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
@@ -135,12 +136,12 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	glog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 
-	cachedObj, exist, err := c.store.GetByKey(key)
+	cachedObj, err := c.objCopyFromCache(key)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key))
 		return util.StatusError
 	}
-	if !exist {
+
+	if cachedObj == nil {
 		return util.StatusAllOK
 	}
 	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
@@ -249,6 +250,19 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return util.StatusError
 	}
 	return util.StatusAllOK
+}
+
+func (c *Controller) objCopyFromCache(key string) (pkgruntime.Object, error) {
+	cachedObj, exist, err := c.store.GetByKey(key)
+	if err != nil {
+		wrappedErr := errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key)
+		runtime.HandleError(wrappedErr)
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
 }
 
 func (c *Controller) shutDown() {
