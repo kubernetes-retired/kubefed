@@ -63,13 +63,7 @@ var _ = Describe("ServiceDNS", func() {
 		federatedClusters := &fedv1a1.FederatedClusterList{}
 		err := client.List(context.TODO(), federatedClusters, f.FederationSystemNamespace())
 		framework.ExpectNoError(err, "Error listing federated clusters")
-		clusterRegionZones = make(map[string]fedv1a1.FederatedClusterStatus)
-		for _, cluster := range federatedClusters.Items {
-			clusterRegionZones[cluster.Name] = fedv1a1.FederatedClusterStatus{
-				Region: cluster.Status.Region,
-				Zone:   cluster.Status.Zone,
-			}
-		}
+		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(client, federatedClusters)
 		if framework.TestContext.RunControllers() {
 			fixture := framework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
@@ -100,7 +94,7 @@ var _ = Describe("ServiceDNS", func() {
 			serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
 				Cluster: clusterName,
 				Region:  clusterRegionZones[clusterName].Region,
-				Zone:    clusterRegionZones[clusterName].Zone,
+				Zones:   clusterRegionZones[clusterName].Zones,
 			})
 		}
 		sort.Slice(serviceDNSStatus.DNS, func(i, j int) bool {
@@ -127,11 +121,8 @@ var _ = Describe("ServiceDNS", func() {
 			framework.ExpectNoError(err, "Error creating ServiceDNS object %v", serviceDNS)
 			name := serviceDNS.Name
 
-			serviceDNSStatus := &dnsv1a1.ServiceDNSRecordStatus{Domain: Domain, DNS: []dnsv1a1.ClusterDNS{}}
-
 			By("Creating corresponding service and endpoint for the ServiceDNS object in member clusters")
-			serviceDNSStatus = createClusterServiceAndEndpoints(f, name, namespace, serviceDNSStatus)
-
+			serviceDNSStatus := createClusterServiceAndEndpoints(f, name, namespace, Domain, clusterRegionZones)
 			serviceDNS.Status = *serviceDNSStatus
 
 			By("Waiting for the ServiceDNS object to have correct status")
@@ -146,12 +137,12 @@ var _ = Describe("ServiceDNS", func() {
 
 			endpoints := []*dnsv1a1.Endpoint{}
 			for _, cluster := range serviceDNS.Status.DNS {
-				zone := clusterRegionZones[cluster.Cluster].Zone
+				zones := clusterRegionZones[cluster.Cluster].Zones
 				region := clusterRegionZones[cluster.Cluster].Region
 				lbs := dnsendpoint.ExtractLoadBalancerTargets(cluster.LoadBalancer)
 
 				endpoint := common.NewDNSEndpoint(
-					strings.Join([]string{name, namespace, federation, "svc", zone, region, Domain}, "."),
+					strings.Join([]string{name, namespace, federation, "svc", zones[0], region, Domain}, "."),
 					lbs, RecordTypeA, RecordTTL)
 				endpoints = append(endpoints, endpoint)
 				endpoint = common.NewDNSEndpoint(
@@ -178,19 +169,27 @@ var _ = Describe("ServiceDNS", func() {
 	})
 })
 
-func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, serviceDNSStatus *dnsv1a1.ServiceDNSRecordStatus) *dnsv1a1.ServiceDNSRecordStatus {
+func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, domain string,
+	clusterRegionZones map[string]fedv1a1.FederatedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
+
 	const userAgent = "test-service-dns"
 
 	service := common.NewServiceObject(name, namespace)
 	endpoint := common.NewEndpointObject(name, namespace)
 	lbsuffix := 1
 
+	serviceDNSStatus := &dnsv1a1.ServiceDNSRecordStatus{Domain: domain, DNS: []dnsv1a1.ClusterDNS{}}
 	for clusterName, client := range f.ClusterKubeClients(userAgent) {
 		clusterLb := fmt.Sprintf("10.20.30.%d", lbsuffix)
 		lbsuffix++
 
 		loadbalancerStatus := apiv1.LoadBalancerStatus{Ingress: []apiv1.LoadBalancerIngress{{IP: clusterLb}}}
-		serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{Cluster: clusterName, LoadBalancer: loadbalancerStatus})
+		serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
+			Cluster:      clusterName,
+			LoadBalancer: loadbalancerStatus,
+			Region:       clusterRegionZones[clusterName].Region,
+			Zones:        clusterRegionZones[clusterName].Zones,
+		})
 
 		common.WaitForNamespaceOrDie(framework.NewE2ELogger(), client, clusterName, namespace,
 			framework.PollInterval, framework.TestContext.SingleCallTimeout)
@@ -214,4 +213,22 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	})
 
 	return serviceDNSStatus
+}
+
+func ensureClustersHaveRegionZoneAttributes(client genericclient.Client, federatedClusters *fedv1a1.FederatedClusterList) map[string]fedv1a1.FederatedClusterStatus {
+	clusterRegionZones := make(map[string]fedv1a1.FederatedClusterStatus)
+	for i, cluster := range federatedClusters.Items {
+		cluster.Status.Region = fmt.Sprintf("r%d", i)
+		cluster.Status.Zones = []string{fmt.Sprintf("z%d", i)}
+
+		err := client.UpdateStatus(context.TODO(), &cluster)
+		framework.ExpectNoError(err, "Error updating federated cluster status")
+
+		clusterRegionZones[cluster.Name] = fedv1a1.FederatedClusterStatus{
+			Region: cluster.Status.Region,
+			Zones:  cluster.Status.Zones,
+		}
+	}
+
+	return clusterRegionZones
 }

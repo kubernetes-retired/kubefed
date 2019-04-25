@@ -58,56 +58,52 @@ func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 		commonPrefix = strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
 	}
 
+	ttl := dnsObject.Spec.RecordTTL
+	if ttl == 0 {
+		ttl = defaultDNSTTL
+	}
+
 	for _, clusterDNS := range dnsObject.Status.DNS {
-		zone := clusterDNS.Zone
-		region := clusterDNS.Region
+		var zoneDNSName string
+		regionDNSName := strings.Join([]string{commonPrefix, clusterDNS.Region, dnsObject.Status.Domain}, ".") // region level, one up from zone level
+		globalDNSName := strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, ".")                    // global level, one up from region level
 
-		dnsNames := []string{
-			strings.Join([]string{commonPrefix, zone, region, dnsObject.Status.Domain}, "."), // zone level
-			strings.Join([]string{commonPrefix, region, dnsObject.Status.Domain}, "."),       // region level, one up from zone level
-			strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, "."),               // global level, one up from region level
-			"", // nowhere to go up from global level
-		}
-
-		var zoneTargets, regionTargets, globalTargets feddnsv1a1.Targets
-		for _, clusterDNS := range dnsObject.Status.DNS {
-			if clusterDNS.Zone == zone {
-				zoneTargets = append(zoneTargets, ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)...)
-			}
-		}
-
-		for _, clusterDNS := range dnsObject.Status.DNS {
-			if clusterDNS.Region == region {
-				regionTargets = append(regionTargets, ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)...)
-			}
-		}
-
-		for _, clusterDNS := range dnsObject.Status.DNS {
-			globalTargets = append(globalTargets, ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)...)
-		}
-
-		targets := [][]string{zoneTargets, regionTargets, globalTargets}
-
-		ttl := dnsObject.Spec.RecordTTL
-		if ttl == 0 {
-			ttl = defaultDNSTTL
-		}
-		for i, target := range targets {
-			endpoint, err := generateEndpointForServiceDNSObject(dnsNames[i], target, dnsNames[i+1], ttl, labels)
+		// Zone endpoints
+		for _, zone := range clusterDNS.Zones {
+			zoneDNSName = strings.Join([]string{commonPrefix, zone, clusterDNS.Region, dnsObject.Status.Domain}, ".")
+			zoneTargets := ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)
+			zoneEndpoint, err := generateEndpointForServiceDNSObject(zoneDNSName, zoneTargets, regionDNSName, ttl, labels)
 			if err != nil {
 				return nil, err
 			}
-			endpoints = append(endpoints, endpoint)
+			endpoints = append(endpoints, zoneEndpoint)
 		}
-		if dnsObject.Spec.DNSPrefix != "" {
-			endpoint := &feddnsv1a1.Endpoint{
-				DNSName:    dnsObject.Spec.DNSPrefix + "." + dnsObject.Status.Domain,
-				RecordTTL:  ttl,
-				RecordType: RecordTypeCNAME,
-			}
-			endpoint.Targets = []string{strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, ".")}
-			endpoints = append(endpoints, endpoint)
+
+		// Region endpoints
+		regionTargets := ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)
+		regionEndpoint, err := generateEndpointForServiceDNSObject(regionDNSName, regionTargets, globalDNSName, ttl, labels)
+		if err != nil {
+			return nil, err
 		}
+		endpoints = append(endpoints, regionEndpoint)
+
+		// Global endpoints
+		globalTargets := ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)
+		globalEndpoint, err := generateEndpointForServiceDNSObject(globalDNSName, globalTargets, "", ttl, labels)
+		if err != nil {
+			return nil, err
+		}
+		endpoints = append(endpoints, globalEndpoint)
+	}
+
+	if dnsObject.Spec.DNSPrefix != "" {
+		endpoint := &feddnsv1a1.Endpoint{
+			DNSName:    dnsObject.Spec.DNSPrefix + "." + dnsObject.Status.Domain,
+			RecordTTL:  ttl,
+			RecordType: RecordTypeCNAME,
+		}
+		endpoint.Targets = []string{strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, ".")}
+		endpoints = append(endpoints, endpoint)
 	}
 
 	return DedupeAndMergeEndpoints(endpoints), nil

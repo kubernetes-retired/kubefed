@@ -186,7 +186,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.Fede
 	currentClusterStatus = thresholdAdjustedClusterStatus(currentClusterStatus, storedData, cc.clusterHealthCheckConfig)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		currentClusterStatus = updateClusterZoneAndRegion(currentClusterStatus, storedData, clusterClient)
+		currentClusterStatus = updateClusterZonesAndRegion(currentClusterStatus, cluster, clusterClient)
 	}
 
 	storedData.clusterStatus = currentClusterStatus
@@ -233,31 +233,29 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.FederatedClusterStatu
 	return clusterStatus
 }
 
-func updateClusterZoneAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, clusterSpecifics *ClusterData,
+func updateClusterZonesAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, cluster *fedv1a1.FederatedCluster,
 	clusterClient *ClusterClient) *fedv1a1.FederatedClusterStatus {
 
 	if !util.IsClusterReady(clusterStatus) {
 		return clusterStatus
 	}
 
-	zone, region, err := clusterClient.GetClusterZones()
+	zones, region, err := clusterClient.GetClusterZones()
 	if err != nil {
 		glog.Warningf("Failed to get zones and region for cluster %q: %v", clusterClient.clusterName, err)
-	} else {
-		// If new zone & region are empty, preserve the old ones so that user configured zone & region
-		// labels are effective
-		if clusterSpecifics.clusterStatus != nil {
-			if len(zone) == 0 {
-				zone = clusterSpecifics.clusterStatus.Zone
-			}
-			if len(region) == 0 {
-				region = clusterSpecifics.clusterStatus.Region
-			}
-		}
-		clusterStatus.Zone = zone
-		clusterStatus.Region = region
+		return clusterStatus
 	}
 
+	// If new zone & region are empty, preserve the old ones so that user configured zone & region
+	// labels are effective
+	if len(zones) == 0 {
+		zones = cluster.Status.Zones
+	}
+	if len(region) == 0 {
+		region = cluster.Status.Region
+	}
+	clusterStatus.Zones = zones
+	clusterStatus.Region = region
 	return clusterStatus
 }
 

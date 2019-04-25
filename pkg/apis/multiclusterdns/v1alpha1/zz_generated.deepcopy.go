@@ -28,6 +28,11 @@ import (
 func (in *ClusterDNS) DeepCopyInto(out *ClusterDNS) {
 	*out = *in
 	in.LoadBalancer.DeepCopyInto(&out.LoadBalancer)
+	if in.Zones != nil {
+		in, out := &in.Zones, &out.Zones
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 )
@@ -119,48 +120,44 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterSta
 }
 
 // GetClusterZones gets the kubernetes cluster zones and region by inspecting labels on nodes in the cluster.
-func (self *ClusterClient) GetClusterZones() (zone, region string, err error) {
+func (self *ClusterClient) GetClusterZones() ([]string, string, error) {
 	nodes, err := self.kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Failed to list nodes while getting zone names: %v", err)
-		return "", "", err
+		return nil, "", err
 	}
+
+	zones := sets.NewString()
+	region := ""
 	for i, node := range nodes.Items {
-		zone, err = getZoneNameForNode(node)
-		if err != nil {
-			return "", "", err
-		}
+		zone := getZoneNameForNode(node)
+		// region is same for all nodes in the cluster, so just pick the region from first node.
 		if i == 0 {
-			region, err = getRegionNameForNode(node)
-			if err != nil {
-				return "", "", err
-			}
+			region = getRegionNameForNode(node)
 		}
-		// TODO: Optimize this flow. All nodes will have the same zone label.
-		// So just considering first node for now.
-		break
+		if zone != "" && !zones.Has(zone) {
+			zones.Insert(zone)
+		}
 	}
-	return zone, region, nil
+	return zones.List(), region, nil
 }
 
 // Find the name of the zone in which a Node is running.
-func getZoneNameForNode(node corev1.Node) (string, error) {
+func getZoneNameForNode(node corev1.Node) string {
 	for key, value := range node.Labels {
 		if key == LabelZoneFailureDomain {
-			return value, nil
+			return value
 		}
 	}
-	return "", errors.Errorf("Zone name for node %s not found. No label with key %s",
-		node.Name, LabelZoneFailureDomain)
+	return ""
 }
 
 // Find the name of the region in which a Node is running.
-func getRegionNameForNode(node corev1.Node) (string, error) {
+func getRegionNameForNode(node corev1.Node) string {
 	for key, value := range node.Labels {
 		if key == LabelZoneRegion {
-			return value, nil
+			return value
 		}
 	}
-	return "", errors.Errorf("Region name for node %s not found. No label with key %s",
-		node.Name, LabelZoneRegion)
+	return ""
 }

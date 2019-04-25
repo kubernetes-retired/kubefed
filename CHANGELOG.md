@@ -1,4 +1,8 @@
 # Unreleased
+-  [#797](https://github.com/kubernetes-sigs/federation-v2/pull/797) -
+   Cross-cluster service discovery now works for multi-zone clusters.
+   There is an update to FederatedClusters and ServiceDNSRecord API
+   types wherein the zone field is changed to zones.
 -  [#720](https://github.com/kubernetes-sigs/federation-v2/issues/720) -
    `kubefed2 enable` now succeeds if federation of the type is already
    enabled.

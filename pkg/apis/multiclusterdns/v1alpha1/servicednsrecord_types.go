@@ -49,8 +49,8 @@ type ClusterDNS struct {
 	Cluster string `json:"cluster,omitempty"`
 	// LoadBalancer for the corresponding service
 	LoadBalancer corev1.LoadBalancerStatus `json:"loadBalancer,omitempty"`
-	// Zone to which the cluster belongs
-	Zone string `json:"zone,omitempty"`
+	// Zones to which the cluster belongs
+	Zones []string `json:"zones,omitempty"`
 	// Region to which the cluster belongs
 	Region string `json:"region,omitempty"`
 }
