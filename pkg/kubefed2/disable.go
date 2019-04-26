@@ -258,11 +258,12 @@ func disablePropagation(client genericclient.Client, typeConfig *fedv1a1.Federat
 func checkPropagationControllerStopped(client genericclient.Client, typeConfigName ctlutil.QualifiedName, write func(string)) {
 	write(fmt.Sprintf("Checking propagation controller is stopped for FederatedTypeConfig %q\n", typeConfigName))
 
-	typeConfig := &fedv1a1.FederatedTypeConfig{}
+	var typeConfig *fedv1a1.FederatedTypeConfig
 	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+		typeConfig = &fedv1a1.FederatedTypeConfig{}
 		err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
 		if err != nil {
-			return false, err
+			return false, nil
 		}
 		if typeConfig.Status.PropagationController == fedv1a1.ControllerStatusNotRunning {
 			return true, nil
@@ -304,12 +305,10 @@ func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, w
 
 	crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
 	err = client.CustomResourceDefinitions().Delete(crdName, nil)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			write(fmt.Sprintf("customresourcedefinition %q does not exist\n", crdName))
-		} else {
-			return errors.Wrapf(err, "Error deleting crd %q", crdName)
-		}
+	if apierrors.IsNotFound(err) {
+		write(fmt.Sprintf("customresourcedefinition %q does not exist\n", crdName))
+	} else if err != nil {
+		return errors.Wrapf(err, "Error deleting crd %q", crdName)
 	} else {
 		write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	}
