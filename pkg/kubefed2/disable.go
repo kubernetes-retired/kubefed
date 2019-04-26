@@ -63,8 +63,8 @@ var (
 		kubefed2 disable deployments.apps
 
 		# Disable propagation of the kubernetes API type 'Deployment', named
-		in FederatedTypeConfig as 'deployments.apps', and delete corresponding
-		Federated API resource
+		in FederatedTypeConfig as 'deployments.apps', and delete the
+		corresponding Federated API resource
 		kubefed2 disable deployments.apps --delete-crd`
 )
 
@@ -75,14 +75,14 @@ type disableType struct {
 }
 
 type disableTypeOptions struct {
-	delete              bool
+	deleteCRD           bool
 	enableTypeDirective *enable.EnableTypeDirective
 }
 
 // Bind adds the disable specific arguments to the flagset passed in as an
 // argument.
 func (o *disableTypeOptions) Bind(flags *pflag.FlagSet) {
-	flags.BoolVar(&o.delete, "delete-crd", false, "Whether to remove the API resource added by 'enable'.")
+	flags.BoolVar(&o.deleteCRD, "delete-crd", false, "Whether to remove the API resource added by 'enable'.")
 }
 
 // NewCmdTypeDisable defines the `disable` command that
@@ -119,13 +119,13 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *disableType) Complete(args []string) error {
 	j.enableTypeDirective = enable.NewEnableTypeDirective()
-	fd := j.enableTypeDirective
+	directive := j.enableTypeDirective
 
 	if err := j.SetName(args); err != nil {
 		return err
 	}
 
-	if !j.delete {
+	if !j.deleteCRD {
 		if len(j.TargetVersion) > 0 {
 			return errors.New("--version flag valid only with --delete-crd")
 		} else if j.FederationGroup != options.DefaultFederationGroup {
@@ -134,10 +134,10 @@ func (j *disableType) Complete(args []string) error {
 	}
 
 	if len(j.TargetVersion) > 0 {
-		fd.Spec.TargetVersion = j.TargetVersion
+		directive.Spec.TargetVersion = j.TargetVersion
 	}
 	if len(j.FederationGroup) > 0 {
-		fd.Spec.FederationGroup = j.FederationGroup
+		directive.Spec.FederationGroup = j.FederationGroup
 	}
 
 	return nil
@@ -167,11 +167,11 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      name,
 	}
 	j.enableTypeDirective.Name = typeConfigName.Name
-	return DisableFederation(cmdOut, hostConfig, j.enableTypeDirective, typeConfigName, j.delete, j.DryRun)
+	return DisableFederation(cmdOut, hostConfig, j.enableTypeDirective, typeConfigName, j.deleteCRD, j.DryRun)
 }
 
 func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirective *enable.EnableTypeDirective,
-	typeConfigName ctlutil.QualifiedName, delete, dryRun bool) error {
+	typeConfigName ctlutil.QualifiedName, deleteCRD, dryRun bool) error {
 	client, err := genericclient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
@@ -199,7 +199,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 
 	if ftcExists {
 		if typeConfig.Spec.PropagationEnabled {
-			err = disablePropagationController(client, typeConfig, typeConfigName, write)
+			err = disablePropagation(client, typeConfig, typeConfigName, write)
 			if err != nil {
 				return err
 			}
@@ -211,7 +211,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 		}
 	}
 
-	if delete {
+	if deleteCRD {
 		if !ftcExists {
 			typeConfig, err = generatedFederatedTypeConfig(config, enableTypeDirective)
 			if err != nil {
@@ -241,7 +241,7 @@ func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fed
 	return false, errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeConfigName)
 }
 
-func disablePropagationController(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
+func disablePropagation(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
 	if typeConfig.Spec.PropagationEnabled {
 		typeConfig.Spec.PropagationEnabled = false
 		err := client.Update(context.TODO(), typeConfig)
@@ -283,7 +283,7 @@ func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1a1.
 	if err != nil {
 		return errors.Wrapf(err, "Error deleting FederatedTypeConfig %q", typeConfigName)
 	}
-	write(fmt.Sprintf("FederatedTypeConfig %q deleted\n", typeConfigName))
+	write(fmt.Sprintf("federatedtypeconfig %q deleted\n", typeConfigName))
 	return nil
 }
 
