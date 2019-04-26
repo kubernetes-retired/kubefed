@@ -1,4 +1,8 @@
 # Unreleased
+-  [#722](https://github.com/kubernetes-sigs/federation-v2/issues/722) -
+   Removal of the FederatedTypeConfig for namespaces now disables all
+   namespaced sync controllers. Additionally, the namespace FederatedTypeConfig
+   must always exist prior to starting any namespaced sync controller.
  - [#612](https://github.com/kubernetes-sigs/federation-v2/pull/612) -
    Label managed resources in member clusters and only watch resources
    so labeled to minimize the memory usage of the federated control
