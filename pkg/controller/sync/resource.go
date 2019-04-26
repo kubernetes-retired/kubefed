@@ -33,6 +33,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/dispatch"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
@@ -42,23 +43,17 @@ import (
 // resource which may be implemented by one or more kubernetes
 // resources in the cluster hosting the federation control plane.
 type FederatedResource interface {
+	dispatch.FederatedResourceForDispatch
+
 	FederatedName() util.QualifiedName
 	FederatedKind() string
-	TargetName() util.QualifiedName
-	TargetKind() string
-	Object() *unstructured.Unstructured
-	VersionForCluster(clusterName string) (string, error)
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
 	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error)
 	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
-	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	MarkedForDeletion() bool
 	EnsureDeletion() error
 	EnsureFinalizer() error
-	RecordError(errorCode string, err error)
-	RecordEvent(reason, messageFmt string, args ...interface{})
-	NewUpdater() FederatedUpdater
 }
 
 type federatedResource struct {
@@ -78,7 +73,6 @@ type federatedResource struct {
 	namespace         *unstructured.Unstructured
 	fedNamespace      *unstructured.Unstructured
 	eventRecorder     record.EventRecorder
-	informer          util.FederatedInformer
 }
 
 func (r *federatedResource) FederatedName() util.QualifiedName {
@@ -244,17 +238,13 @@ func (r *federatedResource) RecordEvent(reason, messageFmt string, args ...inter
 	r.eventRecorder.Eventf(r.Object(), corev1.EventTypeNormal, reason, messageFmt, args...)
 }
 
-func (r *federatedResource) NewUpdater() FederatedUpdater {
-	return NewFederatedUpdater(r.informer, r)
-}
-
 func (r *federatedResource) overridesForCluster(clusterName string) (util.ClusterOverridesMap, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.overridesMap == nil {
 		overridesMap, err := util.GetOverrides(r.federatedResource)
 		if err != nil {
-			return nil, errors.Errorf("Error reading cluster overrides for %s %q", r.federatedKind, r.federatedName)
+			return nil, errors.Wrapf(err, "Error reading cluster overrides")
 		}
 		r.overridesMap = overridesMap
 	}
