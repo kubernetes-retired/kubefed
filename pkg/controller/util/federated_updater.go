@@ -117,7 +117,7 @@ func (fu *federatedUpdaterImpl) Update(ops []FederatedOperation) (map[string]str
 			}
 
 			eventArgs := []interface{}{fu.kind, op.Key, clusterName}
-			baseEventType := fmt.Sprintf("%s", op.Type)
+			baseEventType := string(op.Type)
 			eventType := fmt.Sprintf("%sInCluster", strings.Title(baseEventType))
 
 			version := ""

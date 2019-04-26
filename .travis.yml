@@ -20,9 +20,11 @@ before_install:
 # The dependencies have already been vendored by `dep` so
 # we don't need to fetch them.
 install:
-  -
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.16.0
+  - golangci-lint --version
 
 script:
+  - test $DOC_ONLY && echo "Skipped!" || golangci-lint run
   - test $DOC_ONLY && echo "Skipped!" || DOWNLOAD_BINARIES=y bash -x ./scripts/pre-commit.sh
   - test $DOC_ONLY && echo "Skipped!" || vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh --rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
 

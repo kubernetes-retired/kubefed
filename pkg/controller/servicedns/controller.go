@@ -131,6 +131,9 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 			s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now())
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// Federated serviceInformer for the service resource in members of federation.
 	s.serviceInformer, err = util.NewFederatedInformer(

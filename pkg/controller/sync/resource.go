@@ -190,7 +190,9 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	if overrides != nil {
 		for path, value := range overrides {
 			pathEntries := strings.Split(path, ".")
-			unstructured.SetNestedField(obj.Object, value, pathEntries...)
+			if err := unstructured.SetNestedField(obj.Object, value, pathEntries...); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -288,6 +290,9 @@ func hashUnstructured(obj *unstructured.Unstructured, description string) (strin
 		return "", errors.Wrapf(err, "Failed to marshal %q to json", description)
 	}
 	hash := md5.New()
-	hash.Write(jsonBytes)
+	if _, err := hash.Write(jsonBytes); err != nil {
+		return "", err
+	}
+
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }

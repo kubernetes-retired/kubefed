@@ -158,7 +158,9 @@ func createClusterIngress(f framework.FederationFramework, name, namespace strin
 		createdIngress, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(ingress)
 		framework.ExpectNoError(err, "Error creating ingress in cluster %q", clusterName)
 
-		createdIngress.Status = extv1b1.IngressStatus{lbStatus}
+		createdIngress.Status = extv1b1.IngressStatus{
+			LoadBalancer: lbStatus,
+		}
 
 		// Fake out provisioning LoadBalancer by updating the ingress status in member cluster.
 		_, err = client.ExtensionsV1beta1().Ingresses(namespace).UpdateStatus(createdIngress)

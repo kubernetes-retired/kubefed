@@ -119,6 +119,7 @@ func MetaAccessor(obj pkgruntime.Object) metav1.Object {
 	if err != nil {
 		// This should always succeed if obj is not nil.  Also,
 		// adapters are slated for replacement by unstructured.
+		return nil
 	}
 	return accessor
 }

@@ -43,7 +43,6 @@ import (
 
 var (
 	clusterControllerFixture *ControllerFixture
-	args                     util.ControllerConfig
 	// The client and set of deleted namespaces is used on suite
 	// teardown to ensure namespaces are deleted before finalizing
 	// controllers can be shutdown.
@@ -155,7 +154,7 @@ func (f *UnmanagedFramework) AfterEach() {
 	if CurrentGinkgoTestDescription().Failed && f.testNamespaceName != "" {
 		kubeClient := f.KubeClient(userAgent)
 		DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
-			return kubeClient.Core().Events(ns).List(opts)
+			return kubeClient.CoreV1().Events(ns).List(opts)
 		}, f.testNamespaceName)
 	}
 }
@@ -213,8 +212,8 @@ func (f *UnmanagedFramework) ClusterDynamicClients(apiResource *metav1.APIResour
 		// Check if this cluster is the same name as the host cluster name to
 		// make it the primary cluster.
 		testClusters[clusterName] = common.TestCluster{
-			clusterConfig,
-			client,
+			TestClusterConfig: clusterConfig,
+			Client:            client,
 		}
 	}
 	return testClusters
@@ -252,8 +251,8 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{
-			config,
-			(cluster.Name == hostClusterName),
+			Config:    config,
+			IsPrimary: (cluster.Name == hostClusterName),
 		}
 	}
 
@@ -300,7 +299,7 @@ func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.In
 
 func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	orphanDependents := false
-	if err := client.Core().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
+	if err := client.CoreV1().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
 		if !apierrors.IsNotFound(err) {
 			Failf("Error while deleting namespace %s: %s", namespaceName, err)
 		}
@@ -333,7 +332,7 @@ func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
 
 func waitForNamespaceDeletion(client kubeclientset.Interface, namespace string) error {
 	err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
-		if _, err := client.Core().Namespaces().Get(namespace, metav1.GetOptions{}); err != nil {
+		if _, err := client.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true, nil
 			}

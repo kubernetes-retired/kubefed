@@ -290,14 +290,12 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
 	namespace, unjoiningClusterName, hostClusterName string, dryRun bool) bool {
 
-	var deletionSucceeded = true
-
 	saName := util.ClusterServiceAccountName(unjoiningClusterName, hostClusterName)
 
 	glog.V(2).Infof("Deleting cluster role binding for service account: %s in unjoining cluster: %s",
 		saName, unjoiningClusterName)
 
-	deletionSucceeded = deleteClusterRoleAndBinding(unjoiningClusterClientset, saName, namespace, dryRun)
+	deletionSucceeded := deleteClusterRoleAndBinding(unjoiningClusterClientset, saName, namespace, dryRun)
 	if deletionSucceeded {
 		glog.V(2).Infof("Deleted cluster role binding for service account: %s in unjoining cluster: %s",
 			saName, unjoiningClusterName)

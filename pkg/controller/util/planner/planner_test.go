@@ -30,7 +30,8 @@ func doCheck(t *testing.T, pref map[string]fedschedulingv1a1.ClusterPreferences,
 			TotalReplicas: int32(replicas),
 		},
 	})
-	plan, overflow := planer.Plan(clusters, map[string]int64{}, map[string]int64{}, "")
+	plan, overflow, err := planer.Plan(clusters, map[string]int64{}, map[string]int64{}, "")
+	assert.Nil(t, err)
 	assert.EqualValues(t, expected, plan)
 	assert.Equal(t, 0, len(overflow))
 }
@@ -43,7 +44,8 @@ func doCheckWithExisting(t *testing.T, pref map[string]fedschedulingv1a1.Cluster
 			TotalReplicas: int32(replicas),
 		},
 	})
-	plan, overflow := planer.Plan(clusters, existing, map[string]int64{}, "")
+	plan, overflow, err := planer.Plan(clusters, existing, map[string]int64{}, "")
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(overflow))
 	assert.EqualValues(t, expected, plan)
 }
@@ -60,7 +62,8 @@ func doCheckWithExistingAndCapacity(t *testing.T, rebalance bool, pref map[strin
 			TotalReplicas: int32(replicas),
 		},
 	})
-	plan, overflow := planer.Plan(clusters, existing, capacity, "")
+	plan, overflow, err := planer.Plan(clusters, existing, capacity, "")
+	assert.Nil(t, err)
 	assert.EqualValues(t, expected, plan)
 	assert.Equal(t, expectedOverflow, overflow)
 }

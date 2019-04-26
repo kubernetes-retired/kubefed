@@ -78,10 +78,14 @@ func TestSelectedClusterNames(t *testing.T) {
 				},
 			}
 			if testCase.clusterNames != nil {
-				unstructured.SetNestedStringSlice(obj.Object, testCase.clusterNames, util.SpecField, util.PlacementField, util.ClusterNamesField)
+				if err := unstructured.SetNestedStringSlice(obj.Object, testCase.clusterNames, util.SpecField, util.PlacementField, util.ClusterNamesField); err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
 			}
 			if testCase.clusterSelector != nil {
-				unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, util.MatchLabelsField)
+				if err := unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, util.MatchLabelsField); err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
 			}
 
 			selectedNames, err := selectedClusterNames(obj, clusters)

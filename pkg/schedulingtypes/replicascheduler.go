@@ -241,9 +241,7 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 
 		label := labels.SelectorFromSet(labels.Set(selectorLabels))
-		if err != nil {
-			return nil, errors.Wrap(err, "invalid selector")
-		}
+
 		unstructuredPodList, err := client.Resources(unstructuredObj.GetNamespace()).List(metav1.ListOptions{LabelSelector: label.String()})
 		if err != nil || unstructuredPodList == nil {
 			return nil, err
@@ -264,12 +262,14 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 	}
 
 	plnr := planner.NewPlanner(rsp)
-	return schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity), nil
+	return schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity)
 }
 
-func schedule(planner *planner.Planner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) map[string]int64 {
-
-	scheduleResult, overflow := planner.Plan(clusterNames, currentReplicasPerCluster, estimatedCapacity, key)
+func schedule(planner *planner.Planner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) (map[string]int64, error) {
+	scheduleResult, overflow, err := planner.Plan(clusterNames, currentReplicasPerCluster, estimatedCapacity, key)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: Check if we really need to place the federated type in clusters
 	// with 0 replicas. Override replicas would be set to 0 in this case.
@@ -302,7 +302,7 @@ func schedule(planner *planner.Planner, key string, clusterNames []string, curre
 		}
 		glog.V(4).Infof(buf.String())
 	}
-	return result
+	return result, nil
 }
 
 // clustersReplicaState returns information about the scheduling state of the pods running in the federated clusters.

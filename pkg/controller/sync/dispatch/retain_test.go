@@ -68,7 +68,10 @@ func TestRetainClusterFields(t *testing.T) {
 					},
 				},
 			}
-			RetainClusterFields("", desiredObj, clusterObj, fedObj)
+			if err := RetainClusterFields("", desiredObj, clusterObj, fedObj); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
 			replicas, ok, err := unstructured.NestedInt64(desiredObj.Object, util.SpecField, util.ReplicasField)
 			if !ok {
 				t.Fatalf("Field 'spec.replicas' not found")

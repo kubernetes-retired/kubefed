@@ -66,8 +66,6 @@ type SchedulingPreferenceController struct {
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
 	updateTimeout           time.Duration
-
-	stopChannel chan struct{}
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
@@ -204,7 +202,7 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 
 	glog.V(4).Infof("Starting to reconcile %s controller triggered key named %v", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Now().Sub(startTime))
+	defer glog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Since(startTime))
 
 	obj, err := s.objFromCache(s.store, kind, key)
 	if err != nil {

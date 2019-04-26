@@ -197,7 +197,9 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 		createdService, err := client.CoreV1().Services(namespace).Create(service)
 		framework.ExpectNoError(err, "Error creating service in cluster %q", clusterName)
 
-		createdService.Status = apiv1.ServiceStatus{loadbalancerStatus}
+		createdService.Status = apiv1.ServiceStatus{
+			LoadBalancer: loadbalancerStatus,
+		}
 
 		// Fake out provisioning LoadBalancer by updating the service status in member cluster.
 		_, err = client.CoreV1().Services(namespace).UpdateStatus(createdService)
