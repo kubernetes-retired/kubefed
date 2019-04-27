@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	versionhelper "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
 
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -83,10 +84,11 @@ func namespacedAPIResourceMap(config *rest.Config) (map[string]metav1.APIResourc
 				continue
 			}
 
-			// TODO(irfanurrehman): Define a strategy to federate the latest available version
-			// Include a kind only once (if found under multiple group/versions).
-			if _, ok := apiResources[apiResource.Kind]; ok {
-				continue
+			if previousAPIResource, ok := apiResources[apiResource.Kind]; ok {
+				if compareGroupVersions(gv, schema.GroupVersion{Group: previousAPIResource.Group, Version: previousAPIResource.Version}) <= 0 {
+					// The newer GV is not latest keep the previous.
+					continue
+				}
 			}
 
 			// The individual apiResources do not have the group and version set
@@ -98,6 +100,25 @@ func namespacedAPIResourceMap(config *rest.Config) (map[string]metav1.APIResourc
 	}
 
 	return apiResources, nil
+}
+
+func compareGroupVersions(newGV, oldGV schema.GroupVersion) int {
+	// The strategy involved to choose a Group higher in order here is to
+	// consider 'extensions' as the outdated group [This seems to be true for
+	// all k8s APIResources, so far]. For example deployments exists in
+	// 'extensions' and 'apps'; 'deployments.apps' will be chosen.
+	// This doesn't apply to events but events are listed in controllerCreatedAPIResourceNames
+	// and skipped always.
+	// TODO(irfanurrehman) Are there any other known groups which don't match this?
+	if oldGV.Group != newGV.Group {
+		if oldGV.Group == "extensions" {
+			// New resource is considered bigger by virtue of its group.
+			return 1
+		}
+		return -1
+	}
+
+	return versionhelper.CompareKubeAwareVersionStrings(newGV.Version, oldGV.Version)
 }
 
 func apiResourceMatchesSkipNames(apiResource metav1.APIResource, group string) bool {
