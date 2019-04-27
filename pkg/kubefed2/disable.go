@@ -30,6 +30,7 @@ import (
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
@@ -197,6 +198,19 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 		return nil
 	}
 
+	if deleteCRD {
+		if !ftcExists {
+			typeConfig, err = generatedFederatedTypeConfig(config, enableTypeDirective)
+			if err != nil {
+				return err
+			}
+		}
+		err = deleteFederatedType(config, typeConfig, write)
+		if err != nil {
+			return err
+		}
+	}
+
 	if ftcExists {
 		if typeConfig.Spec.PropagationEnabled {
 			err = disablePropagation(client, typeConfig, typeConfigName, write)
@@ -206,19 +220,6 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 		}
 		checkPropagationControllerStopped(client, typeConfigName, write)
 		err = deleteFederatedTypeConfig(client, typeConfig, typeConfigName, write)
-		if err != nil {
-			return err
-		}
-	}
-
-	if deleteCRD {
-		if !ftcExists {
-			typeConfig, err = generatedFederatedTypeConfig(config, enableTypeDirective)
-			if err != nil {
-				return err
-			}
-		}
-		err = deleteFederatedType(config, typeConfig, write)
 		if err != nil {
 			return err
 		}
@@ -298,12 +299,45 @@ func generatedFederatedTypeConfig(config *rest.Config, enableTypeDirective *enab
 }
 
 func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	crdName := typeconfig.GroupQualifiedName(federatedTypeAPIResource)
+	exists, err := federatedTypeCustomResourcesExist(config, &federatedTypeAPIResource)
+	if err != nil {
+		return err
+	} else if exists {
+		return errors.Errorf("Cannot delete CRD %q while resource instances exist. Please try kubefed2 disable again after removing the resource instances or without the '--delete-crd' option\n", crdName)
+	}
+
+	err = deleteFederatedCRD(config, crdName, write)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func federatedTypeCustomResourcesExist(config *rest.Config, federatedTypeAPIResource *metav1.APIResource) (bool, error) {
+	federatedTypeClient, err := ctlutil.NewResourceClient(config, federatedTypeAPIResource)
+	if err != nil {
+		return false, err
+	}
+
+	options := metav1.ListOptions{IncludeUninitialized: true}
+	objList, err := federatedTypeClient.Resources("").List(options)
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return len(objList.Items) != 0, nil
+}
+
+func deleteFederatedCRD(config *rest.Config, crdName string, write func(string)) error {
 	client, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Error creating crd client")
 	}
 
-	crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
 	err = client.CustomResourceDefinitions().Delete(crdName, nil)
 	if apierrors.IsNotFound(err) {
 		write(fmt.Sprintf("customresourcedefinition %q does not exist\n", crdName))
