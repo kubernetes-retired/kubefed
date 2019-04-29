@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -83,6 +84,7 @@ type federateResource struct {
 	outputYAML           bool
 	enableType           bool
 	federateContents     bool
+	filename             string
 	skipAPIResourceNames []string
 }
 
@@ -91,12 +93,26 @@ func (j *federateResource) Bind(flags *pflag.FlagSet) {
 	flags.StringVarP(&j.output, "output", "o", "", "If provided, the resource that would be created in the API by the command is instead output to stdout in the provided format.  Valid format is ['yaml'].")
 	flags.BoolVarP(&j.enableType, "enable-type", "e", false, "If true, attempt to enable federation of the API type of the resource before creating the federated resource.")
 	flags.BoolVarP(&j.federateContents, "contents", "c", false, "Applicable only to namespaces. If provided, the command will federate all resources within the namespace after federating the namespace.")
+	flags.StringVarP(&j.filename, "filename", "f", "", "If specified, the provided yaml file will be used as the input for target resources to federate. This mode will only emit federated resource yaml to standard output. Other flag options if provided will be ignored.")
 	flags.StringSliceVarP(&j.skipAPIResourceNames, "skip-api-resources", "s", []string{}, "Comma separated names of the api resources to skip when federating contents in a namespace. Name could be short name "+
 		"(e.g. 'deploy), kind (e.g. 'deployment'), plural name (e.g. 'deployments'), group qualified plural name (e.g. 'deployments.apps') or group name itself (e.g. 'apps') to skip the whole group.")
 }
 
 // Complete ensures that options are valid.
 func (j *federateResource) Complete(args []string) error {
+	if j.output == "yaml" {
+		j.outputYAML = true
+	} else if len(j.output) > 0 {
+		return errors.Errorf("Invalid value for --output: %s", j.output)
+	}
+
+	if len(j.filename) > 0 {
+		if len(args) > 0 {
+			return errors.Errorf("Flag '--filename' does not take any args. Got args: %v", args)
+		}
+		return nil
+	}
+
 	if len(args) == 0 {
 		return errors.New("TYPE-NAME is required")
 	}
@@ -106,12 +122,6 @@ func (j *federateResource) Complete(args []string) error {
 		return errors.New("RESOURCE-NAME is required")
 	}
 	j.resourceName = args[1]
-
-	if j.output == "yaml" {
-		j.outputYAML = true
-	} else if len(j.output) > 0 {
-		return errors.Errorf("Invalid value for --output: %s", j.output)
-	}
 
 	if j.enableType && j.outputYAML {
 		return errors.New("Flag '--enable-type' cannot be used with '--output [yaml]'")
@@ -157,11 +167,28 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return errors.Wrap(err, "Failed to get host cluster config")
 	}
 
+	if len(j.filename) > 0 {
+		resources, err := decodeUnstructuredFromFile(j.filename)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to load yaml from file %q", j.filename)
+		}
+		federatedResources, err := federateResources(resources)
+		if err != nil {
+			return err
+		}
+
+		err = writeUnstructuredObjsToYaml(federatedResources, cmdOut)
+		if err != nil {
+			return errors.Wrap(err, "Failed to write federated resources to YAML")
+		}
+		return nil
+
+	}
+
 	qualifiedResourceName := ctlutil.QualifiedName{
 		Namespace: j.resourceNamespace,
 		Name:      j.resourceName,
 	}
-
 	artifacts, err := GetFederateArtifacts(hostConfig, j.typeName, j.FederationNamespace, qualifiedResourceName, j.enableType, j.outputYAML)
 	if err != nil {
 		return err
@@ -193,6 +220,38 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return CreateResources(cmdOut, hostConfig, artifactsList, j.FederationNamespace, j.enableType, j.DryRun)
+}
+
+func federateResources(resources []*unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
+	var federatedResources []*unstructured.Unstructured
+	for _, targetResource := range resources {
+		// A Group, a Version and a Kind is sufficient for API Resource definition.
+		gvk := targetResource.GroupVersionKind()
+
+		// Construct an API Resource from above info.
+		// TODO(irfanurrehman) Should we depend on the lookup from the
+		// API Server instead, for some specific scenario?
+		plural, singular := apimeta.UnsafeGuessKindToResource(gvk)
+		apiResource := metav1.APIResource{
+			Name:         plural.Resource,
+			SingularName: singular.Resource,
+			Group:        gvk.Group,
+			Version:      gvk.Version,
+			Kind:         gvk.Kind,
+		}
+		apiResource.Namespaced = targetResource.GetNamespace() == ""
+
+		qualifiedName := ctlutil.NewQualifiedName(targetResource)
+		typeConfig := enable.GenerateTypeConfigForTarget(apiResource, enable.NewEnableTypeDirective())
+		federatedResource, err := FederatedResourceFromTargetResource(typeConfig, targetResource)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTarget().Kind, qualifiedName)
+		}
+
+		federatedResources = append(federatedResources, federatedResource)
+	}
+
+	return federatedResources, nil
 }
 
 type FederateArtifacts struct {
