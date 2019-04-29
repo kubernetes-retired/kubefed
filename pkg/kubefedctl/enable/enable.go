@@ -244,6 +244,29 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		return errors.Wrapf(err, "Error attempting to determine whether federation system namespace %q exists", namespace)
 	}
 
+	client, err := genericclient.New(config)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get federation clientset")
+	}
+
+	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
+	existingTypeConfig := &fedv1a1.FederatedTypeConfig{}
+	err = client.Get(context.TODO(), existingTypeConfig, namespace, concreteTypeConfig.Name)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", concreteTypeConfig.Name)
+	}
+	if err == nil {
+		fedType := existingTypeConfig.GetFederatedType()
+		target := existingTypeConfig.GetTarget()
+		concreteType := concreteTypeConfig.GetFederatedType()
+		if fedType.Name != concreteType.Name || fedType.Version != concreteType.Version || fedType.Group != concreteType.Group {
+			return errors.Errorf("Federation is already enabled for %q with federated type %q. Changing the federated type to %q is not supported.",
+				qualifiedAPIResourceName(target),
+				qualifiedAPIResourceName(fedType),
+				qualifiedAPIResourceName(concreteType))
+		}
+	}
+
 	crdClient, err := apiextv1b1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create crd clientset")
@@ -267,14 +290,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s updated\n", resources.CRD.Name))
 	}
 
-	client, err := genericclient.New(config)
-	if err != nil {
-		return errors.Wrap(err, "Failed to get federation clientset")
-	}
-
-	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
 	concreteTypeConfig.Namespace = namespace
-	existingTypeConfig := &fedv1a1.FederatedTypeConfig{}
 	err = client.Get(context.TODO(), existingTypeConfig, namespace, concreteTypeConfig.Name)
 	createdOrUpdated := "created"
 	if err != nil {
@@ -331,6 +347,13 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 	// Set defaults that would normally be set by the api
 	fedv1a1.SetFederatedTypeConfigDefaults(typeConfig)
 	return typeConfig
+}
+
+func qualifiedAPIResourceName(resource metav1.APIResource) string {
+	if resource.Group == "" {
+		return fmt.Sprintf("%s/%s", resource.Name, resource.Version)
+	}
+	return fmt.Sprintf("%s.%s/%s", resource.Name, resource.Group, resource.Version)
 }
 
 func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, shortNames []string) *apiextv1b1.CustomResourceDefinition {
