@@ -401,7 +401,7 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName,
 			Name:      joiningClusterName,
 		},
 		Spec: fedv1a1.FederatedClusterSpec{
-			ClusterRef: corev1.LocalObjectReference{
+			ClusterRef: fedv1a1.LocalClusterReference{
 				Name: joiningClusterName,
 			},
 			SecretRef: &corev1.LocalObjectReference{
