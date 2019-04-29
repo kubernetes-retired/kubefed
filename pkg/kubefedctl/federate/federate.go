@@ -202,7 +202,7 @@ type FederateArtifacts struct {
 	federatedResources []*unstructured.Unstructured
 }
 
-func GetFederateArtifacts(hostConfig *rest.Config, typeName, typeNamespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
+func GetFederateArtifacts(hostConfig *rest.Config, typeName, federationNamespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
 	// Lookup kubernetes API availability
 	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
 	if err != nil {
@@ -210,7 +210,7 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, typeNamespace strin
 	}
 	glog.V(2).Infof("API Resource for %s found", typeName)
 
-	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, typeNamespace, enableType, outputYAML)
+	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, federationNamespace, enableType, outputYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -234,9 +234,9 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, typeNamespace strin
 	}, nil
 }
 
-func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, typeNamespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
+func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, federationNamespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
 	resolvedTypeName := typeconfig.GroupQualifiedName(apiResource)
-	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, typeNamespace)
+	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, federationNamespace)
 	if err == nil {
 		return true, installedTypeConfig, nil
 	}
@@ -256,14 +256,14 @@ func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, type
 	return false, nil, err
 }
 
-func getInstalledTypeConfig(hostConfig *rest.Config, typeName, typeNamespace string) (typeconfig.Interface, error) {
+func getInstalledTypeConfig(hostConfig *rest.Config, typeName, federationNamespace string) (typeconfig.Interface, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get generic client")
 	}
 
 	concreteTypeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = client.Get(context.TODO(), concreteTypeConfig, typeNamespace, typeName)
+	err = client.Get(context.TODO(), concreteTypeConfig, federationNamespace, typeName)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +419,7 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 	return nil
 }
 
-func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, typeNamespace, skipAPIResourceNames string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
+func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, federationNamespace, skipAPIResourceNames string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
 	targetResourcesList, err := getResourcesInNamespace(hostConfig, containerNamespace, skipAPIResourceNames)
 	if err != nil {
 		return nil, err
@@ -428,7 +428,7 @@ func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, type
 	artifactsList := []*FederateArtifacts{}
 	for _, targetResources := range targetResourcesList {
 		apiResource := targetResources.apiResource
-		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, typeNamespace, enableType, outputYAML)
+		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, federationNamespace, enableType, outputYAML)
 		if err != nil {
 			return nil, err
 		}
@@ -454,10 +454,12 @@ func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, type
 
 func writeUnstructuredObjsToYaml(unstructuredObjs []*unstructured.Unstructured, w io.Writer) error {
 	for _, unstructuredObj := range unstructuredObjs {
-		w.Write([]byte("---\n"))
+		if _, err := w.Write([]byte("---\n")); err != nil {
+			return errors.Wrap(err, "Error encoding object to yaml")
+		}
 		err := util.WriteUnstructuredToYaml(unstructuredObj, w)
 		if err != nil {
-			return errors.Wrap(err, "Error encoding unstructured object to yaml")
+			return err
 		}
 	}
 

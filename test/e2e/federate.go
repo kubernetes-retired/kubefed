@@ -132,8 +132,6 @@ var _ = Describe("Federate ", func() {
 		// Namespace itself
 		namespaceTypeName := "namespaces"
 
-		defer deleteAllResources(f, tl, testResources)
-
 		testResources, err = containedTestResources(f, client, typeConfigFixtures, containedTypeNames, kubeConfig)
 		if err != nil {
 			tl.Fatalf("Error creating target resources: %v", err)
@@ -208,14 +206,6 @@ func validateTemplateEquality(tl common.TestLogger, fedResource, targetResource 
 	}
 }
 
-func deleteAllResources(f framework.FederationFramework, tl common.TestLogger, testResoures []testResources) {
-	for _, resources := range testResoures {
-		typeConfig := resources.typeConfig
-		testResourceName := util.NewQualifiedName(resources.targetResource)
-		deleteResources(f, tl, typeConfig, testResourceName)
-	}
-}
-
 func deleteResources(f framework.FederationFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testResourceName util.QualifiedName) {
 	client := getFedClient(tl, typeConfig, f.KubeConfig())
 	deleteResource(tl, client, testResourceName, typeConfig.GetFederatedType().Kind)
@@ -262,7 +252,7 @@ func targetResourceFromAPI(tl common.TestLogger, typeConfig typeconfig.Interface
 	client := getTargetClient(tl, typeConfig, kubeConfig)
 	targetResource, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
-		tl.Fatalf("Federated resource %q not found: %v", qualifiedName, err)
+		tl.Fatalf("Test resource %q not found: %v", qualifiedName, err)
 	}
 	return targetResource
 }
@@ -278,9 +268,9 @@ func getFedClient(tl common.TestLogger, typeConfig typeconfig.Interface, kubeCon
 }
 
 func getTargetClient(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config) util.ResourceClient {
-	fedAPIResource := typeConfig.GetTarget()
-	fedKind := fedAPIResource.Kind
-	client, err := util.NewResourceClient(kubeConfig, &fedAPIResource)
+	apiResource := typeConfig.GetTarget()
+	fedKind := apiResource.Kind
+	client, err := util.NewResourceClient(kubeConfig, &apiResource)
 	if err != nil {
 		tl.Fatalf("Error getting resource client for %s", fedKind)
 	}

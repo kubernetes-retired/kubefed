@@ -17,8 +17,10 @@ limitations under the License.
 package util
 
 import (
-	"github.com/ghodss/yaml"
 	"io"
+
+	"github.com/ghodss/yaml"
+	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -30,15 +32,19 @@ func WriteUnstructuredToYaml(unstructuredObj *unstructured.Unstructured, w io.Wr
 	unstructured.RemoveNestedField(obj.Object, "status")
 	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
 
+	errMsg := "Error encoding unstructured object to yaml"
 	objJSON, err := obj.MarshalJSON()
 	if err != nil {
-		return err
+		return errors.Wrap(err, errMsg)
 	}
 
 	data, err := yaml.JSONToYAML(objJSON)
 	if err != nil {
-		return err
+		return errors.Wrap(err, errMsg)
 	}
 	_, err = w.Write(data)
-	return err
+	if err != nil {
+		return errors.Wrap(err, errMsg)
+	}
+	return nil
 }

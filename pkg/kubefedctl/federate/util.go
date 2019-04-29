@@ -28,8 +28,10 @@ import (
 	versionhelper "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
 )
 
 var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}
@@ -84,9 +86,31 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) 
 				continue
 			}
 
-			if previousAPIResource, ok := apiResources[apiResource.Kind]; ok {
-				if compareGroupVersions(gv, schema.GroupVersion{Group: previousAPIResource.Group, Version: previousAPIResource.Version}) <= 0 {
-					// The newer GV is not latest keep the previous.
+			if group == "extensions" {
+				// The strategy involved to choose a Group higher in order for k8s core
+				// APIs is to consider "extensions" as the outdated group [This seems to
+				// be true for all k8s APIResources, so far]. For example if "deployments"
+				// exists in "extensions" and "apps"; "deployments.apps" will be chosen.
+				// This doesn't apply to events but events are listed in
+				// controllerCreatedAPIResourceNames and so are skipped always.
+
+				// Skipping this also assumes that "extensions" is not the only
+				// group exposed for this resource on the API Server, which probably
+				// is safe as "extensions" is anyways going to be deprecated.
+				// TODO(irfanurrehman): Document this.
+				continue
+			}
+
+			// For everything else (say CRDs) same kinds in different groups
+			// are treated as individual types. If there happens to be an API Resource
+			// which enables conversion and allows query of the same resource across
+			// different groups, a specific group resource will have to be chosen by
+			// the user using --skip-names to skip the not chosen one(s).
+			// // TODO(irfanurrehman): Document this.
+			groupQualifiedName := typeconfig.GroupQualifiedName(apiResource)
+			if previousAPIResource, ok := apiResources[groupQualifiedName]; ok {
+				if versionhelper.CompareKubeAwareVersionStrings(gv.Version, previousAPIResource.Version) <= 0 {
+					// The newer version is not latest keep the previous.
 					continue
 				}
 			}
@@ -95,30 +119,11 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) 
 			apiResource.Group = group
 			apiResource.Version = gv.Version
 
-			apiResources[apiResource.Kind] = apiResource
+			apiResources[groupQualifiedName] = apiResource
 		}
 	}
 
 	return apiResources, nil
-}
-
-func compareGroupVersions(newGV, oldGV schema.GroupVersion) int {
-	// The strategy involved to choose a Group higher in order here is to
-	// consider 'extensions' as the outdated group [This seems to be true for
-	// all k8s APIResources, so far]. For example deployments exists in
-	// 'extensions' and 'apps'; 'deployments.apps' will be chosen.
-	// This doesn't apply to events but events are listed in controllerCreatedAPIResourceNames
-	// and skipped always.
-	// TODO(irfanurrehman) Are there any other known groups which don't match this?
-	if oldGV.Group != newGV.Group {
-		if oldGV.Group == "extensions" {
-			// New resource is considered bigger by virtue of its group.
-			return 1
-		}
-		return -1
-	}
-
-	return versionhelper.CompareKubeAwareVersionStrings(newGV.Version, oldGV.Version)
 }
 
 func apiResourceMatchesSkipNames(apiResource metav1.APIResource, skipAPIResourceNames, group string) bool {
@@ -135,7 +140,7 @@ func apiResourceMatchesSkipNames(apiResource metav1.APIResource, skipAPIResource
 }
 
 func isFederatedAPIResource(kind, group string) bool {
-	return strings.HasPrefix(kind, federationKindPrefix) && group == enable.DefaultFederationGroup
+	return strings.HasPrefix(kind, federationKindPrefix) && group == options.DefaultFederationGroup
 }
 
 // resources stores a list of resources for an api type

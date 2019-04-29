@@ -121,7 +121,7 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 
 func NameMatchesResource(name string, apiResource metav1.APIResource, group string) bool {
 	lowerCaseName := strings.ToLower(name)
-	if name == apiResource.Name ||
+	if lowerCaseName == apiResource.Name ||
 		lowerCaseName == apiResource.SingularName ||
 		lowerCaseName == strings.ToLower(apiResource.Kind) ||
 		lowerCaseName == fmt.Sprintf("%s.%s", apiResource.Name, group) {
