@@ -22,6 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"k8s.io/apimachinery/pkg/util/runtime"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -29,6 +31,7 @@ type clientAccessorFunc func(clusterName string) (util.ResourceClient, error)
 
 type DispatchRecorder interface {
 	RecordError(clusterName, operation string, err error)
+	RecordEvent(clusterName, operation, operationContinuous string)
 }
 
 // OperationDispatcher provides an interface to wait for operations
@@ -93,7 +96,11 @@ func (d *operationDispatcherImpl) clusterOperation(clusterName, op string, opFun
 	client, err := d.clientAccessor(clusterName)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "Error retrieving client for cluster")
-		d.recorder.RecordError(clusterName, op, wrappedErr)
+		if d.recorder == nil {
+			runtime.HandleError(wrappedErr)
+		} else {
+			d.recorder.RecordError(clusterName, op, wrappedErr)
+		}
 		d.resultChan <- util.StatusError
 		return
 	}

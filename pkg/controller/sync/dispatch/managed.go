@@ -45,11 +45,9 @@ type FederatedResourceForDispatch interface {
 // ManagedDispatcher dispatches operations to member clusters for resources
 // managed by a federated resource.
 type ManagedDispatcher interface {
-	OperationDispatcher
+	UnmanagedDispatcher
 
 	Create(clusterName string)
-	Delete(clusterName string)
-	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 	Update(clusterName string, clusterObj *unstructured.Unstructured)
 	VersionMap() map[string]string
 }
@@ -57,9 +55,10 @@ type ManagedDispatcher interface {
 type managedDispatcherImpl struct {
 	sync.RWMutex
 
-	dispatcher  *operationDispatcherImpl
-	fedResource FederatedResourceForDispatch
-	versionMap  map[string]string
+	dispatcher          *operationDispatcherImpl
+	unmanagedDispatcher *unmanagedDispatcherImpl
+	fedResource         FederatedResourceForDispatch
+	versionMap          map[string]string
 }
 
 func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource FederatedResourceForDispatch) ManagedDispatcher {
@@ -68,6 +67,7 @@ func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource Federat
 		versionMap:  make(map[string]string),
 	}
 	d.dispatcher = newOperationDispatcher(clientAccessor, d)
+	d.unmanagedDispatcher = newUnmanagedDispatcher(d.dispatcher, d, fedResource.TargetKind(), fedResource.TargetName())
 	return d
 }
 
@@ -157,56 +157,23 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 }
 
 func (d *managedDispatcherImpl) Delete(clusterName string) {
-	d.dispatcher.incrementOperationsInitiated()
-	const op = "delete"
-	const opContinuous = "Deleting"
-	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
-		d.RecordEvent(clusterName, op, opContinuous)
-
-		qualifiedName := d.fedResource.TargetName()
-		err := client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{})
-		if apierrors.IsNotFound(err) {
-			err = nil
-		}
-		if err != nil {
-			d.RecordError(clusterName, op, err)
-			return util.StatusError
-		}
-		return util.StatusAllOK
-	})
+	d.unmanagedDispatcher.Delete(clusterName)
 }
 
 func (d *managedDispatcherImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {
-	d.dispatcher.incrementOperationsInitiated()
-	const op = "remove managed label from"
-	const opContinuous = "Removing managed label from"
-	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
-		d.RecordEvent(clusterName, op, opContinuous)
-
-		// Avoid mutating the resource in the informer cache
-		updateObj := clusterObj.DeepCopy()
-
-		util.RemoveManagedLabel(updateObj)
-
-		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
-		if err != nil {
-			d.RecordError(clusterName, op, err)
-			return util.StatusError
-		}
-		return util.StatusAllOK
-	})
+	d.unmanagedDispatcher.RemoveManagedLabel(clusterName, clusterObj)
 }
 
 func (d *managedDispatcherImpl) RecordError(clusterName, operation string, err error) {
 	args := []interface{}{operation, d.fedResource.TargetKind(), d.fedResource.TargetName(), clusterName}
 	eventType := fmt.Sprintf("%sInClusterFailed", strings.Replace(strings.Title(operation), " ", "", -1))
-	d.fedResource.RecordError(eventType, errors.Wrapf(err, "Failed to %s %s %q in cluster %q", args...))
+	d.fedResource.RecordError(eventType, errors.Wrapf(err, "Failed to "+eventTemplate, args...))
 }
 
 func (d *managedDispatcherImpl) RecordEvent(clusterName, operation, operationContinuous string) {
 	args := []interface{}{operationContinuous, d.fedResource.TargetKind(), d.fedResource.TargetName(), clusterName}
 	eventType := fmt.Sprintf("%sInCluster", strings.Replace(strings.Title(operation), " ", "", -1))
-	d.fedResource.RecordEvent(eventType, "%s %s %q in cluster %q", args...)
+	d.fedResource.RecordEvent(eventType, eventTemplate, args...)
 }
 
 func (d *managedDispatcherImpl) VersionMap() map[string]string {
