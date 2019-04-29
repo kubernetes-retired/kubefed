@@ -119,6 +119,10 @@ var _ = Describe("Federate ", func() {
 	}
 
 	It("namespace with contents, should create equivalant federated resources for all namespaced resources", func() {
+		if framework.TestContext.LimitedScope {
+			framework.Skipf("Federate namespace with content is not tested when control plane is namespace scoped")
+		}
+
 		var testResources []testResources
 		var err error
 		systemNamespace := f.FederationSystemNamespace()
