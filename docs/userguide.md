@@ -41,6 +41,7 @@
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
       - [Distribute replicas in weighted proportions, also enforcing replica limits per cluster](#distribute-replicas-in-weighted-proportions-also-enforcing-replica-limits-per-cluster)
       - [Distribute replicas evenly in all clusters, however not more than 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-than-20-in-c)
+  - [Controller-Manager Leader Election](#controller-manager-leader-election)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -712,3 +713,15 @@ A and B are offline:
 ```
 Replica layout: C=20
 ```
+
+## Controller-Manager Leader Election
+
+The federation controller manager is always deployed with leader election feature
+to ensure high availability of the control plane. Leader election module ensures
+there is always a leader elected among multiple instances which takes care of
+running the controllers. In case the active instance goes down, one of the standby instances
+gets elected as leader to ensure minimum downtime. Leader election ensures that
+only one instance is responsible for reconciliation. You can refer to the
+[helm chart configuration](https://github.com/kubernetes-sigs/federation-v2/tree/master/charts/federation-v2#configuration)
+to configure parameters for leader election to tune for your environment
+(the defaults should be sane for most environments).
