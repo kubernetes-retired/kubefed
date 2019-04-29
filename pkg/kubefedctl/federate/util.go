@@ -172,7 +172,8 @@ func getResourcesInNamespace(config *rest.Config, namespace string) ([]resources
 		}
 
 		targetResources := resources{apiResource: apiResource}
-		for _, resource := range resourceList.Items {
+		for _, item := range resourceList.Items {
+			resource := item
 			targetResources.resources = append(targetResources.resources, &resource)
 		}
 		resourcesInNamespace = append(resourcesInNamespace, targetResources)
