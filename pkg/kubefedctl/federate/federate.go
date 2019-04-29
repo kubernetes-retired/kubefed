@@ -172,7 +172,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if kind == ctlutil.NamespaceKind && j.federateContents {
-		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.FederationNamespace, j.enableType, j.outputYAML)
+		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.FederationNamespace, "", j.enableType, j.outputYAML)
 		if err != nil {
 			return err
 		}
@@ -419,8 +419,8 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 	return nil
 }
 
-func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, typeNamespace string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
-	targetResourcesList, err := getResourcesInNamespace(hostConfig, containerNamespace)
+func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, typeNamespace, skipAPIResourceNames string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
+	targetResourcesList, err := getResourcesInNamespace(hostConfig, containerNamespace, skipAPIResourceNames)
 	if err != nil {
 		return nil, err
 	}

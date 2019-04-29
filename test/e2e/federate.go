@@ -124,8 +124,7 @@ var _ = Describe("Federate ", func() {
 		systemNamespace := f.FederationSystemNamespace()
 		testNamespace := f.TestNamespaceName()
 		// Set of arbitrary contained resources in a namespace
-		// TODO(irfanurrehman): include a workload type once skip resources is implemented
-		containedTypeNames := []string{"configmaps", "secrets"}
+		containedTypeNames := []string{"configmaps", "secrets", "replicasets.apps"}
 		// Namespace itself
 		namespaceTypeName := "namespaces"
 
@@ -153,8 +152,9 @@ var _ = Describe("Federate ", func() {
 		artifactsList := []*federate.FederateArtifacts{}
 		artifactsList = append(artifactsList, artifacts)
 
+		skipAPIResourceNames := "pods,replicasets.extensions"
 		// Artifacts for the contained resources
-		containedArtifactsList, err := federate.GetContainedArtifactsList(kubeConfig, testNamespace, systemNamespace, false, false)
+		containedArtifactsList, err := federate.GetContainedArtifactsList(kubeConfig, testNamespace, systemNamespace, skipAPIResourceNames, false, false)
 		if err != nil {
 			tl.Fatalf("Error getting contained artifacts: %v", err)
 		}

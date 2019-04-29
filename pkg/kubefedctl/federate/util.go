@@ -60,7 +60,7 @@ func SetBasicMetaFields(resource *unstructured.Unstructured, apiResource metav1.
 	}
 }
 
-func namespacedAPIResourceMap(config *rest.Config) (map[string]metav1.APIResource, error) {
+func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) (map[string]metav1.APIResource, error) {
 	apiResourceLists, err := enable.GetServerPreferredResources(config)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func namespacedAPIResourceMap(config *rest.Config) (map[string]metav1.APIResourc
 		group := gv.Group
 		for _, apiResource := range apiResourceList.APIResources {
 			if !apiResource.Namespaced || isFederatedAPIResource(apiResource.Kind, group) ||
-				apiResourceMatchesSkipNames(apiResource, group) {
+				apiResourceMatchesSkipNames(apiResource, skipAPIResourceNames, group) {
 				continue
 			}
 
@@ -121,8 +121,9 @@ func compareGroupVersions(newGV, oldGV schema.GroupVersion) int {
 	return versionhelper.CompareKubeAwareVersionStrings(newGV.Version, oldGV.Version)
 }
 
-func apiResourceMatchesSkipNames(apiResource metav1.APIResource, group string) bool {
-	for _, name := range controllerCreatedAPIResourceNames {
+func apiResourceMatchesSkipNames(apiResource metav1.APIResource, skipAPIResourceNames, group string) bool {
+	names := append(controllerCreatedAPIResourceNames, strings.Split(skipAPIResourceNames, ",")...)
+	for _, name := range names {
 		if name == "" {
 			continue
 		}
@@ -145,8 +146,8 @@ type resources struct {
 	resources []*unstructured.Unstructured
 }
 
-func getResourcesInNamespace(config *rest.Config, namespace string) ([]resources, error) {
-	apiResources, err := namespacedAPIResourceMap(config)
+func getResourcesInNamespace(config *rest.Config, namespace, skipAPIResourceNames string) ([]resources, error) {
+	apiResources, err := namespacedAPIResourceMap(config, skipAPIResourceNames)
 	if err != nil {
 		return nil, err
 	}
