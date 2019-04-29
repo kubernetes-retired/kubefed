@@ -4,7 +4,7 @@ metadata:
   name: federation-v2
   namespace: federation-system
 spec:
-  limited-scope: false
+  scope: Cluster
   registry-namespace: kube-multicluster-public
   controller-duration:
     available-delay: 20s

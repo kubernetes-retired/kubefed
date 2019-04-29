@@ -4,11 +4,11 @@ metadata:
   name: federation-v2
   namespace: {{ .Release.Namespace }}
 spec:
-  limited-scope: {{ .Values.global.limitedScope }}
+  scope: {{ .Values.global.scope | default "Cluster" | quote }}
 {{- if .Values.registryNamespace }}
   registry-namespace: {{ .Values.registryNamespace }}
 {{- else }}
-{{- if .Values.global.limitedScope }}
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
   registry-namespace: {{ .Release.Namespace }}
 {{- else }}
   registry-namespace: kube-multicluster-public

@@ -1,4 +1,4 @@
-{{- if .Values.global.limitedScope }}
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

@@ -52,7 +52,7 @@ sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install
 crd_diff=`(diff -U 4 ${TEMP_CRDS_YAML} ${CHART_FEDERATED_CRD_DIR}/crds.yaml; true;)`
 if [ -n "${crd_diff}" ]; then
   cp -f ${TEMP_CRDS_YAML} $CHART_FEDERATED_CRD_DIR/crds.yaml
-  sed -i '1i{{ if (or (not .Values.global.limitedScope) (not (.Capabilities.APIVersions.Has "core.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
+  sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
   sed -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
 fi
 
@@ -97,7 +97,7 @@ for filename in ./config/enabletypedirectives/*.yaml; do
   rm ${full_name}
 done
 sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/'  ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
-sed -i '1i{{ if (or (not .Values.global.limitedScope) (not (.Capabilities.APIVersions.Has "types.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 sed -i '$a{{ end }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 
 # Clean kube-apiserver daemons and temporary files

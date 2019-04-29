@@ -21,11 +21,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/client-go/rest"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"k8s.io/client-go/rest"
 )
 
 // GlobalSubcommandOptions holds the configuration required by the subcommands of
@@ -78,11 +79,11 @@ type FederationConfigOptions struct {
 	ClusterNamespace string
 }
 
-func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (bool, string, error) {
+func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, string, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get federation clientset")
-		return false, "", err
+		return "", "", err
 	}
 
 	fedConfig := &fedv1a1.FederationConfig{}
@@ -93,8 +94,8 @@ func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (
 			Name:      util.FederationConfigName,
 		}
 		err = errors.Wrapf(err, "Error retrieving FederationConfig %q", config)
-		return false, "", err
+		return "", "", err
 	}
 
-	return fedConfig.Spec.LimitedScope, fedConfig.Spec.RegistryNamespace, nil
+	return fedConfig.Spec.Scope, fedConfig.Spec.RegistryNamespace, nil
 }
