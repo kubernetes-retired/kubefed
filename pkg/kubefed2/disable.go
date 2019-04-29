@@ -218,7 +218,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 				return err
 			}
 		}
-		checkPropagationControllerStopped(client, typeConfigName, write)
+		verifyPropagationControllerStopped(client, typeConfigName, write)
 		err = deleteFederatedTypeConfig(client, typeConfig, typeConfigName, write)
 		if err != nil {
 			return err
@@ -256,28 +256,29 @@ func disablePropagation(client genericclient.Client, typeConfig *fedv1a1.Federat
 	return nil
 }
 
-func checkPropagationControllerStopped(client genericclient.Client, typeConfigName ctlutil.QualifiedName, write func(string)) {
-	write(fmt.Sprintf("Checking propagation controller is stopped for FederatedTypeConfig %q\n", typeConfigName))
+func verifyPropagationControllerStopped(client genericclient.Client, typeConfigName ctlutil.QualifiedName, write func(string)) error {
+	write(fmt.Sprintf("Verifying propagation controller is stopped for FederatedTypeConfig %q\n", typeConfigName))
 
 	var typeConfig *fedv1a1.FederatedTypeConfig
 	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 		typeConfig = &fedv1a1.FederatedTypeConfig{}
 		err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
 		if err != nil {
+			glog.Errorf("Error retrieving FederatedTypeConfig %q: %v", typeConfigName, err)
 			return false, nil
 		}
 		if typeConfig.Status.PropagationController == fedv1a1.ControllerStatusNotRunning {
 			return true, nil
 		}
-
 		return false, nil
 	})
 
 	if err != nil {
-		write(fmt.Sprintf("WARNING: unable to verify propagation controller for FederatedTypeConfig %q is stopped: %v\n", typeConfigName, err))
-	} else {
-		write(fmt.Sprintf("Propagation controller for FederatedTypeConfig %q is stopped\n", typeConfigName))
+		return errors.Wrapf(err, "Unable to verify propagation controller for FederatedTypeConfig %q is stopped: %v", typeConfigName, err)
 	}
+
+	write(fmt.Sprintf("Propagation controller for FederatedTypeConfig %q is stopped\n", typeConfigName))
+	return nil
 }
 
 func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
