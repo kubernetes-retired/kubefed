@@ -56,14 +56,31 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  - secrets
-  - events
   - namespaces
   verbs:
   - get
   - watch
   - list
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - create
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
   - create
   - update
   - patch
