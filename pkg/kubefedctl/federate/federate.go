@@ -172,11 +172,11 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if kind == ctlutil.NamespaceKind && j.federateContents {
-		containedResources, err := getContainedResources(hostConfig, j.resourceName, j.enableType, j.outputYAML)
+		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.FederationNamespace, j.enableType, j.outputYAML)
 		if err != nil {
 			return err
 		}
-		artifactsList = append(artifactsList, containedResources...)
+		artifactsList = append(artifactsList, containedArtifactsList...)
 	}
 
 	if j.outputYAML {
@@ -202,7 +202,7 @@ type FederateArtifacts struct {
 	federatedResources []*unstructured.Unstructured
 }
 
-func GetFederateArtifacts(hostConfig *rest.Config, typeName, namespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
+func GetFederateArtifacts(hostConfig *rest.Config, typeName, typeNamespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
 	// Lookup kubernetes API availability
 	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
 	if err != nil {
@@ -210,7 +210,7 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, namespace string, q
 	}
 	glog.V(2).Infof("API Resource for %s found", typeName)
 
-	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, namespace, enableType, outputYAML)
+	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, typeNamespace, enableType, outputYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -234,9 +234,9 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, namespace string, q
 	}, nil
 }
 
-func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, namespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
+func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, typeNamespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
 	resolvedTypeName := typeconfig.GroupQualifiedName(apiResource)
-	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, namespace)
+	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, typeNamespace)
 	if err == nil {
 		return true, installedTypeConfig, nil
 	}
@@ -256,14 +256,14 @@ func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, name
 	return false, nil, err
 }
 
-func getInstalledTypeConfig(hostConfig *rest.Config, typeName, namespace string) (typeconfig.Interface, error) {
+func getInstalledTypeConfig(hostConfig *rest.Config, typeName, typeNamespace string) (typeconfig.Interface, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get generic client")
 	}
 
 	concreteTypeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = client.Get(context.TODO(), concreteTypeConfig, namespace, typeName)
+	err = client.Get(context.TODO(), concreteTypeConfig, typeNamespace, typeName)
 	if err != nil {
 		return nil, err
 	}
@@ -419,8 +419,8 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 	return nil
 }
 
-func getContainedResources(hostConfig *rest.Config, nsName string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
-	targetResourcesList, err := getResourcesInNamespace(hostConfig, nsName)
+func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, typeNamespace string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
+	targetResourcesList, err := getResourcesInNamespace(hostConfig, containerNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +428,7 @@ func getContainedResources(hostConfig *rest.Config, nsName string, enableType, o
 	artifactsList := []*FederateArtifacts{}
 	for _, targetResources := range targetResourcesList {
 		apiResource := targetResources.apiResource
-		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, nsName, enableType, outputYAML)
+		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, typeNamespace, enableType, outputYAML)
 		if err != nil {
 			return nil, err
 		}
