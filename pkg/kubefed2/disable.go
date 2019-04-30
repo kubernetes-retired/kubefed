@@ -168,11 +168,11 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Name:      name,
 	}
 	j.enableTypeDirective.Name = typeConfigName.Name
-	return DisableFederation(cmdOut, hostConfig, j.enableTypeDirective, typeConfigName, j.deleteCRD, j.DryRun)
+	return DisableFederation(cmdOut, hostConfig, j.enableTypeDirective, typeConfigName, j.deleteCRD, j.DryRun, true)
 }
 
 func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirective *enable.EnableTypeDirective,
-	typeConfigName ctlutil.QualifiedName, deleteCRD, dryRun bool) error {
+	typeConfigName ctlutil.QualifiedName, deleteCRD, dryRun, verifyStopped bool) error {
 	client, err := genericclient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get federation clientset")
@@ -215,9 +215,11 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 				return err
 			}
 		}
-		err = verifyPropagationControllerStopped(client, typeConfigName, write)
-		if err != nil {
-			return err
+		if verifyStopped {
+			err = verifyPropagationControllerStopped(client, typeConfigName, write)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

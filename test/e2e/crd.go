@@ -162,7 +162,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
-		err := kubefed2.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun)
+		err := kubefed2.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun, false)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}
