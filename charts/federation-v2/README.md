@@ -27,6 +27,37 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 - Kubernetes 1.11+
 - Helm 2.10+
 
+## Configuring RBAC for Helm (Optional)
+
+If your Kubernetes cluster has RBAC enabled, it will be necessary to
+ensure that helm is deployed with a service account with the
+permissions necessary to deploy federation:
+
+```bash
+$ cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tiller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tiller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: tiller
+    namespace: kube-system
+EOF
+
+$ helm init --service-account tiller
+```
+
 ## Installing the Chart
 
 First you'll need to create the reserved namespace for registering clusters with the
