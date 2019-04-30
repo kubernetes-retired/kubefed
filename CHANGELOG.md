@@ -1,4 +1,6 @@
 # Unreleased
+
+# v0.0.9
 -  [#776](https://github.com/kubernetes-sigs/federation-v2/pull/776) -
    Switch to use `scope` instead of `limitedScope` to specify if it is
    `Namespaced` or `Cluster` scoped federation deployment.

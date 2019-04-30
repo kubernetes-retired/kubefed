@@ -30,10 +30,13 @@ Creating a federation v2 release involves the following steps:
    3. `cd charts` (from repo root)
    4. `helm package federation-v2`
    5. `sha256sum federation-v2-<x.x.x>.tgz > federation-v2-<x.x.x>.tgz.sha`
-   6. `helm repo index . --merge index.yaml --url=https://github.com/kubernetes-sigs/federation-v2/releases/download/v<x.x.x>/federation-v2-<x.x.x>.tgz` (Add the new version to the chart index)
-   7. Ensure index.yaml contains the added release
-   8. Propose a PR that updates index.yaml
+   6. `helm repo index . --merge index.yaml --url=https://github.com/kubernetes-sigs/federation-v2/releases/download/v<x.x.x>` (Add the new version to the chart index)
+   7. Check that index.yaml contains the added release
 4. Create github release
-   - Copy text from old release and replace old tag references
-   - Add `kubefed2.tgz` and `kubefed2.tgz.sha`
-   - Add `federation-v2-<x.x.x>.tgz` and `federation-v2-<x.x.x>.tgz.sha`
+   1. Copy text from old release and replace old tag references
+   2. Add a synopsis of the `Unreleased` section of `CHANGELOG.md`
+   3. Add `kubefed2.tgz` and `kubefed2.tgz.sha`
+   4. Add `federation-v2-<x.x.x>.tgz` and `federation-v2-<x.x.x>.tgz.sha`
+5. Update master
+   1. Move the contents of the `Unreleased` section of `CHANGELOG.md` to `v<x.x.x>`
+   2. Propose a PR that includes changes to `charts/index.yaml` (from `4.6`) and `CHANGELOG.md`
