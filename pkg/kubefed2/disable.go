@@ -198,6 +198,29 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 		return nil
 	}
 
+	// Disable propagation and verify it is stopped before deleting the CRD
+	// when no custom resources exist. This avoids spurious error messages in
+	// the controller manager log as watches are terminated and cannot be
+	// reestablished.
+	if ftcExists {
+		if deleteCRD {
+			err = checkFederatedTypeCustomResourcesExist(config, typeConfig, write)
+			if err != nil {
+				return err
+			}
+		}
+		if typeConfig.Spec.PropagationEnabled {
+			err = disablePropagation(client, typeConfig, typeConfigName, write)
+			if err != nil {
+				return err
+			}
+		}
+		err = verifyPropagationControllerStopped(client, typeConfigName, write)
+		if err != nil {
+			return err
+		}
+	}
+
 	if deleteCRD {
 		if !ftcExists {
 			typeConfig, err = generatedFederatedTypeConfig(config, enableTypeDirective)
@@ -212,13 +235,6 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 	}
 
 	if ftcExists {
-		if typeConfig.Spec.PropagationEnabled {
-			err = disablePropagation(client, typeConfig, typeConfigName, write)
-			if err != nil {
-				return err
-			}
-		}
-		verifyPropagationControllerStopped(client, typeConfigName, write)
 		err = deleteFederatedTypeConfig(client, typeConfig, typeConfigName, write)
 		if err != nil {
 			return err
@@ -300,15 +316,12 @@ func generatedFederatedTypeConfig(config *rest.Config, enableTypeDirective *enab
 }
 
 func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
-	federatedTypeAPIResource := typeConfig.GetFederatedType()
-	crdName := typeconfig.GroupQualifiedName(federatedTypeAPIResource)
-	exists, err := federatedTypeCustomResourcesExist(config, &federatedTypeAPIResource)
+	err := checkFederatedTypeCustomResourcesExist(config, typeConfig, write)
 	if err != nil {
 		return err
-	} else if exists {
-		return errors.Errorf("Cannot delete CRD %q while resource instances exist. Please try kubefed2 disable again after removing the resource instances or without the '--delete-crd' option\n", crdName)
 	}
 
+	crdName := typeconfig.GroupQualifiedName(typeConfig.GetFederatedType())
 	err = deleteFederatedCRD(config, crdName, write)
 	if err != nil {
 		return err
@@ -317,14 +330,26 @@ func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, w
 	return nil
 }
 
-func federatedTypeCustomResourcesExist(config *rest.Config, federatedTypeAPIResource *metav1.APIResource) (bool, error) {
-	federatedTypeClient, err := ctlutil.NewResourceClient(config, federatedTypeAPIResource)
+func checkFederatedTypeCustomResourcesExist(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
+	federatedTypeAPIResource := typeConfig.GetFederatedType()
+	crdName := typeconfig.GroupQualifiedName(federatedTypeAPIResource)
+	exists, err := customResourcesExist(config, &federatedTypeAPIResource)
+	if err != nil {
+		return err
+	} else if exists {
+		return errors.Errorf("Cannot delete CRD %q while resource instances exist. Please try kubefed2 disable again after removing the resource instances or without the '--delete-crd' option\n", crdName)
+	}
+	return nil
+}
+
+func customResourcesExist(config *rest.Config, resource *metav1.APIResource) (bool, error) {
+	client, err := ctlutil.NewResourceClient(config, resource)
 	if err != nil {
 		return false, err
 	}
 
 	options := metav1.ListOptions{IncludeUninitialized: true}
-	objList, err := federatedTypeClient.Resources("").List(options)
+	objList, err := client.Resources("").List(options)
 	if apierrors.IsNotFound(err) {
 		return false, nil
 	} else if err != nil {
