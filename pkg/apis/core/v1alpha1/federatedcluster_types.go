@@ -28,7 +28,7 @@ type FederatedClusterSpec struct {
 	// Name of the cluster registry Cluster resource from which to source api
 	// endpoints.
 	// TODO(marun) should this go away in favor of a 1:1 mapping?
-	ClusterRef apiv1.LocalObjectReference `json:"clusterRef,omitempty"`
+	ClusterRef LocalClusterReference `json:"clusterRef,omitempty"`
 
 	// Name of the secret containing kubeconfig to access the referenced cluster.
 	//
@@ -44,6 +44,12 @@ type FederatedClusterSpec struct {
 	// This can be left empty if the cluster allows insecure access.
 	// +optional
 	SecretRef *apiv1.LocalObjectReference `json:"secretRef,omitempty"`
+}
+
+// LocalClusterReference contains information to identify a cluster in the
+// cluster registry.
+type LocalClusterReference struct {
+	Name string `json:"name,omitempty"`
 }
 
 // FederatedClusterStatus contains information about the current status of a

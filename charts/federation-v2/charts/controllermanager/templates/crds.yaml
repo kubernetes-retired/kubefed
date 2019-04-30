@@ -109,6 +109,9 @@ spec:
               description: Name of the cluster registry Cluster resource from which
                 to source api endpoints. TODO(marun) should this go away in favor
                 of a 1:1 mapping?
+              properties:
+                name:
+                  type: string
               type: object
             secretRef:
               description: Name of the secret containing kubeconfig to access the
