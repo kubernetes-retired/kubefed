@@ -1,5 +1,4 @@
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -14,3 +13,17 @@ subjects:
   name: federation-controller
   namespace: {{ .Release.Namespace }}
 {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: federation-config-rolebinding
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: federation-config-role
+subjects:
+- kind: ServiceAccount
+  name: federation-controller
+  namespace: {{ .Release.Namespace }}
