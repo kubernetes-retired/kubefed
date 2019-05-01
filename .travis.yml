@@ -24,7 +24,6 @@ install:
 
 script:
   - test $DOC_ONLY && echo "Skipped!" || DOWNLOAD_BINARIES=y bash -x ./scripts/pre-commit.sh
-  - test $DOC_ONLY && echo "Skipped!" || vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh --rootdir="$GOPATH/src/github.com/kubernetes-sigs/federation-v2" -v
 
 after_success:
   - test $DOC_ONLY && echo "Skipped!" || ./scripts/imagebuild.sh
