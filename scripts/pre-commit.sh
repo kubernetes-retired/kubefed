@@ -113,6 +113,12 @@ check-git-state
 echo "Verifying Gofmt"
 ./hack/go-tools/verify-gofmt.sh
 
+echo "Checking boilerplate text"
+./vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh --rootdir="${ROOT_DIR}" -v
+
+echo "Linting"
+golangci-lint run
+
 echo "Checking that correct Error Package is used."
 ./hack/verify-errpkg.sh
 
