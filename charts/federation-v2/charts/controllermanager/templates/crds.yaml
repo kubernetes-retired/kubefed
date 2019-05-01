@@ -111,7 +111,11 @@ spec:
                 of a 1:1 mapping?
               properties:
                 name:
+                  description: Name of the cluster registry Cluster resource from
+                    which to source API endpoints.
                   type: string
+              required:
+              - name
               type: object
             secretRef:
               description: Name of the secret containing kubeconfig to access the
