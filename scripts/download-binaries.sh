@@ -49,7 +49,7 @@ curl "${curl_args}O" "${kb_url}" \
   && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
   && rm "${kb_tgz}"
 
-helm_version="2.11.0"
+helm_version="2.13.1"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://storage.googleapis.com/kubernetes-helm/$helm_tgz"
 curl "${curl_args}O" "${helm_url}" \
