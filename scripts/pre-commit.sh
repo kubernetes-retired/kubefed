@@ -138,7 +138,7 @@ echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
 CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY=y OVERWRITE_KUBECONFIG=y \
-    ./scripts/create-clusters.sh
+    KIND_TAG="v1.14.0" ./scripts/create-clusters.sh
 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null

@@ -27,6 +27,7 @@ CONFIGURE_INSECURE_REGISTRY="${CONFIGURE_INSECURE_REGISTRY:-}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
+KIND_TAG="${KIND_TAG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
 kubeconfig="${HOME}/.kube/config"
 
@@ -90,8 +91,12 @@ function reload-docker-daemon-cmd() {
 function create-clusters() {
   local num_clusters=${1}
 
+  local image_arg=""
+  if [[ "${KIND_TAG}" ]]; then
+    image_arg="--image=kindest/node:${KIND_TAG}"
+  fi
   for i in $(seq ${num_clusters}); do
-    kind create cluster --name "cluster${i}"
+    kind create cluster --name "cluster${i}" ${image_arg}
     # TODO(font): remove once all workarounds are addressed.
     fixup-cluster ${i}
     echo
