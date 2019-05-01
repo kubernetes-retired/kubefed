@@ -27,6 +27,8 @@ spec:
     failure-threshold: {{ .Values.clusterHealthCheckFailureThreshold | default 3 }}
     success-threshold: {{ .Values.clusterHealthCheckSuccessThreshold | default 1 }}
     timeout-seconds: {{ .Values.clusterHealthCheckTimeoutSeconds | default 3 }}
+  sync-controller:
+    skip-adopting-resources: {{ .Values.syncController.skipAdoptingResources | default false }}
   feature-gates:
 {{- if .Values.featureGates }}
   - name: PushReconciler

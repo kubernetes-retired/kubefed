@@ -329,6 +329,8 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	opts.ClusterHealthCheckConfig.FailureThreshold = spec.ClusterHealthCheck.FailureThreshold
 	opts.ClusterHealthCheckConfig.SuccessThreshold = spec.ClusterHealthCheck.SuccessThreshold
 
+	opts.Config.SkipAdoptingResources = spec.SyncController.SkipAdoptingResources
+
 	updateFederationConfig(opts.Config.KubeConfig, fedConfig)
 
 	var featureGates = make(map[string]bool)
