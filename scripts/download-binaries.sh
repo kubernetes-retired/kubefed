@@ -67,8 +67,6 @@ curl "${curl_args}O" "${golint_url}" \
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
-echo -n "#   etcd:           "; ("${dest_dir}/etcd" --version || :) | grep "etcd Version:"
-echo -n "#   kube-apiserver: "; "${dest_dir}/kube-apiserver" --version
 echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
 echo -n "#   helm:           "; "${dest_dir}/helm" version --client --short
