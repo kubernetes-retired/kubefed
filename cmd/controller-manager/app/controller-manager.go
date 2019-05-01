@@ -307,7 +307,18 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	if fedConfig == nil {
 		// FederationConfig could not be sourced from --federation-config or from the API.
 		// create a new `FederationConfig` with default values.
-		fedConfig = &corev1a1.FederationConfig{}
+		fedConfig = &corev1a1.FederationConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      util.FederationConfigName,
+				Namespace: opts.Config.FederationNamespace,
+			},
+		}
+
+		qualifiedName := util.QualifiedName{
+			Namespace: fedConfig.Namespace,
+			Name:      fedConfig.Name,
+		}
+		glog.Infof("Creating FederationConfig %q with default values", qualifiedName)
 	}
 
 	setDefaultFederationConfig(fedConfig)
