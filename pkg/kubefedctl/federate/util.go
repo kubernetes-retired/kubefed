@@ -17,6 +17,9 @@ limitations under the License.
 package federate
 
 import (
+	"bufio"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -25,8 +28,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	versionhelper "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
@@ -203,4 +208,36 @@ func getResourcesInNamespace(config *rest.Config, namespace string, skipAPIResou
 	}
 
 	return resourcesInNamespace, nil
+}
+
+// decodeUnstructuredFromFile reads a list of yamls into a slice of unstructured objects
+func decodeUnstructuredFromFile(filename string) ([]*unstructured.Unstructured, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var unstructuredList []*unstructured.Unstructured
+	reader := utilyaml.NewYAMLReader(bufio.NewReader(f))
+	for {
+		unstructuedObj := &unstructured.Unstructured{}
+		// Read one YAML document at a time, until io.EOF is returned
+		buf, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		if len(buf) == 0 {
+			break
+		}
+		if err := yaml.Unmarshal(buf, unstructuedObj); err != nil {
+			return nil, err
+		}
+
+		unstructuredList = append(unstructuredList, unstructuedObj)
+	}
+
+	return unstructuredList, nil
 }
