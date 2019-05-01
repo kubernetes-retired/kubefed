@@ -1,4 +1,8 @@
 # Unreleased
+ - [#721](https://github.com/kubernetes-sigs/federation-v2/issues/721) -
+   kubefed2 disable now deletes the FederatedTypeConfig rather than set
+   propagationEnabled, waits for the sync controller to shut down, and
+   optionally removes the federated type CRD.
 
 # v0.0.9
 -  [#776](https://github.com/kubernetes-sigs/federation-v2/pull/776) -

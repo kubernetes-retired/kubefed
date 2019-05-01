@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 )
 
 // EnableTypeDirectiveSpec defines the desired state of EnableTypeDirective.
@@ -52,8 +53,8 @@ type EnableTypeDirective struct {
 }
 
 func (ft *EnableTypeDirective) SetDefaults() {
-	ft.Spec.FederationGroup = DefaultFederationGroup
-	ft.Spec.FederationVersion = DefaultFederationVersion
+	ft.Spec.FederationGroup = options.DefaultFederationGroup
+	ft.Spec.FederationVersion = options.DefaultFederationVersion
 }
 
 func NewEnableTypeDirective() *EnableTypeDirective {

@@ -389,7 +389,7 @@ func enableTypeConfigResource(name, namespace string, config *restclient.Config,
 
 func deleteTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
 	qualifiedName := util.QualifiedName{Namespace: namespace, Name: name}
-	err := kubefed2.DisableFederation(nil, config, qualifiedName, true, false)
+	err := kubefed2.DisableFederation(nil, config, nil, qualifiedName, true, false, false)
 	if err != nil {
 		tl.Fatalf("Error disabling federation of target type %q: %v", qualifiedName, err)
 	}

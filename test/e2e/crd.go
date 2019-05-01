@@ -37,6 +37,7 @@ import (
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
 	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
+	kfenableopts "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -85,8 +86,8 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// Need to reuse a group and version for which the helm chart
 		// is granted rbac permissions for.  The default group and
 		// version used by `kubefed2 enable` meets this criteria.
-		Group:   kfenable.DefaultFederationGroup,
-		Version: kfenable.DefaultFederationVersion,
+		Group:   kfenableopts.DefaultFederationGroup,
+		Version: kfenableopts.DefaultFederationVersion,
 
 		Kind:       targetCrdKind,
 		Name:       fedv1a1.PluralName(targetCrdKind),
@@ -161,7 +162,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
-		err := kubefed2.DisableFederation(nil, hostConfig, qualifiedName, delete, dryRun)
+		err := kubefed2.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun, false)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}
