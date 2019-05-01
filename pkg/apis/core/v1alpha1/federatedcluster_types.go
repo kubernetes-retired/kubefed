@@ -49,7 +49,9 @@ type FederatedClusterSpec struct {
 // LocalClusterReference contains information to identify a cluster in the
 // cluster registry.
 type LocalClusterReference struct {
-	Name string `json:"name,omitempty"`
+	// Name of the cluster registry Cluster resource from which to source API
+	// endpoints.
+	Name string `json:"name"`
 }
 
 // FederatedClusterStatus contains information about the current status of a
