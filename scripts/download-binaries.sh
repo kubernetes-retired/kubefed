@@ -56,6 +56,14 @@ curl "${curl_args}O" "${helm_url}" \
     && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
     && rm "${helm_tgz}"
 
+golint_version="1.16.0"
+golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
+golint_tgz="${golint_dir}.tar.gz"
+golint_url="https://github.com/golangci/golangci-lint/releases/download/v1.16.0/${golint_tgz}"
+curl "${curl_args}O" "${golint_url}" \
+    && tar xzfP "${golint_tgz}" -C "${dest_dir}" "${golint_dir}/golangci-lint" --strip-components=1 \
+    && rm "${golint_tgz}"
+
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
@@ -64,3 +72,4 @@ echo -n "#   kube-apiserver: "; "${dest_dir}/kube-apiserver" --version
 echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
 echo -n "#   helm:           "; "${dest_dir}/helm" version --client --short
+echo -n "#   golangci-lint:  "; "${dest_dir}/golangci-lint" --version

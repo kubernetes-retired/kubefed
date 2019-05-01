@@ -113,6 +113,9 @@ check-git-state
 echo "Verifying Gofmt"
 ./hack/go-tools/verify-gofmt.sh
 
+echo "Linting"
+golangci-lint run
+
 echo "Checking that correct Error Package is used."
 ./hack/verify-errpkg.sh
 
