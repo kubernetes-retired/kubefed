@@ -324,6 +324,7 @@ func (c *Controller) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Insert(finalizer)
 	accessor.SetFinalizers(finalizers.List())
+	err = c.client.Update(context.TODO(), tc)
 	return err
 }
 
@@ -338,7 +339,7 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Delete(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	err = c.client.UpdateStatus(context.TODO(), tc)
+	err = c.client.Update(context.TODO(), tc)
 	return err
 }
 
