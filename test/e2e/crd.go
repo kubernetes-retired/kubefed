@@ -35,9 +35,9 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	kfenableopts "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
+	kfenableopts "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 
@@ -85,7 +85,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	targetAPIResource := metav1.APIResource{
 		// Need to reuse a group and version for which the helm chart
 		// is granted rbac permissions for.  The default group and
-		// version used by `kubefed2 enable` meets this criteria.
+		// version used by `kubefedctl enable` meets this criteria.
 		Group:   kfenableopts.DefaultFederationGroup,
 		Version: kfenableopts.DefaultFederationVersion,
 
@@ -162,7 +162,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
 		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
-		err := kubefed2.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun, false)
+		err := kubefedctl.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun, false)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
 		}

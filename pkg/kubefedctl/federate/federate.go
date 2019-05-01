@@ -36,9 +36,9 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 )
 
 const (
@@ -62,7 +62,7 @@ var (
 
 	federate_example = `
 		# Federate resource named "my-cm" in namespace "my-ns" of kubernetes type "configmaps" (identified by short name "cm")
-		kubefed2 federate cm "my-cm" -n "my-ns" --host-cluster-context=cluster1`
+		kubefedctl federate cm "my-cm" -n "my-ns" --host-cluster-context=cluster1`
 	// TODO(irfanurrehman): implement —contents flag applicable to namespaces
 )
 
@@ -216,7 +216,7 @@ func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, type
 	}
 	notFound := apierrors.IsNotFound(err)
 	if notFound && !outputYAML && !enableType {
-		return false, nil, errors.Errorf("%v. Try 'kubefed2 enable type %s' before federating the resource", err, typeName)
+		return false, nil, errors.Errorf("%v. Try 'kubefedctl enable type %s' before federating the resource", err, typeName)
 	}
 
 	generatedTypeConfig := enable.GenerateTypeConfigForTarget(apiResource, enable.NewEnableTypeDirective())

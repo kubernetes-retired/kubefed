@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubefed2
+package kubefedctl
 
 import (
 	"fmt"
@@ -40,7 +40,7 @@ func NewCmdVersion(out io.Writer) *cobra.Command {
 		Long:    version_long,
 		Example: version_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(out, "kubefed2 version: %s\n", fmt.Sprintf("%#v", version.Get()))
+			fmt.Fprintf(out, "kubefedctl version: %s\n", fmt.Sprintf("%#v", version.Get()))
 		},
 	}
 

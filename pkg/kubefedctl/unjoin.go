@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubefed2
+package kubefedctl
 
 import (
 	"context"
@@ -28,8 +28,8 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	controllerutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,7 +52,7 @@ var (
 		# a valid RFC 1123 subdomain name. Cluster context
 		# must be specified if the cluster name is different
 		# than the cluster's context in the local kubeconfig.
-		kubefed2 unjoin foo --host-cluster-context=bar`
+		kubefedctl unjoin foo --host-cluster-context=bar`
 )
 
 type unjoinFederation struct {

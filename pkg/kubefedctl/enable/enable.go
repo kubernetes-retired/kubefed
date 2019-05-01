@@ -38,8 +38,8 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 )
 
 const (
@@ -60,11 +60,11 @@ var (
 
 	enable_example = `
 		# Enable federation of Deployments
-		kubefed2 enable deployments.apps --host-cluster-context=cluster1
+		kubefedctl enable deployments.apps --host-cluster-context=cluster1
 
 		# Enable federation of Deployments identified by name specified in
 		# deployment.yaml
-		kubefed2 enable -f deployment.yaml`
+		kubefedctl enable -f deployment.yaml`
 )
 
 type enableType struct {

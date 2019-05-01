@@ -30,7 +30,7 @@ import (
 )
 
 // GlobalSubcommandOptions holds the configuration required by the subcommands of
-// `kubefed2`.
+// `kubefedctl`.
 type GlobalSubcommandOptions struct {
 	HostClusterContext  string
 	FederationNamespace string
@@ -49,7 +49,7 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 }
 
 // CommonJoinOptions holds the common configuration required by the join and
-// unjoin subcommands of `kubefed2`.
+// unjoin subcommands of `kubefedctl`.
 type CommonJoinOptions struct {
 	ClusterName     string
 	ClusterContext  string
@@ -101,7 +101,7 @@ func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (
 }
 
 // CommonEnableOptions holds the common configuration required by the enable
-// and disable subcommands of `kubefed2`.
+// and disable subcommands of `kubefedctl`.
 type CommonEnableOptions struct {
 	TargetName      string
 	FederationGroup string
@@ -109,7 +109,7 @@ type CommonEnableOptions struct {
 }
 
 // Default value for shared Federation group across enable and
-// disable subcommands of `kubefed2`.
+// disable subcommands of `kubefedctl`.
 const (
 	DefaultFederationGroup   = "types.federation.k8s.io"
 	DefaultFederationVersion = "v1alpha1"

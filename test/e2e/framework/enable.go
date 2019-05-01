@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"strings"
 
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 )
 

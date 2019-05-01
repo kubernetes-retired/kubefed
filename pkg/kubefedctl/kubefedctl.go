@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubefed2
+package kubefedctl
 
 import (
 	"flag"
@@ -25,18 +25,18 @@ import (
 	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 )
 
-// NewKubeFed2Command creates the `kubefed2` command and its nested children.
-func NewKubeFed2Command(out io.Writer) *cobra.Command {
+// NewKubeFedCtlCommand creates the `kubefedctl` command and its nested children.
+func NewKubeFedCtlCommand(out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	rootCmd := &cobra.Command{
-		Use:   "kubefed2",
-		Short: "kubefed2 controls a Kubernetes Cluster Federation",
-		Long:  "kubefed2 controls a Kubernetes Cluster Federation. Find more information at https://github.com/kubernetes-sigs/federation-v2.",
+		Use:   "kubefedctl",
+		Short: "kubefedctl controls a Kubernetes Cluster Federation",
+		Long:  "kubefedctl controls a Kubernetes Cluster Federation. Find more information at https://github.com/kubernetes-sigs/federation-v2.",
 
 		RunE: runHelp,
 	}

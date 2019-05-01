@@ -43,7 +43,7 @@ BUILD_IMAGE ?= golang:1.11.2
 
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
-KUBEFED2_TARGET = bin/kubefed2
+KUBEFEDCTL_TARGET = bin/kubefedctl
 
 LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/version.version=$(GIT_VERSION) \
                       -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
@@ -60,15 +60,15 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefed2 test local-test vet fmt build bindir generate
+.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate
 
-all: container hyperfed controller kubefed2
+all: container hyperfed controller kubefedctl
 
 # Unit tests
 test: vet
 	go test $(TEST_PKGS)
 
-build: hyperfed controller kubefed2
+build: hyperfed controller kubefedctl
 
 vet:
 	go vet $(TEST_PKGS)
@@ -84,7 +84,7 @@ container: $(HYPERFED_TARGET)-linux
 bindir:
 	mkdir -p $(BIN_DIR)
 
-COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFED2_TARGET)
+COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFEDCTL_TARGET)
 OSES := linux darwin
 ALL_BINS :=
 
@@ -106,10 +106,10 @@ hyperfed: $(HYPERFED_TARGET)
 
 controller: $(CONTROLLER_TARGET)
 
-kubefed2: $(KUBEFED2_TARGET)
+kubefedctl: $(KUBEFEDCTL_TARGET)
 
 # Generate code
-generate: kubefed2
+generate: kubefedctl
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif

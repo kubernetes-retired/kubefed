@@ -36,7 +36,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
 )
 
 func main() {
@@ -76,11 +76,11 @@ func commandFor(basename string, defaultCommand *cobra.Command, commands []func(
 // NewHyperFedCommand is the entry point for hyperfed
 func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 	controller := func() *cobra.Command { return app.NewControllerManagerCommand() }
-	kubefed2Cmd := func() *cobra.Command { return kubefed2.NewKubeFed2Command(os.Stdout) }
+	kubefedctlCmd := func() *cobra.Command { return kubefedctl.NewKubeFedCtlCommand(os.Stdout) }
 
 	commandFns := []func() *cobra.Command{
 		controller,
-		kubefed2Cmd,
+		kubefedctlCmd,
 	}
 
 	makeSymlinksFlag := false

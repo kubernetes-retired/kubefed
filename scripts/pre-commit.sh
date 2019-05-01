@@ -35,7 +35,7 @@ IN_MEMORY_E2E_TEST_CMD="${COMMON_TEST_CMD} -race ${COMMON_TEST_ARGS} -in-memory-
 function build-binaries() {
   ${MAKE_CMD} hyperfed
   ${MAKE_CMD} controller
-  ${MAKE_CMD} kubefed2
+  ${MAKE_CMD} kubefedctl
 }
 
 function download-dependencies() {
