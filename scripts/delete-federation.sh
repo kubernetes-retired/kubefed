@@ -62,11 +62,11 @@ fi
 
 KF_NS_ARG="--federation-namespace=${NS} "
 
-# Unjoin clusters by removing objects added by kubefed2.
+# Unjoin clusters by removing objects added by kubefedctl.
 HOST_CLUSTER="$(kubectl config current-context)"
 JOINED_CLUSTERS="$(kubectl -n "${NS}" get federatedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
 for c in ${JOINED_CLUSTERS}; do
-  ./bin/kubefed2 unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2 ${KF_NS_ARG}
+  ./bin/kubefedctl unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2 ${KF_NS_ARG}
 done
 
 # Deploy federation resources

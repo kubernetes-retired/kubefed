@@ -39,7 +39,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
 )
 
 // FederatedTypeCrudTester exercises Create/Read/Update/Delete operations for

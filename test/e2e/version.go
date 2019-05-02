@@ -41,7 +41,7 @@ import (
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
+	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 

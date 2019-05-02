@@ -146,7 +146,7 @@ to ensure credentials are available for push:
 fi
 
 shift
-# Allow for no specific JOIN_CLUSTERS: they probably want to kubefed2 themselves.
+# Allow for no specific JOIN_CLUSTERS: they probably want to kubefedctl themselves.
 JOIN_CLUSTERS="${*-}"
 
 # Use DOCKER_PUSH= ./scripts/deploy-federation.sh <image> to skip docker
@@ -165,7 +165,7 @@ if [[ ! "${USE_LATEST}" ]]; then
   ${DOCKER_PUSH_CMD}
 fi
 cd "$(dirname "$0")/.."
-make kubefed2
+make kubefedctl
 cd -
 
 if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
@@ -183,8 +183,8 @@ deploy-with-helm
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
-./bin/kubefed2 join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
+./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
 
 for c in ${JOIN_CLUSTERS}; do
-  ./bin/kubefed2 join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
+  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
 done

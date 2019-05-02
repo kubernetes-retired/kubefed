@@ -31,7 +31,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/federate"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
 	"github.com/kubernetes-sigs/federation-v2/test/common"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 

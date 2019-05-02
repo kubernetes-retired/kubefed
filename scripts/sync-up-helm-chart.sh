@@ -87,7 +87,7 @@ echo -n > ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 for filename in ./config/enabletypedirectives/*.yaml; do
   full_name=${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
 
-  ./bin/kubefed2 --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${full_name}
+  ./bin/kubefedctl --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${full_name}
   sed -n '/^---/,/^---/p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
   sed -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
 

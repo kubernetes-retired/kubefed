@@ -26,7 +26,7 @@
 # Background:
 # In k3s, different endpoints and certificates are configured for
 # users (KUBECONFIG) and pods (service accounts).
-# Because "kubefed2 join" uses the endpoint from KUBECONFIG and
+# Because "kubefedctl join" uses the endpoint from KUBECONFIG and
 # the certificate from a service account in the member cluster,
 # the federation controller manager fails to communicate with the
 # member clusters, producing the messages like the following.

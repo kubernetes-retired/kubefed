@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
 )
 
 // EnableTypeDirectiveSpec defines the desired state of EnableTypeDirective.

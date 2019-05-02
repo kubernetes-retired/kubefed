@@ -112,13 +112,13 @@ to install and uninstall a federation-v2 control plane.
 
 ### Join Clusters
 
-Next, you'll want to use the `kubefed2` tool to join all your
+Next, you'll want to use the `kubefedctl` tool to join all your
 clusters that you want to test against.
 
 ```bash
-./bin/kubefed2 join cluster1 --cluster-context cluster1 \
+./bin/kubefedctl join cluster1 --cluster-context cluster1 \
     --host-cluster-context cluster1 --add-to-registry --v=2
-./bin/kubefed2 join cluster2 --cluster-context cluster2 \
+./bin/kubefedctl join cluster2 --cluster-context cluster2 \
     --host-cluster-context cluster1 --add-to-registry --v=2
 ```
 
@@ -147,20 +147,20 @@ Status:
 ```
 ### Unjoin Clusters
 
-If required, federation allows you to unjoin clusters using `kubefed2` tool.
+If required, federation allows you to unjoin clusters using `kubefedctl` tool.
 
 ```bash
-./bin/kubefed2 unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --remove-from-registry --v=2
+./bin/kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --remove-from-registry --v=2
 ```
 You can repeat these steps to unjoin any additional clusters.
 
 ## Enabling federation of an API type
 
 It is possible to enable federation of any Kubernetes API type (including CRDs) using the
-`kubefed2` command:
+`kubefedctl` command:
 
 ```bash
-kubefed2 enable <target kubernetes API type>
+kubefedctl enable <target kubernetes API type>
 ```
 
 The `<target kubernetes API type>` above can be the Kind (e.g. `Deployment`), plural name
@@ -177,7 +177,7 @@ except kubernetes `core` group types where the name format used is `<target kube
 It is also possible to output the yaml to `stdout` instead of applying it to the API Server:
 
 ```bash
-kubefed2 enable <target API type> --output=yaml
+kubefedctl enable <target API type> --output=yaml
 ```
 
 **NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
@@ -186,10 +186,10 @@ the CRD is not installed on a member cluster, propagation to that cluster will f
 ## Disabling federation of an API type
 
 It is possible to disable propagation of a type that is configured for propagation using the
-`kubefed2` command:
+`kubefedctl` command:
 
 ```bash
-kubefed2 disable <FederatedTypeConfig Name>
+kubefedctl disable <FederatedTypeConfig Name>
 ```
 
 This command will set the `propagationEnabled` field in the `FederatedTypeConfig`
@@ -201,7 +201,7 @@ If the goal is to permanently disable federation of the target API type, passing
 `enable`:
 
 ```bash
-kubefed2 disable <FederatedTypeConfig Name> --delete-from-api
+kubefedctl disable <FederatedTypeConfig Name> --delete-from-api
 ```
 
 **WARNING: All custom resources for the type will be removed by this command.**
@@ -264,7 +264,7 @@ unable to recognize "example/sample1/federated<type>.yaml": no matches for kind 
 
 ```
 
-then it indicates that a given type may need to be enabled with `kubefed2 enable <type>`
+then it indicates that a given type may need to be enabled with `kubefedctl enable <type>`
 
 ### Check Status of Resources
 
@@ -474,7 +474,7 @@ instructions](https://github.com/kubernetes-sigs/federation-v2/blob/master/chart
 ### Joining Clusters
 
 Joining additional clusters to a namespaced federation requires
-providing additional arguments to `kubefed2 join`:
+providing additional arguments to `kubefedctl join`:
 
 - `--federation-namespace=<namespace>` to ensure the cluster is joined
   to the federation running in the specified namespace
@@ -482,7 +482,7 @@ providing additional arguments to `kubefed2 join`:
 To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for deployment:
 
 ```bash
-./bin/kubefed2 join mycluster --cluster-context mycluster \
+./bin/kubefedctl join mycluster --cluster-context mycluster \
     --host-cluster-context mycluster --add-to-registry --v=2 \
     --federation-namespace=test-namespace
 ```

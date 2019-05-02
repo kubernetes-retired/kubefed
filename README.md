@@ -53,7 +53,7 @@ higher-level APIs:
 | Feature | Maturity |
 |---------|----------|
 | [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#example) | Alpha |
-| [CLI utility (`kubefed2`)](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#operations) | Alpha |
+| [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#operations) | Alpha |
 | [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha |
 | [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/servicedns-with-externaldns.md) | Alpha |
 | [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md) | Alpha |

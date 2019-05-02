@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// kubefed2 is a tool for managing clusters in a federation.
+// kubefedctl is a tool for managing clusters in a federation.
 package main
 
 import (
@@ -24,14 +24,14 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
 )
 
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	if err := kubefed2.NewKubeFed2Command(os.Stdout).Execute(); err != nil {
+	if err := kubefedctl.NewKubeFedCtlCommand(os.Stdout).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

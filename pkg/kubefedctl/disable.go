@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubefed2
+package kubefedctl
 
 import (
 	"context"
@@ -38,9 +38,9 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefed2/util"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 )
 
 const (
@@ -61,12 +61,12 @@ var (
 	disable_example = `
 		# Disable propagation of the kubernetes API type 'Deployment', named
 		in FederatedTypeConfig as 'deployments.apps'
-		kubefed2 disable deployments.apps
+		kubefedctl disable deployments.apps
 
 		# Disable propagation of the kubernetes API type 'Deployment', named
 		in FederatedTypeConfig as 'deployments.apps', and delete the
 		corresponding Federated API resource
-		kubefed2 disable deployments.apps --delete-crd`
+		kubefedctl disable deployments.apps --delete-crd`
 )
 
 type disableType struct {
@@ -339,7 +339,7 @@ func checkFederatedTypeCustomResourcesExist(config *rest.Config, typeConfig type
 	if err != nil {
 		return err
 	} else if exists {
-		return errors.Errorf("Cannot delete CRD %q while resource instances exist. Please try kubefed2 disable again after removing the resource instances or without the '--delete-crd' option\n", crdName)
+		return errors.Errorf("Cannot delete CRD %q while resource instances exist. Please try kubefedctl disable again after removing the resource instances or without the '--delete-crd' option\n", crdName)
 	}
 	return nil
 }
