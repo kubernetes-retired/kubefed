@@ -141,23 +141,6 @@ func WaitForObject(tl TestLogger, namespace, name string, objectGetter func(name
 	}
 }
 
-// WaitForObjectDeletion waits for the object to be deleted.
-func WaitForObjectDeletion(tl TestLogger, namespace, name string, objectGetter func(namespace, name string) (pkgruntime.Object, error), interval, timeout time.Duration) {
-	err := wait.PollImmediate(interval, timeout, func() (bool, error) {
-		_, err := objectGetter(namespace, name)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		return false, nil
-	})
-	if err != nil {
-		tl.Fatalf("Timedout waiting for object %q/%q to be deleted", namespace, name)
-	}
-}
-
 func equivalent(actual, desired pkgruntime.Object) bool {
 	// Check for meta & spec equivalence
 	if !util.ObjectMetaAndSpecEquivalent(actual, desired) {
