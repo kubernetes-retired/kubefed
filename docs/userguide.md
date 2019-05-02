@@ -179,8 +179,56 @@ It is also possible to output the yaml to `stdout` instead of applying it to the
 kubefed2 enable <target API type> --output=yaml
 ```
 
-**NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
-the CRD is not installed on a member cluster, propagation to that cluster will fail.
+**NOTE:** Federation of an API type requires that the API type be installed on
+all member clusters. If the API type is not installed on a member cluster,
+propagation to that cluster will fail. See issue
+[314](https://github.com/kubernetes-sigs/federation-v2/issues/314) for more
+details.
+
+### Verifying API type is installed on all member clusters
+
+If the API type is not installed on one of your member clusters, you will see a
+repeated `controller-manager` log error similar to the one reported in issue
+[314](https://github.com/kubernetes-sigs/federation-v2/issues/314). At this
+time, you must manually verify that the API type is installed on each of your
+clusters as the `controller-manager` log error is the only indication.
+
+For an example API type `bars.example.com`, you can verify that the API type is
+installed on each of your clusters by running:
+
+```bash
+
+CLUSTER_CONTEXTS="cluster1 cluster2"
+for c in ${CLUSTER_CONTEXTS}; do
+    echo ----- ${c} -----
+    kubectl --context=${c} api-resources --api-group=example.com
+done
+```
+
+The output should look like the following:
+
+```bash
+----- cluster1 -----
+NAME   SHORTNAMES   APIGROUP      NAMESPACED   KIND
+bars                example.com   true         Bar
+----- cluster2 -----
+NAME   SHORTNAMES   APIGROUP      NAMESPACED   KIND
+bars                example.com   true         Bar
+```
+
+The output shown below is an example if you do *not* have the API type
+installed on `cluster2`. Note that `cluster2` did not return any resources:
+
+```bash
+----- cluster1 -----
+NAME   SHORTNAMES   APIGROUP      NAMESPACED   KIND
+bars                example.com   true         Bar
+----- cluster2 -----
+NAME   SHORTNAMES   APIGROUP   NAMESPACED   KIND
+```
+
+Verifying the API type exists on all member clusters will ensure successful
+propagation to that cluster.
 
 ## Disabling federation of an API type
 
