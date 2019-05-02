@@ -26,5 +26,6 @@ rules:
   - admission.core.federation.k8s.io
   resources:
   - federatedtypeconfigs
+  - federatedclusters
   verbs:
   - create

@@ -27,6 +27,30 @@ webhooks:
     - "federatedtypeconfigs"
   failurePolicy: Fail
 ---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "federatedclusters.core.federation.k8s.io"
+webhooks:
+- name: federatedclusters.core.federation.k8s.io
+  clientConfig:
+    service:
+      namespace: {{ .Release.Namespace | quote }}
+      name: kubefed-webhook-server
+      path: /apis/admission.core.federation.k8s.io/v1alpha1/federatedclusters
+    caBundle: {{ b64enc $ca.Cert | quote }}
+  rules:
+  - operations:
+    - "CREATE"
+    - "UPDATE"
+    apiGroups:
+    - "core.federation.k8s.io"
+    apiVersions:
+    - "v1alpha1"
+    resources:
+    - "federatedclusters"
+  failurePolicy: Fail
+---
 apiVersion: v1
 kind: Secret
 metadata:

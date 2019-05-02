@@ -108,7 +108,8 @@ function helm-deploy-cmd {
 
   echo "helm install charts/kubefed --name ${name} --namespace ${ns} \
       --set controllermanager.repository=${repo} --set controllermanager.image=${image} \
-      --set controllermanager.tag=${tag}"
+      --set controllermanager.tag=${tag} \
+      --set webhook.repository=${repo} --set webhook.image=${image} --set webhook.tag=${tag}"
 }
 
 NS="${KUBEFED_NAMESPACE:-kube-federation-system}"

@@ -21,10 +21,11 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/kubectl/util/logs"
+	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/util/logs"
+
 	"github.com/kubernetes-sigs/federation-v2/pkg/webhook"
 )
 
@@ -42,6 +43,6 @@ func main() {
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	if err := cmd.Execute(); err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 }

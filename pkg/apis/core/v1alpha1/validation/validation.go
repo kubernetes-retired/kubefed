@@ -30,6 +30,11 @@ func ValidateFederatedTypeConfig(object *v1alpha1.FederatedTypeConfig) field.Err
 	return allErrs
 }
 
+func ValidateFederatedCluster(object *v1alpha1.FederatedCluster) field.ErrorList {
+	allErrs := field.ErrorList{}
+	return allErrs
+}
+
 func ValidateAPIResource(object *v1alpha1.APIResource, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
