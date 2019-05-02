@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubefed-webhook-server
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    server: "true"
+  ports:
+  - port: 443
+    targetPort: 8443

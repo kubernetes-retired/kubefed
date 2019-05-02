@@ -1,58 +1,38 @@
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kubefed-webhook-server
-  namespace: {{ .Release.Namespace }}
-spec:
-  selector:
-    server: "true"
-  ports:
-  - port: 443
-    targetPort: 8443
----
 {{- $ca := genCA "kubefed-webhook-ca" 3650 }}
 {{- $cn := printf "%s-webhook" .Release.Name }}
-{{- $altName1 := printf "kubefed-webhook-server.%s" .Release.Name .Release.Namespace }}
-{{- $altName2 := printf "kubefed-webhook.%s.svc" .Release.Name .Release.Namespace }}
+{{- $altName1 := printf "kubefed-webhook-server.%s" .Release.Namespace }}
+{{- $altName2 := printf "kubefed-webhook-server.%s.svc" .Release.Namespace }}
 {{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: federatedtypeconfigs.core.federation.k8s.io
+  name: "federatedtypeconfigs.core.federation.k8s.io"
 webhooks:
 - name: federatedtypeconfigs.core.federation.k8s.io
   clientConfig:
     service:
-      namespace: {{ .Release.Namespace }}
+      namespace: {{ .Release.Namespace | quote }}
       name: kubefed-webhook-server
-      path: /federatedtypeconfigs
-    caBundle: {{ b64enc $ca.Cert }}
+      path: /apis/admission.core.federation.k8s.io/v1alpha1/federatedtypeconfigs
+    caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
-    - CREATE
+    - "CREATE"
+    - "UPDATE"
     apiGroups:
-    - project.openshift.io
+    - "core.federation.k8s.io"
     apiVersions:
-    - "*"
+    - "v1alpha1"
     resources:
-    - projectrequests
-  - operations:
-    - CREATE
-    apiGroups:
-    - ""
-    apiVersions:
-    - "*"
-    resources:
-    - namespaces
+    - "federatedtypeconfigs"
   failurePolicy: Fail
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  namespace: openshift-namespace-reservation
+  namespace: {{ .Release.Namespace }}
   name: server-serving-cert
 type: kubernetes.io/tls
 stringData:
-  tls.crt: {{ $ca.Cert }}
-  tls.key: {{ $ca.Key }}
+  tls.crt: {{ $cert.Cert | quote }}
+  tls.key: {{ $cert.Key | quote }}
