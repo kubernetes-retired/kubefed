@@ -6,7 +6,7 @@
 ##
 controllermanager:
   enabled: true
-  replicaCount: 1
+  replicaCount: 2
   repository: quay.io/kubernetes-multicluster
   image: federation-v2
   tag: canary
