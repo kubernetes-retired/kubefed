@@ -13,6 +13,7 @@
     - [Check Status of Joined Clusters](#check-status-of-joined-clusters)
     - [Unjoin Clusters](#unjoin-clusters)
   - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
+    - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Deletion policy](#deletion-policy)
   - [Example](#example)
