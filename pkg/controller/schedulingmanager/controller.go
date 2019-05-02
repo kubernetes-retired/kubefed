@@ -17,8 +17,8 @@ limitations under the License.
 package schedulingmanager
 
 import (
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
@@ -68,7 +68,7 @@ func StartSchedulingManager(config *util.ControllerConfig, stopChan <-chan struc
 		return nil, err
 	}
 
-	glog.Infof("Starting scheduling manager")
+	klog.Infof("Starting scheduling manager")
 	manager.Run(stopChan)
 	return manager, nil
 }
@@ -144,7 +144,7 @@ func (c *SchedulingManager) shutdown() {
 func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
-	glog.V(3).Infof("Running reconcile FederatedTypeConfig %q in scheduling manager", key)
+	klog.V(3).Infof("Running reconcile FederatedTypeConfig %q in scheduling manager", key)
 
 	typeConfigName := qualifiedName.Name
 	schedulingType := schedulingtypes.GetSchedulingType(typeConfigName)
@@ -184,7 +184,7 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 	// Scheduling preference controller is started on demand
 	abstractScheduler, ok := c.schedulers.Get(schedulingKind)
 	if !ok {
-		glog.Infof("Starting schedulingpreference controller for %s", schedulingKind)
+		klog.Infof("Starting schedulingpreference controller for %s", schedulingKind)
 		stopChan := make(chan struct{})
 		schedulerInterface, err := schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType, stopChan)
 		if err != nil {
@@ -202,7 +202,7 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 	}
 
 	federatedKind := typeConfig.GetFederatedType().Kind
-	glog.Infof("Starting plugin %s for %s", federatedKind, schedulingKind)
+	klog.Infof("Starting plugin %s for %s", federatedKind, schedulingKind)
 	err = scheduler.StartPlugin(typeConfig)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Error starting plugin %s for %s", federatedKind, schedulingKind))
@@ -222,14 +222,14 @@ func (c *SchedulingManager) stopScheduler(schedulingKind, typeConfigName string)
 	scheduler := abstractScheduler.(*SchedulerWrapper)
 	if scheduler.HasPlugin(typeConfigName) {
 		kind, _ := scheduler.pluginMap.Get(typeConfigName)
-		glog.Infof("Stopping plugin %s for %s", kind.(string), schedulingKind)
+		klog.Infof("Stopping plugin %s for %s", kind.(string), schedulingKind)
 		scheduler.StopPlugin(kind.(string))
 		scheduler.pluginMap.Delete(typeConfigName)
 	}
 
 	// If all plugins associated with this scheduler are gone, the scheduler should also be stopped.
 	if scheduler.pluginMap.Size() == 0 {
-		glog.Infof("Stopping schedulingpreference controller for %q", schedulingKind)
+		klog.Infof("Stopping schedulingpreference controller for %q", schedulingKind)
 		// Indicate scheduler and associated goroutines to be stopped in schedulingpreference controller.
 		close(scheduler.stopChan)
 		c.schedulers.Delete(schedulingKind)

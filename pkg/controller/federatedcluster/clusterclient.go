@@ -19,8 +19,8 @@ package federatedcluster
 import (
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -123,7 +123,7 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterSta
 func (self *ClusterClient) GetClusterZones() ([]string, string, error) {
 	nodes, err := self.kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
-		glog.Errorf("Failed to list nodes while getting zone names: %v", err)
+		klog.Errorf("Failed to list nodes while getting zone names: %v", err)
 		return nil, "", err
 	}
 

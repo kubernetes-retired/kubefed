@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -167,7 +167,7 @@ func NewFederatedInformer(
 	getClusterData := func(name string) []interface{} {
 		data, err := federatedInformer.GetTargetStore().ListFromCluster(name)
 		if err != nil {
-			glog.Errorf("Failed to list %s content: %v", name, err)
+			klog.Errorf("Failed to list %s content: %v", name, err)
 			return make([]interface{}, 0)
 		}
 		return data
@@ -196,26 +196,26 @@ func NewFederatedInformer(
 			AddFunc: func(cur interface{}) {
 				curCluster, ok := cur.(*fedv1a1.FederatedCluster)
 				if !ok {
-					glog.Errorf("Cluster %v/%v not added; incorrect type", curCluster.Namespace, curCluster.Name)
+					klog.Errorf("Cluster %v/%v not added; incorrect type", curCluster.Namespace, curCluster.Name)
 				} else if IsClusterReady(&curCluster.Status) {
 					federatedInformer.addCluster(curCluster)
-					glog.Infof("Cluster %v/%v is ready", curCluster.Namespace, curCluster.Name)
+					klog.Infof("Cluster %v/%v is ready", curCluster.Namespace, curCluster.Name)
 					if clusterLifecycle.ClusterAvailable != nil {
 						clusterLifecycle.ClusterAvailable(curCluster)
 					}
 				} else {
-					glog.Infof("Cluster %v/%v not added; it is not ready.", curCluster.Namespace, curCluster.Name)
+					klog.Infof("Cluster %v/%v not added; it is not ready.", curCluster.Namespace, curCluster.Name)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
 				oldCluster, ok := old.(*fedv1a1.FederatedCluster)
 				if !ok {
-					glog.Errorf("Internal error: Cluster %v not updated.  Old cluster not of correct type.", old)
+					klog.Errorf("Internal error: Cluster %v not updated.  Old cluster not of correct type.", old)
 					return
 				}
 				curCluster, ok := cur.(*fedv1a1.FederatedCluster)
 				if !ok {
-					glog.Errorf("Internal error: Cluster %v not updated.  New cluster not of correct type.", cur)
+					klog.Errorf("Internal error: Cluster %v not updated.  New cluster not of correct type.", cur)
 					return
 				}
 				if IsClusterReady(&oldCluster.Status) != IsClusterReady(&curCluster.Status) || !reflect.DeepEqual(oldCluster.Spec, curCluster.Spec) || !reflect.DeepEqual(oldCluster.ObjectMeta.Annotations, curCluster.ObjectMeta.Annotations) {
@@ -235,7 +235,7 @@ func NewFederatedInformer(
 						}
 					}
 				} else {
-					glog.V(7).Infof("Cluster %v not updated to %v as ready status and specs are identical", oldCluster, curCluster)
+					klog.V(7).Infof("Cluster %v not updated to %v as ready status and specs are identical", oldCluster, curCluster)
 				}
 			},
 		},
@@ -287,14 +287,14 @@ type federatedStoreImpl struct {
 }
 
 func (f *federatedInformerImpl) Stop() {
-	glog.V(4).Infof("Stopping federated informer.")
+	klog.V(4).Infof("Stopping federated informer.")
 	f.Lock()
 	defer f.Unlock()
 
-	glog.V(4).Infof("... Closing cluster informer channel.")
+	klog.V(4).Infof("... Closing cluster informer channel.")
 	close(f.clusterInformer.stopChan)
 	for key, informer := range f.targetInformers {
-		glog.V(4).Infof("... Closing informer channel for %q.", key)
+		klog.V(4).Infof("... Closing informer channel for %q.", key)
 		close(informer.stopChan)
 		// Remove each informer after it has been stopped to prevent
 		// subsequent cluster deletion from attempting to double close
@@ -327,9 +327,9 @@ func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (Resourc
 
 func (f *federatedInformerImpl) getClientForClusterUnlocked(clusterName string) (ResourceClient, error) {
 	// No locking needed. Will happen in f.GetCluster.
-	glog.V(4).Infof("Getting clientset for cluster %q", clusterName)
+	klog.V(4).Infof("Getting clientset for cluster %q", clusterName)
 	if cluster, found, err := f.getReadyClusterUnlocked(clusterName); found && err == nil {
-		glog.V(4).Infof("Got clientset for cluster %q", clusterName)
+		klog.V(4).Infof("Got clientset for cluster %q", clusterName)
 		return f.clientFactory(cluster)
 	} else {
 		if err != nil {
@@ -431,7 +431,7 @@ func (f *federatedInformerImpl) addCluster(cluster *fedv1a1.FederatedCluster) {
 		go targetInformer.controller.Run(targetInformer.stopChan)
 	} else {
 		// TODO: create also an event for cluster.
-		glog.Errorf("Failed to create a client for cluster: %v", err)
+		klog.Errorf("Failed to create a client for cluster: %v", err)
 	}
 }
 

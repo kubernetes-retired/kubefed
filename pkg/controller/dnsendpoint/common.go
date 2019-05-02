@@ -20,7 +20,7 @@ import (
 	"net"
 	"sort"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -64,7 +64,7 @@ func getResolvedTargets(targets feddnsv1a1.Targets, netWrapper NetWrapper) (fedd
 			// through an interface abstracting the internet
 			ipAddrs, err := netWrapper.LookupHost(target)
 			if err != nil {
-				glog.Errorf("Failed to resolve %s, err: %v", target, err)
+				klog.Errorf("Failed to resolve %s, err: %v", target, err)
 				return resolvedTargets.List(), err
 			}
 			for _, ip := range ipAddrs {

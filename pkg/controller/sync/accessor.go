@@ -17,7 +17,7 @@ limitations under the License.
 package sync
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -161,19 +161,19 @@ func (a *resourceAccessor) Run(stopChan <-chan struct{}) {
 func (a *resourceAccessor) HasSynced() bool {
 	kind := a.typeConfig.GetFederatedType().Kind
 	if !a.versionManager.HasSynced() {
-		glog.V(2).Infof("Version manager for %s not synced", kind)
+		klog.V(2).Infof("Version manager for %s not synced", kind)
 		return false
 	}
 	if !a.federatedController.HasSynced() {
-		glog.V(2).Infof("Informer for %s not synced", kind)
+		klog.V(2).Infof("Informer for %s not synced", kind)
 		return false
 	}
 	if a.namespaceController != nil && !a.namespaceController.HasSynced() {
-		glog.V(2).Infof("Namespace informer for %s not synced", kind)
+		klog.V(2).Infof("Namespace informer for %s not synced", kind)
 		return false
 	}
 	if a.fedNamespaceController != nil && !a.fedNamespaceController.HasSynced() {
-		glog.V(2).Infof("FederatedNamespace informer for %s not synced", kind)
+		klog.V(2).Infof("FederatedNamespace informer for %s not synced", kind)
 		return false
 	}
 	return true
@@ -181,7 +181,7 @@ func (a *resourceAccessor) HasSynced() bool {
 
 func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (FederatedResource, bool, error) {
 	if a.targetIsNamespace && a.isSystemNamespace(eventSource.Name) {
-		glog.V(7).Infof("Ignoring system namespace %q", eventSource.Name)
+		klog.V(7).Infof("Ignoring system namespace %q", eventSource.Name)
 		return nil, false, nil
 	}
 

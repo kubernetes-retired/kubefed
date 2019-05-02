@@ -23,10 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -99,12 +99,12 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("Error: %v", err)
+				klog.Fatalf("Error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("Error: %v", err)
+				klog.Fatalf("Error: %v", err)
 			}
 		},
 	}
@@ -184,7 +184,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 		}
 
 		if _, err := cmdOut.Write([]byte(data)); err != nil {
-			glog.Fatalf("Unexpected err: %v\n", err)
+			klog.Fatalf("Unexpected err: %v\n", err)
 		}
 	}
 
@@ -282,7 +282,7 @@ func verifyPropagationControllerStopped(client genericclient.Client, typeConfigN
 		typeConfig = &fedv1a1.FederatedTypeConfig{}
 		err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
 		if err != nil {
-			glog.Errorf("Error retrieving FederatedTypeConfig %q: %v", typeConfigName, err)
+			klog.Errorf("Error retrieving FederatedTypeConfig %q: %v", typeConfigName, err)
 			return false, nil
 		}
 		if typeConfig.Status.PropagationController == fedv1a1.ControllerStatusNotRunning {

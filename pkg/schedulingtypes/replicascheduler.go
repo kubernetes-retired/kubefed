@@ -22,8 +22,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
@@ -135,7 +135,7 @@ func (s *ReplicaScheduler) HasSynced() bool {
 	}
 
 	if !s.podInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	clusters, err := s.podInformer.GetReadyClusters()
@@ -285,7 +285,7 @@ func schedule(planner *planner.Planner, key string, clusterNames []string, curre
 		result[clusterName] += replicas
 	}
 
-	if glog.V(4) {
+	if klog.V(4) {
 		buf := bytes.NewBufferString(fmt.Sprintf("Schedule - %q\n", key))
 		sort.Strings(clusterNames)
 		for _, clusterName := range clusterNames {
@@ -300,7 +300,7 @@ func schedule(planner *planner.Planner, key string, clusterNames []string, curre
 			}
 			fmt.Fprintf(buf, "\n")
 		}
-		glog.V(4).Infof(buf.String())
+		klog.V(4).Infof(buf.String())
 	}
 	return result, nil
 }

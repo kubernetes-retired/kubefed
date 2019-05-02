@@ -21,8 +21,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
@@ -98,7 +98,7 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Cli
 	secretRef := fedCluster.Spec.SecretRef
 
 	if secretRef == nil {
-		glog.Infof("didn't find secretRef for cluster %s. Trying insecure access", clusterName)
+		klog.Infof("didn't find secretRef for cluster %s. Trying insecure access", clusterName)
 		clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
 		if err != nil {
 			return nil, err

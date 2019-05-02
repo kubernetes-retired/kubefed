@@ -41,7 +41,7 @@ func NewKubeFedCtlCommand(out io.Writer) *cobra.Command {
 		RunE: runHelp,
 	}
 
-	// Add the command line flags from other dependencies (e.g., glog), but do not
+	// Add the command line flags from other dependencies (e.g., klog), but do not
 	// warn if they contain underscores.
 	pflag.CommandLine.SetNormalizeFunc(apiserverflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -50,7 +50,7 @@ func NewKubeFedCtlCommand(out io.Writer) *cobra.Command {
 	// From this point and forward we get warnings on flags that contain "_" separators
 	rootCmd.SetGlobalNormalizationFunc(apiserverflag.WarnWordSepNormalizeFunc)
 
-	// Prevent glog errors about logging before parsing.
+	// Prevent klog errors about logging before parsing.
 	_ = flag.CommandLine.Parse(nil)
 
 	fedConfig := util.NewFedConfig(clientcmd.NewDefaultPathOptions())

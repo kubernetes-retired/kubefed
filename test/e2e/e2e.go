@@ -19,10 +19,10 @@ package e2e
 import (
 	"testing"
 
+	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
 
-	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/gomega"

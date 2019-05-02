@@ -27,7 +27,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -38,6 +37,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/leaderelection"
 	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app/options"
@@ -82,7 +82,7 @@ member clusters and does the necessary reconciliation`,
 		},
 	}
 
-	// Add the command line flags from other dependencies(glog, kubebuilder, etc.)
+	// Add the command line flags from other dependencies(klog, kubebuilder, etc.)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	opts.AddFlags(cmd.Flags())
@@ -113,15 +113,15 @@ func Run(opts *options.Options) error {
 	setOptionsByFederationConfig(opts)
 
 	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
-		glog.Fatalf("Invalid Feature Gate: %v", err)
+		klog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
 	if opts.Scope == apiextv1b1.NamespaceScoped {
 		opts.Config.TargetNamespace = opts.Config.FederationNamespace
-		glog.Infof("Federation will be limited to the %q namespace", opts.Config.FederationNamespace)
+		klog.Infof("Federation will be limited to the %q namespace", opts.Config.FederationNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
-		glog.Info("Federation will target all namespaces")
+		klog.Info("Federation will target all namespaces")
 	}
 
 	elector, err := leaderelection.NewFederationLeaderElector(opts, startControllers)
@@ -142,44 +142,44 @@ func Run(opts *options.Options) error {
 
 	elector.Run(ctx)
 
-	glog.Errorf("lost lease")
+	klog.Errorf("lost lease")
 	return errors.New("lost lease")
 }
 
 func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	if err := federatedcluster.StartClusterController(opts.Config, opts.ClusterHealthCheckConfig, stopChan); err != nil {
-		glog.Fatalf("Error starting cluster controller: %v", err)
+		klog.Fatalf("Error starting cluster controller: %v", err)
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		if _, err := schedulingmanager.StartSchedulingManager(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting scheduling manager: %v", err)
+			klog.Fatalf("Error starting scheduling manager: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
 		if err := servicedns.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting dns controller: %v", err)
+			klog.Fatalf("Error starting dns controller: %v", err)
 		}
 
 		if err := dnsendpoint.StartServiceDNSEndpointController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting dns endpoint controller: %v", err)
+			klog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
 		if err := ingressdns.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting ingress dns controller: %v", err)
+			klog.Fatalf("Error starting ingress dns controller: %v", err)
 		}
 
 		if err := dnsendpoint.StartIngressDNSEndpointController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
+			klog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
 		if err := federatedtypeconfig.StartController(opts.Config, stopChan); err != nil {
-			glog.Fatalf("Error starting federated type config controller: %v", err)
+			klog.Fatalf("Error starting federated type config controller: %v", err)
 		}
 	}
 }
@@ -199,33 +199,33 @@ func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 
 		err := client.Get(context.Background(), fedConfig, namespace, name)
 		if apierrors.IsNotFound(err) {
-			glog.Infof("Cannot retrieve FederationConfig %q: %v. Default options are used.", qualifiedName.String(), err)
+			klog.Infof("Cannot retrieve FederationConfig %q: %v. Default options are used.", qualifiedName.String(), err)
 			return nil
 		}
 		if err != nil {
-			glog.Fatalf("Error retrieving FederationConfig %q: %v.", qualifiedName.String(), err)
+			klog.Fatalf("Error retrieving FederationConfig %q: %v.", qualifiedName.String(), err)
 		}
 
-		glog.Infof("Setting Options with FederationConfig %q", qualifiedName.String())
+		klog.Infof("Setting Options with FederationConfig %q", qualifiedName.String())
 		return fedConfig
 	}
 
 	file, err := os.Open(federationConfig)
 	if err != nil {
 		// when federation config file is specified, it should be fatal error if the file does not valid
-		glog.Fatalf("Cannot open federation config file %q: %v", federationConfig, err)
+		klog.Fatalf("Cannot open federation config file %q: %v", federationConfig, err)
 	}
 	defer file.Close()
 
 	decoder := yaml.NewYAMLToJSONDecoder(file)
 	err = decoder.Decode(fedConfig)
 	if err != nil {
-		glog.Fatalf("Cannot decode FederationConfig from file %q: %v", federationConfig, err)
+		klog.Fatalf("Cannot decode FederationConfig from file %q: %v", federationConfig, err)
 	}
 
 	// set to current namespace to make sure `FederationConfig` is updated in correct namespace
 	fedConfig.Namespace = opts.Config.FederationNamespace
-	glog.Infof("Setting Options with FederationConfig from file %q: %v", federationConfig, fedConfig.Spec)
+	klog.Infof("Setting Options with FederationConfig from file %q: %v", federationConfig, fedConfig.Spec)
 	return fedConfig
 }
 
@@ -258,7 +258,7 @@ func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
 		defaultScope := os.Getenv(defaultScopeEnv)
 		if len(defaultScope) != 0 {
 			if defaultScope != string(apiextv1b1.ClusterScoped) && defaultScope != string(apiextv1b1.NamespaceScoped) {
-				glog.Fatalf("%s must be Cluster or Namespaced; got %q", defaultScopeEnv, defaultScope)
+				klog.Fatalf("%s must be Cluster or Namespaced; got %q", defaultScopeEnv, defaultScope)
 			}
 			spec.Scope = apiextv1b1.ResourceScope(defaultScope)
 		}
@@ -299,19 +299,19 @@ func updateFederationConfig(config *rest.Config, fedConfig *corev1a1.FederationC
 	client := genericclient.NewForConfigOrDieWithUserAgent(config, "federationconfig")
 	err := client.Get(context.Background(), configResource, namespace, name)
 	if err != nil && !apierrors.IsNotFound(err) {
-		glog.Fatalf("Error retrieving FederationConfig %q: %v", qualifiedName, err)
+		klog.Fatalf("Error retrieving FederationConfig %q: %v", qualifiedName, err)
 	}
 	if apierrors.IsNotFound(err) {
 		// if `--federation-config` is specifed but there is not FederationConfig resource accordingly
 		err = client.Create(context.Background(), fedConfig)
 		if err != nil {
-			glog.Fatalf("Error creating FederationConfig %q: %v", qualifiedName, err)
+			klog.Fatalf("Error creating FederationConfig %q: %v", qualifiedName, err)
 		}
 	} else {
 		configResource.Spec = fedConfig.Spec
 		err = client.Update(context.Background(), configResource)
 		if err != nil {
-			glog.Fatalf("Error updating FederationConfig %q: %v", qualifiedName, err)
+			klog.Fatalf("Error updating FederationConfig %q: %v", qualifiedName, err)
 		}
 	}
 }
@@ -325,7 +325,7 @@ func setOptionsByFederationConfig(opts *options.Options) {
 			Name:      util.FederationConfigName,
 		}
 
-		glog.Infof("Creating FederationConfig %q with default values", qualifiedName)
+		klog.Infof("Creating FederationConfig %q with default values", qualifiedName)
 
 		fedConfig = &corev1a1.FederationConfig{
 			ObjectMeta: metav1.ObjectMeta{
@@ -367,13 +367,13 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	}
 
 	opts.FeatureGates = featureGates
-	glog.V(1).Infof("\"feature-gates\" will be set to %v", featureGates)
+	klog.V(1).Infof("\"feature-gates\" will be set to %v", featureGates)
 }
 
 // PrintFlags logs the flags in the flagset
 func PrintFlags(flags *pflag.FlagSet) {
 	flags.VisitAll(func(flag *pflag.Flag) {
-		glog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
+		klog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
 }
 
@@ -405,5 +405,5 @@ func serveHealthz(address string) {
 		_, _ = w.Write([]byte("OK"))
 	})
 
-	glog.Fatal(http.ListenAndServe(address, nil))
+	klog.Fatal(http.ListenAndServe(address, nil))
 }

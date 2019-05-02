@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 

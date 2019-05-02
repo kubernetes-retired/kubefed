@@ -17,8 +17,8 @@ limitations under the License.
 package features
 
 import (
-	"github.com/golang/glog"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/klog"
 )
 
 const (
@@ -56,7 +56,7 @@ const (
 
 func init() {
 	if err := utilfeature.DefaultFeatureGate.Add(defaultFederationFeatureGates); err != nil {
-		glog.Fatalf("Unexpected error: %v", err)
+		klog.Fatalf("Unexpected error: %v", err)
 	}
 }
 

@@ -23,8 +23,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	extv1b1 "k8s.io/api/extensions/v1beta1"
@@ -76,7 +76,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof("Starting IngressDNS controller")
+	klog.Infof("Starting IngressDNS controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -174,7 +174,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (c *Controller) isSynced() bool {
 	if !c.ingressFederatedInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	clusters, err := c.ingressFederatedInformer.GetReadyClusters()
@@ -207,9 +207,9 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	key := qualifiedName.String()
 
-	glog.V(2).Infof("Starting to reconcile IngressDNS resource: %v", key)
+	klog.V(2).Infof("Starting to reconcile IngressDNS resource: %v", key)
 	startTime := time.Now()
-	defer glog.V(2).Infof("Finished reconciling IngressDNS resource %v (duration: %v)", key, time.Since(startTime))
+	defer klog.V(2).Infof("Finished reconciling IngressDNS resource %v (duration: %v)", key, time.Since(startTime))
 
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
 	if err != nil {
