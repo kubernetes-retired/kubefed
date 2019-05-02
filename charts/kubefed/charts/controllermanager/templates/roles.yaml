@@ -81,3 +81,34 @@ rules:
   - secrets
   verbs:
   - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    api: kubefed
+    kubebuilder.k8s.io: 1.0.0
+  name: kubefed-admission-webhook-role
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - core.kubefed.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - watch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:kubefed:admission-requester
+rules:
+- apiGroups:
+  - admission.core.kubefed.k8s.io
+  resources:
+  - federatedtypeconfigs
+  - kubefedclusters
+  verbs:
+  - create

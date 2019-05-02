@@ -1,0 +1,38 @@
+{{- $ca := genCA "kubefed-admission-webhook-ca" 3650 }}
+{{- $cn := printf "%s-admission-webhook" .Release.Name }}
+{{- $altName1 := printf "kubefed-admission-webhook.%s" .Release.Namespace }}
+{{- $altName2 := printf "kubefed-admission-webhook.%s.svc" .Release.Namespace }}
+{{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "federatedtypeconfigs.core.kubefed.k8s.io"
+webhooks:
+- name: federatedtypeconfigs.core.kubefed.k8s.io
+  clientConfig:
+    service:
+      namespace: {{ .Release.Namespace | quote }}
+      name: kubefed-admission-webhook
+      path: /apis/admission.core.kubefed.k8s.io/v1alpha1/federatedtypeconfigs
+    caBundle: {{ b64enc $ca.Cert | quote }}
+  rules:
+  - operations:
+    - "CREATE"
+    - "UPDATE"
+    apiGroups:
+    - "core.kubefed.k8s.io"
+    apiVersions:
+    - "v1alpha1"
+    resources:
+    - "federatedtypeconfigs"
+  failurePolicy: Fail
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: kubefed-admission-webhook-serving-cert
+type: kubernetes.io/tls
+stringData:
+  tls.crt: {{ $cert.Cert | quote }}
+  tls.key: {{ $cert.Key | quote }}

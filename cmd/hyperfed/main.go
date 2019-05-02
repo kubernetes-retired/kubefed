@@ -36,8 +36,11 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
+
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
+	"sigs.k8s.io/kubefed/pkg/webhook"
 )
 
 func main() {
@@ -79,9 +82,13 @@ func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 	controller := func() *cobra.Command { return app.NewControllerManagerCommand() }
 	kubefedctlCmd := func() *cobra.Command { return kubefedctl.NewKubeFedCtlCommand(os.Stdout) }
 
+	stopCh := genericapiserver.SetupSignalHandler()
+	webhookCmd := func() *cobra.Command { return webhook.NewWebhookCommand(stopCh) }
+
 	commandFns := []func() *cobra.Command{
 		controller,
 		kubefedctlCmd,
+		webhookCmd,
 	}
 
 	makeSymlinksFlag := false
