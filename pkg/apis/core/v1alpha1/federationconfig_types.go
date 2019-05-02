@@ -32,6 +32,7 @@ type FederationConfigSpec struct {
 	LeaderElect        LeaderElectConfig        `json:"leader-elect,omitempty"`
 	FeatureGates       []FeatureGatesConfig     `json:"feature-gates,omitempty"`
 	ClusterHealthCheck ClusterHealthCheckConfig `json:"cluster-health-check,omitempty"`
+	SyncController     SyncControllerConfig     `json:"sync-controller,omitempty"`
 }
 
 type DurationConfig struct {
@@ -72,6 +73,11 @@ type ClusterHealthCheckConfig struct {
 	SuccessThreshold int `json:"success-threshold,omitempty"`
 	// Number of seconds after which the cluster health check times out.
 	TimeoutSeconds int `json:"timeout-seconds,omitempty"`
+}
+
+type SyncControllerConfig struct {
+	// Whether to skip adopting pre-existing resource in member clusters. Defaults to false
+	SkipAdoptingResources bool `json:"skip-adopting-resources,omitempty"`
 }
 
 // +genclient

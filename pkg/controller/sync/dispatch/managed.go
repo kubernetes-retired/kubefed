@@ -55,16 +55,18 @@ type ManagedDispatcher interface {
 type managedDispatcherImpl struct {
 	sync.RWMutex
 
-	dispatcher          *operationDispatcherImpl
-	unmanagedDispatcher *unmanagedDispatcherImpl
-	fedResource         FederatedResourceForDispatch
-	versionMap          map[string]string
+	dispatcher            *operationDispatcherImpl
+	unmanagedDispatcher   *unmanagedDispatcherImpl
+	fedResource           FederatedResourceForDispatch
+	versionMap            map[string]string
+	skipAdoptingResources bool
 }
 
-func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource FederatedResourceForDispatch) ManagedDispatcher {
+func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource FederatedResourceForDispatch, skipAdoptingResources bool) ManagedDispatcher {
 	d := &managedDispatcherImpl{
-		fedResource: fedResource,
-		versionMap:  make(map[string]string),
+		fedResource:           fedResource,
+		versionMap:            make(map[string]string),
+		skipAdoptingResources: skipAdoptingResources,
 	}
 	d.dispatcher = newOperationDispatcher(clientAccessor, d)
 	d.unmanagedDispatcher = newUnmanagedDispatcher(d.dispatcher, d, fedResource.TargetKind(), fedResource.TargetName())
@@ -99,6 +101,11 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 		if !alreadyExists {
 			d.RecordError(clusterName, op, err)
 			return util.StatusError
+		}
+
+		if d.skipAdoptingResources {
+			d.RecordError(clusterName, op, errors.Errorf("Resource pre-exist in cluster"))
+			return util.StatusAllOK
 		}
 
 		// Attempt to update the existing resource to ensure that it

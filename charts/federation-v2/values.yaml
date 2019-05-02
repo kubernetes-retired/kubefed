@@ -33,6 +33,8 @@ controllermanager:
   clusterHealthCheckTimeoutSeconds:
   ## Supported options are `configmaps` and `endpoints`
   leaderElectResourceLock:
+  syncController:
+    skipAdoptingResources:
   ## Value of feature gates item should be either `true` or `false`
   featureGates:
     PushReconciler:

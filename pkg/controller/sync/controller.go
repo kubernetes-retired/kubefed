@@ -85,6 +85,8 @@ type FederationSyncController struct {
 	fedAccessor FederatedResourceAccessor
 
 	hostClusterClient genericclient.Client
+
+	skipAdoptingResources bool
 }
 
 // StartFederationSyncController starts a new sync controller for a type config
@@ -122,6 +124,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 		eventRecorder:           recorder,
 		typeConfig:              typeConfig,
 		hostClusterClient:       client,
+		skipAdoptingResources:   controllerConfig.SkipAdoptingResources,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -289,7 +292,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 	key := fedResource.TargetName().String()
 	glog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
 
-	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource)
+	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources)
 
 	status := util.StatusAllOK
 	for _, cluster := range clusters {
