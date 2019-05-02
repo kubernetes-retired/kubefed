@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
@@ -79,7 +80,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 // newController returns a new controller to manage FederatedTypeConfig objects.
 func newController(config *util.ControllerConfig) (*Controller, error) {
 	userAgent := "FederatedTypeConfig"
-	kubeConfig := config.KubeConfig
+	kubeConfig := restclient.CopyConfig(config.KubeConfig)
 	restclient.AddUserAgent(kubeConfig, userAgent)
 	genericclient, err := genericclient.New(kubeConfig)
 	if err != nil {
@@ -98,7 +99,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// restrictive authz can be applied to a namespaced
 	// control plane.
 	c.store, c.controller, err = util.NewGenericInformer(
-		config.KubeConfig,
+		kubeConfig,
 		config.FederationNamespace,
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
@@ -135,12 +136,12 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	glog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 
-	cachedObj, exist, err := c.store.GetByKey(key)
+	cachedObj, err := c.objCopyFromCache(key)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key))
 		return util.StatusError
 	}
-	if !exist {
+
+	if cachedObj == nil {
 		return util.StatusAllOK
 	}
 	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
@@ -230,12 +231,15 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	}
 
 	typeConfig.Status.ObservedGeneration = typeConfig.Generation
-	if syncRunning {
+	syncControllerRunning := startNewSyncController || (syncRunning && !stopSyncController)
+	if syncControllerRunning {
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusRunning
 	} else {
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
 	}
-	if statusRunning {
+
+	statusControllerRunning := startNewStatusController || (statusRunning && !stopStatusController)
+	if statusControllerRunning {
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusRunning
 	} else {
 		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
@@ -246,6 +250,19 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return util.StatusError
 	}
 	return util.StatusAllOK
+}
+
+func (c *Controller) objCopyFromCache(key string) (pkgruntime.Object, error) {
+	cachedObj, exist, err := c.store.GetByKey(key)
+	if err != nil {
+		wrappedErr := errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key)
+		runtime.HandleError(wrappedErr)
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
 }
 
 func (c *Controller) shutDown() {
@@ -324,6 +341,7 @@ func (c *Controller) ensureFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Insert(finalizer)
 	accessor.SetFinalizers(finalizers.List())
+	err = c.client.Update(context.TODO(), tc)
 	return err
 }
 
@@ -338,7 +356,7 @@ func (c *Controller) removeFinalizer(tc *corev1a1.FederatedTypeConfig) error {
 	}
 	finalizers.Delete(finalizer)
 	accessor.SetFinalizers(finalizers.List())
-	err = c.client.UpdateStatus(context.TODO(), tc)
+	err = c.client.Update(context.TODO(), tc)
 	return err
 }
 

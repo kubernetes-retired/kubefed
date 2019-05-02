@@ -100,6 +100,12 @@ var _ = Describe("Scheduling", func() {
 					framework.Skipf("The scheduling manager can only be tested when controllers are running in-process.")
 				}
 
+				// The deletion of FederatedTypeConfigs performed by this test
+				// requires the FederatedTypeConfig controller in order to
+				// remove its finalizer for proper deletion.
+				controllerFixture = framework.NewFederatedTypeConfigControllerFixture(tl, f.ControllerConfig())
+				f.RegisterFixture(controllerFixture)
+
 				// make sure scheduler/plugin initialization are done before our test
 				By("Waiting for scheduler/plugin controllers are initialized in scheduling manager")
 				waitForSchedulerStarted(tl, controller, schedulingTypes)

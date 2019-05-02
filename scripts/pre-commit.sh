@@ -155,6 +155,12 @@ kubectl scale deployments federation-controller-manager -n federation-system --r
 echo "Running e2e tests with race detector against cluster-scoped federation-v2 with in-memory controllers"
 run-e2e-tests-with-in-memory-controllers
 
+# FederatedTypeConfig controller is needed to remove finalizers from
+# FederatedTypeConfigs in order to successfully delete federation in the next
+# step.
+echo "Scaling back up cluster-scoped controller manager prior to deletion"
+kubectl scale deployments federation-controller-manager -n federation-system --replicas=1
+
 echo "Deleting cluster-scoped federation-v2"
 ./scripts/delete-federation.sh
 
