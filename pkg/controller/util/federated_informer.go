@@ -83,6 +83,9 @@ type FederationView interface {
 	// GetReadyClusters returns all clusters for which the sub-informers are run.
 	GetReadyClusters() ([]*fedv1a1.FederatedCluster, error)
 
+	// GetClusters returns a list of all clusters.
+	GetClusters() ([]*fedv1a1.FederatedCluster, error)
+
 	// GetReadyCluster returns the cluster with the given name, if found.
 	GetReadyCluster(name string) (*fedv1a1.FederatedCluster, bool, error)
 
@@ -356,6 +359,16 @@ func (f *federatedInformerImpl) GetUnreadyClusters() ([]*fedv1a1.FederatedCluste
 
 // GetReadyClusters returns all clusters for which the sub-informers are run.
 func (f *federatedInformerImpl) GetReadyClusters() ([]*fedv1a1.FederatedCluster, error) {
+	return f.getClusters(true)
+}
+
+// GetClusters returns all clusters regardless of ready state.
+func (f *federatedInformerImpl) GetClusters() ([]*fedv1a1.FederatedCluster, error) {
+	return f.getClusters(false)
+}
+
+// GetReadyClusters returns only ready clusters if onlyReady is true and all clusters otherwise.
+func (f *federatedInformerImpl) getClusters(onlyReady bool) ([]*fedv1a1.FederatedCluster, error) {
 	f.Lock()
 	defer f.Unlock()
 
@@ -363,7 +376,7 @@ func (f *federatedInformerImpl) GetReadyClusters() ([]*fedv1a1.FederatedCluster,
 	result := make([]*fedv1a1.FederatedCluster, 0, len(items))
 	for _, item := range items {
 		if cluster, ok := item.(*fedv1a1.FederatedCluster); ok {
-			if IsClusterReady(&cluster.Status) {
+			if !onlyReady || IsClusterReady(&cluster.Status) {
 				result = append(result, cluster)
 			}
 		} else {

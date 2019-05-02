@@ -29,7 +29,6 @@ import (
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/deletionhelper"
 )
 
 // FederatedResourceAccessor provides a way to retrieve and visit
@@ -68,9 +67,6 @@ type resourceAccessor struct {
 	// Manages propagated versions
 	versionManager *version.VersionManager
 
-	// Adds finalizers to resources and performs cleanup of target resources.
-	deletionHelper *deletionhelper.DeletionHelper
-
 	// Records events on the federated resource
 	eventRecorder record.EventRecorder
 }
@@ -81,8 +77,6 @@ func NewFederatedResourceAccessor(
 	fedNamespaceAPIResource *metav1.APIResource,
 	client genericclient.Client,
 	enqueueObj func(pkgruntime.Object),
-	informer util.FederatedInformer,
-	updater util.FederatedUpdater,
 	eventRecorder record.EventRecorder) (FederatedResourceAccessor, error) {
 
 	a := &resourceAccessor{
@@ -148,18 +142,6 @@ func NewFederatedResourceAccessor(
 		typeConfig.GetFederatedType().Kind,
 		typeConfig.GetTarget().Kind,
 		targetNamespace,
-	)
-
-	a.deletionHelper = deletionhelper.NewDeletionHelper(
-		func(rawObj pkgruntime.Object) (pkgruntime.Object, error) {
-			obj := rawObj.(*unstructured.Unstructured)
-			return federatedTypeClient.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
-		},
-		func(obj pkgruntime.Object) string {
-			return util.NewQualifiedName(obj).String()
-		},
-		informer,
-		updater,
 	)
 
 	return a, nil
@@ -282,7 +264,6 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 		federatedName:     federatedName,
 		federatedResource: resource,
 		versionManager:    a.versionManager,
-		deletionHelper:    a.deletionHelper,
 		namespace:         namespace,
 		fedNamespace:      fedNamespace,
 		eventRecorder:     a.eventRecorder,
