@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// A binary that can morph into all of the other kubefed binaries. You can
+// A binary that can morph into all of the other federation-v2 binaries. You can
 // also soft-link to it busybox style.
 //
 package main
@@ -36,8 +36,11 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
+
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
+	"sigs.kis.io/kubefed/pkg/webhook"
 )
 
 func main() {
@@ -79,9 +82,13 @@ func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 	controller := func() *cobra.Command { return app.NewControllerManagerCommand() }
 	kubefedctlCmd := func() *cobra.Command { return kubefedctl.NewKubeFedCtlCommand(os.Stdout) }
 
+	stopCh := genericapiserver.SetupSignalHandler()
+	webhookCmd := func() *cobra.Command { return webhook.NewWebhookCommand(stopCh) }
+
 	commandFns := []func() *cobra.Command{
 		controller,
 		kubefedctlCmd,
+		webhookCmd,
 	}
 
 	makeSymlinksFlag := false

@@ -19,20 +19,16 @@ package webhook
 import (
 	"os"
 
-	genericapiserver "k8s.io/apiserver/pkg/server"
-
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/webhook"
 	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	"github.com/openshift/generic-admission-server/pkg/cmd/server"
 	"github.com/spf13/cobra"
 )
 
-func NewWebhookCommand() *cobra.Command {
+func NewWebhookCommand(stopCh <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
 		&webhook.FederatedTypeConfigValidationHook{},
 	}
-
-	stopCh := genericapiserver.SetupSignalHandler()
 
 	// done to avoid cannot use admissionHooks (type []AdmissionHook) as type []apiserver.AdmissionHook in argument to "github.com/openshift/kubernetes-namespace-reservation/pkg/genericadmissionserver/cmd/server".NewCommandStartAdmissionServer
 	var castSlice []apiserver.AdmissionHook
@@ -40,6 +36,9 @@ func NewWebhookCommand() *cobra.Command {
 		castSlice = append(castSlice, admissionHooks[i])
 	}
 	cmd := server.NewCommandStartAdmissionServer(os.Stdout, os.Stderr, stopCh, castSlice...)
+	cmd.Use = "webhook"
+	cmd.Short = "Start a kubefed webhook server"
+	cmd.Long = "Start a kubefed webhook server"
 
 	return cmd
 }

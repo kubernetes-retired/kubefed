@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/kubectl/util/logs"
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"github.com/kubernetes-sigs/federation-v2/pkg/webhook"
 )
 
@@ -35,7 +36,9 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	cmd := webhook.NewWebhookCommand()
+	stopCh := genericapiserver.SetupSignalHandler()
+
+	cmd := webhook.NewWebhookCommand(stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	if err := cmd.Execute(); err != nil {
