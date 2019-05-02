@@ -29,6 +29,13 @@ spec:
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
         imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         name: controller-manager
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          timeoutSeconds: 3
         resources:
 {{- if .Values.resources }}
 {{ toYaml .Values.resources | indent 12 }}

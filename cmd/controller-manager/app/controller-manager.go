@@ -21,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -97,6 +98,9 @@ member clusters and does the necessary reconciliation`,
 func Run(opts *options.Options) error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
+
+	// TODO: Make healthz endpoint configurable
+	go serveHealthz(":8080")
 
 	stopChan := setupSignalHandler()
 
@@ -366,4 +370,13 @@ func setupSignalHandler() (stopCh <-chan struct{}) {
 	}()
 
 	return stop
+}
+
+func serveHealthz(address string) {
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
+	})
+
+	glog.Fatal(http.ListenAndServe(address, nil))
 }
