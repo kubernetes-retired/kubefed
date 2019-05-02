@@ -258,17 +258,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	if fedResource.Object().GetDeletionTimestamp() != nil {
 		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
-		err := s.ensureDeletion(fedResource)
-		if err != nil {
-			// Any error should already have been logged by
-			// ensureDeletion.  It was returned to indicate that
-			// reconcillation should be retried.
-			return util.StatusError
-		}
-		// If there are still outstanding operations, events for the
-		// deletions and/or updates should ensure subsequent
-		// reconciliation.
-		return util.StatusAllOK
+		return s.ensureDeletion(fedResource)
 	}
 	glog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
 	err = s.ensureFinalizer(fedResource)
@@ -368,7 +358,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 	return status
 }
 
-func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource) error {
+func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource) util.ReconciliationStatus {
 	fedResource.DeleteVersions()
 
 	key := fedResource.FederatedName().String()
@@ -381,7 +371,7 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 	finalizers := sets.NewString(obj.GetFinalizers()...)
 	if !finalizers.Has(FinalizerSyncController) {
 		glog.V(2).Infof("%s %q does not have the %q finalizer. Nothing to do.", kind, key, FinalizerSyncController)
-		return nil
+		return util.StatusAllOK
 	}
 
 	annotations := obj.GetAnnotations()
@@ -392,23 +382,26 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove finalizer %q from %s %q", OrphanManagedResources, kind, key)
 			runtime.HandleError(wrappedErr)
-			return wrappedErr
+			return util.StatusError
 		}
-		return nil
+		return util.StatusAllOK
 		// TODO(marun) Implement removal of labels
 	}
 
 	glog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
-	err := s.deleteFromClusters(fedResource)
+	recheckRequired, err := s.deleteFromClusters(fedResource)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "failed to delete %s %q", kind, key)
 		runtime.HandleError(wrappedErr)
-		return wrappedErr
+		return util.StatusError
 	}
-	return nil
+	if recheckRequired {
+		return util.StatusNeedsRecheck
+	}
+	return util.StatusAllOK
 }
 
-func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) error {
+func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) (bool, error) {
 	kind := fedResource.TargetKind()
 	qualifiedName := fedResource.TargetName()
 
@@ -427,19 +420,19 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 		dispatcher.Delete(clusterName)
 	})
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !ok {
-		return errors.Errorf("failed to remove managed resources from one or more clusters.")
+		return false, errors.Errorf("failed to remove managed resources from one or more clusters.")
 	}
 	if len(remainingClusters) > 0 {
 		fedKind := fedResource.FederatedKind()
 		fedName := fedResource.FederatedName()
 		glog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
-		return nil
+		return true, nil
 	}
 	// Managed resources no longer exist in any member cluster
-	return s.removeFinalizer(fedResource)
+	return false, s.removeFinalizer(fedResource)
 }
 
 // handleDeletionInClusters invokes the provided deletion handler for
