@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: "{{ .Release.Namespace }}"
+  name: kubefed-webhook-server
+  labels:
+    server: "true"
+spec:
+  selector:
+    matchLabels:
+      server: "true"
+  template:
+    metadata:
+      name: server
+      labels:
+        server: "true"
+    spec:
+      serviceAccountName: kubefed-webhook-server
+      containers:
+      - name: c
+        image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
+        imagePullPolicy: IfNotPresent
+        command:
+        - "/root/webhook"
+        - "--secure-port=8443"
+        - "--audit-log-path=-"
+        - "--tls-cert-file=/var/serving-cert/tls.crt"
+        - "--tls-private-key-file=/var/serving-cert/tls.key"
+        - "--v=8"
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - mountPath: /var/serving-cert
+          name: serving-cert
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTPS
+      volumes:
+      - name: serving-cert
+        secret:
+          defaultMode: 420
+          secretName: server-serving-cert
