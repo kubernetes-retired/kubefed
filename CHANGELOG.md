@@ -1,4 +1,8 @@
 # Unreleased
+ - [#612](https://github.com/kubernetes-sigs/federation-v2/pull/612) -
+   Label managed resources in member clusters and only watch resources
+   so labeled to minimize the memory usage of the federated control
+   plane.
  - [#721](https://github.com/kubernetes-sigs/federation-v2/issues/721) -
    kubefed2 disable now deletes the FederatedTypeConfig rather than set
    propagationEnabled, waits for the sync controller to shut down, and

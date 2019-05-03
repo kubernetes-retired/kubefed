@@ -240,14 +240,22 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	kind := s.typeConfig.GetFederatedType().Kind
 
-	// TODO(marun) Handle the case where the resource has the managed
-	// label but does not have a managing resource.  Strip the label
-	// or remove the resource?
-
-	fedResource, err := s.fedAccessor.FederatedResource(qualifiedName)
+	fedResource, possibleOrphan, err := s.fedAccessor.FederatedResource(qualifiedName)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Error creating FederatedResource helper for %s %q", kind, qualifiedName))
 		return util.StatusError
+	}
+	if possibleOrphan {
+		targetKind := s.typeConfig.GetTarget().Kind
+		glog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+		err = s.removeManagedLabel(targetKind, qualifiedName)
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
+
+		return util.StatusAllOK
 	}
 	if fedResource == nil {
 		return util.StatusAllOK
@@ -387,8 +395,14 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
+		glog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByFederationLabelKey, kind, key)
+		err = s.removeManagedLabel(fedResource.TargetKind(), fedResource.TargetName())
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByFederationLabelKey, kind, key)
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
 		return util.StatusAllOK
-		// TODO(marun) Implement removal of labels
 	}
 
 	glog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
@@ -404,23 +418,48 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 	return util.StatusAllOK
 }
 
+// removeManagedLabel attempts to remove the managed label from
+// resources with the given name in member clusters.
+func (s *FederationSyncController) removeManagedLabel(kind string, qualifiedName util.QualifiedName) error {
+	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+		if clusterObj.GetDeletionTimestamp() != nil {
+			return
+		}
+
+		dispatcher.RemoveManagedLabel(clusterName, clusterObj)
+	})
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Errorf("failed to remove the label from resources in one or more clusters.")
+	}
+	return nil
+}
+
 func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) (bool, error) {
 	kind := fedResource.TargetKind()
 	qualifiedName := fedResource.TargetName()
 
 	remainingClusters := []string{}
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
-		if fedResource.IsNamespaceInHostCluster(clusterObj) {
+		// It's not possible to remove the managed label from a
+		// resource marked for deletion.
+		if fedResource.IsNamespaceInHostCluster(clusterObj) && clusterObj.GetDeletionTimestamp() != nil {
 			return
 		}
 
 		remainingClusters = append(remainingClusters, clusterName)
 
-		if clusterObj.GetDeletionTimestamp() != nil {
-			return
+		if fedResource.IsNamespaceInHostCluster(clusterObj) {
+			// Creation or deletion of namespaces in the host cluster
+			// is not the responsibility of the sync controller.
+			// Removing the managed label will ensure a host cluster
+			// namespace is no longer cached.
+			dispatcher.RemoveManagedLabel(clusterName, clusterObj)
+		} else {
+			dispatcher.Delete(clusterName)
 		}
-
-		dispatcher.Delete(clusterName)
 	})
 	if err != nil {
 		return false, err

@@ -282,7 +282,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 			if err == nil {
 				return true, nil
 			}
-			c.tl.Logf("Error updating %s %q to include the %q annotation: %v", federatedKind, qualifiedName, orphanKey, err)
+			c.tl.Logf("Will retry updating %s %q to include the %q annotation after error: %v", federatedKind, qualifiedName, orphanKey, err)
 			// Clear fedObject to ensure its attempted retrieval in the next iteration
 			fedObject = nil
 			return false, nil
@@ -306,8 +306,8 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		waitTimeout = c.clusterWaitTimeout
 	}
 
-	// Wait for deletion.  The federation resource will only be removed once orphan deletion has been
-	// completed or deemed unnecessary.
+	// Wait for deletion.  The federation resource will only be removed once managed resources have
+	// been deleted or orphaned.
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		_, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
@@ -327,25 +327,26 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	targetKind := c.typeConfig.GetTarget().Kind
 
 	// TODO(marun) Consider using informer to detect expected deletion state.
-	var stateMsg string = "present"
+	var stateMsg string = "unlabeled"
 	if deletingInCluster {
 		stateMsg = "not present"
 	}
 	for clusterName, testCluster := range c.testClusters {
 		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
-			_, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
+			obj, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
 			switch {
 			case !deletingInCluster && apierrors.IsNotFound(err):
 				return false, errors.Errorf("%s %q was unexpectedly deleted from cluster %q", targetKind, qualifiedName, clusterName)
 			case deletingInCluster && err == nil:
-				// The namespace in the host cluster should not be removed.
 				if c.targetIsNamespace && clusterName == c.getPrimaryClusterName() {
-					// TODO(marun) Validate removal of the managed label once
-					// the deletion helper is updated to support the capability.
-					return true, nil
+					// A namespace in the host cluster should have the
+					// managed label removed instead of being deleted.
+					return !util.HasManagedLabel(obj), nil
 				}
-				// Continue checking for deletion
+				// Continue checking for deletion or label removal
 				return false, nil
+			case !deletingInCluster && err == nil:
+				return !util.HasManagedLabel(obj), nil
 			case err != nil && !apierrors.IsNotFound(err):
 				c.tl.Errorf("Error while checking whether %s %q is %s in cluster %q: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
 				// This error may be recoverable
@@ -355,7 +356,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 			}
 		})
 		if err != nil {
-			c.tl.Fatalf("Failed to confirm whether %s %q is %s in cluster: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
+			c.tl.Fatalf("Failed to confirm whether %s %q is %s in cluster %q: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
 		}
 	}
 }
