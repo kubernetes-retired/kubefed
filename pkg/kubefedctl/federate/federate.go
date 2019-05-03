@@ -76,13 +76,14 @@ var (
 
 type federateResource struct {
 	options.GlobalSubcommandOptions
-	typeName          string
-	resourceName      string
-	resourceNamespace string
-	output            string
-	outputYAML        bool
-	enableType        bool
-	federateContents  bool
+	typeName             string
+	resourceName         string
+	resourceNamespace    string
+	output               string
+	outputYAML           bool
+	enableType           bool
+	federateContents     bool
+	skipAPIResourceNames []string
 }
 
 func (j *federateResource) Bind(flags *pflag.FlagSet) {
@@ -90,6 +91,8 @@ func (j *federateResource) Bind(flags *pflag.FlagSet) {
 	flags.StringVarP(&j.output, "output", "o", "", "If provided, the resource that would be created in the API by the command is instead output to stdout in the provided format.  Valid format is ['yaml'].")
 	flags.BoolVarP(&j.enableType, "enable-type", "e", false, "If true, attempt to enable federation of the API type of the resource before creating the federated resource.")
 	flags.BoolVarP(&j.federateContents, "contents", "c", false, "Applicable only to namespaces. If provided, the command will federate all resources within the namespace after federating the namespace.")
+	flags.StringSliceVarP(&j.skipAPIResourceNames, "skip-api-resources", "s", []string{}, "Comma separated names of the api resources to skip when federating contents in a namespace. Name could be short name "+
+		"(e.g. 'deploy), kind (e.g. 'deployment'), plural name (e.g. 'deployments'), group qualified plural name (e.g. 'deployments.apps') or group name itself (e.g. 'apps') to skip the whole group.")
 }
 
 // Complete ensures that options are valid.
@@ -172,7 +175,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if kind == ctlutil.NamespaceKind && j.federateContents {
-		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.FederationNamespace, "", j.enableType, j.outputYAML)
+		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.FederationNamespace, j.skipAPIResourceNames, j.enableType, j.outputYAML)
 		if err != nil {
 			return err
 		}
@@ -419,7 +422,7 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 	return nil
 }
 
-func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, federationNamespace, skipAPIResourceNames string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
+func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, federationNamespace string, skipAPIResourceNames []string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
 	targetResourcesList, err := getResourcesInNamespace(hostConfig, containerNamespace, skipAPIResourceNames)
 	if err != nil {
 		return nil, err

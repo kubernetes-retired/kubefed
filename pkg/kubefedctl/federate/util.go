@@ -62,7 +62,7 @@ func SetBasicMetaFields(resource *unstructured.Unstructured, apiResource metav1.
 	}
 }
 
-func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) (map[string]metav1.APIResource, error) {
+func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames []string) (map[string]metav1.APIResource, error) {
 	apiResourceLists, err := enable.GetServerPreferredResources(config)
 	if err != nil {
 		return nil, err
@@ -80,28 +80,33 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) 
 		}
 
 		group := gv.Group
+		if apiResourceGroupMatchesSkipName(skipAPIResourceNames, group) {
+			// A whole group is skipped by the user
+			continue
+		}
+
+		if group == "extensions" {
+			// The strategy involved to choose a Group higher in order for k8s core
+			// APIs is to consider "extensions" as the outdated group [This seems to
+			// be true for all k8s APIResources, so far]. For example if "deployments"
+			// exists in "extensions" and "apps"; "deployments.apps" will be chosen.
+			// This doesn't apply to events but events are listed in
+			// controllerCreatedAPIResourceNames and so are skipped always.
+
+			// Skipping this also assumes that "extensions" is not the only
+			// group exposed for this resource on the API Server, which probably
+			// is safe as "extensions" is deprecated.
+			// TODO(irfanurrehman): Document this.
+			continue
+		}
+
 		for _, apiResource := range apiResourceList.APIResources {
 			if !apiResource.Namespaced || isFederatedAPIResource(apiResource.Kind, group) ||
-				apiResourceMatchesSkipNames(apiResource, skipAPIResourceNames, group) {
+				apiResourceMatchesSkipName(apiResource, skipAPIResourceNames, group) {
 				continue
 			}
 
-			if group == "extensions" {
-				// The strategy involved to choose a Group higher in order for k8s core
-				// APIs is to consider "extensions" as the outdated group [This seems to
-				// be true for all k8s APIResources, so far]. For example if "deployments"
-				// exists in "extensions" and "apps"; "deployments.apps" will be chosen.
-				// This doesn't apply to events but events are listed in
-				// controllerCreatedAPIResourceNames and so are skipped always.
-
-				// Skipping this also assumes that "extensions" is not the only
-				// group exposed for this resource on the API Server, which probably
-				// is safe as "extensions" is anyways going to be deprecated.
-				// TODO(irfanurrehman): Document this.
-				continue
-			}
-
-			// For everything else (say CRDs) same kinds in different groups
+			// For all other resources (say CRDs) same kinds in different groups
 			// are treated as individual types. If there happens to be an API Resource
 			// which enables conversion and allows query of the same resource across
 			// different groups, a specific group resource will have to be chosen by
@@ -126,8 +131,20 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) 
 	return apiResources, nil
 }
 
-func apiResourceMatchesSkipNames(apiResource metav1.APIResource, skipAPIResourceNames, group string) bool {
-	names := append(controllerCreatedAPIResourceNames, strings.Split(skipAPIResourceNames, ",")...)
+func apiResourceGroupMatchesSkipName(skipAPIResourceNames []string, group string) bool {
+	for _, name := range skipAPIResourceNames {
+		if name == "" {
+			continue
+		}
+		if name == group {
+			return true
+		}
+	}
+	return false
+}
+
+func apiResourceMatchesSkipName(apiResource metav1.APIResource, skipAPIResourceNames []string, group string) bool {
+	names := append(controllerCreatedAPIResourceNames, skipAPIResourceNames...)
 	for _, name := range names {
 		if name == "" {
 			continue
@@ -151,7 +168,7 @@ type resources struct {
 	resources []*unstructured.Unstructured
 }
 
-func getResourcesInNamespace(config *rest.Config, namespace, skipAPIResourceNames string) ([]resources, error) {
+func getResourcesInNamespace(config *rest.Config, namespace string, skipAPIResourceNames []string) ([]resources, error) {
 	apiResources, err := namespacedAPIResourceMap(config, skipAPIResourceNames)
 	if err != nil {
 		return nil, err
