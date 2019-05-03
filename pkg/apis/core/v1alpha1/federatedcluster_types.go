@@ -43,7 +43,7 @@ type FederatedClusterSpec struct {
 	//
 	// This can be left empty if the cluster allows insecure access.
 	// +optional
-	SecretRef *apiv1.LocalObjectReference `json:"secretRef,omitempty"`
+	SecretRef *LocalSecretReference `json:"secretRef,omitempty"`
 }
 
 // LocalClusterReference contains information to identify a cluster in the
@@ -51,6 +51,14 @@ type FederatedClusterSpec struct {
 type LocalClusterReference struct {
 	// Name of the cluster registry Cluster resource from which to source API
 	// endpoints.
+	Name string `json:"name"`
+}
+
+// LocalSecretReference is a reference to a secret within the enclosing
+// namespace.
+type LocalSecretReference struct {
+	// Name of a secret within the enclosing
+	// namespace
 	Name string `json:"name"`
 }
 
