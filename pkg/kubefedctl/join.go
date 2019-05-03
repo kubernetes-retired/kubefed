@@ -455,7 +455,19 @@ func createFederationNamespace(clusterClientset kubeclient.Interface, federation
 		return federationNS, nil
 	}
 
-	_, err := clusterClientset.CoreV1().Namespaces().Create(federationNS)
+	_, err := clusterClientset.CoreV1().Namespaces().Get(federationNamespace, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		glog.V(2).Infof("Could not get %s namespace: %v", federationNamespace, err)
+		return nil, err
+	}
+
+	if err == nil {
+		glog.V(2).Infof("Already existing %s namespace", federationNamespace)
+		return federationNS, nil
+	}
+
+	// Not found, so create.
+	_, err = clusterClientset.CoreV1().Namespaces().Create(federationNS)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		glog.V(2).Infof("Could not create %s namespace: %v", federationNamespace, err)
 		return nil, err
