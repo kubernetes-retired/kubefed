@@ -50,3 +50,4 @@ webhook:
   repository: quay.io/kubernetes-multicluster
   image: federation-v2
   tag: canary
+  imagePullPolicy: IfNotPresent

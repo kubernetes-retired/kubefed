@@ -92,7 +92,7 @@ EOF
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
-    cmd="${cmd} --set controllermanager.imagePullPolicy=${IMAGE_PULL_POLICY}"
+    cmd="${cmd} --set controllermanager.imagePullPolicy=${IMAGE_PULL_POLICY} --set webhook.imagePullPolicy=${IMAGE_PULL_POLICY}"
   fi
 
   ${cmd}

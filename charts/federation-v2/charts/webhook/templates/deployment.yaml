@@ -19,7 +19,7 @@ spec:
       containers:
       - name: c
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         command:
         - "/root/webhook"
         - "--secure-port=8443"
