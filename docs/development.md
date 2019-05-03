@@ -91,7 +91,7 @@ In order to run E2E tests, you first need to:
      for testing federation-v2.
 1. Deploy the federation-v2 control plane
    - To deploy the latest version of the federation-v2 control plane, follow
-     the [automated deployment instructions in the user guide](userguide.md#automated-deployment).
+     the [Helm chart deployment in the user guide](../charts/federation-v2/README.md#installing-the-chart).
    - To deploy your own changes, follow the [Test Your Changes](#test-your-changes)
      section of this guide.
 
@@ -168,7 +168,7 @@ federation controller manager:
 
 ### Cleanup
 
-Follow the [cleanup instructions in the user guide](userguide.md#cleanup).
+Follow the [cleanup instructions in the user guide](../charts/federation-v2/README.md#uninstalling-the-chart).
 
 ## Test Your Changes
 
@@ -215,7 +215,7 @@ make generate
 
 In order to test the latest stable released version (tagged as `latest`) on
 your kubernetes cluster, follow the
-[Automated Deployment](userguide.md#automated-deployment) instructions from the user guide.
+[Helm Chart Deployment](../charts/federation-v2/README.md#installing-the-chart) instructions from the user guide.
 
 ## Updating Document
 
