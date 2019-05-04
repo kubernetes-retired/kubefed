@@ -12,6 +12,8 @@ spec:
     kind: FederatedClusterRole
     plural: federatedclusterroles
   scope: Cluster
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -262,6 +264,40 @@ spec:
                   type: array
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -278,6 +314,8 @@ spec:
     shortNames:
     - fcm
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -482,6 +520,40 @@ spec:
                   type: object
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -498,6 +570,8 @@ spec:
     shortNames:
     - fdeploy
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -2748,6 +2822,40 @@ spec:
                   type: object
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -2764,6 +2872,8 @@ spec:
     shortNames:
     - fing
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -3020,6 +3130,40 @@ spec:
                   type: object
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -3034,6 +3178,8 @@ spec:
     kind: FederatedJob
     plural: federatedjobs
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -5266,6 +5412,40 @@ spec:
                   type: object
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -5282,6 +5462,8 @@ spec:
     shortNames:
     - fns
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -5484,6 +5666,40 @@ spec:
                   type: object
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -5500,6 +5716,8 @@ spec:
     shortNames:
     - frs
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -7723,6 +7941,40 @@ spec:
                   type: object
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -7737,6 +7989,8 @@ spec:
     kind: FederatedSecret
     plural: federatedsecrets
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -7943,6 +8197,40 @@ spec:
                   type: string
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -7959,6 +8247,8 @@ spec:
     shortNames:
     - fsa
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -8182,6 +8472,40 @@ spec:
                   type: array
               type: object
           type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+          type: object
   version: v1alpha1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -8198,6 +8522,8 @@ spec:
     shortNames:
     - fsvc
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -8455,6 +8781,40 @@ spec:
                       type: string
                   type: object
               type: object
+          type: object
+        status:
+          properties:
+            clusters:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                type: object
+              type: array
+            conditions:
+              items:
+                properties:
+                  lastProbeTime:
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
           type: object
   version: v1alpha1
 {{ end }}
