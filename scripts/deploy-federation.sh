@@ -111,6 +111,11 @@ function helm-deploy-cmd {
       --set controllermanager.tag=${tag}"
 }
 
+function kubefed-admission-webhook-ready() {
+  local numReady=$(kubectl -n ${1} get daemonsets.apps kubefed-admission-webhook -o jsonpath='{.status.numberReady}')
+  [[ "${numReady}" == "1" ]]
+}
+
 NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
@@ -173,6 +178,9 @@ fi
 
 # Deploy federation resources
 deploy-with-helm
+
+# Wait for admission webhook server to be ready
+util::wait-for-condition "kubefed admission webhook to be ready" "kubefed-admission-webhook-ready ${NS}" 120
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
