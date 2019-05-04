@@ -249,6 +249,20 @@ func setInt(target *int, defaultValue int) {
 
 func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
 	spec := &fedConfig.Spec
+
+	if len(spec.Scope) == 0 {
+		// TODO(sohankunkerkar) Remove when no longer necessary.
+		// This Environment variable is a temporary addition to support Red Hat's downstream testing efforts.
+		// Its continued existence should not be relied upon.
+		const defaultScopeEnv = "DEFAULT_FEDERATION_SCOPE"
+		defaultScope := os.Getenv(defaultScopeEnv)
+		if len(defaultScope) != 0 {
+			if defaultScope != string(apiextv1b1.ClusterScoped) && defaultScope != string(apiextv1b1.NamespaceScoped) {
+				glog.Fatalf("%s must be Cluster or Namespaced; got %q", defaultScopeEnv, defaultScope)
+			}
+			spec.Scope = apiextv1b1.ResourceScope(defaultScope)
+		}
+	}
 	if spec.Scope == apiextv1b1.NamespaceScoped {
 		setString(&spec.RegistryNamespace, fedConfig.Namespace)
 	} else {
@@ -306,8 +320,19 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	fedConfig := getFederationConfig(opts)
 	if fedConfig == nil {
 		// FederationConfig could not be sourced from --federation-config or from the API.
-		// create a new `FederationConfig` with default values.
-		fedConfig = &corev1a1.FederationConfig{}
+		qualifiedName := util.QualifiedName{
+			Namespace: opts.Config.FederationNamespace,
+			Name:      util.FederationConfigName,
+		}
+
+		glog.Infof("Creating FederationConfig %q with default values", qualifiedName)
+
+		fedConfig = &corev1a1.FederationConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      qualifiedName.Name,
+				Namespace: qualifiedName.Namespace,
+			},
+		}
 	}
 
 	setDefaultFederationConfig(fedConfig)
