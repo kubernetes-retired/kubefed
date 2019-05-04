@@ -163,8 +163,8 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 	})
 }
 
-func (d *managedDispatcherImpl) Delete(clusterName string) {
-	d.unmanagedDispatcher.Delete(clusterName)
+func (d *managedDispatcherImpl) Delete(clusterName string, clusterObj *unstructured.Unstructured) {
+	d.unmanagedDispatcher.Delete(clusterName, clusterObj)
 }
 
 func (d *managedDispatcherImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {

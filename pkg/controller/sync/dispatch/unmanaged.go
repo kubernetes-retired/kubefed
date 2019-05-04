@@ -35,7 +35,7 @@ const eventTemplate = "%s %s %q in cluster %q"
 type UnmanagedDispatcher interface {
 	OperationDispatcher
 
-	Delete(clusterName string)
+	Delete(clusterName string, clusterObj *unstructured.Unstructured)
 	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 }
 
@@ -66,11 +66,19 @@ func (d *unmanagedDispatcherImpl) Wait() (bool, error) {
 	return d.dispatcher.Wait()
 }
 
-func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
+func (d *unmanagedDispatcherImpl) Delete(clusterName string, clusterObj *unstructured.Unstructured) {
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "delete"
 	const opContinuous = "Deleting"
 	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
+		// It's necessary to have the controller call Delete to ensure
+		// that status is correctly logged, but attempting to delete
+		// an already deleted resource is just going to generate
+		// unnecessary errors in the log.
+		if clusterObj.GetDeletionTimestamp() != nil {
+			return util.StatusAllOK
+		}
+
 		if d.recorder == nil {
 			glog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
 		} else {

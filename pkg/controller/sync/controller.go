@@ -331,7 +331,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 				// label removed so it won't be cached anymore.
 				dispatcher.RemoveManagedLabel(clusterName, clusterObj)
 			} else {
-				dispatcher.Delete(clusterName)
+				dispatcher.Delete(clusterName, clusterObj)
 			}
 			continue
 		}
@@ -458,7 +458,7 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 			// namespace is no longer cached.
 			dispatcher.RemoveManagedLabel(clusterName, clusterObj)
 		} else {
-			dispatcher.Delete(clusterName)
+			dispatcher.Delete(clusterName, clusterObj)
 		}
 	})
 	if err != nil {
