@@ -18,9 +18,9 @@
 # the README - to the current kubectl context.  It also joins the
 # hosting cluster as a member of the federation.
 #
-# WARNING: The service account for the kubefed namespace will be
+# WARNING: The service account for the federation namespace will be
 # granted the cluster-admin role.  Until more restrictive permissions
-# are used, access to the kubefed namespace should be restricted to
+# are used, access to the federation namespace should be restricted to
 # trusted users.
 #
 # If using minikube, a cluster must be started prior to invoking this
@@ -39,7 +39,7 @@
 #
 # To redeploy federation from scratch, prefix the deploy invocation with the deletion script:
 #
-#   # WARNING: The deletion script will remove federation data
+#   # WARNING: The deletion script will remove federation and cluster registry data
 #   $ ./scripts/delete-federation.sh [join-cluster]... && ./scripts/deploy-federation.sh <image> [join-cluster]...
 #
 
@@ -112,6 +112,11 @@ function helm-deploy-cmd {
       --set webhook.repository=${repo} --set webhook.image=${image} --set webhook.tag=${tag}"
 }
 
+function kubefed-webhook-server-ready() {
+  local numReady=$(kubectl -n ${1} get daemonsets.apps kubefed-webhook-server -o jsonpath='{.status.numberReady}')
+  [[ "${numReady}" == "1" ]]
+}
+
 NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
@@ -174,6 +179,9 @@ fi
 
 # Deploy federation resources
 deploy-with-helm
+
+# Wait for validation webhook server to be ready
+util::wait-for-condition "kubefed webhook server to be ready" "kubefed-webhook-server-ready ${NS}" 120
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
