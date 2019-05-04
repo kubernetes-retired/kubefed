@@ -30,4 +30,5 @@ type Interface interface {
 	GetStatus() *metav1.APIResource
 	GetEnableStatus() bool
 	GetFederatedNamespaced() bool
+	IsNamespace() bool
 }
