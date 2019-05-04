@@ -106,7 +106,11 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) 
 			// which enables conversion and allows query of the same resource across
 			// different groups, a specific group resource will have to be chosen by
 			// the user using --skip-names to skip the not chosen one(s).
-			// // TODO(irfanurrehman): Document this.
+			// TODO(irfanurrehman): Document this.
+
+			// The individual apiResources do not have the group and version set
+			apiResource.Group = group
+			apiResource.Version = gv.Version
 			groupQualifiedName := typeconfig.GroupQualifiedName(apiResource)
 			if previousAPIResource, ok := apiResources[groupQualifiedName]; ok {
 				if versionhelper.CompareKubeAwareVersionStrings(gv.Version, previousAPIResource.Version) <= 0 {
@@ -114,10 +118,6 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames string) 
 					continue
 				}
 			}
-
-			// The individual apiResources do not have the group and version set
-			apiResource.Group = group
-			apiResource.Version = gv.Version
 
 			apiResources[groupQualifiedName] = apiResource
 		}
