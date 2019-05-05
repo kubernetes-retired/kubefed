@@ -49,11 +49,7 @@ func (r *NetWrapperDefaultImplementation) LookupHost(host string) (addrs []strin
 	return net.LookupHost(host)
 }
 
-var netWrapper NetWrapper
-
-func init() {
-	netWrapper = &NetWrapperDefaultImplementation{}
-}
+var netWrapper NetWrapper = &NetWrapperDefaultImplementation{}
 
 // getResolvedTargets performs DNS resolution on the provided slice of endpoints (which might be DNS names
 // or IPv4 addresses) and returns a list of IPv4 addresses.  If any of the endpoints are neither valid IPv4
