@@ -14,6 +14,7 @@
     - [Unjoin Clusters](#unjoin-clusters)
   - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
+    - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Deletion policy](#deletion-policy)
   - [Example](#example)
