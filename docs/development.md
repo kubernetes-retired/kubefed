@@ -27,6 +27,21 @@ help you get started.
 
 ## Prerequisites
 
+### Binaries
+
+The federation deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
+`kube-apiserver` >= v1.13 being installed in the path. The `kubebuilder`
+([v1.0.8](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.8)
+as of this writing) release packages all of these dependencies together.
+
+These binaries can be installed via the `download-binaries.sh` script, which
+downloads them to `./bin`:
+
+```bash
+./scripts/download-binaries.sh
+export PATH=$(pwd)/bin:${PATH}
+```
+
 ### kubernetes
 
 The federation v2 deployment requires kubernetes version >= 1.11. To see a
