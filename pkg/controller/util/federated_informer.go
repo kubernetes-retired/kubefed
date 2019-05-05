@@ -235,7 +235,7 @@ func NewFederatedInformer(
 						}
 					}
 				} else {
-					glog.V(4).Infof("Cluster %v not updated to %v as ready status and specs are identical", oldCluster, curCluster)
+					glog.V(7).Infof("Cluster %v not updated to %v as ready status and specs are identical", oldCluster, curCluster)
 				}
 			},
 		},
