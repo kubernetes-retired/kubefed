@@ -516,7 +516,7 @@ experimenting with federation on a production cluster.
 ### Helm Configuration
 
 To deploy a federation in a namespaced configuration, set
-`global.limitedScope` to `true` as per the Helm chart [install
+`global.scope` to `Namespaced` as per the Helm chart [install
 instructions](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md#configuration).
 
 
