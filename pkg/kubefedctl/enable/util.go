@@ -79,30 +79,13 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 }
 
 func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.APIResource, error) {
-	client, err := discovery.NewDiscoveryClientForConfig(config)
+	resourceLists, err := GetServerPreferredResources(config)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error creating discovery client")
+		return nil, err
 	}
 
-	resourceLists, err := client.ServerPreferredResources()
-	if err != nil {
-		return nil, errors.Wrap(err, "Error listing api resources")
-	}
-
-	// TODO(marun) Consider using a caching scheme ala kubectl
-	lowerKey := strings.ToLower(key)
 	var targetResource *metav1.APIResource
 	var matchedResources []string
-	var matchResource = func(resource metav1.APIResource, gv schema.GroupVersion) {
-		if targetResource == nil {
-			targetResource = resource.DeepCopy()
-			targetResource.Group = gv.Group
-			targetResource.Version = gv.Version
-		}
-
-		matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
-	}
-
 	for _, resourceList := range resourceLists {
 		// The list holds the GroupVersion for its list of APIResources
 		gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
@@ -113,19 +96,14 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 			continue
 		}
 		for _, resource := range resourceList.APIResources {
-			if lowerKey == resource.Name ||
-				lowerKey == resource.SingularName ||
-				lowerKey == strings.ToLower(resource.Kind) ||
-				lowerKey == fmt.Sprintf("%s.%s", resource.Name, gv.Group) {
-
-				matchResource(resource, gv)
-				continue
-			}
-			for _, shortName := range resource.ShortNames {
-				if lowerKey == strings.ToLower(shortName) {
-					matchResource(resource, gv)
-					break
+			group := gv.Group
+			if NameMatchesResource(key, resource, group) {
+				if targetResource == nil {
+					targetResource = resource.DeepCopy()
+					targetResource.Group = group
+					targetResource.Version = gv.Version
 				}
+				matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
 			}
 		}
 
@@ -139,6 +117,37 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 	}
 
 	return nil, errors.Errorf("Unable to find api resource named %q.", key)
+}
+
+func NameMatchesResource(name string, apiResource metav1.APIResource, group string) bool {
+	lowerCaseName := strings.ToLower(name)
+	if lowerCaseName == apiResource.Name ||
+		lowerCaseName == apiResource.SingularName ||
+		lowerCaseName == strings.ToLower(apiResource.Kind) ||
+		lowerCaseName == fmt.Sprintf("%s.%s", apiResource.Name, group) {
+		return true
+	}
+	for _, shortName := range apiResource.ShortNames {
+		if lowerCaseName == strings.ToLower(shortName) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func GetServerPreferredResources(config *rest.Config) ([]*metav1.APIResourceList, error) {
+	// TODO(marun) Consider using a caching scheme ala kubectl
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error creating discovery client")
+	}
+
+	resourceLists, err := client.ServerPreferredResources()
+	if err != nil {
+		return nil, errors.Wrap(err, "Error listing api resources")
+	}
+	return resourceLists, nil
 }
 
 func resourceKey(apiResource metav1.APIResource) string {
