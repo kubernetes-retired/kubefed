@@ -35,7 +35,7 @@ func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <
 		return err
 	}
 
-	go controller.Run(stopChan)
+	go controller.Run(2, stopChan)
 	return nil
 }
 

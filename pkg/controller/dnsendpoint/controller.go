@@ -41,9 +41,6 @@ const (
 	minRetryDelay = 5 * time.Second
 	maxRetryDelay = 300 * time.Second
 	maxRetries    = 5
-
-	// TODO: consider making numWorkers configurable
-	numWorkers = 2
 )
 
 type GetEndpointsFunc func(interface{}) ([]*feddnsv1a1.Endpoint, error)
@@ -106,7 +103,7 @@ func (d *controller) minimizeLatency() {
 	d.maxRetryDelay = 2 * time.Second
 }
 
-func (d *controller) Run(stopCh <-chan struct{}) {
+func (d *controller) Run(workers int, stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	defer d.queue.ShutDown()
 
@@ -123,7 +120,7 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 
 	glog.Infof("%q DNSEndpoint controller synced and ready", d.dnsObjectKind)
 
-	for i := 0; i < numWorkers; i++ {
+	for i := 0; i < workers; i++ {
 		go wait.Until(d.worker, time.Second, stopCh)
 	}
 
