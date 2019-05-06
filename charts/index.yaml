@@ -2,6 +2,14 @@ apiVersion: v1
 entries:
   federation-v2:
   - apiVersion: v1
+    created: 2019-05-06T15:30:47.795749649-07:00
+    description: Kubernetes Federation V2 helm chart
+    digest: 9b248eed6f021951653ee98cb255d2d3564748ac04c2484c941f619c39c5dd79
+    name: federation-v2
+    urls:
+    - https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.10/federation-v2-0.0.10.tgz
+    version: 0.0.10
+  - apiVersion: v1
     created: 2019-04-29T22:11:58.917695043-07:00
     description: Kubernetes Federation V2 helm chart
     digest: b0dc5f35ef7b5fcc8604881d97a033af2cbdb5ea221b4702ca098bc4ef1c7dc5
@@ -17,4 +25,4 @@ entries:
     urls:
     - https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.8/federation-v2-0.0.8.tgz
     version: 0.0.8
-generated: 2019-04-29T22:11:58.915072178-07:00
+generated: 2019-05-06T15:30:47.79325228-07:00

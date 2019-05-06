@@ -1,4 +1,6 @@
 # Unreleased
+
+# v0.0.10
 -  [#722](https://github.com/kubernetes-sigs/federation-v2/issues/722) -
    Removal of the FederatedTypeConfig for namespaces now disables all
    namespaced sync controllers. Additionally, the namespace FederatedTypeConfig
