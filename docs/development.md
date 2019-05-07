@@ -4,6 +4,7 @@
 
 - [Development Guide](#development-guide)
   - [Prerequisites](#prerequisites)
+    - [Binaries](#binaries)
     - [kubernetes](#kubernetes)
     - [docker](#docker)
   - [Adding a new API type](#adding-a-new-api-type)
