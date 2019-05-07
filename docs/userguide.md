@@ -14,6 +14,7 @@
     - [Unjoin Clusters](#unjoin-clusters)
   - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
+    - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Deletion policy](#deletion-policy)
   - [Example](#example)
@@ -231,6 +232,39 @@ NAME   SHORTNAMES   APIGROUP   NAMESPACED   KIND
 
 Verifying the API type exists on all member clusters will ensure successful
 propagation to that cluster.
+
+### Enabling an API type in a new federation group
+When `kubefedctl enable` is used to enable types whose plural names (e.g. **deployments**.example.com
+and **deployments**.apps) match, the crd name of the generated federated type would also match (e.g.
+**deployments**.types.federation.k8s.io).
+
+`kubefedctl enable --federation-group string` specifies the name of the API group to use for the
+generated federation type. It is `types.federation.k8s.io` by default. If a new federation group is
+enabled, the RBAC permissions for the federation controller manager will need to be updated to include
+permissions for the new group.
+
+For example, after federation deployment, `deployments.apps` is enabled by default. To enable
+`deployments.example.com`, you should:
+```bash
+kubefedctl enable deployments.example.com --federation-group federation.example.com
+kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
+            "apiGroups": [
+                "federation.example.com"
+            ],
+            "resources": [
+                "*"
+            ],
+            "verbs": [
+                "get",
+                "watch",
+                "list",
+                "update"
+            ]
+        }
+}]'
+```
+This example is for cluster scoped federation deployment. For namespaced federation deployment,
+you can patch role `federation-role` in the federation namespace instead.
 
 ## Disabling federation of an API type
 
