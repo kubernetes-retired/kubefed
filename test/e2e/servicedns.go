@@ -23,8 +23,10 @@ import (
 	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
@@ -63,7 +65,7 @@ var _ = Describe("ServiceDNS", func() {
 		federatedClusters := &fedv1a1.FederatedClusterList{}
 		err := client.List(context.TODO(), federatedClusters, f.FederationSystemNamespace())
 		framework.ExpectNoError(err, "Error listing federated clusters")
-		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(client, federatedClusters)
+		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, federatedClusters)
 		if framework.TestContext.RunControllers() {
 			fixture := framework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
@@ -217,13 +219,23 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	return serviceDNSStatus
 }
 
-func ensureClustersHaveRegionZoneAttributes(client genericclient.Client, federatedClusters *fedv1a1.FederatedClusterList) map[string]fedv1a1.FederatedClusterStatus {
+func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, federatedClusters *fedv1a1.FederatedClusterList) map[string]fedv1a1.FederatedClusterStatus {
 	clusterRegionZones := make(map[string]fedv1a1.FederatedClusterStatus)
 	for i, cluster := range federatedClusters.Items {
 		cluster.Status.Region = fmt.Sprintf("r%d", i)
 		cluster.Status.Zones = []string{fmt.Sprintf("z%d", i)}
 
-		err := client.UpdateStatus(context.TODO(), &cluster)
+		err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+			err := client.UpdateStatus(context.TODO(), &cluster)
+			if apierrors.IsConflict(err) {
+				tl.Logf("Failed to update status for federated cluster %q: %v", cluster.Name, err)
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		})
 		framework.ExpectNoError(err, "Error updating federated cluster status")
 
 		clusterRegionZones[cluster.Name] = fedv1a1.FederatedClusterStatus{
