@@ -1,4 +1,8 @@
 # Unreleased
+- [#844](https://github.com/kubernetes-sigs/federation-v2/pull/844)
+   `kubefedctl federate` namespace with its content gets an option to
+   skip API Resources via `--skip-api-resources`.
+
 
 # v0.0.10
 -  [#722](https://github.com/kubernetes-sigs/federation-v2/issues/722) -
@@ -15,6 +19,9 @@
    optionally removes the federated type CRD.
  - [#825](https://github.com/kubernetes-sigs/federation-v2/pull/825) -
    kubefed2 tool is renamed to kubefedctl.
+ - [#741](https://github.com/kubernetes-sigs/federation-v2/pull/741) -
+   Added conversion of a namespace and its contents to federated 
+   equivalents via `kubefedctl federate ns <namespace> --contents`.
 
 # v0.0.9
 -  [#776](https://github.com/kubernetes-sigs/federation-v2/pull/776) -
@@ -36,6 +43,10 @@
  - [#549](https://github.com/kubernetes-sigs/federation-v2/pull/549) -
    As a result of watching only labled resources, unlabled resources
    in unselected clusters will no longer be deleted.
+ - [#663](https://github.com/kubernetes-sigs/federation-v2/pull/663) 
+   `kubefed2 federate` now supports the `--enable-type` flag to optionally
+   enable the given `type` for propagation.
+
 
 # v0.0.8
  - [#652](https://github.com/kubernetes-sigs/federation-v2/pull/652) -
@@ -64,3 +75,12 @@
    Fix the generated CRD schema of scalable resources to define the
    `retainReplicas` of type `boolean` rather than the invalid type
    `bool`.
+- [#662](https://github.com/kubernetes-sigs/federation-v2/pull/662)
+   Federating a resource could now function without a federation API. 
+- [#661](https://github.com/kubernetes-sigs/federation-v2/pull/661)
+   Accept group qualified type name for type in federate resource.
+- [#660](https://github.com/kubernetes-sigs/federation-v2/pull/660)
+   `kubefed2 federate` has been updated to support output to yaml via 
+   `-o yaml`. YAML output would still require a Kubernetes API endpoint
+    to function. 
+   
