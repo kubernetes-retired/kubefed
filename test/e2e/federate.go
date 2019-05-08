@@ -154,7 +154,7 @@ var _ = Describe("Federate ", func() {
 		artifactsList := []*federate.FederateArtifacts{}
 		artifactsList = append(artifactsList, artifacts)
 
-		skipAPIResourceNames := "pods,replicasets.extensions"
+		skipAPIResourceNames := []string{"pods", "replicasets.extensions"}
 		// Artifacts for the contained resources
 		containedArtifactsList, err := federate.GetContainedArtifactsList(kubeConfig, testNamespace, systemNamespace, skipAPIResourceNames, false, false)
 		if err != nil {
