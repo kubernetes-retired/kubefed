@@ -51,3 +51,4 @@ webhook:
   image: federation-v2
   tag: canary
   imagePullPolicy: IfNotPresent
+  replicaCount: 1

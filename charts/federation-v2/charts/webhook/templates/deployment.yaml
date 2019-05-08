@@ -1,11 +1,12 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   namespace: "{{ .Release.Namespace }}"
   name: kubefed-webhook-server
   labels:
     server: "true"
 spec:
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       server: "true"
