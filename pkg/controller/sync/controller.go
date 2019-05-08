@@ -25,11 +25,13 @@ import (
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -40,6 +42,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/dispatch"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
 )
@@ -278,22 +281,22 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusError
 	}
 
-	clusters, err := s.informer.GetReadyClusters()
-	if err != nil {
-		fedResource.RecordError("ClusterRetrievalError", errors.Wrap(err, "Failed to get cluster list"))
-		return util.StatusNotSynced
-	}
-
-	return s.syncToClusters(fedResource, clusters)
+	return s.syncToClusters(fedResource)
 }
 
 // syncToClusters ensures that the state of the given object is
-// synchronized to the provided clusters.
-func (s *FederationSyncController) syncToClusters(fedResource FederatedResource, clusters []*fedv1a1.FederatedCluster) util.ReconciliationStatus {
+// synchronized to member clusters.
+func (s *FederationSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
+	clusters, err := s.informer.GetClusters()
+	if err != nil {
+		fedResource.RecordError(string(status.ClusterRetrievalFailed), errors.Wrap(err, "Failed to retrieve list of clusters"))
+		return s.setPropagationStatus(fedResource, status.ClusterRetrievalFailed, nil)
+	}
+
 	selectedClusterNames, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
-		fedResource.RecordError("ComputePlacementError", errors.Wrap(err, "Failed to compute placement"))
-		return util.StatusError
+		fedResource.RecordError(string(status.ComputePlacementFailed), errors.Wrap(err, "Failed to compute placement"))
+		return s.setPropagationStatus(fedResource, status.ComputePlacementFailed, nil)
 	}
 
 	kind := fedResource.TargetKind()
@@ -302,17 +305,24 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources)
 
-	status := util.StatusAllOK
 	for _, cluster := range clusters {
 		clusterName := cluster.Name
+		selectedCluster := selectedClusterNames.Has(clusterName)
+
+		if !util.IsClusterReady(&cluster.Status) {
+			if selectedCluster {
+				// Cluster state only needs to be reported in resource
+				// status for clusters selected for placement.
+				err := errors.New("Cluster not ready")
+				dispatcher.RecordClusterError(status.ClusterNotReady, clusterName, err)
+			}
+			continue
+		}
 
 		rawClusterObj, _, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
-			fedResource.RecordError("TargetRetrievalError",
-				errors.Wrapf(err, "Failed to retrieve cluster object for cluster %q", clusterName))
-			// Ensure an error status is returned but continue
-			// processing updates for other clusters.
-			status = util.StatusError
+			wrappedErr := errors.Wrap(err, "Failed to retrieve cached cluster object")
+			dispatcher.RecordClusterError(status.CachedRetrievalFailed, clusterName, wrappedErr)
 			continue
 		}
 
@@ -322,8 +332,14 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 		}
 
 		// Resource should not exist in the named cluster
-		if !selectedClusterNames.Has(clusterName) {
-			if clusterObj == nil || clusterObj.GetDeletionTimestamp() != nil {
+		if !selectedCluster {
+			if clusterObj == nil {
+				// Resource does not exist in the cluster
+				continue
+			}
+			if clusterObj.GetDeletionTimestamp() != nil {
+				// Resource is marked for deletion
+				dispatcher.RecordStatus(clusterName, status.WaitingForRemoval)
 				continue
 			}
 			if fedResource.IsNamespaceInHostCluster(clusterObj) {
@@ -348,16 +364,13 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 			dispatcher.Update(clusterName, clusterObj)
 		}
 	}
-	ok, err := dispatcher.Wait()
-	if err != nil {
-		fedResource.RecordError("OperationTimeoutError", err)
-		status = util.StatusError
+	_, timeoutErr := dispatcher.Wait()
+	if timeoutErr != nil {
+		fedResource.RecordError("OperationTimeoutError", timeoutErr)
 	}
-	if !ok {
-		status = util.StatusError
-	}
+
+	// Write updated versions to the API.
 	updatedVersionMap := dispatcher.VersionMap()
-	// Always attempt to update versions even if the updater reported errors.
 	err = fedResource.UpdateVersions(selectedClusterNames.List(), updatedVersionMap)
 	if err != nil {
 		// Versioning of federated resources is an optimization to
@@ -366,7 +379,44 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 		runtime.HandleError(err)
 	}
 
-	return status
+	statusMap := dispatcher.StatusMap()
+	return s.setPropagationStatus(fedResource, status.AggregateSuccess, statusMap)
+}
+
+func (s *FederationSyncController) setPropagationStatus(fedResource FederatedResource,
+	reason status.AggregateReason, statusMap status.PropagationStatusMap) util.ReconciliationStatus {
+
+	kind := fedResource.FederatedKind()
+	name := fedResource.FederatedName()
+	obj := fedResource.Object()
+
+	// If the underlying resource has changed, attempt to retrieve and
+	// update it repeatedly.
+	err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
+		if err := status.SetPropagationStatus(obj, reason, statusMap); err != nil {
+			return false, errors.Wrapf(err, "failed to set the status")
+		}
+
+		err := s.hostClusterClient.UpdateStatus(context.TODO(), obj)
+		if err == nil {
+			return true, nil
+		}
+		if apierrors.IsConflict(err) {
+			klog.V(2).Infof("Failed to set propagation status for %s %q due to conflict (will retry): %v.", kind, name, err)
+			err := s.hostClusterClient.Get(context.TODO(), obj, obj.GetNamespace(), obj.GetName())
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to retrieve resource")
+			}
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to update resource")
+	})
+	if err != nil {
+		runtime.HandleError(errors.Wrapf(err, "failed to set propagation status for %s %q", kind, name))
+		return util.StatusError
+	}
+
+	return util.StatusAllOK
 }
 
 func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource) util.ReconciliationStatus {
@@ -443,13 +493,21 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 
 	remainingClusters := []string{}
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
-		// It's not possible to remove the managed label from a
-		// resource marked for deletion.
+		// If the containing namespace of a FederatedNamespace is
+		// marked for deletion, it is impossible to require the
+		// removal of the namespace in advance of removal of the
+		// federation finalizer.  Return immediately and avoid
+		// including the cluster in the list of remaining clusters.
 		if fedResource.IsNamespaceInHostCluster(clusterObj) && clusterObj.GetDeletionTimestamp() != nil {
 			return
 		}
 
 		remainingClusters = append(remainingClusters, clusterName)
+
+		// Avoid attempting any operation on a deleted resource.
+		if clusterObj.GetDeletionTimestamp() != nil {
+			return
+		}
 
 		if fedResource.IsNamespaceInHostCluster(clusterObj) {
 			// Creation or deletion of namespaces in the host cluster

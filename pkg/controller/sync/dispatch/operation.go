@@ -24,14 +24,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 type clientAccessorFunc func(clusterName string) (util.ResourceClient, error)
 
-type DispatchRecorder interface {
-	RecordError(clusterName, operation string, err error)
-	RecordEvent(clusterName, operation, operationContinuous string)
+type dispatchRecorder interface {
+	recordEvent(clusterName, operation, operationContinuous string)
+	recordOperationError(status status.PropagationStatus, clusterName, operation string, err error) util.ReconciliationStatus
 }
 
 // OperationDispatcher provides an interface to wait for operations
@@ -51,10 +52,10 @@ type operationDispatcherImpl struct {
 
 	timeout time.Duration
 
-	recorder DispatchRecorder
+	recorder dispatchRecorder
 }
 
-func newOperationDispatcher(clientAccessor clientAccessorFunc, recorder DispatchRecorder) *operationDispatcherImpl {
+func newOperationDispatcher(clientAccessor clientAccessorFunc, recorder dispatchRecorder) *operationDispatcherImpl {
 	return &operationDispatcherImpl{
 		clientAccessor: clientAccessor,
 		resultChan:     make(chan util.ReconciliationStatus),
@@ -99,7 +100,7 @@ func (d *operationDispatcherImpl) clusterOperation(clusterName, op string, opFun
 		if d.recorder == nil {
 			runtime.HandleError(wrappedErr)
 		} else {
-			d.recorder.RecordError(clusterName, op, wrappedErr)
+			d.recorder.recordOperationError(status.ClientRetrievalFailed, clusterName, op, wrappedErr)
 		}
 		d.resultChan <- util.StatusError
 		return

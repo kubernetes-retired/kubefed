@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
@@ -45,7 +46,7 @@ type unmanagedDispatcherImpl struct {
 	targetName util.QualifiedName
 	targetKind string
 
-	recorder DispatchRecorder
+	recorder dispatchRecorder
 }
 
 func NewUnmanagedDispatcher(clientAccessor clientAccessorFunc, targetKind string, targetName util.QualifiedName) UnmanagedDispatcher {
@@ -53,7 +54,7 @@ func NewUnmanagedDispatcher(clientAccessor clientAccessorFunc, targetKind string
 	return newUnmanagedDispatcher(dispatcher, nil, targetKind, targetName)
 }
 
-func newUnmanagedDispatcher(dispatcher *operationDispatcherImpl, recorder DispatchRecorder, targetKind string, targetName util.QualifiedName) *unmanagedDispatcherImpl {
+func newUnmanagedDispatcher(dispatcher *operationDispatcherImpl, recorder dispatchRecorder, targetKind string, targetName util.QualifiedName) *unmanagedDispatcherImpl {
 	return &unmanagedDispatcherImpl{
 		dispatcher: dispatcher,
 		targetName: targetName,
@@ -74,7 +75,7 @@ func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
 		if d.recorder == nil {
 			klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
 		} else {
-			d.recorder.RecordEvent(clusterName, op, opContinuous)
+			d.recorder.recordEvent(clusterName, op, opContinuous)
 		}
 
 		err := client.Resources(d.targetName.Namespace).Delete(d.targetName.Name, &metav1.DeleteOptions{})
@@ -86,7 +87,7 @@ func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
 				wrappedErr := d.wrapOperationError(err, clusterName, op)
 				runtime.HandleError(wrappedErr)
 			} else {
-				d.recorder.RecordError(clusterName, op, err)
+				d.recorder.recordOperationError(status.DeletionFailed, clusterName, op, err)
 			}
 			return util.StatusError
 		}
@@ -102,7 +103,7 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 		if d.recorder == nil {
 			klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
 		} else {
-			d.recorder.RecordEvent(clusterName, op, opContinuous)
+			d.recorder.recordEvent(clusterName, op, opContinuous)
 		}
 
 		// Avoid mutating the resource in the informer cache
@@ -116,7 +117,7 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 				wrappedErr := d.wrapOperationError(err, clusterName, op)
 				runtime.HandleError(wrappedErr)
 			} else {
-				d.recorder.RecordError(clusterName, op, err)
+				d.recorder.recordOperationError(status.LabelRemovalFailed, clusterName, op, err)
 			}
 			return util.StatusError
 		}

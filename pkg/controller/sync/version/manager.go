@@ -351,6 +351,12 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 			resourceVersion = ""
 			return false, nil
 		}
+		// Forbidden is likely to be a permanent failure and
+		// likely the result of the containing namespace being
+		// deleted.
+		if apierrors.IsForbidden(err) {
+			return false, err
+		}
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to update the status of %s %q", adapterType, key))
 			return false, nil

@@ -17,13 +17,13 @@ limitations under the License.
 package dispatch
 
 import (
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
@@ -64,7 +64,7 @@ func (d *checkUnmanagedDispatcherImpl) CheckRemovedOrUnlabeled(clusterName strin
 	const op = "check for deletion of resource or removal of managed label from"
 	const opContinuous = "Checking for deletion of resource or removal of managed label from"
 	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
-		glog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
+		klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
 
 		clusterObj, err := client.Resources(d.targetName.Namespace).Get(d.targetName.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
