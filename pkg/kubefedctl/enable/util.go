@@ -74,6 +74,9 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 				ShortNames: shortNames,
 			},
 			Validation: validation,
+			Subresources: &apiextv1b1.CustomResourceSubresources{
+				Status: &apiextv1b1.CustomResourceSubresourceStatus{},
+			},
 		},
 	}
 }
