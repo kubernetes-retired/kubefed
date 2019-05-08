@@ -19,10 +19,11 @@ package util
 import (
 	"fmt"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
 
 // FedConfig provides a rest config based on the filesystem kubeconfig (via

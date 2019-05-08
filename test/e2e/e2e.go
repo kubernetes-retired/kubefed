@@ -19,13 +19,14 @@ package e2e
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/gomega"
 	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/gomega"
 )
 
 // RunE2ETests checks configuration parameters (specified through flags) and then runs

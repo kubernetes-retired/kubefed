@@ -34,7 +34,6 @@ import (
 	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
 	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
 	kfenableopts "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"

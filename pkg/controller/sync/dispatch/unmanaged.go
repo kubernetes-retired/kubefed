@@ -18,12 +18,12 @@ package dispatch
 
 import (
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
