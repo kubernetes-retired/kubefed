@@ -61,20 +61,19 @@ is a detailed list of binaries required.
 
 ### Binaries
 
-The federation deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
-`kube-apiserver` >= v1.13 being installed in the path. The `kubebuilder`
-([v1.0.8](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.8)
-as of this writing) release packages all of these dependencies together.
+`kubectl` is installed by the [guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
-These binaries can be installed via the `download-binaries.sh` script, which
-downloads them to `./bin`:
-
+`kubefedctl` is the federation command line utility. You can download
+the latest binary from the [release page](https://github.com/kubernetes-sigs/federation-v2/releases).
 ```bash
-./scripts/download-binaries.sh
-export PATH=$(pwd)/bin:${PATH}
+VERSION=<latest-version>
+curl -LO https://github.com/kubernetes-sigs/federation-v2/releases/download/${VERSION}/kubefedctl.tgz
+tar -zxvf kubefedctl.tgz
+chmod u+x kubefedctl
+sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
 ```
 
-Or you can install them manually yourself using the guidelines provided below.
+**NOTE:** `kubefedctl` is built for Linux only in the release package.
 
 ### Deployment Image
 
@@ -118,9 +117,9 @@ Next, you'll want to use the `kubefedctl` tool to join all your
 clusters that you want to test against.
 
 ```bash
-./bin/kubefedctl join cluster1 --cluster-context cluster1 \
+kubefedctl join cluster1 --cluster-context cluster1 \
     --host-cluster-context cluster1 --add-to-registry --v=2
-./bin/kubefedctl join cluster2 --cluster-context cluster2 \
+kubefedctl join cluster2 --cluster-context cluster2 \
     --host-cluster-context cluster1 --add-to-registry --v=2
 ```
 
@@ -152,7 +151,7 @@ Status:
 If required, federation allows you to unjoin clusters using `kubefedctl` tool.
 
 ```bash
-./bin/kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --remove-from-registry --v=2
+kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --remove-from-registry --v=2
 ```
 You can repeat these steps to unjoin any additional clusters.
 
@@ -565,7 +564,7 @@ providing additional arguments to `kubefedctl join`:
 To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for deployment:
 
 ```bash
-./bin/kubefedctl join mycluster --cluster-context mycluster \
+kubefedctl join mycluster --cluster-context mycluster \
     --host-cluster-context mycluster --add-to-registry --v=2 \
     --federation-namespace=test-namespace
 ```
