@@ -133,18 +133,12 @@ specified.
 Check the status of the joined clusters until you verify they are ready:
 
 ```bash
-kubectl -n federation-system describe federatedclusters
-```
+kubectl -n federation-system get federatedclusters
 
-The output of `Status.Conditions` field should include cluster ready info as follows:
+NAME       READY   AGE
+cluster1   True    1m
+cluster2   True    1m
 
-```yaml
-Status:
-  Conditions:
-    ...
-    Reason:                ClusterReady
-    Status:                True
-    Type:                  Ready
 ```
 ### Unjoin Clusters
 
