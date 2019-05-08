@@ -473,8 +473,45 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 		glog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
 		return true, nil
 	}
+	err = s.ensureRemovedOrUnmanaged(fedResource)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to verify that managed resources no longer exist in any cluster")
+	}
 	// Managed resources no longer exist in any member cluster
 	return false, s.removeFinalizer(fedResource)
+}
+
+// ensureRemovedOrUnmanaged ensures that no resources in member
+// clusters that could be managed by the given federated resources are
+// present or labeled as managed.  The checks are performed without
+// the informer to cover the possibility that the resources have not
+// yet been cached.
+func (s *FederationSyncController) ensureRemovedOrUnmanaged(fedResource FederatedResource) error {
+	clusters, err := s.informer.GetClusters()
+	if err != nil {
+		return errors.Wrap(err, "failed to get a list of clusters")
+	}
+
+	dispatcher := dispatch.NewCheckUnmanagedDispatcher(s.informer.GetClientForCluster, fedResource.TargetKind(), fedResource.TargetName())
+	unreadyClusters := []string{}
+	for _, cluster := range clusters {
+		if !util.IsClusterReady(&cluster.Status) {
+			unreadyClusters = append(unreadyClusters, cluster.Name)
+			continue
+		}
+		dispatcher.CheckRemovedOrUnlabeled(cluster.Name, fedResource.IsNamespaceInHostCluster)
+	}
+	ok, timeoutErr := dispatcher.Wait()
+	if timeoutErr != nil {
+		return timeoutErr
+	}
+	if len(unreadyClusters) > 0 {
+		return errors.Errorf("the following clusters were not ready: %s", strings.Join(unreadyClusters, ", "))
+	}
+	if !ok {
+		return errors.Errorf("one or more checks failed")
+	}
+	return nil
 }
 
 // handleDeletionInClusters invokes the provided deletion handler for

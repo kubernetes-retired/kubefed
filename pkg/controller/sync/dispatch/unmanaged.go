@@ -125,5 +125,9 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 }
 
 func (d *unmanagedDispatcherImpl) wrapOperationError(err error, clusterName, operation string) error {
-	return errors.Wrapf(err, "Failed to "+eventTemplate, operation, d.targetKind, d.targetName, clusterName)
+	return wrapOperationError(err, operation, d.targetKind, d.targetName.String(), clusterName)
+}
+
+func wrapOperationError(err error, operation, targetKind, targetName, clusterName string) error {
+	return errors.Wrapf(err, "Failed to "+eventTemplate, operation, targetKind, targetName, clusterName)
 }
