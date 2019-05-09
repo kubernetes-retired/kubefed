@@ -18,6 +18,7 @@ package federatedcluster
 
 import (
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -53,11 +54,12 @@ type ClusterClient struct {
 // The kubeClient and crClient are used to configure the ClusterClient's
 // internal client with information from a kubeconfig stored in a kubernetes
 // secret and an API endpoint from the cluster-registry.
-func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fedNamespace, clusterNamespace string) (*ClusterClient, error) {
+func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fedNamespace, clusterNamespace string, timeout time.Duration) (*ClusterClient, error) {
 	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace, clusterNamespace)
 	if err != nil {
 		return nil, err
 	}
+	clusterConfig.Timeout = timeout
 	var clusterClientSet = ClusterClient{clusterName: c.Name}
 	if clusterConfig != nil {
 		clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
