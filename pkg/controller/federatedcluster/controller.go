@@ -131,7 +131,8 @@ func (cc *ClusterController) addToClusterSet(obj interface{}) {
 	}
 	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	// create the restclient of cluster
-	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterNamespace)
+	clientTimeout := time.Duration(cc.clusterHealthCheckConfig.TimeoutSeconds) * time.Second
+	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterNamespace, clientTimeout)
 	if err != nil || restClient == nil {
 		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
