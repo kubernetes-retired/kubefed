@@ -19,8 +19,11 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 
+	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -123,8 +126,6 @@ var _ = Describe("Federate ", func() {
 			framework.Skipf("Federate namespace with content is not tested when control plane is namespace scoped")
 		}
 
-		var testResources []testResources
-		var err error
 		systemNamespace := f.FederationSystemNamespace()
 		testNamespace := f.TestNamespaceName()
 		// Set of arbitrary contained resources in a namespace
@@ -132,13 +133,17 @@ var _ = Describe("Federate ", func() {
 		// Namespace itself
 		namespaceTypeName := "namespaces"
 
-		testResources, err = containedTestResources(f, client, typeConfigFixtures, containedTypeNames, kubeConfig)
+		targetTestResources, err := getTargetTestResources(client, typeConfigFixtures, systemNamespace, testNamespace, containedTypeNames)
 		if err != nil {
-			tl.Fatalf("Error creating target resources: %v", err)
+			tl.Fatalf("Error getting target test resources: %v", err)
+		}
+		createdTargetResources, err := createTargetResources(targetTestResources, kubeConfig)
+		if err != nil {
+			tl.Fatalf("Error creating target test resources: %v", err)
 		}
 
 		namespaceTestResource := targetNamespaceTestResources(tl, client, kubeConfig, systemNamespace, testNamespace, namespaceTypeName)
-		testResources = append(testResources, namespaceTestResource)
+		createdTargetResources = append(createdTargetResources, namespaceTestResource)
 
 		namespaceTypeConfig := namespaceTestResource.typeConfig
 		namespaceKind := namespaceTypeConfig.GetTarget().Kind
@@ -168,11 +173,75 @@ var _ = Describe("Federate ", func() {
 		}
 
 		By("Comparing the test resources with the templates of corresponding federated resources for equality")
-		validateResourcesEquality(tl, testResources, kubeConfig)
+		validateResourcesEqualityFromAPI(tl, createdTargetResources, kubeConfig)
+	})
+
+	It("input yaml from a file, should emit equivalant federated resources", func() {
+		tmpFile, err := ioutil.TempFile("", "tmp-")
+		if err != nil {
+			tl.Fatalf("Error creating temperory file: %v", err)
+		}
+		defer func() {
+			tmpFile.Close()
+			os.Remove(tmpFile.Name())
+		}()
+
+		systemNamespace := f.FederationSystemNamespace()
+		testNamespace := f.TestNamespaceName()
+		// Set of arbitrary  resources representing both namespaced and non namespaced types
+		testTypeNames := []string{"clusterroles.rbac.authorization.k8s.io", "configmaps", "replicasets.apps"}
+
+		targetTestResources, err := getTargetTestResources(client, typeConfigFixtures, systemNamespace, testNamespace, testTypeNames)
+		if err != nil {
+			tl.Fatalf("Error getting target test resources: %v", err)
+		}
+
+		By("Creating a yaml file with a set of test resources")
+		err = federate.WriteUnstructuredObjsToYaml(namedTestTargetResources(targetTestResources), tmpFile)
+		if err != nil {
+			tl.Fatalf("Error writing test resources to yaml")
+		}
+
+		By("Decoding the yaml resources back")
+		testResourcesFromFile, err := federate.DecodeUnstructuredFromFile(tmpFile.Name())
+		if err != nil {
+			tl.Fatalf("Failed to decode yaml from file: %v", err)
+		}
+
+		By("Federating the decoded resources")
+		federatedResources, err := federate.FederateResources(testResourcesFromFile)
+		if err != nil {
+			tl.Fatalf("Error federating resources: %v", err)
+		}
+
+		By("Comparing the original test target resources to the templates in federated resources for equality")
+		validateResourcesEquality(tl, targetTestResources, federatedResources)
+
 	})
 })
 
-func validateResourcesEquality(tl common.TestLogger, testResources []testResources, kubeConfig *restclient.Config) {
+func validateResourcesEquality(tl common.TestLogger, targetResources []testResources, federatedResources []*unstructured.Unstructured) {
+	numResources := len(targetResources)
+	if numResources != len(federatedResources) {
+		tl.Fatalf("The number of federated resources does not match that of target test resources")
+	}
+
+	count := 0
+	for _, t := range targetResources {
+		targetResource := t.targetResource
+		for _, federatedResource := range federatedResources {
+			if targetResource.GetName() == federatedResource.GetName() {
+				validateTemplateEquality(tl, federatedResource, targetResource, t.typeConfig.GetTarget().Kind, t.typeConfig.GetFederatedType().Kind)
+				count++
+			}
+		}
+	}
+	if count != numResources {
+		tl.Fatalf("Some or all federated resources did not match their original target test resource")
+	}
+}
+
+func validateResourcesEqualityFromAPI(tl common.TestLogger, testResources []testResources, kubeConfig *restclient.Config) {
 	for _, resources := range testResources {
 		typeConfig := resources.typeConfig
 		kind := typeConfig.GetTarget().Kind
@@ -277,31 +346,57 @@ func getTargetClient(tl common.TestLogger, typeConfig typeconfig.Interface, kube
 	return client
 }
 
-func containedTestResources(f framework.FederationFramework, client genericclient.Client, fixtures map[string]*unstructured.Unstructured,
-	typeConfigNames []string, kubeConfig *restclient.Config) ([]testResources, error) {
+func namedTestTargetResources(testResources []testResources) []*unstructured.Unstructured {
+	var resources []*unstructured.Unstructured
+	for _, t := range testResources {
+		r := t.targetResource
+		// In some tests name is never populated as the resource is
+		// not created in API. Setting a name enables matching resources using names.
+		// Arg testResources stores the object pointer, updating the name
+		// here also reflects in the passed testResources.
+		r.SetName(fmt.Sprintf("%s-%s", r.GetGenerateName(), uuid.New()))
+		resources = append(resources, r)
+	}
+	return resources
+}
+
+func getTargetTestResources(client genericclient.Client, fixtures map[string]*unstructured.Unstructured,
+	systemNamespace, testNamespace string, typeConfigNames []string) ([]testResources, error) {
 	resources := []testResources{}
 	for _, typeConfigName := range typeConfigNames {
 		fixture := fixtures[typeConfigName]
 
 		typeConfig := &fedv1a1.FederatedTypeConfig{}
-		err := client.Get(context.Background(), typeConfig, f.FederationSystemNamespace(), typeConfigName)
+		err := client.Get(context.Background(), typeConfig, systemNamespace, typeConfigName)
 		if err != nil {
 			return resources, errors.Wrapf(err, "Error retrieving federatedtypeconfig %q", typeConfigName)
 		}
 
-		targetResource, err := common.NewTestTargetObject(typeConfig, f.TestNamespaceName(), fixture)
+		targetResource, err := common.NewTestTargetObject(typeConfig, testNamespace, fixture)
 		if err != nil {
 			return resources, errors.Wrapf(err, "Error getting test resource for %s", typeConfigName)
 		}
+
+		resources = append(resources, testResources{targetResource: targetResource, typeConfig: typeConfig})
+	}
+
+	return resources, nil
+}
+
+func createTargetResources(resources []testResources, kubeConfig *restclient.Config) ([]testResources, error) {
+	createResources := []testResources{}
+	for _, resource := range resources {
+		typeConfig := resource.typeConfig
+		targetResource := resource.targetResource
 		createdTargetResource, err := common.CreateResource(kubeConfig, typeConfig.GetTarget(), targetResource)
 		if err != nil {
 			return resources, errors.Wrapf(err, "Error creating target resource %q", util.NewQualifiedName(targetResource))
 		}
 
-		resources = append(resources, testResources{targetResource: createdTargetResource, typeConfig: typeConfig})
+		createResources = append(createResources, testResources{targetResource: createdTargetResource, typeConfig: typeConfig})
 	}
 
-	return resources, nil
+	return createResources, nil
 }
 
 func targetNamespaceTestResources(tl common.TestLogger, client genericclient.Client, kubeConfig *restclient.Config, fedSystemNamespace, targetNamespace, typeConfigName string) testResources {
