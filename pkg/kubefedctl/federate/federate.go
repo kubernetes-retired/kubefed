@@ -168,16 +168,16 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if len(j.filename) > 0 {
-		resources, err := decodeUnstructuredFromFile(j.filename)
+		resources, err := DecodeUnstructuredFromFile(j.filename)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to load yaml from file %q", j.filename)
 		}
-		federatedResources, err := federateResources(resources)
+		federatedResources, err := FederateResources(resources)
 		if err != nil {
 			return err
 		}
 
-		err = writeUnstructuredObjsToYaml(federatedResources, cmdOut)
+		err = WriteUnstructuredObjsToYaml(federatedResources, cmdOut)
 		if err != nil {
 			return errors.Wrap(err, "Failed to write federated resources to YAML")
 		}
@@ -211,7 +211,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	if j.outputYAML {
 		for _, artifacts := range artifactsList {
-			err := writeUnstructuredObjsToYaml(artifacts.federatedResources, cmdOut)
+			err := WriteUnstructuredObjsToYaml(artifacts.federatedResources, cmdOut)
 			if err != nil {
 				return errors.Wrap(err, "Failed to write federated resource to YAML")
 			}
@@ -222,7 +222,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	return CreateResources(cmdOut, hostConfig, artifactsList, j.FederationNamespace, j.enableType, j.DryRun)
 }
 
-func federateResources(resources []*unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
+func FederateResources(resources []*unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
 	var federatedResources []*unstructured.Unstructured
 	for _, targetResource := range resources {
 		// A Group, a Version and a Kind is sufficient for API Resource definition.
@@ -514,7 +514,7 @@ func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, fede
 	return artifactsList, nil
 }
 
-func writeUnstructuredObjsToYaml(unstructuredObjs []*unstructured.Unstructured, w io.Writer) error {
+func WriteUnstructuredObjsToYaml(unstructuredObjs []*unstructured.Unstructured, w io.Writer) error {
 	for _, unstructuredObj := range unstructuredObjs {
 		if _, err := w.Write([]byte("---\n")); err != nil {
 			return errors.Wrap(err, "Error encoding object to yaml")

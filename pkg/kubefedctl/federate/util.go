@@ -211,7 +211,7 @@ func getResourcesInNamespace(config *rest.Config, namespace string, skipAPIResou
 }
 
 // decodeUnstructuredFromFile reads a list of yamls into a slice of unstructured objects
-func decodeUnstructuredFromFile(filename string) ([]*unstructured.Unstructured, error) {
+func DecodeUnstructuredFromFile(filename string) ([]*unstructured.Unstructured, error) {
 	var f *os.File
 	if filename == "-" {
 		f = os.Stdin
