@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -175,7 +175,7 @@ func (m *VersionManager) Update(resource VersionedResource,
 	}
 
 	if oldStatus != nil && util.PropagatedVersionStatusEquivalent(oldStatus, status) {
-		glog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
+		klog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
 	} else if obj == nil {
 		ownerReference := ownerReferenceForUnstructured(resource.Object())
 		obj = m.adapter.NewVersion(qualifiedName, ownerReference, status)
@@ -206,7 +206,7 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 	err := wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
 		select {
 		case <-stopChan:
-			glog.V(4).Infof("Halting version manager list due to closed stop channel")
+			klog.V(4).Infof("Halting version manager list due to closed stop channel")
 			return false, errors.New("")
 		default:
 		}
@@ -238,7 +238,7 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 	for _, obj := range items {
 		select {
 		case <-stopChan:
-			glog.V(4).Infof("Halting version manager load due to closed stop channel")
+			klog.V(4).Infof("Halting version manager load due to closed stop channel")
 			return false
 		default:
 		}
@@ -252,7 +252,7 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 	m.Lock()
 	m.hasSynced = true
 	m.Unlock()
-	glog.V(4).Infof("Version manager for %q synced", m.federatedKind)
+	klog.V(4).Infof("Version manager for %q synced", m.federatedKind)
 	return true
 }
 
@@ -304,10 +304,10 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 				return false, nil
 			}
 
-			glog.V(4).Infof("Creating %s %q", adapterType, qualifiedName)
+			klog.V(4).Infof("Creating %s %q", adapterType, qualifiedName)
 			err = m.client.Create(context.TODO(), createdObj)
 			if apierrors.IsAlreadyExists(err) {
-				glog.V(4).Infof("%s %q was created by another process. Will refresh the resourceVersion and attempt to update.", adapterType, qualifiedName)
+				klog.V(4).Infof("%s %q was created by another process. Will refresh the resourceVersion and attempt to update.", adapterType, qualifiedName)
 				refreshVersion = true
 				return false, nil
 			}
@@ -339,15 +339,15 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 			return false, nil
 		}
 
-		glog.V(4).Infof("Updating the status of %s %q", adapterType, qualifiedName)
+		klog.V(4).Infof("Updating the status of %s %q", adapterType, qualifiedName)
 		err = m.client.UpdateStatus(context.TODO(), updatedObj)
 		if apierrors.IsConflict(err) {
-			glog.V(4).Infof("%s %q was updated by another process. Will refresh the resourceVersion and retry the update.", adapterType, qualifiedName)
+			klog.V(4).Infof("%s %q was updated by another process. Will refresh the resourceVersion and retry the update.", adapterType, qualifiedName)
 			refreshVersion = true
 			return false, nil
 		}
 		if apierrors.IsNotFound(err) {
-			glog.V(4).Infof("%s %q was deleted by another process. Will clear the resourceVersion and retry the update.", adapterType, qualifiedName)
+			klog.V(4).Infof("%s %q was deleted by another process. Will clear the resourceVersion and retry the update.", adapterType, qualifiedName)
 			resourceVersion = ""
 			return false, nil
 		}
@@ -380,7 +380,7 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 }
 
 func (m *VersionManager) getResourceVersionFromAPI(qualifiedName util.QualifiedName) (string, error) {
-	glog.V(4).Infof("Retrieving resourceVersion for %s %q from the API", m.federatedKind, qualifiedName)
+	klog.V(4).Infof("Retrieving resourceVersion for %s %q from the API", m.federatedKind, qualifiedName)
 	obj := m.adapter.NewObject()
 	err := m.client.Get(context.TODO(), obj, qualifiedName.Namespace, qualifiedName.Name)
 	if err != nil {

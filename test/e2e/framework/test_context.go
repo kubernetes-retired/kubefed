@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
@@ -67,10 +67,10 @@ func registerFlags(t *TestContextType) {
 
 func validateFlags(t *TestContextType) {
 	if len(t.KubeConfig) == 0 {
-		glog.Fatalf("kubeconfig is required")
+		klog.Fatalf("kubeconfig is required")
 	}
 	if t.InMemoryControllers {
-		glog.Info("in-memory-controllers=true - this will launch the federation controllers outside the cluster hosting the federation control plane.")
+		klog.Info("in-memory-controllers=true - this will launch the federation controllers outside the cluster hosting the federation control plane.")
 	}
 }
 

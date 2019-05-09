@@ -24,13 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +37,12 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	"k8s.io/klog"
+
+	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
+	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
 )
 
 const (
@@ -120,12 +121,12 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("Error: %v", err)
+				klog.Fatalf("Error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("Error: %v", err)
+				klog.Fatalf("Error: %v", err)
 			}
 		},
 	}
@@ -146,7 +147,7 @@ func (j *joinFederation) Complete(args []string) error {
 	}
 
 	if j.ClusterContext == "" {
-		glog.V(2).Infof("Defaulting cluster context to joining cluster name %s", j.ClusterName)
+		klog.V(2).Infof("Defaulting cluster context to joining cluster name %s", j.ClusterName)
 		j.ClusterContext = j.ClusterName
 	}
 
@@ -155,10 +156,10 @@ func (j *joinFederation) Complete(args []string) error {
 	}
 
 	if j.HostClusterName == "" && strings.ContainsAny(j.HostClusterContext, ":/") {
-		glog.Fatal("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
+		klog.Fatal("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
 	}
 
-	glog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
+	klog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
 		j.ClusterName, j.HostClusterContext, j.FederationNamespace, j.Kubeconfig, j.ClusterContext,
 		j.secretName, j.DryRun)
 
@@ -171,7 +172,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	if err != nil {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
-		glog.V(2).Infof("Failed to get host cluster config: %v", err)
+		klog.V(2).Infof("Failed to get host cluster config: %v", err)
 		return err
 	}
 
@@ -182,7 +183,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	clusterConfig, err := config.ClusterConfig(j.ClusterContext, j.Kubeconfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster config: %v", err)
+		klog.V(2).Infof("Failed to get joining cluster config: %v", err)
 		return err
 	}
 
@@ -201,23 +202,23 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 	hostClusterName, joiningClusterName, secretName string, addToRegistry bool, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get host cluster clientset: %v", err)
+		klog.V(2).Infof("Failed to get host cluster clientset: %v", err)
 		return err
 	}
 
 	clusterClientset, err := util.ClusterClientset(clusterConfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
+		klog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
 		return err
 	}
 
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get federation clientset: %v", err)
+		klog.V(2).Infof("Failed to get federation clientset: %v", err)
 		return err
 	}
 
-	glog.V(2).Infof("Performing preflight checks.")
+	klog.V(2).Infof("Performing preflight checks.")
 	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterName, federationNamespace, errorOnExisting)
 	if err != nil {
 		return err
@@ -238,39 +239,39 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 		}
 	}
 
-	glog.V(2).Infof("Creating %s namespace in joining cluster", federationNamespace)
+	klog.V(2).Infof("Creating %s namespace in joining cluster", federationNamespace)
 	_, err = createFederationNamespace(clusterClientset, federationNamespace,
 		joiningClusterName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
+		klog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
 			federationNamespace, err)
 		return err
 	}
-	glog.V(2).Infof("Created %s namespace in joining cluster", federationNamespace)
+	klog.V(2).Infof("Created %s namespace in joining cluster", federationNamespace)
 
 	// Create a service account and use its credentials.
-	glog.V(2).Info("Creating cluster credentials secret")
+	klog.V(2).Info("Creating cluster credentials secret")
 
 	secret, err := createRBACSecret(hostClientset, clusterClientset,
 		federationNamespace, joiningClusterName, hostClusterName,
 		secretName, Scope, dryRun, errorOnExisting)
 	if err != nil {
-		glog.V(2).Infof("Could not create cluster credentials secret: %v", err)
+		klog.V(2).Infof("Could not create cluster credentials secret: %v", err)
 		return err
 	}
 
-	glog.V(2).Info("Cluster credentials secret created")
+	klog.V(2).Info("Cluster credentials secret created")
 
-	glog.V(2).Info("Creating federated cluster resource")
+	klog.V(2).Info("Creating federated cluster resource")
 
 	_, err = createFederatedCluster(client, joiningClusterName, secret.Name,
 		federationNamespace, dryRun, errorOnExisting)
 	if err != nil {
-		glog.V(2).Infof("Failed to create federated cluster resource: %v", err)
+		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return err
 	}
 
-	glog.V(2).Info("Created federated cluster resource")
+	klog.V(2).Info("Created federated cluster resource")
 	return nil
 }
 
@@ -291,7 +292,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 	case errorOnExisting:
 		return errors.Errorf("service account: %s already exists in joining cluster: %s", saName, name)
 	default:
-		glog.V(2).Infof("Service account %s already exists in joining cluster %s", saName, name)
+		klog.V(2).Infof("Service account %s already exists in joining cluster %s", saName, name)
 		return nil
 	}
 }
@@ -303,20 +304,20 @@ func addToClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, joini
 	// Get the cluster registry clientset using the host cluster config.
 	client, err := util.ClusterRegistryClientset(hostConfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+		klog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
 		return err
 	}
 
-	glog.V(2).Infof("Registering cluster: %s with the cluster registry.", joiningClusterName)
+	klog.V(2).Infof("Registering cluster: %s with the cluster registry.", joiningClusterName)
 
 	err = registerCluster(client, clusterNamespace, host, joiningClusterName, dryRun, errorOnExisting)
 	if err != nil {
-		glog.V(2).Infof("Could not register cluster: %s with the cluster registry: %v",
+		klog.V(2).Infof("Could not register cluster: %s with the cluster registry: %v",
 			joiningClusterName, err)
 		return err
 	}
 
-	glog.V(2).Infof("Registered cluster: %s with the cluster registry.", joiningClusterName)
+	klog.V(2).Infof("Registered cluster: %s with the cluster registry.", joiningClusterName)
 	return nil
 }
 
@@ -325,11 +326,11 @@ func addToClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, joini
 func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, joiningClusterName string) error {
 	client, err := util.ClusterRegistryClientset(hostConfig)
 	if err != nil {
-		glog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
+		klog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
 		return err
 	}
 
-	glog.V(2).Infof("Verifying cluster: %s exists in the cluster registry.",
+	klog.V(2).Infof("Verifying cluster: %s exists in the cluster registry.",
 		joiningClusterName)
 
 	cluster := &crv1a1.Cluster{}
@@ -340,12 +341,12 @@ func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, jo
 				joiningClusterName)
 		}
 
-		glog.V(2).Infof("Could not retrieve cluster %s from the cluster registry: %v",
+		klog.V(2).Infof("Could not retrieve cluster %s from the cluster registry: %v",
 			joiningClusterName, err)
 		return err
 	}
 
-	glog.V(2).Infof("Verified cluster %s exists in the cluster registry.", joiningClusterName)
+	klog.V(2).Infof("Verified cluster %s exists in the cluster registry.", joiningClusterName)
 	return nil
 }
 
@@ -378,16 +379,16 @@ func registerCluster(client genericclient.Client, clusterNamespace, host, joinin
 	err := client.Get(context.TODO(), existingCluster, clusterNamespace, cluster.Name)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Cannot retrieve cluster registry cluster %s due to %v", cluster.Name, err)
+		klog.V(2).Infof("Cannot retrieve cluster registry cluster %s due to %v", cluster.Name, err)
 		return err
 	case err == nil && errorOnExisting:
 		return errors.Errorf("cluster registry cluster %s already exists", cluster.Name)
 	case err == nil:
 		existingCluster.Spec = cluster.Spec
-		glog.V(2).Infof("Updating existing cluster registry cluster %s", cluster.Name)
+		klog.V(2).Infof("Updating existing cluster registry cluster %s", cluster.Name)
 		return client.Update(context.TODO(), existingCluster)
 	default:
-		glog.V(2).Infof("Creating cluster registry cluster %s", cluster.Name)
+		klog.V(2).Infof("Creating cluster registry cluster %s", cluster.Name)
 		return client.Create(context.TODO(), cluster)
 	}
 }
@@ -419,7 +420,7 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName,
 	err := client.Get(context.TODO(), existingFedCluster, federationNamespace, joiningClusterName)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not retrieve federated cluster %s due to %v", joiningClusterName, err)
+		klog.V(2).Infof("Could not retrieve federated cluster %s due to %v", joiningClusterName, err)
 		return nil, err
 	case err == nil && errorOnExisting:
 		return nil, errors.Errorf("federated cluster %s already exists in host cluster", joiningClusterName)
@@ -427,14 +428,14 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName,
 		existingFedCluster.Spec = fedCluster.Spec
 		err = client.Update(context.TODO(), existingFedCluster)
 		if err != nil {
-			glog.V(2).Infof("Could not update federated cluster %s due to %v", fedCluster.Name, err)
+			klog.V(2).Infof("Could not update federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err
 		}
 		return existingFedCluster, nil
 	default:
 		err = client.Create(context.TODO(), fedCluster)
 		if err != nil {
-			glog.V(2).Infof("Could not create federated cluster %s due to %v", fedCluster.Name, err)
+			klog.V(2).Infof("Could not create federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err
 		}
 		return fedCluster, nil
@@ -457,19 +458,19 @@ func createFederationNamespace(clusterClientset kubeclient.Interface, federation
 
 	_, err := clusterClientset.CoreV1().Namespaces().Get(federationNamespace, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		glog.V(2).Infof("Could not get %s namespace: %v", federationNamespace, err)
+		klog.V(2).Infof("Could not get %s namespace: %v", federationNamespace, err)
 		return nil, err
 	}
 
 	if err == nil {
-		glog.V(2).Infof("Already existing %s namespace", federationNamespace)
+		klog.V(2).Infof("Already existing %s namespace", federationNamespace)
 		return federationNS, nil
 	}
 
 	// Not found, so create.
 	_, err = clusterClientset.CoreV1().Namespaces().Create(federationNS)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		glog.V(2).Infof("Could not create %s namespace: %v", federationNamespace, err)
+		klog.V(2).Infof("Could not create %s namespace: %v", federationNamespace, err)
 		return nil, err
 	}
 	return federationNS, nil
@@ -482,67 +483,67 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 	namespace, joiningClusterName, hostClusterName,
 	secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, error) {
 
-	glog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
+	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
 		joiningClusterName, hostClusterName, dryRun, errorOnExisting)
 	if err != nil {
-		glog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
+		klog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
 			saName, joiningClusterName, err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
+	klog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 	if Scope == apiextv1b1.NamespaceScoped {
-		glog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+		klog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)
 		if err != nil {
-			glog.V(2).Infof("Error creating role and binding for service account: %s in joining cluster: %s due to: %v", saName, joiningClusterName, err)
+			klog.V(2).Infof("Error creating role and binding for service account: %s in joining cluster: %s due to: %v", saName, joiningClusterName, err)
 			return nil, err
 		}
 
-		glog.V(2).Infof("Created role and binding for service account: %s in joining cluster: %s",
+		klog.V(2).Infof("Created role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
 
-		glog.V(2).Infof("Creating health check cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+		klog.V(2).Infof("Creating health check cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createHealthCheckClusterRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName,
 			dryRun, errorOnExisting)
 		if err != nil {
-			glog.V(2).Infof("Error creating health check cluster role and binding for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Error creating health check cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 				saName, joiningClusterName, err)
 			return nil, err
 		}
 
-		glog.V(2).Infof("Created health check cluster role and binding for service account: %s in joining cluster: %s",
+		klog.V(2).Infof("Created health check cluster role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
 
 	} else {
-		glog.V(2).Infof("Creating cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
+		klog.V(2).Infof("Creating cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createClusterRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)
 		if err != nil {
-			glog.V(2).Infof("Error creating cluster role and binding for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Error creating cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 				saName, joiningClusterName, err)
 			return nil, err
 		}
 
-		glog.V(2).Infof("Created cluster role and binding for service account: %s in joining cluster: %s",
+		klog.V(2).Infof("Created cluster role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
 	}
 
-	glog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
+	klog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
 
 	secret, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
 		saName, namespace, joiningClusterName, secretName, dryRun)
 	if err != nil {
-		glog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
+		klog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Created secret in host cluster: %s", hostClusterName)
+	klog.V(2).Infof("Created secret in host cluster: %s", hostClusterName)
 
 	return secret, nil
 }
@@ -568,10 +569,10 @@ func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
 	_, err := clusterClientset.CoreV1().ServiceAccounts(namespace).Create(sa)
 	switch {
 	case apierrors.IsAlreadyExists(err) && errorOnExisting:
-		glog.V(2).Infof("Service account %s/%s already exists in target cluster %s", namespace, saName, joiningClusterName)
+		klog.V(2).Infof("Service account %s/%s already exists in target cluster %s", namespace, saName, joiningClusterName)
 		return "", err
 	case err != nil && !apierrors.IsAlreadyExists(err):
-		glog.V(2).Infof("Could not create service account %s/%s in target cluster %s due to: %v", namespace, saName, joiningClusterName, err)
+		klog.V(2).Infof("Could not create service account %s/%s in target cluster %s due to: %v", namespace, saName, joiningClusterName, err)
 		return "", err
 	default:
 		return saName, nil
@@ -608,7 +609,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 	existingRole, err := clientset.RbacV1().ClusterRoles().Get(roleName, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not get cluster role for service account %s in joining cluster %s due to %v",
+		klog.V(2).Infof("Could not get cluster role for service account %s in joining cluster %s due to %v",
 			saName, clusterName, err)
 		return err
 	case err == nil && errorOnExisting:
@@ -617,14 +618,14 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 		existingRole.Rules = role.Rules
 		_, err := clientset.RbacV1().ClusterRoles().Update(existingRole)
 		if err != nil {
-			glog.V(2).Infof("Could not update cluster role for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not update cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
 	default: // role was not found
 		_, err := clientset.RbacV1().ClusterRoles().Create(role)
 		if err != nil {
-			glog.V(2).Infof("Could not create cluster role for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not create cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
@@ -645,7 +646,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 	existingBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(binding.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not get cluster role binding for service account %s in joining cluster %s due to %v",
+		klog.V(2).Infof("Could not get cluster role binding for service account %s in joining cluster %s due to %v",
 			saName, clusterName, err)
 		return err
 	case err == nil && errorOnExisting:
@@ -656,13 +657,13 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
 			err = clientset.RbacV1().ClusterRoleBindings().Delete(existingBinding.Name, &metav1.DeleteOptions{})
 			if err != nil {
-				glog.V(2).Infof("Could not delete existing cluster role binding for service account %s in joining cluster %s due to: %v",
+				klog.V(2).Infof("Could not delete existing cluster role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
 			_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
 			if err != nil {
-				glog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
+				klog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
@@ -670,7 +671,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 			existingBinding.Subjects = binding.Subjects
 			_, err := clientset.RbacV1().ClusterRoleBindings().Update(existingBinding)
 			if err != nil {
-				glog.V(2).Infof("Could not update cluster role binding for service account: %s in joining cluster: %s due to: %v",
+				klog.V(2).Infof("Could not update cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
@@ -678,7 +679,7 @@ func createClusterRoleAndBinding(clientset kubeclient.Interface, saName, namespa
 	default:
 		_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
 		if err != nil {
-			glog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not create cluster role binding for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
@@ -705,7 +706,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 	existingRole, err := clientset.RbacV1().Roles(namespace).Get(roleName, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not retrieve role for service account %s in joining cluster %s due to %v", saName, clusterName, err)
+		klog.V(2).Infof("Could not retrieve role for service account %s in joining cluster %s due to %v", saName, clusterName, err)
 		return err
 	case errorOnExisting && err == nil:
 		return errors.Errorf("role for service account %s in joining cluster %s already exists", saName, clusterName)
@@ -713,14 +714,14 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 		existingRole.Rules = role.Rules
 		_, err = clientset.RbacV1().Roles(namespace).Update(existingRole)
 		if err != nil {
-			glog.V(2).Infof("Could not update role for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not update role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
 	default:
 		_, err := clientset.RbacV1().Roles(namespace).Create(role)
 		if err != nil {
-			glog.V(2).Infof("Could not create role for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not create role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
@@ -741,7 +742,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 	existingBinding, err := clientset.RbacV1().RoleBindings(namespace).Get(binding.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not retrieve role binding for service account %s in joining cluster %s due to: %v",
+		klog.V(2).Infof("Could not retrieve role binding for service account %s in joining cluster %s due to: %v",
 			saName, clusterName, err)
 		return err
 	case err == nil && errorOnExisting:
@@ -752,13 +753,13 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
 			err = clientset.RbacV1().RoleBindings(namespace).Delete(existingBinding.Name, &metav1.DeleteOptions{})
 			if err != nil {
-				glog.V(2).Infof("Could not delete existing role binding for service account %s in joining cluster %s due to: %v",
+				klog.V(2).Infof("Could not delete existing role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
 			_, err = clientset.RbacV1().RoleBindings(namespace).Create(binding)
 			if err != nil {
-				glog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
+				klog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
@@ -766,7 +767,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 			existingBinding.Subjects = binding.Subjects
 			_, err = clientset.RbacV1().RoleBindings(namespace).Update(existingBinding)
 			if err != nil {
-				glog.V(2).Infof("Could not update role binding for service account %s in joining cluster %s due to: %v",
+				klog.V(2).Infof("Could not update role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
@@ -774,7 +775,7 @@ func createRoleAndBinding(clientset kubeclient.Interface, saName, namespace, clu
 	default:
 		_, err = clientset.RbacV1().RoleBindings(namespace).Create(binding)
 		if err != nil {
-			glog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not create role binding for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
@@ -814,7 +815,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 	existingRole, err := clientset.RbacV1().ClusterRoles().Get(role.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not get health check cluster role for service account %s in joining cluster %s due to %v",
+		klog.V(2).Infof("Could not get health check cluster role for service account %s in joining cluster %s due to %v",
 			saName, clusterName, err)
 		return err
 	case err == nil && errorOnExisting:
@@ -823,14 +824,14 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 		existingRole.Rules = role.Rules
 		_, err := clientset.RbacV1().ClusterRoles().Update(existingRole)
 		if err != nil {
-			glog.V(2).Infof("Could not update health check cluster role for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not update health check cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
 	default: // role was not found
 		_, err := clientset.RbacV1().ClusterRoles().Create(role)
 		if err != nil {
-			glog.V(2).Infof("Could not create health check cluster role for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not create health check cluster role for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
@@ -850,7 +851,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 	existingBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(binding.Name, metav1.GetOptions{})
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
-		glog.V(2).Infof("Could not get health check cluster role binding for service account %s in joining cluster %s due to %v",
+		klog.V(2).Infof("Could not get health check cluster role binding for service account %s in joining cluster %s due to %v",
 			saName, clusterName, err)
 		return err
 	case err == nil && errorOnExisting:
@@ -861,13 +862,13 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 		if !reflect.DeepEqual(existingBinding.RoleRef, binding.RoleRef) {
 			err = clientset.RbacV1().ClusterRoleBindings().Delete(existingBinding.Name, &metav1.DeleteOptions{})
 			if err != nil {
-				glog.V(2).Infof("Could not delete existing health check cluster role binding for service account %s in joining cluster %s due to: %v",
+				klog.V(2).Infof("Could not delete existing health check cluster role binding for service account %s in joining cluster %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
 			_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
 			if err != nil {
-				glog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
+				klog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
@@ -875,7 +876,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 			existingBinding.Subjects = binding.Subjects
 			_, err := clientset.RbacV1().ClusterRoleBindings().Update(existingBinding)
 			if err != nil {
-				glog.V(2).Infof("Could not update health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
+				klog.V(2).Infof("Could not update health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 					saName, clusterName, err)
 				return err
 			}
@@ -883,7 +884,7 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 	default:
 		_, err = clientset.RbacV1().ClusterRoleBindings().Create(binding)
 		if err != nil {
-			glog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
+			klog.V(2).Infof("Could not create health check cluster role binding for service account: %s in joining cluster: %s due to: %v",
 				saName, clusterName, err)
 			return err
 		}
@@ -922,7 +923,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 				return false, nil
 			}
 			if secret.Type == corev1.SecretTypeServiceAccountToken {
-				glog.V(2).Infof("Using secret named: %s", secret.Name)
+				klog.V(2).Infof("Using secret named: %s", secret.Name)
 				return true, nil
 			}
 		}
@@ -930,7 +931,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	})
 
 	if err != nil {
-		glog.V(2).Infof("Could not get service account secret from joining cluster: %v", err)
+		klog.V(2).Infof("Could not get service account secret from joining cluster: %v", err)
 		return nil, err
 	}
 
@@ -950,10 +951,10 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 
 	v1SecretResult, err := hostClientset.CoreV1().Secrets(namespace).Create(&v1Secret)
 	if err != nil {
-		glog.V(2).Infof("Could not create secret in host cluster: %v", err)
+		klog.V(2).Infof("Could not create secret in host cluster: %v", err)
 		return nil, err
 	}
 
-	glog.V(2).Infof("Created secret in host cluster named: %s", v1SecretResult.Name)
+	klog.V(2).Infof("Created secret in host cluster named: %s", v1SecretResult.Name)
 	return v1SecretResult, nil
 }

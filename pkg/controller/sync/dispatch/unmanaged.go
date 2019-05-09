@@ -17,13 +17,13 @@ limitations under the License.
 package dispatch
 
 import (
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
@@ -72,7 +72,7 @@ func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
 	const opContinuous = "Deleting"
 	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
 		if d.recorder == nil {
-			glog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
+			klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
 		} else {
 			d.recorder.RecordEvent(clusterName, op, opContinuous)
 		}
@@ -100,7 +100,7 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 	const opContinuous = "Removing managed label from"
 	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
 		if d.recorder == nil {
-			glog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
+			klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
 		} else {
 			d.recorder.RecordEvent(clusterName, op, opContinuous)
 		}

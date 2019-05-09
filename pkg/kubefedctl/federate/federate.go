@@ -21,7 +21,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -133,12 +133,12 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
-				glog.Fatalf("Error: %v", err)
+				klog.Fatalf("Error: %v", err)
 			}
 
 			err = opts.Run(cmdOut, config)
 			if err != nil {
-				glog.Fatalf("Error: %v", err)
+				klog.Fatalf("Error: %v", err)
 			}
 		},
 	}
@@ -211,7 +211,7 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, federationNamespace
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to find target API resource %s", typeName)
 	}
-	glog.V(2).Infof("API Resource for %s found", typeName)
+	klog.V(2).Infof("API Resource for %s found", typeName)
 
 	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, federationNamespace, enableType, outputYAML)
 	if err != nil {
@@ -253,7 +253,7 @@ func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, fede
 		return false, generatedTypeConfig, nil
 	}
 	if outputYAML { // Output as yaml does not bother what error happened while accessing typeConfig
-		glog.V(1).Infof("Falling back to a generated type config due to lookup failure: %v", err)
+		klog.V(1).Infof("Falling back to a generated type config due to lookup failure: %v", err)
 		return false, generatedTypeConfig, nil
 	}
 	return false, nil, err
@@ -286,7 +286,7 @@ func getTargetResource(hostConfig *rest.Config, typeConfig typeconfig.Interface,
 		return nil, errors.Wrapf(err, "Error retrieving target %s %q", kind, qualifiedName)
 	}
 
-	glog.V(2).Infof("Target %s %q found", kind, qualifiedName)
+	klog.V(2).Infof("Target %s %q found", kind, qualifiedName)
 	return resource, nil
 }
 
@@ -389,7 +389,7 @@ func CreateFederatedResources(hostConfig *rest.Config, typeConfig typeconfig.Int
 func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Interface, federatedResource *unstructured.Unstructured, dryRun bool) error {
 	if typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
 		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
-		glog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
+		klog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 	}
 
 	fedAPIResource := typeConfig.GetFederatedType()
@@ -418,7 +418,7 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 		}
 	}
 
-	glog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, typeConfig.GetTarget().Kind)
+	klog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, typeConfig.GetTarget().Kind)
 	return nil
 }
 

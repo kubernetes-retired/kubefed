@@ -20,7 +20,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -30,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -66,7 +66,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting FederatedTypeConfig controller")
+	klog.Infof("Starting FederatedTypeConfig controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -128,7 +128,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
 
-	glog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
+	klog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 
 	cachedObj, err := c.objCopyFromCache(key)
 	if err != nil {
@@ -161,7 +161,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 			c.lock.Lock()
 			c.stopChannels[typeConfig.Name] = holderChan
 			c.lock.Unlock()
-			glog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
+			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
 		}
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
@@ -189,7 +189,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		}
 
 		if typeConfig.IsNamespace() {
-			glog.Infof("Reconciling all namespaced FederatedTypeConfig resources on deletion of %q", key)
+			klog.Infof("Reconciling all namespaced FederatedTypeConfig resources on deletion of %q", key)
 			c.reconcileOnNamespaceFTCUpdate()
 		}
 
@@ -209,7 +209,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		// Detected creation of the namespace FTC. If there are existing FTCs
 		// which did not start their sync controllers due to the lack of a
 		// namespace FTC, then reconcile them now so they can start.
-		glog.Infof("Reconciling all namespaced FederatedTypeConfig resources on finalizer update for %q", key)
+		klog.Infof("Reconciling all namespaced FederatedTypeConfig resources on finalizer update for %q", key)
 		c.reconcileOnNamespaceFTCUpdate()
 	}
 
@@ -305,7 +305,7 @@ func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting sync controller for %q", kind)
 	}
-	glog.Infof("Started sync controller for %q", kind)
+	klog.Infof("Started sync controller for %q", kind)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.stopChannels[tc.Name] = stopChan
@@ -320,7 +320,7 @@ func (c *Controller) startStatusController(statusKey string, tc *corev1a1.Federa
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting status controller for %q", kind)
 	}
-	glog.Infof("Started status controller for %q", kind)
+	klog.Infof("Started status controller for %q", kind)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.stopChannels[statusKey] = stopChan
@@ -328,7 +328,7 @@ func (c *Controller) startStatusController(statusKey string, tc *corev1a1.Federa
 }
 
 func (c *Controller) stopController(key string, stopChan chan struct{}) {
-	glog.Infof("Stopping controller for %q", key)
+	klog.Infof("Stopping controller for %q", key)
 	close(stopChan)
 	c.lock.Lock()
 	defer c.lock.Unlock()

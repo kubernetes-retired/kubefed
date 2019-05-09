@@ -22,16 +22,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
+	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 const (
@@ -99,7 +100,7 @@ func (p *Plugin) Stop() {
 
 func (p *Plugin) HasSynced() bool {
 	if !p.targetInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 
@@ -123,7 +124,7 @@ func (p *Plugin) HasSynced() bool {
 func (p *Plugin) FederatedTypeExists(key string) bool {
 	_, exist, err := p.federatedStore.GetByKey(key)
 	if err != nil {
-		glog.Errorf("Failed to query store while reconciling RSP controller for key %q: %v", key, err)
+		klog.Errorf("Failed to query store while reconciling RSP controller for key %q: %v", key, err)
 		wrappedErr := errors.Wrapf(err, "Failed to query store while reconciling RSP controller for key %q", key)
 		runtime.HandleError(wrappedErr)
 		return false

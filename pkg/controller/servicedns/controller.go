@@ -23,7 +23,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +31,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	dnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
@@ -85,7 +85,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof("Starting ServiceDNS controller")
+	klog.Infof("Starting ServiceDNS controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -217,7 +217,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (c *Controller) isSynced() bool {
 	if !c.serviceInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	clusters, err := c.serviceInformer.GetReadyClusters()
@@ -230,7 +230,7 @@ func (c *Controller) isSynced() bool {
 	}
 
 	if !c.endpointInformer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	clusters, err = c.endpointInformer.GetReadyClusters()
@@ -263,9 +263,9 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	key := qualifiedName.String()
 
-	glog.V(4).Infof("Starting to reconcile ServiceDNS resource: %v", key)
+	klog.V(4).Infof("Starting to reconcile ServiceDNS resource: %v", key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling ServiceDNS resource %v (duration: %v)", key, time.Since(startTime))
+	defer klog.V(4).Infof("Finished reconciling ServiceDNS resource %v (duration: %v)", key, time.Since(startTime))
 
 	cachedObj, exist, err := c.serviceDNSStore.GetByKey(key)
 	if err != nil {
@@ -344,7 +344,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 				offlineClusterDNS := clusterDNS
 				offlineClusterDNS.LoadBalancer = corev1.LoadBalancerStatus{}
 				fedDNSStatus = append(fedDNSStatus, offlineClusterDNS)
-				glog.V(5).Infof("Cluster %s is Offline, Preserving previously available status for Service %s", cluster.Name, key)
+				klog.V(5).Infof("Cluster %s is Offline, Preserving previously available status for Service %s", cluster.Name, key)
 				break
 			}
 		}

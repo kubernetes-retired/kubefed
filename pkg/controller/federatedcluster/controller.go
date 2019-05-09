@@ -21,14 +21,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
@@ -79,7 +78,7 @@ func StartClusterController(config *util.ControllerConfig, clusterHealthCheckCon
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting cluster controller")
+	klog.Infof("Starting cluster controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -116,7 +115,7 @@ func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	cluster := obj.(*fedv1a1.FederatedCluster)
-	glog.V(1).Infof("ClusterController observed a cluster deletion: %v", cluster.Name)
+	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", cluster.Name)
 	delete(cc.clusterDataMap, cluster.Name)
 }
 
@@ -129,12 +128,12 @@ func (cc *ClusterController) addToClusterSet(obj interface{}) {
 	if clusterData != nil && clusterData.clusterKubeClient != nil {
 		return
 	}
-	glog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
+	klog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	// create the restclient of cluster
 	clientTimeout := time.Duration(cc.clusterHealthCheckConfig.TimeoutSeconds) * time.Second
 	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterNamespace, clientTimeout)
 	if err != nil || restClient == nil {
-		glog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
+		klog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
 	}
 	cc.clusterDataMap[cluster.Name] = &ClusterData{clusterKubeClient: restClient}
@@ -147,7 +146,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 	// monitor cluster status periodically, in phase 1 we just get the health state from "/healthz"
 	go wait.Until(func() {
 		if err := cc.updateClusterStatus(); err != nil {
-			glog.Errorf("Error monitoring cluster status: %v", err)
+			klog.Errorf("Error monitoring cluster status: %v", err)
 		}
 	}, time.Duration(cc.clusterHealthCheckConfig.PeriodSeconds)*time.Second, stopChan)
 }
@@ -167,7 +166,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		clusterData := cc.clusterDataMap[cluster.Name]
 		cc.mu.RUnlock()
 		if clusterData == nil {
-			glog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
+			klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
 			continue
 		}
 
@@ -193,7 +192,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.Fede
 	storedData.clusterStatus = currentClusterStatus
 	cluster.Status = *currentClusterStatus
 	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
-		glog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
+		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
 	}
 	wg.Done()
 }
@@ -243,7 +242,7 @@ func updateClusterZonesAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, 
 
 	zones, region, err := clusterClient.GetClusterZones()
 	if err != nil {
-		glog.Warningf("Failed to get zones and region for cluster %q: %v", clusterClient.clusterName, err)
+		klog.Warningf("Failed to get zones and region for cluster %q: %v", clusterClient.clusterName, err)
 		return clusterStatus
 	}
 

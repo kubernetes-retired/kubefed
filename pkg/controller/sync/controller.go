@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +34,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -98,7 +98,7 @@ func StartFederationSyncController(controllerConfig *util.ControllerConfig, stop
 	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	glog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedType().Kind))
+	klog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedType().Kind))
 	controller.Run(stopChan)
 	return nil
 }
@@ -201,7 +201,7 @@ func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (s *FederationSyncController) isSynced() bool {
 	if !s.informer.ClustersSynced() {
-		glog.V(2).Infof("Cluster list not synced")
+		klog.V(2).Infof("Cluster list not synced")
 		return false
 	}
 	if !s.fedAccessor.HasSynced() {
@@ -247,7 +247,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	}
 	if possibleOrphan {
 		targetKind := s.typeConfig.GetTarget().Kind
-		glog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+		klog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
 		err = s.removeManagedLabel(targetKind, qualifiedName)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
@@ -263,15 +263,15 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 	key := fedResource.FederatedName().String()
 
-	glog.V(4).Infof("Starting to reconcile %s %q", kind, key)
+	klog.V(4).Infof("Starting to reconcile %s %q", kind, key)
 	startTime := time.Now()
-	defer glog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
+	defer klog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
 
 	if fedResource.Object().GetDeletionTimestamp() != nil {
-		glog.V(3).Infof("Handling deletion of %s %q", kind, key)
+		klog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		return s.ensureDeletion(fedResource)
 	}
-	glog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
+	klog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
 	err = s.ensureFinalizer(fedResource)
 	if err != nil {
 		fedResource.RecordError("EnsureFinalizerError", errors.Wrap(err, "Failed to ensure finalizer"))
@@ -298,7 +298,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource,
 
 	kind := fedResource.TargetKind()
 	key := fedResource.TargetName().String()
-	glog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
+	klog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
 
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources)
 
@@ -375,27 +375,27 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 	key := fedResource.FederatedName().String()
 	kind := fedResource.FederatedKind()
 
-	glog.V(2).Infof("Ensuring deletion of %s %q", kind, key)
+	klog.V(2).Infof("Ensuring deletion of %s %q", kind, key)
 
 	obj := fedResource.Object()
 
 	finalizers := sets.NewString(obj.GetFinalizers()...)
 	if !finalizers.Has(FinalizerSyncController) {
-		glog.V(2).Infof("%s %q does not have the %q finalizer. Nothing to do.", kind, key, FinalizerSyncController)
+		klog.V(2).Infof("%s %q does not have the %q finalizer. Nothing to do.", kind, key, FinalizerSyncController)
 		return util.StatusAllOK
 	}
 
 	annotations := obj.GetAnnotations()
 	orphanResources := annotations != nil && annotations[OrphanManagedResources] == "true"
 	if orphanResources {
-		glog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.", OrphanManagedResources, kind, key)
+		klog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.", OrphanManagedResources, kind, key)
 		err := s.removeFinalizer(fedResource)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove finalizer %q from %s %q", OrphanManagedResources, kind, key)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
-		glog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByFederationLabelKey, kind, key)
+		klog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByFederationLabelKey, kind, key)
 		err = s.removeManagedLabel(fedResource.TargetKind(), fedResource.TargetName())
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByFederationLabelKey, kind, key)
@@ -405,7 +405,7 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 		return util.StatusAllOK
 	}
 
-	glog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
+	klog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
 	recheckRequired, err := s.deleteFromClusters(fedResource)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "failed to delete %s %q", kind, key)
@@ -470,7 +470,7 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 	if len(remainingClusters) > 0 {
 		fedKind := fedResource.FederatedKind()
 		fedName := fedResource.FederatedName()
-		glog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
+		klog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
 		return true, nil
 	}
 	err = s.ensureRemovedOrUnmanaged(fedResource)
@@ -568,7 +568,7 @@ func (s *FederationSyncController) ensureFinalizer(fedResource FederatedResource
 	if err != nil || !isUpdated {
 		return err
 	}
-	glog.V(2).Infof("Adding finalizer %s to %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
+	klog.V(2).Infof("Adding finalizer %s to %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
 	return s.hostClusterClient.Update(context.TODO(), obj)
 }
 
@@ -578,6 +578,6 @@ func (s *FederationSyncController) removeFinalizer(fedResource FederatedResource
 	if err != nil || !isUpdated {
 		return err
 	}
-	glog.V(2).Infof("Removing finalizer %s from %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
+	klog.V(2).Infof("Removing finalizer %s from %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
 	return s.hostClusterClient.Update(context.TODO(), obj)
 }

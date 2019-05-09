@@ -18,9 +18,11 @@ limitations under the License.
 package options
 
 import (
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/spf13/pflag"
+
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 )
 
 // Options contains everything necessary to create and run controller-manager.

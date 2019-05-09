@@ -1054,7 +1054,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/ghodss/yaml",
-    "github.com/golang/glog",
     "github.com/json-iterator/go",
     "github.com/kubernetes/repo-infra/verify/boilerplate/test",
     "github.com/onsi/ginkgo",
@@ -1084,6 +1083,7 @@
     "k8s.io/apimachinery/pkg/util/uuid",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/util/yaml",
+    "k8s.io/apimachinery/pkg/version",
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/apiserver/pkg/util/feature",
     "k8s.io/apiserver/pkg/util/flag",
@@ -1106,6 +1106,7 @@
     "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/klog",
     "k8s.io/kube-openapi/pkg/util/proto",
     "k8s.io/kubectl/pkg/framework/openapi",
     "sigs.k8s.io/controller-runtime/pkg/client",
