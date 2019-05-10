@@ -105,26 +105,16 @@ spec:
           type: object
         spec:
           properties:
-            clusterRef:
-              description: Name of the cluster registry Cluster resource from which
-                to source api endpoints. TODO(marun) should this go away in favor
-                of a 1:1 mapping?
-              properties:
-                name:
-                  description: Name of the cluster registry Cluster resource from
-                    which to source API endpoints.
-                  type: string
-              required:
-              - name
-              type: object
+            apiEndpoint:
+              description: The API endpoint of the member cluster. This can be a hostname,
+                hostname:port, IP or IP:port.
+              type: string
             secretRef:
-              description: Name of the secret containing kubeconfig to access the
-                referenced cluster.  Admin needs to ensure that the required secret
-                exists. Secret should be in the same namespace where federation control
-                plane is hosted and it should have kubeconfig in its data with key
-                "kubeconfig".  This will later be changed to a reference to secret
-                in federation control plane when the federation control plane supports
-                secrets.  This can be left empty if the cluster allows insecure access.
+              description: Name of the secret containing a kubeconfig to access the
+                member cluster.  Admin needs to ensure that the required secret exists.
+                Secret should be in the same namespace as the control plane and it
+                should have kubeconfig in its data with key "kubeconfig".  This can
+                be left empty if the cluster allows insecure access.
               properties:
                 name:
                   description: Name of a secret within the enclosing namespace
@@ -132,6 +122,8 @@ spec:
               required:
               - name
               type: object
+          required:
+          - apiEndpoint
           type: object
         status:
           properties:
