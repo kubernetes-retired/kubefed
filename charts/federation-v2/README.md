@@ -84,7 +84,7 @@ $ helm search federation-v2
 Install the chart and specify the version to install with the
 `--version` argument. Replace `<x.x.x>` with your desired version.
 ```bash
-$ helm install fedv2-charts/federation-v2 --version=<x.x.x> --namespace federation-system
+$ helm install fedv2-charts/federation-v2 --version=<x.x.x> --namespace kube-federation-system
 ```
 
 If you already have clusterregistry installed, skip installing it by
@@ -99,7 +99,7 @@ of the CR and CRDs for federation v2 release.
 Delete all federation v2 `FederatedTypeConfig`:
 
 ```bash
-$ kubectl -n federation-system delete FederatedTypeConfig --all
+$ kubectl -n kube-federation-system delete FederatedTypeConfig --all
 ```
 
 Delete all federation v2 CRDs:
@@ -168,5 +168,5 @@ Alternatively, a YAML file that specifies the values for the parameters can be
 provided while installing the chart. For example:
 
 ```bash
-$ helm install charts/federation-v2 --name federation-v2 --namespace federation-system --values values.yaml
+$ helm install charts/federation-v2 --name federation-v2 --namespace kube-federation-system --values values.yaml
 ```

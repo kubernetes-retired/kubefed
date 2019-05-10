@@ -37,7 +37,7 @@ import (
 )
 
 const (
-	DefaultFederationSystemNamespace = "federation-system"
+	DefaultFederationSystemNamespace = "kube-federation-system"
 	MulticlusterPublicNamespace      = "kube-multicluster-public"
 	DefaultClusterAvailableDelay     = 20 * time.Second
 	DefaultClusterUnavailableDelay   = 60 * time.Second

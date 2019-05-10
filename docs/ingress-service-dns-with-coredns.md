@@ -142,7 +142,7 @@ metadata:
   # Corresponds to <federation> in the resource records.
   name: test-domain
   # The namespace running federation-controller-manager.
-  namespace: federation-system
+  namespace: kube-federation-system
 # The domain/subdomain that is setup in your externl-dns provider.
 domain: example.com
 ---

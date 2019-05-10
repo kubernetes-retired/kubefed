@@ -150,7 +150,7 @@ echo "Running e2e tests against cluster-scoped federation-v2"
 run-e2e-tests
 
 echo "Scaling down cluster-scoped controller manager"
-kubectl scale deployments federation-controller-manager -n federation-system --replicas=0
+kubectl scale deployments federation-controller-manager -n kube-federation-system --replicas=0
 
 echo "Running e2e tests with race detector against cluster-scoped federation-v2 with in-memory controllers"
 run-e2e-tests-with-in-memory-controllers
@@ -159,7 +159,7 @@ run-e2e-tests-with-in-memory-controllers
 # FederatedTypeConfigs in order to successfully delete federation in the next
 # step.
 echo "Scaling back up cluster-scoped controller manager prior to deletion"
-kubectl scale deployments federation-controller-manager -n federation-system --replicas=1
+kubectl scale deployments federation-controller-manager -n kube-federation-system --replicas=1
 
 echo "Deleting cluster-scoped federation-v2"
 ./scripts/delete-federation.sh

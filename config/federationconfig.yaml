@@ -2,7 +2,7 @@ apiVersion: core.federation.k8s.io/v1alpha1
 kind: FederationConfig
 metadata:
   name: federation-v2
-  namespace: federation-system
+  namespace: kube-federation-system
 spec:
   leader-elect:
     lease-duration: 1500ms
