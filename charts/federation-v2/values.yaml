@@ -18,10 +18,6 @@ controllermanager:
     requests:
       cpu: 100m
       memory: 64Mi
-  ## The cluster registry namespace.
-  ## If unset, will default to kube-multicluster-public for a cluster-scoped deployment,
-  ## and the federation namespace for namespace-scoped deployment.
-  registryNamespace:
   clusterAvailableDelay:
   clusterUnavailableDelay:
   leaderElectLeaseDuration:
@@ -41,12 +37,6 @@ controllermanager:
     SchedulerPreferences:
     CrossClusterServiceDiscovery:
     FederatedIngress:
-
-
-## Configuration values for federation v2 clusterregistry.
-##
-clusterregistry:
-  enabled: true
 
 ## Configuration global values for all charts
 ##

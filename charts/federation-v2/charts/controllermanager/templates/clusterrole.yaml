@@ -48,12 +48,6 @@ rules:
   - list
   - update
 - apiGroups:
-  - clusterregistry.k8s.io
-  resources:
-  - clusters
-  verbs:
-  - get
-- apiGroups:
   - ""
   resources:
   - namespaces
