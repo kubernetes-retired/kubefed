@@ -1,5 +1,4 @@
 apiVersion: v1
-appVersion: 0.0.2
 description: Kubernetes Federation V2 helm chart
 name: federation-v2
 version: 0.0.2
