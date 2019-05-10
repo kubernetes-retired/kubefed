@@ -39,7 +39,7 @@
 #
 # To redeploy federation from scratch, prefix the deploy invocation with the deletion script:
 #
-#   # WARNING: The deletion script will remove federation and cluster registry data
+#   # WARNING: The deletion script will remove federation data
 #   $ ./scripts/delete-federation.sh [join-cluster]... && ./scripts/deploy-federation.sh <image> [join-cluster]...
 #
 
@@ -112,7 +112,6 @@ function helm-deploy-cmd {
 }
 
 NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
-PUBLIC_NS=kube-multicluster-public
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
 
@@ -172,19 +171,13 @@ if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
   kubectl create ns "${NS}"
 fi
 
-if [[ ! "${NAMESPACED}" ]]; then
-  if ! kubectl get ns "${PUBLIC_NS}" > /dev/null 2>&1; then
-    kubectl create ns "${PUBLIC_NS}"
-  fi
-fi
-
 # Deploy federation resources
 deploy-with-helm
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
-./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
+./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS}
 
 for c in ${JOIN_CLUSTERS}; do
-  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --add-to-registry --v=2 ${KF_NS_ARGS}
+  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS}
 done

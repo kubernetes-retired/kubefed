@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script removes the cluster registry, unjoins any clusters passed as
-# arguments, and removes the federation from the current kubectl context.
+# This script unjoins any clusters passed as arguments and removes the
+# federation control plane from the current kubectl context.
 
 set -o errexit
 set -o nounset
@@ -24,15 +24,6 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function delete-helm-deployment() {
-  if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
-    # Clean cluster registry
-    ${KCD} crd clusters.clusterregistry.k8s.io
-  fi
-
-  if [[ ! "${NAMESPACED}" ]]; then
-      ${KCD} namespace ${PUBLIC_NS}
-  fi
-
   # Clean federation resources
   ${KCD} -n "${NS}" FederatedTypeConfig --all
   if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
@@ -48,7 +39,6 @@ function delete-helm-deployment() {
 
 KCD="kubectl --ignore-not-found=true delete"
 NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
-PUBLIC_NS=kube-multicluster-public
 NAMESPACED="${NAMESPACED:-}"
 DELETE_CLUSTER_RESOURCE="${DELETE_CLUSTER_RESOURCE:-}"
 
@@ -66,7 +56,7 @@ KF_NS_ARG="--federation-namespace=${NS} "
 HOST_CLUSTER="$(kubectl config current-context)"
 JOINED_CLUSTERS="$(kubectl -n "${NS}" get federatedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
 for c in ${JOINED_CLUSTERS}; do
-  ./bin/kubefedctl unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --remove-from-registry --v=2 ${KF_NS_ARG}
+  ./bin/kubefedctl unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --v=2 ${KF_NS_ARG}
 done
 
 # Deploy federation resources
@@ -80,6 +70,3 @@ function ns-deleted() {
   [[ "$?" = "1" ]]
 }
 util::wait-for-condition "removal of namespace '${NS}'" "ns-deleted ${NS}" 120
-if [[ ! "${NAMESPACED}" ]]; then
-  util::wait-for-condition "removal of namespace '${PUBLIC_NS}'" "ns-deleted ${PUBLIC_NS}" 120
-fi

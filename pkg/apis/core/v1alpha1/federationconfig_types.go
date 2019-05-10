@@ -25,9 +25,7 @@ import (
 type FederationConfigSpec struct {
 	// The scope of the federation control plane should be either `Namespaced` or `Cluster`.
 	// `Namespaced` indicates that the federation namespace will be the only target for federation.
-	Scope apiextv1b1.ResourceScope `json:"scope,omitempty"`
-	// The cluster registry namespace.
-	RegistryNamespace  string                   `json:"registry-namespace,omitempty"`
+	Scope              apiextv1b1.ResourceScope `json:"scope,omitempty"`
 	ControllerDuration DurationConfig           `json:"controller-duration,omitempty"`
 	LeaderElect        LeaderElectConfig        `json:"leader-elect,omitempty"`
 	FeatureGates       []FeatureGatesConfig     `json:"feature-gates,omitempty"`

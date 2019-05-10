@@ -150,7 +150,7 @@ func NewFederatedInformer(
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.FederatedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, client, config.FederationNamespace, config.ClusterNamespace)
+			config, err := BuildClusterConfig(cluster, client, config.FederationNamespace)
 			if err != nil {
 				return nil, err
 			}

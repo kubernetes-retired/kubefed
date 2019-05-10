@@ -264,11 +264,6 @@ func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
 			spec.Scope = apiextv1b1.ResourceScope(defaultScope)
 		}
 	}
-	if spec.Scope == apiextv1b1.NamespaceScoped {
-		setString(&spec.RegistryNamespace, fedConfig.Namespace)
-	} else {
-		setString(&spec.RegistryNamespace, util.MulticlusterPublicNamespace)
-	}
 
 	duration := &spec.ControllerDuration
 	setDuration(&duration.AvailableDelay, util.DefaultClusterAvailableDelay)
@@ -341,7 +336,6 @@ func setOptionsByFederationConfig(opts *options.Options) {
 	spec := fedConfig.Spec
 	opts.Scope = spec.Scope
 
-	opts.Config.ClusterNamespace = spec.RegistryNamespace
 	opts.Config.ClusterAvailableDelay = spec.ControllerDuration.AvailableDelay.Duration
 	opts.Config.ClusterUnavailableDelay = spec.ControllerDuration.UnavailableDelay.Duration
 

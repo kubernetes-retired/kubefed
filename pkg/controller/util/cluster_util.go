@@ -18,18 +18,15 @@ package util
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	crcv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -38,7 +35,6 @@ import (
 
 const (
 	DefaultFederationSystemNamespace = "kube-federation-system"
-	MulticlusterPublicNamespace      = "kube-multicluster-public"
 	DefaultClusterAvailableDelay     = 20 * time.Second
 	DefaultClusterUnavailableDelay   = 60 * time.Second
 
@@ -61,46 +57,23 @@ const (
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
 // a client for the given FederatedCluster or an error. The client is used to
-// access kubernetes secrets in the federation namespace and cluster-registry
-// records in the clusterNamespace.
-func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string, clusterNamespace string) (*restclient.Config, error) {
+// access kubernetes secrets in the federation namespace.
+func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
-	// Retrieve the associated cluster
-	cluster := &crcv1alpha1.Cluster{}
-	err := client.Get(context.TODO(), cluster, clusterNamespace, clusterName)
-	if err != nil {
-		return nil, err
+	apiEndpoint := fedCluster.Spec.APIEndpoint
+	// TODO(marun) Remove when validation ensures a non-empty value.
+	if apiEndpoint == "" {
+		return nil, errors.Errorf("The api endpoint of cluster %s is empty", clusterName)
 	}
 
-	var serverAddress string
 	var clusterConfig *restclient.Config
-	hostIP, err := utilnet.ChooseHostInterface()
-	if err != nil {
-		return nil, err
-	}
-
-	// Determine the server address
-	for _, item := range cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints {
-		_, cidrnet, err := net.ParseCIDR(item.ClientCIDR)
-		if err != nil {
-			return nil, err
-		}
-		myaddr := net.ParseIP(hostIP.String())
-		if cidrnet.Contains(myaddr) {
-			serverAddress = item.ServerAddress
-			break
-		}
-	}
-	if serverAddress == "" {
-		return nil, errors.Errorf("Unable to find address for cluster %s for host ip %s", clusterName, hostIP.String())
-	}
 
 	secretRef := fedCluster.Spec.SecretRef
-
 	if secretRef == nil {
 		klog.Infof("didn't find secretRef for cluster %s. Trying insecure access", clusterName)
-		clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
+		var err error
+		clusterConfig, err = clientcmd.BuildConfigFromFlags(apiEndpoint, "")
 		if err != nil {
 			return nil, err
 		}
@@ -127,12 +100,12 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Cli
 		if tokenFound != caFound {
 			return nil, errors.Errorf("secret should have values for either both 'ca.crt' and 'token' in its Data, or neither: %v", secret)
 		} else if tokenFound && caFound {
-			clusterConfig, err = clientcmd.BuildConfigFromFlags(serverAddress, "")
+			clusterConfig, err = clientcmd.BuildConfigFromFlags(apiEndpoint, "")
 			clusterConfig.CAData = ca
 			clusterConfig.BearerToken = string(token)
 		} else {
 			kubeconfigGetter := KubeconfigGetterForSecret(secret)
-			clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(serverAddress, kubeconfigGetter)
+			clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(apiEndpoint, kubeconfigGetter)
 		}
 
 		if err != nil {

@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -59,20 +58,16 @@ var (
 type unjoinFederation struct {
 	options.GlobalSubcommandOptions
 	options.CommonJoinOptions
-	options.FederationConfigOptions
 	unjoinFederationOptions
 }
 
 type unjoinFederationOptions struct {
-	removeFromRegistry bool
-	forceDeletion      bool
+	forceDeletion bool
 }
 
 // Bind adds the unjoin specific arguments to the flagset passed in as an
 // argument.
 func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
-	flags.BoolVar(&o.removeFromRegistry, "remove-from-registry", false,
-		"Remove the cluster from the cluster registry running in the host cluster context.")
 	flags.BoolVar(&o.forceDeletion, "force", false,
 		"Delete federated cluster and secret resources even if resources in the cluster targeted for unjoin are not removed successfully.")
 }
@@ -143,10 +138,6 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		klog.V(2).Infof("Failed to get host cluster config: %v", err)
 		return err
 	}
-	_, j.ClusterNamespace, err = options.GetOptionsFromFederationConfig(hostConfig, j.FederationNamespace)
-	if err != nil {
-		return err
-	}
 
 	clusterConfig, err := config.ClusterConfig(j.ClusterContext, j.Kubeconfig)
 	if err != nil {
@@ -165,14 +156,14 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName = j.HostClusterName
 	}
 
-	return UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		hostClusterName, j.HostClusterContext, j.ClusterContext, j.ClusterName, j.removeFromRegistry, j.forceDeletion, j.DryRun)
+	return UnjoinCluster(hostConfig, clusterConfig, j.FederationNamespace,
+		hostClusterName, j.HostClusterContext, j.ClusterContext, j.ClusterName, j.forceDeletion, j.DryRun)
 }
 
 // UnjoinCluster performs all the necessary steps to unjoin a cluster from the
 // federation provided the required set of parameters are passed in.
-func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace, hostClusterName, hostClusterContext,
-	unjoiningClusterContext, unjoiningClusterName string, removeFromRegistry, forceDeletion, dryRun bool) error {
+func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, hostClusterName, hostClusterContext,
+	unjoiningClusterContext, unjoiningClusterName string, forceDeletion, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
@@ -197,10 +188,6 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 		return err
 	}
 
-	if removeFromRegistry {
-		removeFromClusterRegistry(hostConfig, clusterNamespace, unjoiningClusterName, dryRun)
-	}
-
 	var deletionSucceeded bool
 	if clusterClientset != nil {
 		deletionSucceeded = deleteRBACResources(clusterClientset, federationNamespace, unjoiningClusterName, hostClusterName, dryRun)
@@ -218,38 +205,6 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 	}
 
 	return nil
-}
-
-// removeFromClusterRegistry handles removing the cluster from the cluster registry and
-// reports progress.
-func removeFromClusterRegistry(hostConfig *rest.Config, clusterNamespace, unjoiningClusterName string,
-	dryRun bool) {
-
-	client, err := util.ClusterRegistryClientset(hostConfig)
-	if err != nil {
-		klog.Errorf("Failed to get cluster registry clientset: %v", err)
-		return
-	}
-
-	klog.V(2).Infof("Removing cluster: %s from the cluster registry.", unjoiningClusterName)
-
-	err = unregisterCluster(client, clusterNamespace, unjoiningClusterName, dryRun)
-	if err != nil {
-		klog.Errorf("Could not remove cluster from the cluster registry: %v", err)
-		return
-	}
-
-	klog.V(2).Infof("Removed cluster: %s from the cluster registry.", unjoiningClusterName)
-}
-
-// unregisterCluster removes a cluster from the cluster registry.
-func unregisterCluster(client genericclient.Client, clusterNamespace, unjoiningClusterName string,
-	dryRun bool) error {
-	if dryRun {
-		return nil
-	}
-
-	return client.Delete(context.TODO(), &crv1a1.Cluster{}, clusterNamespace, unjoiningClusterName)
 }
 
 // deleteFederatedClusterAndSecret deletes a federated cluster resource that associates

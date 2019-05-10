@@ -76,15 +76,11 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 	return nil
 }
 
-type FederationConfigOptions struct {
-	ClusterNamespace string
-}
-
-func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, string, error) {
+func GetScopeFromFederationConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get federation clientset")
-		return "", "", err
+		return "", err
 	}
 
 	fedConfig := &fedv1a1.FederationConfig{}
@@ -95,10 +91,10 @@ func GetOptionsFromFederationConfig(hostConfig *rest.Config, namespace string) (
 			Name:      util.FederationConfigName,
 		}
 		err = errors.Wrapf(err, "Error retrieving FederationConfig %q", config)
-		return "", "", err
+		return "", err
 	}
 
-	return fedConfig.Spec.Scope, fedConfig.Spec.RegistryNamespace, nil
+	return fedConfig.Spec.Scope, nil
 }
 
 // CommonEnableOptions holds the common configuration required by the enable

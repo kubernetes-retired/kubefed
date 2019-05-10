@@ -22,8 +22,6 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 )
 
 // FedConfig provides a rest config based on the filesystem kubeconfig (via
@@ -93,12 +91,6 @@ func HostClientset(config *rest.Config) (*kubeclient.Clientset, error) {
 // communicate with the joining cluster's kubernetes API server.
 func ClusterClientset(config *rest.Config) (*kubeclient.Clientset, error) {
 	return kubeclient.NewForConfig(config)
-}
-
-// ClusterRegistryClientset provides a cluster registry API compliant
-// clientset to communicate with the cluster registry.
-func ClusterRegistryClientset(config *rest.Config) (generic.Client, error) {
-	return generic.New(config)
 }
 
 // ClusterServiceAccountName returns the name of a service account whose
