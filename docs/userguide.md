@@ -121,9 +121,9 @@ clusters that you want to test against.
 
 ```bash
 kubefedctl join cluster1 --cluster-context cluster1 \
-    --host-cluster-context cluster1 --add-to-registry --v=2
+    --host-cluster-context cluster1 --v=2
 kubefedctl join cluster2 --cluster-context cluster2 \
-    --host-cluster-context cluster1 --add-to-registry --v=2
+    --host-cluster-context cluster1 --v=2
 ```
 
 You can repeat these steps to join any additional clusters.
@@ -148,7 +148,7 @@ cluster2   True    1m
 If required, federation allows you to unjoin clusters using `kubefedctl` tool.
 
 ```bash
-kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --remove-from-registry --v=2
+kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --v=2
 ```
 You can repeat these steps to unjoin any additional clusters.
 
@@ -688,7 +688,7 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
 
 ```bash
 kubefedctl join mycluster --cluster-context mycluster \
-    --host-cluster-context mycluster --add-to-registry --v=2 \
+    --host-cluster-context mycluster --v=2 \
     --federation-namespace=test-namespace
 ```
 

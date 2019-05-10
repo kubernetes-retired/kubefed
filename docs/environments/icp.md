@@ -55,5 +55,5 @@ spec:
     - name: "quay.io/kubernetes-multicluster/federation-v2:*"
 ```
 
-Once all pods are running you can return to the [User Guide](../userguide.md) to deploy the cluster registry and
+Once all pods are running you can return to the [User Guide](../userguide.md) to deploy the
 Federation v2 control-plane.

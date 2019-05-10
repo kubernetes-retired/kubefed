@@ -9,7 +9,7 @@
     - [docker](#docker)
   - [Adding a new API type](#adding-a-new-api-type)
   - [Running E2E Tests](#running-e2e-tests)
-    - [Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
+    - [Setup Clusters and Deploy the Federation-v2 Control Plane](#setup-clusters-and-deploy-the-federation-v2-control-plane)
     - [Running Tests](#running-tests)
     - [Running Tests With In-Memory Controllers](#running-tests-with-in-memory-controllers)
     - [Cleanup](#cleanup)
@@ -98,7 +98,7 @@ types enabled by default:
 
 The read operation is implicit.
 
-### Setup Clusters, Deploy the Cluster Registry and Federation-v2 Control Plane
+### Setup Clusters and Deploy the Federation-v2 Control Plane
 
 In order to run E2E tests, you first need to:
 
@@ -202,7 +202,7 @@ Ensure binaries from kubebuilder for `etcd` and `kube-apiserver` are in the path
 
 If you just want to have this automated, then run the following command
 specifying your own image. This assumes you've used the steps [documented
-above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane) to
+above](#setup-clusters-and-deploy-the-federation-v2-control-plane) to
 set up two `kind` or `minikube` clusters (`cluster1` and `cluster2`):
 
 ```bash
@@ -213,7 +213,7 @@ set up two `kind` or `minikube` clusters (`cluster1` and `cluster2`):
 Also, please make sure the joining cluster name(s) provided matches the joining
 cluster context from your kubeconfig. This will already be the case if you used
 the steps [documented
-above](#setup-clusters-deploy-the-cluster-registry-and-federation-v2-control-plane)
+above](#setup-clusters-and-deploy-the-federation-v2-control-plane)
 to create your clusters.
 
 ## Test Latest Master Changes (`canary`)
