@@ -154,14 +154,14 @@ federation controller manager:
    binary.
 
    ```bash
-   kubectl scale deployments federation-controller-manager -n federation-system --replicas=0
+   kubectl scale deployments federation-controller-manager -n kube-federation-system --replicas=0
    ```
 
    Once you've reduced the replicas to 0, you should see the
    `federation-controller-manager` deployment update to show 0 pods running:
 
    ```bash
-   kubectl -n federation-system get deployment.apps federation-controller-manager
+   kubectl -n kube-federation-system get deployment.apps federation-controller-manager
    NAME                            DESIRED   CURRENT   AGE
    federation-controller-manager   0         0         14s
    ```

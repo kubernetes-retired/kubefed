@@ -1,4 +1,9 @@
 # Unreleased
+-  [#868](https://github.com/kubernetes-sigs/federation-v2/issues/868)
+   The default kubefed system namespace has been changed from
+   `federation-system` to `kube-federation-system`.  The `kube-`
+   prefix is reserved for system namespaces and including it avoids
+   having the kubefed namespace conflict with a user namespace.
 -  [#740](https://github.com/kubernetes-sigs/federation-v2/issues/740)
    Propagation status is now recorded for all federated resources.
 - [#844](https://github.com/kubernetes-sigs/federation-v2/pull/844)

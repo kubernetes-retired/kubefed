@@ -136,7 +136,7 @@ specified.
 Check the status of the joined clusters until you verify they are ready:
 
 ```bash
-kubectl -n federation-system get federatedclusters
+kubectl -n kube-federation-system get federatedclusters
 
 NAME       READY   AGE
 cluster1   True    1m
@@ -571,7 +571,7 @@ resources that are intended to be selected have the appropriate labels applied.
 The following command is an example to label a `FederatedCluster`:
 
 ```bash
-kubectl label federatedclusters -n federation-system cluster1 foo=bar
+kubectl label federatedclusters -n kube-federation-system cluster1 foo=bar
 ```
 
 Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)
@@ -657,7 +657,7 @@ kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
 It may also be useful to inspect the federation controller log as follows:
 
 ```bash
-kubectl logs -f federation-controller-manager-0 -n federation-system
+kubectl logs -f federation-controller-manager-0 -n kube-federation-system
 ```
 
 ## Namespaced Federation
