@@ -26,8 +26,6 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
@@ -38,9 +36,8 @@ const (
 	DefaultClusterAvailableDelay     = 20 * time.Second
 	DefaultClusterUnavailableDelay   = 60 * time.Second
 
-	KubeAPIQPS              = 20.0
-	KubeAPIBurst            = 30
-	KubeconfigSecretDataKey = "kubeconfig"
+	KubeAPIQPS   = 20.0
+	KubeAPIBurst = 30
 
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second
@@ -67,70 +64,37 @@ func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Cli
 		return nil, errors.Errorf("The api endpoint of cluster %s is empty", clusterName)
 	}
 
-	var clusterConfig *restclient.Config
-
-	secretRef := fedCluster.Spec.SecretRef
-	if secretRef == nil {
-		klog.Infof("didn't find secretRef for cluster %s. Trying insecure access", clusterName)
-		var err error
-		clusterConfig, err = clientcmd.BuildConfigFromFlags(apiEndpoint, "")
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if secretRef.Name == "" {
-			return nil, errors.Errorf("found secretRef but no secret name for cluster %s", clusterName)
-		}
-		secret := &apiv1.Secret{}
-		err := client.Get(context.TODO(), secret, fedNamespace, secretRef.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		token, tokenFound := secret.Data["token"]
-		ca, caFound := secret.Data["ca.crt"]
-
-		// TODO(font): These changes support both integration (legacy mode) and
-		// E2E tests (using service accounts). We cannot use JoinCluster in
-		// integration until we have the required RBAC controller(s) e.g. the
-		// token controller which observes the service account creation and
-		// creates the corresponding secret to allow API access. Until then, we
-		// have to rely on the legacy method to allow integration tests to
-		// pass.
-		if tokenFound != caFound {
-			return nil, errors.Errorf("secret should have values for either both 'ca.crt' and 'token' in its Data, or neither: %v", secret)
-		} else if tokenFound && caFound {
-			clusterConfig, err = clientcmd.BuildConfigFromFlags(apiEndpoint, "")
-			clusterConfig.CAData = ca
-			clusterConfig.BearerToken = string(token)
-		} else {
-			kubeconfigGetter := KubeconfigGetterForSecret(secret)
-			clusterConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(apiEndpoint, kubeconfigGetter)
-		}
-
-		if err != nil {
-			return nil, err
-		}
+	secretName := fedCluster.Spec.SecretRef.Name
+	if secretName == "" {
+		return nil, errors.Errorf("Cluster %s does not have a secret name", clusterName)
+	}
+	secret := &apiv1.Secret{}
+	err := client.Get(context.TODO(), secret, fedNamespace, secretName)
+	if err != nil {
+		return nil, err
 	}
 
+	tokenKey := "token"
+	token, tokenFound := secret.Data[tokenKey]
+	if !tokenFound {
+		return nil, errors.Errorf("The secret for cluster %s is missing a value for %q", clusterName, tokenKey)
+	}
+	caKey := "ca.crt"
+	ca, caFound := secret.Data[caKey]
+	if !caFound {
+		return nil, errors.Errorf("The secret for cluster %s is missing a value for %q", clusterName, caKey)
+	}
+
+	clusterConfig, err := clientcmd.BuildConfigFromFlags(apiEndpoint, "")
+	if err != nil {
+		return nil, err
+	}
+	clusterConfig.CAData = ca
+	clusterConfig.BearerToken = string(token)
 	clusterConfig.QPS = KubeAPIQPS
 	clusterConfig.Burst = KubeAPIBurst
 
 	return clusterConfig, nil
-}
-
-// KubeconfigGetterForSecret gets the kubeconfig from the given secret.
-// This is to inject a different KubeconfigGetter in tests. We don't use
-// the standard one which calls NewInCluster in tests to avoid having to
-// set up service accounts and mount files with secret tokens.
-var KubeconfigGetterForSecret = func(secret *apiv1.Secret) clientcmd.KubeconfigGetter {
-	return func() (*clientcmdapi.Config, error) {
-		data, ok := secret.Data[KubeconfigSecretDataKey]
-		if !ok {
-			return nil, errors.Errorf("secret does not have data with key %s", KubeconfigSecretDataKey)
-		}
-		return clientcmd.Load(data)
-	}
 }
 
 // IsPrimaryCluster checks if the caller is working with objects for the

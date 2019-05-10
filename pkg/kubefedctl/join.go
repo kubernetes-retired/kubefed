@@ -288,7 +288,7 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName, api
 		},
 		Spec: fedv1a1.FederatedClusterSpec{
 			APIEndpoint: apiEndpoint,
-			SecretRef: &fedv1a1.LocalSecretReference{
+			SecretRef: fedv1a1.LocalSecretReference{
 				Name: secretName,
 			},
 		},

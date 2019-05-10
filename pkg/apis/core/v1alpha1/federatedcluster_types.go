@@ -29,16 +29,12 @@ type FederatedClusterSpec struct {
 	// hostname:port, IP or IP:port.
 	APIEndpoint string `json:"apiEndpoint"`
 
-	// Name of the secret containing a kubeconfig to access the member
-	// cluster.
+	// Name of the secret containing a token and ca bundle required to
+	// access the member cluster.
 	//
-	// Admin needs to ensure that the required secret exists. Secret
-	// should be in the same namespace as the control plane and it
-	// should have kubeconfig in its data with key "kubeconfig".
-	//
-	// This can be left empty if the cluster allows insecure access.
-	// +optional
-	SecretRef *LocalSecretReference `json:"secretRef,omitempty"`
+	// The secret needs to exist in the same namespace as the control
+	// plane and should have keys for "token" and "ca.crt".
+	SecretRef LocalSecretReference `json:"secretRef"`
 }
 
 // LocalSecretReference is a reference to a secret within the enclosing
