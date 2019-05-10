@@ -1,4 +1,7 @@
 # Unreleased
+-  [#832](https://github.com/kubernetes-sigs/federation-v2/issues/832)
+   `kubefedctl federate` can take input from a file via `--filename`
+   option and stdin via `--filename -` option.
 -  [#868](https://github.com/kubernetes-sigs/federation-v2/issues/868)
    The default kubefed system namespace has been changed from
    `federation-system` to `kube-federation-system`.  The `kube-`
@@ -6,7 +9,7 @@
    having the kubefed namespace conflict with a user namespace.
 -  [#740](https://github.com/kubernetes-sigs/federation-v2/issues/740)
    Propagation status is now recorded for all federated resources.
-- [#844](https://github.com/kubernetes-sigs/federation-v2/pull/844)
+-  [#844](https://github.com/kubernetes-sigs/federation-v2/pull/844)
    `kubefedctl federate` namespace with its content gets an option to
    skip API Resources via `--skip-api-resources`.
 
