@@ -16,6 +16,9 @@
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
     - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
   - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
+  - [Propagation status](#propagation-status)
+    - [Troubleshooting condition status](#troubleshooting-condition-status)
+      - [Troubleshooting CheckClusters](#troubleshooting-checkclusters)
   - [Deletion policy](#deletion-policy)
   - [Example](#example)
     - [Create the Test Namespace](#create-the-test-namespace)
@@ -282,6 +285,123 @@ kubefedctl disable <FederatedTypeConfig Name> --delete-from-api
 
 **WARNING: All custom resources for the type will be removed by this command.**
 
+## Propagation status
+
+When the sync controller reconciles a federated resource with member
+clusters, propagation status will be written to the resource as per
+the following example:
+
+```yaml
+apiVersion: types.federation.k8s.io/v1alpha1
+kind: FederatedNamespace
+metadata:
+  name: myns
+  namespace: myns
+spec:
+  placement:
+    clusterSelector: {}
+status:
+  # The status True of the condition of type Propagation
+  # indicates that the state of all member clusters is as
+  # intended as of the last probe time.
+  conditions:
+  - type: Propagation
+    status: True
+    lastProbeTime: "2019-05-08T01:23:20Z"
+    lastTransitionTime: "2019-05-08T01:23:20Z"
+  # The namespace 'myns' has been verified to exist in the
+  # following clusters as of the lastProbeTime recorded
+  # in the 'Propagation' condition.
+  clusters:
+  - name: cluster1
+  - name: cluster2
+```
+
+### Troubleshooting condition status
+
+If the sync controller encounters an error in creating, updating or
+deleting managed resources in member clusters, the `Propagation`
+condition will have a status of `False` and the reason field will be
+one of the following values:
+
+| Reason                 | Description                                      |
+|------------------------|--------------------------------------------------|
+| CheckClusters          | One or more clusters is not in the desired state. |
+| ClusterRetrievalFailed | An error prevented retrieval of member clusters. |
+| ComputePlacementFailed | An error prevented computation of placement. |
+
+For reasons other than `CheckClusters`, an event will be logged with
+the same reason and can be examined for more detail:
+
+```bash
+kubectl describe federationnamespace myns -n myns | grep ComputePlacementFailed
+
+Warning  ComputePlacementFailed  5m   federationnamespace-controller  Invalid selector <nil>
+```
+
+#### Troubleshooting CheckClusters
+
+If the `Propagation` condition has status `False` and reason
+`CheckClusters`, the cluster status can be examined to determine the
+clusters for which reconciliation was not successful. In the following
+example, namespace `myns` has been verified to exist in `cluster1`.
+The namespace should not exist in `cluster2`, but deletion has failed.
+
+```yaml
+apiVersion: types.federation.k8s.io/v1alpha1
+kind: FederatedNamespace
+metadata:
+  name: myns
+  namespace: myns
+spec:
+  placement:
+    clusterNames:
+    - cluster1
+status:
+  conditions:
+  - type: Propagation
+    status: False
+    reason: CheckClusters
+    lastProbeTime: "2019-05-08T01:23:20Z"
+    lastTransitionTime: "2019-05-08T01:23:20Z"
+  clusters:
+  - name: cluster1
+  - name: cluster2
+    status: DeletionFailed
+```
+
+When a cluster has a populated status, as in the example above, the
+sync controller will have written an event with a matching `Reason`
+that may provide more detail as to the nature of the problem.
+
+```bash
+kubectl describe federatednamespace myns -n myns | grep cluster2 | grep DeletionFailed
+
+Warning  DeletionFailed  5m   federatednamespace-controller  Failed to delete Namespace "myns" in cluster "cluster2"...
+```
+
+The following table enumerates the possible values for cluster status:
+
+| Status                 | Description                  |
+|------------------------|------------------------------|
+| AlreadyExists          | The target resource already exists in the cluster, and cannot be adopted due to `skipAdoptingResources` being configured. |
+| CachedRetrievalFailed  | An error occurred when retrieving the cached target resource. |
+| ClientRetrievalFailed  | An error occurred while attempting to create an API client for the member cluster. |
+| ClusterNotReady        | The latest health check for the cluster did not succeed. |
+| ComputeResourceFailed  | An error occurred when determining the form of the target resource that should exist in the cluster. |
+| CreationFailed         | Creation of the target resource failed. |
+| CreationTimedOut       | Creation of the target resource timed out. |
+| DeletionFailed         | Deletion of the target resource failed. |
+| DeletionTimedOut       | Deletion of the target resource timed out. |
+| FieldRetentionFailed   | An error occurred while attempting to retain the value of one or more fields in the target resource (e.g. `clusterIP` for a service) |
+| LabelRemovalFailed     | Removal of the federation label from the target resource failed. |
+| LabelRemovalTimedOut   | Removal of the federation label from the target resource timed out. |
+| RetrievalFailed        | Retrievel of the target resource from the cluster failed. |
+| UpdateFailed           | Update of the target resource failed. |
+| UpdateTimedOut         | Update of the target resource timed out. |
+| VersionRetrievalFailed | An error occurred while attempting to retrieve the last recorded version of the target resource. |
+| WaitingForRemoval      | The target resource has been marked for deletion and is awaiting garbage collection. |
+
 ## Deletion policy
 
 All federated resources reconciled by the sync controller have a
@@ -353,6 +473,15 @@ for r in configmaps secrets service deployment serviceaccount job; do
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
+```
+
+The [status of propagation](#propagation-status) is also recorded on each federated resource:
+
+```bash
+for r in federatedconfigmaps federatedsecrets federatedservice federateddeployment federatedserviceaccount federatedjob; do
+    echo; echo ------------ ${c} resource: ${r} ------------; echo
+    kubectl --context=${c} -n test-namespace get ${r} -o yaml
+    echo; echo
 done
 ```
 

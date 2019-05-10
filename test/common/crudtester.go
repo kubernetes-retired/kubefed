@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -37,6 +38,7 @@ import (
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
 	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
+	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
 	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
 	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
 	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
@@ -429,7 +431,99 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 				c.tl.Fatalf("Failed to verify deletion of %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 			}
 		}
+
+		// Use a longer wait interval to avoid spamming the test log.
+		waitInterval := 1 * time.Second
+		var waitingForError error
+		err := wait.PollImmediate(waitInterval, c.clusterWaitTimeout, func() (bool, error) {
+			ok, err := c.checkPropagationStatus(fedObject, clusterName, objExpected)
+			if err != nil {
+				// Logging lots of waiting messages would clutter the
+				// logs.  Instead, track the most recent message
+				// indicating a wait and log it if the waiting fails.
+				if strings.HasPrefix(err.Error(), "Waiting") {
+					waitingForError = err
+					return false, nil
+				}
+				return false, err
+			}
+			return ok, nil
+		})
+		if err != nil {
+			if waitingForError != nil {
+				c.tl.Fatalf("Failed to check propagation status for %s %q: %v", federatedKind, qualifiedName, waitingForError)
+			}
+			c.tl.Fatalf("Failed to check propagation status for %s %q: %v", federatedKind, qualifiedName, err)
+		}
 	}
+}
+
+// checkPropagationStatus ensures that the federated resource status
+// reflects the expected propagation state.
+func (c *FederatedTypeCrudTester) checkPropagationStatus(fedObject *unstructured.Unstructured, clusterName string, objExpected bool) (bool, error) {
+	federatedKind := fedObject.GetKind()
+	qualifiedName := util.NewQualifiedName(fedObject)
+
+	// Retrieve the resource from the API to ensure the latest status
+	// is considered.
+	latestFedObject := &unstructured.Unstructured{}
+	latestFedObject.SetGroupVersionKind(fedObject.GroupVersionKind())
+	err := c.client.Get(context.TODO(), latestFedObject, qualifiedName.Namespace, qualifiedName.Name)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to retrieve updated resource from the API")
+	}
+
+	// Convert the resource to the status interface
+	genericStatus := &status.GenericFederatedStatus{}
+	err = util.UnstructuredToInterface(latestFedObject, genericStatus)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to unmarshall to generic status")
+	}
+	if genericStatus.Status == nil {
+		c.tl.Logf("Propagation status is not yet available for %s %q", federatedKind, qualifiedName)
+		return false, nil
+	}
+	propStatus := genericStatus.Status
+
+	// Check that aggregate status is ok
+	conditionTrue := false
+	for _, condition := range propStatus.Conditions {
+		if condition.Type == status.PropagationConditionType {
+			if condition.Status == apiv1.ConditionTrue {
+				conditionTrue = true
+			}
+			break
+		}
+	}
+	if !conditionTrue {
+		return false, errors.Errorf("Waiting for the propagated condition of %s %q to have status True", federatedKind, qualifiedName)
+	}
+
+	// Check that the cluster status is correct
+	if objExpected {
+		clusterStatusOK := false
+		for _, cluster := range propStatus.Clusters {
+			if cluster.Name == clusterName && cluster.Status == status.ClusterPropagationOK {
+				clusterStatusOK = true
+				break
+			}
+		}
+		if !clusterStatusOK {
+			return false, errors.Errorf("Waiting for %s %q to have ok status for cluster %q", federatedKind, qualifiedName, clusterName)
+		}
+	} else {
+		clusterRemoved := true
+		for _, cluster := range propStatus.Clusters {
+			if cluster.Name == clusterName && cluster.Status != status.WaitingForRemoval {
+				clusterRemoved = false
+				break
+			}
+		}
+		if !clusterRemoved {
+			return false, errors.Errorf("Waiting for cluster %q to be removed from the status of %s %q", clusterName, federatedKind, qualifiedName)
+		}
+	}
+	return true, nil
 }
 
 func (c *FederatedTypeCrudTester) checkHostNamespaceUnlabeled(client util.ResourceClient, qualifiedName util.QualifiedName, targetKind, clusterName string) {
@@ -584,10 +678,6 @@ func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedNa
 	matchedVersions := (version.TemplateVersion == templateVersion &&
 		version.OverrideVersion == overrideVersion)
 	if !matchedVersions {
-		c.tl.Logf("Expected template and override versions (%q, %q), got (%q, %q)",
-			templateVersion, overrideVersion,
-			version.TemplateVersion, version.OverrideVersion,
-		)
 		return "", false
 	}
 

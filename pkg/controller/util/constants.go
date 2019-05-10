@@ -36,6 +36,7 @@ const (
 
 	// Common fields
 	SpecField     = "spec"
+	StatusField   = "status"
 	MetadataField = "metadata"
 
 	// ServiceAccount fields
@@ -60,6 +61,15 @@ const (
 	ClusterOverridesField = "clusterOverrides"
 	PathField             = "path"
 	ValueField            = "value"
+
+	// Propagation status fields
+	ClustersField           = "clusters"
+	NameField               = "name"
+	ConditionsField         = "conditions"
+	TypeField               = "type"
+	ReasonField             = "reason"
+	LastProbeTimeField      = "lastProbeTime"
+	LastTransitionTimeField = "lastTransitionTime"
 )
 
 type ReconciliationStatus int

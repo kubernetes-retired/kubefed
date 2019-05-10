@@ -171,6 +171,61 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 					Type: "object",
 				},
 				"spec": specProps,
+				"status": {
+					Type: "object",
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"conditions": {
+							Type: "array",
+							Items: &v1beta1.JSONSchemaPropsOrArray{
+								Schema: &v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"type": {
+											Type: "string",
+										},
+										"status": {
+											Type: "string",
+										},
+										"reason": {
+											Type: "string",
+										},
+										"lastProbeTime": {
+											Format: "date-time",
+											Type:   "string",
+										},
+										"lastTransitionTime": {
+											Format: "date-time",
+											Type:   "string",
+										},
+									},
+									Required: []string{
+										"type",
+										"status",
+									},
+								},
+							},
+						},
+						"clusters": {
+							Type: "array",
+							Items: &v1beta1.JSONSchemaPropsOrArray{
+								Schema: &v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"name": {
+											Type: "string",
+										},
+										"status": {
+											Type: "string",
+										},
+									},
+									Required: []string{
+										"name",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
