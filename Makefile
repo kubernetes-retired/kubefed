@@ -108,12 +108,13 @@ controller: $(CONTROLLER_TARGET)
 
 kubefedctl: $(KUBEFEDCTL_TARGET)
 
-# Generate code
-generate: kubefedctl
+generate-code:
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
 	go generate ./pkg/... ./cmd/...
+
+generate: generate-code kubefedctl
 	./scripts/sync-up-helm-chart.sh
 
 push: container
