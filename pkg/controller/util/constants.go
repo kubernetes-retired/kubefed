@@ -51,7 +51,6 @@ const (
 
 	// Placement fields
 	PlacementField       = "placement"
-	ClusterNamesField    = "clusterNames"
 	ClusterSelectorField = "clusterSelector"
 	MatchLabelsField     = "matchLabels"
 
@@ -63,13 +62,15 @@ const (
 	ValueField            = "value"
 
 	// Propagation status fields
-	ClustersField           = "clusters"
-	NameField               = "name"
 	ConditionsField         = "conditions"
 	TypeField               = "type"
 	ReasonField             = "reason"
 	LastProbeTimeField      = "lastProbeTime"
 	LastTransitionTimeField = "lastTransitionTime"
+
+	// Cluster reference
+	ClustersField = "clusters"
+	NameField     = "name"
 )
 
 type ReconciliationStatus int

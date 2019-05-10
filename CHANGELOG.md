@@ -1,4 +1,7 @@
 # Unreleased
+-  [#688](https://github.com/kubernetes-sigs/federation-v2/issues/688)
+   Cluster references in placement are now objects instead of strings
+   to ensure extensibility.
 -  [#832](https://github.com/kubernetes-sigs/federation-v2/issues/832)
    `kubefedctl federate` can take input from a file via `--filename`
    option and stdin via `--filename -` option.

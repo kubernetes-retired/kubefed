@@ -78,20 +78,25 @@ func computePlacement(resource *unstructured.Unstructured, clusters []*fedv1a1.F
 }
 
 func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1a1.FederatedCluster) (sets.String, error) {
-	directive, err := util.GetPlacementDirective(resource)
+	placement, err := util.UnmarshalGenericPlacement(resource)
 	if err != nil {
 		return nil, err
 	}
 
 	selectedNames := sets.String{}
-	// Explicit cluster names take precedence over a selector.
-	if directive.ClusterNames != nil {
-		for _, clusterName := range directive.ClusterNames {
+	clusterNames := placement.ClusterNames()
+	if len(clusterNames) > 0 {
+		// Explicit cluster names take precedence over a selector.
+		for _, clusterName := range clusterNames {
 			selectedNames.Insert(clusterName)
 		}
 	} else {
+		selector, err := placement.ClusterSelector()
+		if err != nil {
+			return nil, err
+		}
 		for _, cluster := range clusters {
-			if directive.ClusterSelector.Matches(labels.Set(cluster.Labels)) {
+			if selector.Matches(labels.Set(cluster.Labels)) {
 				selectedNames.Insert(cluster.Name)
 			}
 		}

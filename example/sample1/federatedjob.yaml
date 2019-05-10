@@ -23,9 +23,9 @@ spec:
               image: busybox
               command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
   placement:
-    clusterNames:
-    - cluster2
-    - cluster1
+    clusters:
+    - name: cluster2
+    - name: cluster1
   overrides:
   - clusterName: cluster2
     clusterOverrides:

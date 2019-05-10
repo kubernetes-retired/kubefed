@@ -14,6 +14,6 @@ spec:
               serviceName: test-service
               servicePort: 80
   placement:
-    clusterNames:
-    - cluster2
-    - cluster1
+    clusters:
+    - name: cluster2
+    - name: cluster1
