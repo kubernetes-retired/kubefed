@@ -1,5 +1,8 @@
 [![Build Status](https://travis-ci.org/kubernetes-sigs/federation-v2.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/federation-v2 "Travis")
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/federation-v2)](https://goreportcard.com/report/github.com/kubernetes-sigs/federation-v2)
 [![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/federation-v2/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/federation-v2)
+[![LICENSE](https://img.shields.io/badge/license-apache2.0-green.svg)](https://github.com/kubernetes-sigs/federation-v2/blob/master/LICENSE)
+[![Releases](https://img.shields.io/badge/version-v0.0.10-orange.svg)](https://github.com/kubernetes-sigs/federation-v2/releases "Federation v2 latest release")
 
 # Kubernetes Federation v2
 
