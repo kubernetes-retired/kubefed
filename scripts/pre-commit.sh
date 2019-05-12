@@ -149,6 +149,10 @@ echo "Deploying cluster-scoped kubefed"
 echo "Running e2e tests against cluster-scoped kubefed"
 run-e2e-tests
 
+echo "Validating KubeFed walkthrough"
+./scripts/deploy-federated-nginx.sh
+kubectl delete ns test-namespace
+
 echo "Scaling down cluster-scoped controller manager"
 kubectl scale deployments kubefed-controller-manager -n kube-federation-system --replicas=0
 
