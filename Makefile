@@ -122,22 +122,22 @@ push: container
 	if [ -z "$(TRAVIS_PULL_REQUEST)" ]; \
 	then \
 		$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION); \
-	elif [ "$(TRAVIS_PULL_REQUEST)" = "false" ]; \
+	elif [ "$(TRAVIS_PULL_REQUEST)" = "false" && "$(TRAVIS_SECURE_ENV_VARS)" = "true" ]; \
 	then \
 		$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io; \
 		if [ "$(TRAVIS_BRANCH)" = "master" ]; \
 		then \
 			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):canary; \
 			$(DOCKER) push $(REGISTRY)/$(TARGET):canary; \
+		fi; \
+		\
+		if git describe --tags --exact-match >/dev/null 2>&1; \
+		then \
+			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):$(GIT_TAG); \
+			$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_TAG); \
+			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):latest; \
+			$(DOCKER) push $(REGISTRY)/$(TARGET):latest; \
 		fi \
-	fi
-
-	if git describe --tags --exact-match >/dev/null 2>&1; \
-	then \
-		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):$(GIT_TAG); \
-		$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_TAG); \
-		$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):latest; \
-		$(DOCKER) push $(REGISTRY)/$(TARGET):latest; \
 	fi
 
 clean:
