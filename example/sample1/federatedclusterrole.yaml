@@ -12,6 +12,6 @@ spec:
       verbs:
       - '*'
   placement:
-    clusterNames:
-    - cluster2
-    - cluster1
+    clusters:
+    - name: cluster2
+    - name: cluster1

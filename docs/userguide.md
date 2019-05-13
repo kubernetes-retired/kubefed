@@ -26,10 +26,10 @@
     - [Check Status of Resources](#check-status-of-resources)
     - [Update FederatedNamespace Placement](#update-federatednamespace-placement)
       - [Using Cluster Selector](#using-cluster-selector)
-        - [Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusternames-nor-specplacementclusterselector-is-provided)
-        - [Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided](#both-specplacementclusternames-and-specplacementclusterselector-are-provided)
-        - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-but-empty)
-        - [`spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusternames-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
+        - [Neither `spec.placement.clusters` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusters-nor-specplacementclusterselector-is-provided)
+        - [Both `spec.placement.clusters` and `spec.placement.clusterSelector` are provided](#both-specplacementclusters-and-specplacementclusterselector-are-provided)
+        - [`spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusters-is-not-provided-specplacementclusterselector-is-provided-but-empty)
+        - [`spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusters-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
     - [Example Cleanup](#example-cleanup)
     - [Troubleshooting](#troubleshooting)
   - [Namespaced Federation](#namespaced-federation)
@@ -503,7 +503,7 @@ Remove `cluster2` via a patch command or manually:
 
 ```bash
 kubectl -n test-namespace patch federatednamespace test-namespace \
-    --type=merge -p '{"spec": {"placement": {"clusterNames": ["cluster1"]}}}'
+    --type=merge -p '{"spec": {"placement": {"clusters": [{"name": "cluster1"}]}}}'
 
 kubectl -n test-namespace edit federatednamespace test-namespace
 ```
@@ -526,7 +526,7 @@ manually:
 
 ```bash
 kubectl -n test-namespace patch federatednamespace test-namespace \
-    --type=merge -p '{"spec": {"placement": {"clusterNames": ["cluster1", "cluster2"]}}}'
+    --type=merge -p '{"spec": {"placement": {"clusters": [{"name": "cluster1"}, {"name": "cluster2"}]}}}'
 
 kubectl -n test-namespace edit federatednamespace test-namespace
 ```
@@ -561,7 +561,7 @@ successfully verified a working federation-v2 deployment.
 #### Using Cluster Selector
 
 In addition to specifying an explicit list of clusters that a resource should be propagated
-to via the `spec.placement.clusterNames` field of a federated resource, it is possible to
+to via the `spec.placement.clusters` field of a federated resource, it is possible to
 use the `spec.placement.clusterSelector` field to provide a label selector that determines
 that list of clusters at runtime.
 
@@ -577,11 +577,11 @@ kubectl label federatedclusters -n kube-federation-system cluster1 foo=bar
 Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)
 to get more detail for how `kubectl label` works.
 
-The following sections detail how `spec.placement.clusterNames` and
+The following sections detail how `spec.placement.clusters` and
 `spec.placement.clusterSelector` are used in determining the clusters that a federated
 resource should be propagated to.
 
-##### Neither `spec.placement.clusterNames` nor `spec.placement.clusterSelector` is provided
+##### Neither `spec.placement.clusters` nor `spec.placement.clusterSelector` is provided
 
 ```yaml
 spec:
@@ -591,24 +591,24 @@ spec:
 In this case, you can either set `spec: {}` as above or remove `spec` field from your
 placement policy. The resource will not be propagated to member clusters.
 
-##### Both `spec.placement.clusterNames` and `spec.placement.clusterSelector` are provided
+##### Both `spec.placement.clusters` and `spec.placement.clusterSelector` are provided
 
 ```yaml
 spec:
   placement:
-    clusterNames:
-      - cluster2
-      - cluster1
+    clusters:
+      - name: cluster2
+      - name: cluster1
     clusterSelector:
       matchLabels:
         foo: bar
 ```
 
 For this case, `spec.placement.clusterSelector` will be ignored as
-`spec.placement.clusterNames` is provided. This ensures that the results of runtime
+`spec.placement.clusters` is provided. This ensures that the results of runtime
 scheduling have priority over manual definition of a cluster selector.
 
-##### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided but empty
+##### `spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty
 
 ```yaml
 spec:
@@ -618,7 +618,7 @@ spec:
 
 In this case, the resource will be propagated to all member clusters.
 
-##### `spec.placement.clusterNames` is not provided, `spec.placement.clusterSelector` is provided and not empty
+##### `spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided and not empty
 
 ```yaml
 spec:

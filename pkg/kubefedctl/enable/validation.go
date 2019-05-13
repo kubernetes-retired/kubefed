@@ -29,14 +29,23 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 			"placement": {
 				Type: "object",
 				Properties: map[string]v1beta1.JSONSchemaProps{
-					// clusterName allows a scheduling mechanism to explicitly
-					// indicate placement. If clusterName is provided,
-					// labelSelector will be ignored.
-					"clusterNames": {
+					// References to one or more clusters allow a
+					// scheduling mechanism to explicitly indicate
+					// placement. If one or more clusters is provided,
+					// the clusterSelector field will be ignored.
+					"clusters": {
 						Type: "array",
 						Items: &v1beta1.JSONSchemaPropsOrArray{
 							Schema: &v1beta1.JSONSchemaProps{
-								Type: "string",
+								Type: "object",
+								Properties: map[string]v1beta1.JSONSchemaProps{
+									"name": {
+										Type: "string",
+									},
+								},
+								Required: []string{
+									"name",
+								},
 							},
 						},
 					},

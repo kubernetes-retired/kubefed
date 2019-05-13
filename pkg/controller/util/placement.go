@@ -17,20 +17,20 @@ limitations under the License.
 package util
 
 import (
-	"encoding/json"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-type GenericPlacementFields struct {
-	ClusterNames    []string              `json:"clusterNames,omitempty"`
-	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
+type GenericClusterReference struct {
+	Name string `json:"name"`
 }
 
-// TODO(marun) Consider removing this intermediate field.  It is only
-// used for grouping.
+type GenericPlacementFields struct {
+	Clusters        []GenericClusterReference `json:"clusters,omitempty"`
+	ClusterSelector *metav1.LabelSelector     `json:"clusterSelector,omitempty"`
+}
+
 type GenericPlacementSpec struct {
 	Placement GenericPlacementFields `json:"placement,omitempty"`
 }
@@ -42,36 +42,41 @@ type GenericPlacement struct {
 	Spec GenericPlacementSpec `json:"spec,omitempty"`
 }
 
-type PlacementDirective struct {
-	ClusterNames    []string
-	ClusterSelector labels.Selector
-}
-
-func GetPlacementDirective(resource *unstructured.Unstructured) (*PlacementDirective, error) {
-	content, err := resource.MarshalJSON()
+func UnmarshalGenericPlacement(obj *unstructured.Unstructured) (*GenericPlacement, error) {
+	placement := &GenericPlacement{}
+	err := UnstructuredToInterface(obj, placement)
 	if err != nil {
 		return nil, err
 	}
-	placement := GenericPlacement{}
-	err = json.Unmarshal(content, &placement)
+	return placement, nil
+}
+
+func (p *GenericPlacement) ClusterNames() []string {
+	clusterNames := []string{}
+	for _, cluster := range p.Spec.Placement.Clusters {
+		clusterNames = append(clusterNames, cluster.Name)
+	}
+	return clusterNames
+}
+
+func (p *GenericPlacement) ClusterSelector() (labels.Selector, error) {
+	return metav1.LabelSelectorAsSelector(p.Spec.Placement.ClusterSelector)
+}
+
+func GetClusterNames(obj *unstructured.Unstructured) ([]string, error) {
+	placement, err := UnmarshalGenericPlacement(obj)
 	if err != nil {
 		return nil, err
 	}
-	selector, err := metav1.LabelSelectorAsSelector(placement.Spec.Placement.ClusterSelector)
-	if err != nil {
-		return nil, err
+	return placement.ClusterNames(), nil
+}
+
+func SetClusterNames(obj *unstructured.Unstructured, clusterNames []string) error {
+	clusters := []interface{}{}
+	for _, clusterName := range clusterNames {
+		clusters = append(clusters, map[string]interface{}{
+			NameField: clusterName,
+		})
 	}
-	return &PlacementDirective{
-		ClusterNames:    placement.Spec.Placement.ClusterNames,
-		ClusterSelector: selector,
-	}, nil
-}
-
-func GetClusterNames(fedObject *unstructured.Unstructured) ([]string, error) {
-	clusterNames, _, err := unstructured.NestedStringSlice(fedObject.Object, SpecField, PlacementField, ClusterNamesField)
-	return clusterNames, err
-}
-
-func SetClusterNames(fedObject *unstructured.Unstructured, clusterNames []string) error {
-	return unstructured.SetNestedStringSlice(fedObject.Object, clusterNames, SpecField, PlacementField, ClusterNamesField)
+	return unstructured.SetNestedSlice(obj.Object, clusters, SpecField, PlacementField, ClustersField)
 }

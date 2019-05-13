@@ -8,9 +8,9 @@ spec:
     data:
       A: ala ma kota
   placement:
-    clusterNames:
-    - cluster2
-    - cluster1
+    clusters:
+    - name: cluster2
+    - name: cluster1
   overrides:
   - clusterName: cluster2
     clusterOverrides:

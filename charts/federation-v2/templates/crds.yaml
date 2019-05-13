@@ -48,10 +48,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -75,6 +71,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -350,10 +355,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -377,6 +378,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -606,10 +616,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -633,6 +639,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             retainReplicas:
               type: boolean
@@ -2908,10 +2923,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -2935,6 +2946,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -3214,10 +3234,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -3241,6 +3257,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -5498,10 +5523,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -5525,6 +5546,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -5752,10 +5782,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -5779,6 +5805,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             retainReplicas:
               type: boolean
@@ -8025,10 +8060,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -8052,6 +8083,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -8283,10 +8323,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -8310,6 +8346,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
@@ -8558,10 +8603,6 @@ spec:
               type: array
             placement:
               properties:
-                clusterNames:
-                  items:
-                    type: string
-                  type: array
                 clusterSelector:
                   properties:
                     matchExpressions:
@@ -8585,6 +8626,15 @@ spec:
                         type: string
                       type: object
                   type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
               type: object
             template:
               properties:
