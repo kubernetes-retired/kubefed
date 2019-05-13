@@ -262,6 +262,32 @@ kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
 you can patch role `federation-role` in the federation namespace instead.
 
+## Federating a kubernetes resource
+`kubectl federate` can federate an existing kubernetes resource. The `federate` operation creates a
+federated resource from a kubernetes resource. After federated resource is created, the federation
+controller propagates resources to all member clusters by default. The prerequisite to federate a
+resource are:
+- the resource definition must exist in all member clusters
+- the resource is enabled with `FederateyTypeConfig` resource created in host cluster.
+
+For example, an existing `deployment` resource need to be federated. You can use command:
+```bash
+kubefedctl federate deployments.apps --federation-namespace kube-federation-system --namespace <Namesapce Name> <Deployment Name>
+```
+After the resource is federated, the target resources will be propagated to all member clusters in
+the federation. You can patch or update the federated resource to select member clusters you want
+to propagate the resource to.
+
+If you have many resources in a namespace, it is possible to federate the namespace with its content
+resources as a whole. You can federate a namespace with contents to make it done.
+```bash
+kubefedctl federate ns --federation-namespace kube-federation-system --skip-api-resources 'pods' --contents <Namespace Name>
+```
+**NOTE**: use `--skip-api-resource` to avoid federating unnecessary resources. For example, it makes no sense
+to federate local `pods` which create by the resources you want to federate to. The reason is that such kind of
+`pods` will be created automatically in member cluster after related resources are propagated.
+
+
 ## Disabling federation of an API type
 
 It is possible to disable propagation of a type that is configured for propagation using the
