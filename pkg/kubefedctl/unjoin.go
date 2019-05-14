@@ -43,7 +43,7 @@ var (
 	unjoin_long = `
 		Unjoin removes a cluster from a federation.
 		Current context is assumed to be a Kubernetes cluster
-		hosting the federation control plane. Please use the
+		hosting the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 	unjoin_example = `
 		# Unjoin a cluster from a federation by specifying the

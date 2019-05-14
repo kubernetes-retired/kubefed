@@ -53,7 +53,7 @@ var (
 		Join adds a cluster to a federation.
 
 		Current context is assumed to be a Kubernetes cluster
-		hosting the federation control plane. Please use the
+		hosting the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 	join_example = `
 		# Join a cluster to a federation by specifying the

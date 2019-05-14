@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This script unjoins any clusters passed as arguments and removes the
-# federation control plane from the current kubectl context.
+# kubefed control plane from the current kubectl context.
 
 set -o errexit
 set -o nounset

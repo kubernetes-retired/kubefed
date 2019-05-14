@@ -77,7 +77,7 @@
      Use generic client to operate on federation apis as shown
      [here](https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/client/example_test.go)
    - Helm based deployment method will be the only supported
-     deployment method to install federation control plane.
+     deployment method to install kubefed control plane.
  - [#622](https://sigs.k8s.io/kubefed/pull/622) -
    Switched the sync controller to using a new finalizer
    (`kubefed.k8s.io/sync-controller` instead of

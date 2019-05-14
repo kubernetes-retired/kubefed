@@ -58,10 +58,10 @@ Setting-up MCSDNS can be accomplished by referencing the following documentation
   controller. You must ensure the following `args` are provided in the external-dns Deployment manifest:
   `--source=crd --crd-source-apiversion=multiclusterdns.kubefed.k8s.io/v1alpha1 --crd-source-kind=DNSEndpoint --registry=txt --txt-prefix=cname`
   **Note**: If you do not deploy the external-dns controller to the same namespace and use the default service account
-  of the federation control-plane, you must setup RBAC permissions allowing the controller access to necessary
+  of the kubefed control-plane, you must setup RBAC permissions allowing the controller access to necessary
   resources.
 
-After the cluster, federation control-plane, and external-dns controller are running, use the
+After the cluster, kubefed control-plane, and external-dns controller are running, use the
 [sample](../example/sample1) federated deployment and service to test MCSDNS. You must change the sample service type to
 `LoadBalancer` for the Service DNS controller to populate the status IP of the `ServiceDNSRecord` and the target IP's of
 the `DNSEndpoint`:

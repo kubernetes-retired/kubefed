@@ -52,7 +52,7 @@ func registerFlags(t *TestContextType) {
 	flag.StringVar(&t.KubeContext, "context", "",
 		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
 	flag.StringVar(&t.FederationSystemNamespace, "kubefed-namespace", util.DefaultFederationSystemNamespace,
-		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
+		fmt.Sprintf("The namespace the kubefed control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
 	flag.DurationVar(&t.SingleCallTimeout, "single-call-timeout", DefaultSingleCallTimeout,
 		fmt.Sprintf("The maximum duration of a single call.  If unset, will default to %v", DefaultSingleCallTimeout))
 	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the kubefed namespace (configurable via --kubefed-namespace) will be the only target for federation.")
@@ -67,7 +67,7 @@ func validateFlags(t *TestContextType) {
 		klog.Fatalf("kubeconfig is required")
 	}
 	if t.InMemoryControllers {
-		klog.Info("in-memory-controllers=true - this will launch the kubefed controllers outside the cluster hosting the federation control plane.")
+		klog.Info("in-memory-controllers=true - this will launch the kubefed controllers outside the cluster hosting the kubefed control plane.")
 	}
 }
 

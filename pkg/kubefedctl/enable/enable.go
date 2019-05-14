@@ -55,7 +55,7 @@ var (
 		a sync controller.
 
 		Current context is assumed to be a Kubernetes cluster hosting
-		the federation control plane. Please use the
+		the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
 	enable_example = `

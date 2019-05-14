@@ -399,7 +399,7 @@ spec:
         spec:
           properties:
             scope:
-              description: The scope of the federation control plane should be either
+              description: The scope of the kubefed control plane should be either
                 `Namespaced` or `Cluster`. `Namespaced` indicates that the federation
                 namespace will be the only target for federation.
               type: string

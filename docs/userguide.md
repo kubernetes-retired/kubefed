@@ -663,7 +663,7 @@ kubectl logs -f federation-controller-manager-0 -n kube-federation-system
 ## Namespaced Federation
 
 All prior instructions referred to the deployment and use of a
-cluster-scoped federation control plane. It is also possible to
+cluster-scoped kubefed control plane. It is also possible to
 deploy a namespace-scoped control plane. In this mode of operation,
 kubefed controllers will target resources in a single namespace on
 both host and member clusters. This may be desirable when

@@ -161,7 +161,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 			c.lock.Lock()
 			c.stopChannels[typeConfig.Name] = holderChan
 			c.lock.Unlock()
-			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
+			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced kubefed control plane.", typeConfig.GetFederatedType().Kind)
 		}
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
@@ -291,7 +291,7 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error {
 	// TODO(marun) Consider using a shared informer for federated
 	// namespace that can be shared between all controllers of a
-	// cluster-scoped federation control plane.  A namespace-scoped
+	// cluster-scoped kubefed control plane.  A namespace-scoped
 	// control plane would still have to use a non-shared informer due
 	// to it not being possible to limit its scope.
 	kind := tc.Spec.FederatedType.Kind

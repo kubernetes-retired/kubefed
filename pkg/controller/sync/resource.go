@@ -40,7 +40,7 @@ import (
 
 // FederatedResource encapsulates the behavior of a logical federated
 // resource which may be implemented by one or more kubernetes
-// resources in the cluster hosting the federation control plane.
+// resources in the cluster hosting the kubefed control plane.
 type FederatedResource interface {
 	dispatch.FederatedResourceForDispatch
 
@@ -148,7 +148,7 @@ func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Objec
 	//
 	// Deletion of a federated namespace should also not result in
 	// deletion of its containing namespace, since that could result
-	// in the deletion of a namespaced federation control plane.
+	// in the deletion of a namespaced kubefed control plane.
 	return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
 }
 

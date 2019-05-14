@@ -67,7 +67,7 @@ var (
 		federation API to be installed in the cluster).
 
 		Current context is assumed to be a Kubernetes cluster hosting
-		the federation control plane. Please use the --host-cluster-context
+		the kubefed control plane. Please use the --host-cluster-context
 		flag otherwise.`
 
 	federate_example = `
