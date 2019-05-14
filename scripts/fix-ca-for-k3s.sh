@@ -28,7 +28,7 @@
 # users (KUBECONFIG) and pods (service accounts).
 # Because "kubefedctl join" uses the endpoint from KUBECONFIG and
 # the certificate from a service account in the member cluster,
-# the federation controller manager fails to communicate with the
+# the kubefed controller manager fails to communicate with the
 # member clusters, producing the messages like the following.
 #
 # 	x509: certificate signed by unknown authority

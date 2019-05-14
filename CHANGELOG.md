@@ -57,7 +57,7 @@
    `--registry-namespace` option from `kubefed2 <enable|disable>`.
  - [#737](https://sigs.k8s.io/kubefed/pull/737) -
    Switch to use FederationConfig resource rather than command line
-   options for federation controller configuration management
+   options for kubefed controller configuration management
  - [#549](https://sigs.k8s.io/kubefed/pull/549) -
    As a result of watching only labled resources, unlabled resources
    in unselected clusters will no longer be deleted.

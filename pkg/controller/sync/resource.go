@@ -193,7 +193,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 
 	// Ensure that resources managed by federation always have the
 	// managed label.  The label is intended to be targeted by all the
-	// federation controllers.
+	// kubefed controllers.
 	util.AddManagedLabel(obj)
 
 	return obj, nil

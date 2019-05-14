@@ -625,7 +625,7 @@ func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, o
 
 		_, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		if apierrors.IsConflict(err) {
-			// The resource was updated by the federation controller.
+			// The resource was updated by the kubefed controller.
 			// Get the latest version and retry.
 			obj, err = client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
 			return false, err

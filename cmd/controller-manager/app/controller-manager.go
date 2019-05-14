@@ -66,7 +66,7 @@ func NewControllerManagerCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use: "controller-manager",
-		Long: `The Federation controller manager runs a bunch of controllers
+		Long: `The Kubefed controller manager runs a bunch of controllers
 which watches federation CRD's and the corresponding resources in federation
 member clusters and does the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {

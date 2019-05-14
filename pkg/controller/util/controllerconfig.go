@@ -48,7 +48,7 @@ type LeaderElectionConfiguration struct {
 }
 
 // FederationNamespaces defines the namespace configuration shared by
-// most federation controllers.
+// most kubefed controllers.
 type FederationNamespaces struct {
 	FederationNamespace string
 	TargetNamespace     string

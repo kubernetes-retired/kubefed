@@ -236,7 +236,7 @@ and **deployments**.apps) match, the crd name of the generated federated type wo
 
 `kubefedctl enable --federation-group string` specifies the name of the API group to use for the
 generated federation type. It is `types.federation.k8s.io` by default. If a new federation group is
-enabled, the RBAC permissions for the federation controller manager will need to be updated to include
+enabled, the RBAC permissions for the kubefed controller manager will need to be updated to include
 permissions for the new group.
 
 For example, after federation deployment, `deployments.apps` is enabled by default. To enable
@@ -654,7 +654,7 @@ An example for CRD of `federatedserviceaccounts` is as follows:
 kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
 ```
 
-It may also be useful to inspect the federation controller log as follows:
+It may also be useful to inspect the kubefed controller log as follows:
 
 ```bash
 kubectl logs -f federation-controller-manager-0 -n kube-federation-system
@@ -665,7 +665,7 @@ kubectl logs -f federation-controller-manager-0 -n kube-federation-system
 All prior instructions referred to the deployment and use of a
 cluster-scoped federation control plane. It is also possible to
 deploy a namespace-scoped control plane. In this mode of operation,
-federation controllers will target resources in a single namespace on
+kubefed controllers will target resources in a single namespace on
 both host and member clusters. This may be desirable when
 experimenting with federation on a production cluster.
 
@@ -921,7 +921,7 @@ Replica layout: C=20
 
 ## Controller-Manager Leader Election
 
-The federation controller manager is always deployed with leader election feature
+The kubefed controller manager is always deployed with leader election feature
 to ensure high availability of the control plane. Leader election module ensures
 there is always a leader elected among multiple instances which takes care of
 running the controllers. In case the active instance goes down, one of the standby instances

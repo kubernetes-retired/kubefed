@@ -144,10 +144,10 @@ dlv test -- -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
 
 ### Running Tests With In-Memory Controllers
 
-Running the federation controllers in-memory for a test run allows the
+Running the kubefed controllers in-memory for a test run allows the
 controllers to be targeted by a debugger (e.g. delve) or the golang
 race detector.  The prerequisite for this mode is scaling down the
-federation controller manager:
+kubefed controller manager:
 
 1. Reduce the `federation-controller-manager` deployment replicas to 0. This way
    we can launch the necessary kubefed controllers ourselves via the test
