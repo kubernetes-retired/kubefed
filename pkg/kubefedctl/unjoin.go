@@ -194,7 +194,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 		err = deleteFedNSFromUnjoinCluster(hostClientset, clusterClientset, federationNamespace, unjoiningClusterName, dryRun)
 		if err != nil {
-			klog.Errorf("Error deleting federation namespace from unjoin cluster: %v", err)
+			klog.Errorf("Error deleting kubefed namespace from unjoin cluster: %v", err)
 			deletionSucceeded = false
 		}
 	}
@@ -270,7 +270,7 @@ func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
 	return deletionSucceeded
 }
 
-// deleteFedNSFromUnjoinCluster deletes the federation namespace from
+// deleteFedNSFromUnjoinCluster deletes the kubefed namespace from
 // the unjoining cluster so long as the unjoining cluster is not the
 // host cluster.
 func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset kubeclient.Interface,
@@ -291,20 +291,20 @@ func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset kubec
 	}
 
 	if controllerutil.IsPrimaryCluster(hostClusterNamespace, unjoiningClusterNamespace) {
-		klog.V(2).Infof("The federation namespace %q does not need to be deleted from the host cluster by unjoin.", federationNamespace)
+		klog.V(2).Infof("The kubefed namespace %q does not need to be deleted from the host cluster by unjoin.", federationNamespace)
 		return nil
 	}
 
-	klog.V(2).Infof("Deleting federation namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+	klog.V(2).Infof("Deleting kubefed namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
 	err = unjoiningClusterClientset.CoreV1().Namespaces().Delete(federationNamespace, &metav1.DeleteOptions{})
 	if apierrors.IsNotFound(err) {
-		klog.V(2).Infof("The federation namespace %q no longer exists in unjoining cluster %q", federationNamespace, unjoiningClusterName)
+		klog.V(2).Infof("The kubefed namespace %q no longer exists in unjoining cluster %q", federationNamespace, unjoiningClusterName)
 		return nil
 	}
 	if err != nil {
-		return errors.Wrapf(err, "Could not delete federation namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+		return errors.Wrapf(err, "Could not delete kubefed namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
 	}
-	klog.V(2).Infof("Deleted federation namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
+	klog.V(2).Infof("Deleted kubefed namespace %q from unjoining cluster %q", federationNamespace, unjoiningClusterName)
 	return nil
 }
 

@@ -260,7 +260,7 @@ kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path
 }]'
 ```
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
-you can patch role `federation-role` in the federation namespace instead.
+you can patch role `federation-role` in the kubefed namespace instead.
 
 ## Disabling federation of an API type
 

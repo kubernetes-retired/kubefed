@@ -18,9 +18,9 @@
 # the README - to the current kubectl context.  It also joins the
 # hosting cluster as a member of the federation.
 #
-# WARNING: The service account for the federation namespace will be
+# WARNING: The service account for the kubefed namespace will be
 # granted the cluster-admin role.  Until more restrictive permissions
-# are used, access to the federation namespace should be restricted to
+# are used, access to the kubefed namespace should be restricted to
 # trusted users.
 #
 # If using minikube, a cluster must be started prior to invoking this

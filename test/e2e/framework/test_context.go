@@ -55,7 +55,7 @@ func registerFlags(t *TestContextType) {
 		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
 	flag.DurationVar(&t.SingleCallTimeout, "single-call-timeout", DefaultSingleCallTimeout,
 		fmt.Sprintf("The maximum duration of a single call.  If unset, will default to %v", DefaultSingleCallTimeout))
-	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the federation namespace (configurable via --kubefed-namespace) will be the only target for federation.")
+	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the kubefed namespace (configurable via --kubefed-namespace) will be the only target for federation.")
 	flag.BoolVar(&t.LimitedScopeInMemoryControllers, "limited-scope-in-memory-controllers", true,
 		"Whether kubefed controllers started in memory should target only the test namespace.  If debugging cluster-scoped federation outside of a test namespace, this should be set to false.")
 	flag.BoolVar(&t.WaitForFinalization, "wait-for-finalization", true,

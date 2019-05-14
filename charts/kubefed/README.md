@@ -135,7 +135,7 @@ chart and their default values.
 | controllermanager.clusterHealthCheckSuccessThreshold | Minimum consecutive successes for the cluster health to be considered successful after having failed.                                                                        | 1                               |
 | controllermanager.clusterHealthCheckTimeoutSeconds   | Number of seconds after which the cluster health check times out.                                                                                                            | 3                               |
 | controllermanager.syncController.skipAdoptingResources  | Whether to skip adopting pre-existing resource in member clusters.                                                                                                        | false                           |
-| global.scope                   | Whether the federation namespace will be the only target for federation.                                                                                                                           | Cluster                         |
+| global.scope                   | Whether the kubefed namespace will be the only target for federation.                                                                                                                           | Cluster                         |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.

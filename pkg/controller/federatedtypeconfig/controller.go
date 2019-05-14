@@ -89,7 +89,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
 
-	// Only watch the federation namespace to ensure
+	// Only watch the kubefed namespace to ensure
 	// restrictive authz can be applied to a namespaced
 	// control plane.
 	c.store, c.controller, err = util.NewGenericInformer(

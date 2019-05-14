@@ -324,7 +324,7 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName, api
 	}
 }
 
-// createFederationNamespace creates the federation namespace in the cluster
+// createFederationNamespace creates the kubefed namespace in the cluster
 // associated with clusterClientset, if it doesn't already exist.
 func createFederationNamespace(clusterClientset kubeclient.Interface, federationNamespace,
 	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
