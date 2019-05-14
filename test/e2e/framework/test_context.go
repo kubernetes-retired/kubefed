@@ -31,7 +31,7 @@ type TestContextType struct {
 	InMemoryControllers             bool
 	KubeConfig                      string
 	KubeContext                     string
-	KubefedSystemNamespace       string
+	KubefedSystemNamespace          string
 	SingleCallTimeout               time.Duration
 	LimitedScope                    bool
 	LimitedScopeInMemoryControllers bool

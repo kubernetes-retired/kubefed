@@ -21,9 +21,9 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
-	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
+	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
 	"sigs.k8s.io/kubefed/pkg/controller/servicedns"
 	"sigs.k8s.io/kubefed/pkg/controller/status"

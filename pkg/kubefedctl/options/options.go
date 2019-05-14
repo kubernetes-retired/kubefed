@@ -33,10 +33,10 @@ import (
 // GlobalSubcommandOptions holds the configuration required by the subcommands of
 // `kubefedctl`.
 type GlobalSubcommandOptions struct {
-	HostClusterContext  string
-	KubefedNamespace string
-	Kubeconfig          string
-	DryRun              bool
+	HostClusterContext string
+	KubefedNamespace   string
+	Kubeconfig         string
+	DryRun             bool
 }
 
 // GlobalSubcommandBind adds the global subcommand flags to the flagset passed in.

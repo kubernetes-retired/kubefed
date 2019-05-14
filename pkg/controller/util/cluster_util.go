@@ -32,9 +32,9 @@ import (
 )
 
 const (
-	DefaultKubefedSystemNamespace = "kube-federation-system"
-	DefaultClusterAvailableDelay     = 20 * time.Second
-	DefaultClusterUnavailableDelay   = 60 * time.Second
+	DefaultKubefedSystemNamespace  = "kube-federation-system"
+	DefaultClusterAvailableDelay   = 20 * time.Second
+	DefaultClusterUnavailableDelay = 60 * time.Second
 
 	KubeAPIQPS   = 20.0
 	KubeAPIBurst = 30

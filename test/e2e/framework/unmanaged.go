@@ -163,7 +163,7 @@ func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
 	return &util.ControllerConfig{
 		KubefedNamespaces: util.KubefedNamespaces{
 			KubefedNamespace: TestContext.KubefedSystemNamespace,
-			TargetNamespace:     f.inMemoryTargetNamespace(),
+			TargetNamespace:  f.inMemoryTargetNamespace(),
 		},
 		KubeConfig:      f.Config,
 		MinimizeLatency: true,

@@ -51,7 +51,7 @@ type LeaderElectionConfiguration struct {
 // most kubefed controllers.
 type KubefedNamespaces struct {
 	KubefedNamespace string
-	TargetNamespace     string
+	TargetNamespace  string
 }
 
 // ClusterHealthCheckConfig defines the configurable parameters for cluster health check
