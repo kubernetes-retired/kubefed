@@ -143,16 +143,16 @@ CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY=y OVERWRITE_KUBECONFIG=y 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null
 
-echo "Deploying cluster-scoped federation-v2"
-./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
+echo "Deploying cluster-scoped kubefed"
+./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
 
-echo "Running e2e tests against cluster-scoped federation-v2"
+echo "Running e2e tests against cluster-scoped kubefed"
 run-e2e-tests
 
 echo "Scaling down cluster-scoped controller manager"
 kubectl scale deployments federation-controller-manager -n kube-federation-system --replicas=0
 
-echo "Running e2e tests with race detector against cluster-scoped federation-v2 with in-memory controllers"
+echo "Running e2e tests with race detector against cluster-scoped kubefed with in-memory controllers"
 run-e2e-tests-with-in-memory-controllers
 
 # FederatedTypeConfig controller is needed to remove finalizers from
@@ -161,14 +161,14 @@ run-e2e-tests-with-in-memory-controllers
 echo "Scaling back up cluster-scoped controller manager prior to deletion"
 kubectl scale deployments federation-controller-manager -n kube-federation-system --replicas=1
 
-echo "Deleting cluster-scoped federation-v2"
+echo "Deleting cluster-scoped kubefed"
 ./scripts/delete-federation.sh
 
-echo "Deploying namespace-scoped federation-v2"
-FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/federation-v2:e2e $(join-cluster-list)
+echo "Deploying namespace-scoped kubefed"
+FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
 
-echo "Running go e2e tests with namespace-scoped federation-v2"
+echo "Running go e2e tests with namespace-scoped kubefed"
 run-namespaced-e2e-tests
 
-echo "Deleting namespace-scoped federation-v2"
+echo "Deleting namespace-scoped kubefed"
 FEDERATION_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-federation.sh

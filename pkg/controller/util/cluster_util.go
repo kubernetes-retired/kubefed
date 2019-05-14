@@ -49,7 +49,7 @@ const (
 	DefaultClusterHealthCheckSuccessThreshold = 1
 	DefaultClusterHealthCheckTimeout          = 3
 
-	FederationConfigName = "federation-v2"
+	FederationConfigName = "kubefed"
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// A binary that can morph into all of the other federation-v2 binaries. You can
+// A binary that can morph into all of the other kubefed binaries. You can
 // also soft-link to it busybox style.
 //
 package main
@@ -87,7 +87,7 @@ func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 	makeSymlinksFlag := false
 	cmd := &cobra.Command{
 		Use:   "hyperfed",
-		Short: "Combined binary for federation-v2",
+		Short: "Combined binary for kubefed",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 0 || !makeSymlinksFlag {
 				if err := cmd.Help(); err != nil {

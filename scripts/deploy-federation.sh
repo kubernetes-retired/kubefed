@@ -85,10 +85,10 @@ EOF
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd federation-v2-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd federation-v2 ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -106,7 +106,7 @@ function helm-deploy-cmd {
   local image="${4}"
   local tag="${5}"
 
-  echo "helm install charts/federation-v2 --name ${name} --namespace ${ns} \
+  echo "helm install charts/kubefed --name ${name} --namespace ${ns} \
       --set controllermanager.repository=${repo} --set controllermanager.image=${image} \
       --set controllermanager.tag=${tag}"
 }
@@ -115,7 +115,7 @@ NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
 
-LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/kubefed:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
 else
@@ -129,7 +129,7 @@ if [[ -z "${IMAGE_NAME}" ]]; then
 
 <image>        should be in the form <containerregistry>/<username>/<imagename>:<tagname>
 
-Example: docker.io/<username>/federation-v2:test
+Example: docker.io/<username>/kubefed:test
 
 If intending to use the docker hub as the container registry to push
 the federation image to, make sure to login to the local docker daemon

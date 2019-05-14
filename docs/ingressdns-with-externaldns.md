@@ -40,7 +40,7 @@ MCIDNS is comprised of multiple types and controllers:
 
 Setting-up MCIDNS can be accomplished by referencing the following documentation:
 
-- The Federation-v2 [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
+- The Kubefed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
   control-plane. If running in GKE, the cluster hosting the ExternalDNS controller must have scope
   `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with

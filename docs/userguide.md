@@ -52,14 +52,14 @@
 
 # User Guide
 
-If you are looking to use federation v2, you've come to the right place. Below
-is a walkthrough tutorial for how to deploy the federation v2 control plane.
+If you are looking to use kubefed, you've come to the right place. Below
+is a walkthrough tutorial for how to deploy the kubefed control plane.
 
-Please refer to [Federation V2 Concepts](./concepts.md) first before you go through this user guide.
+Please refer to [Kubefed Concepts](./concepts.md) first before you go through this user guide.
 
 ## Prerequisites
 
-The federation v2 deployment requires kubernetes version >= 1.11. The following
+The kubefed deployment requires kubernetes version >= 1.11. The following
 is a detailed list of binaries required.
 
 ### Binaries
@@ -67,10 +67,10 @@ is a detailed list of binaries required.
 `kubectl` is installed by the [guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 `kubefedctl` is the federation command line utility. You can download
-the latest binary from the [release page](https://github.com/kubernetes-sigs/federation-v2/releases).
+the latest binary from the [release page](https://github.com/kubernetes-sigs/kubefed/releases).
 ```bash
 VERSION=<latest-version>
-curl -LO https://github.com/kubernetes-sigs/federation-v2/releases/download/${VERSION}/kubefedctl.tgz
+curl -LO https://github.com/kubernetes-sigs/kubefed/releases/download/${VERSION}/kubefedctl.tgz
 tar -zxvf kubefedctl.tgz
 chmod u+x kubefedctl
 sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
@@ -81,15 +81,15 @@ sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
 ### Deployment Image
 
 If you follow this user guide without any changes you will be using the latest
-stable released version of the federation-v2 image tagged as `latest`.
+stable released version of the kubefed image tagged as `latest`.
 Alternatively, we support the ability to deploy the [latest master image tagged
 as `canary`](development.md#test-latest-master-changes-canary) or [your own
 custom image](development.md#test-your-changes).
 
 ### Create Clusters
 
-The federation v2 control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
-Kubernetes environments that have been tested and are supported by the Federation v2 community:
+The kubefed control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
+Kubernetes environments that have been tested and are supported by the Kubefed community:
 
 - [kind](./environments/kind.md)
 
@@ -99,7 +99,7 @@ Kubernetes environments that have been tested and are supported by the Federatio
 
 - [IBM Cloud Private](./environments/icp.md)
 
-After completing the steps in one of the above guides, return here to continue the Federation v2 deployment.
+After completing the steps in one of the above guides, return here to continue the Kubefed deployment.
 
 **NOTE:** You must set the correct context using the command below as this guide depends on it.
 
@@ -109,8 +109,8 @@ kubectl config use-context cluster1
 
 ## Helm Chart Deployment
 
-You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md)
-to install and uninstall a federation-v2 control plane.
+You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md)
+to install and uninstall a kubefed control plane.
 
 ## Operations
 
@@ -181,14 +181,14 @@ kubefedctl enable <target API type> --output=yaml
 **NOTE:** Federation of an API type requires that the API type be installed on
 all member clusters. If the API type is not installed on a member cluster,
 propagation to that cluster will fail. See issue
-[314](https://github.com/kubernetes-sigs/federation-v2/issues/314) for more
+[314](https://github.com/kubernetes-sigs/kubefed/issues/314) for more
 details.
 
 ### Verifying API type is installed on all member clusters
 
 If the API type is not installed on one of your member clusters, you will see a
 repeated `controller-manager` log error similar to the one reported in issue
-[314](https://github.com/kubernetes-sigs/federation-v2/issues/314). At this
+[314](https://github.com/kubernetes-sigs/kubefed/issues/314). At this
 time, you must manually verify that the API type is installed on each of your
 clusters as the `controller-manager` log error is the only indication.
 
@@ -556,7 +556,7 @@ done
 ```
 
 If you were able to verify the resources removed and added back then you have
-successfully verified a working federation-v2 deployment.
+successfully verified a working kubefed deployment.
 
 #### Using Cluster Selector
 
@@ -673,7 +673,7 @@ experimenting with federation on a production cluster.
 
 To deploy a federation in a namespaced configuration, set
 `global.scope` to `Namespaced` as per the Helm chart [install
-instructions](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md#configuration).
+instructions](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md#configuration).
 
 
 ### Joining Clusters
@@ -732,10 +732,10 @@ generated value.
 
 ## Higher order behaviour
 
-The architecture of federation v2 API allows higher level APIs to be constructed using the
+The architecture of kubefed API allows higher level APIs to be constructed using the
 mechanics provided by the standard form of the federated API types (containing fields for
 `template`, `placement` and `override`) and associated controllers for a given resource.
-Further sections describe few of higher level APIs implemented as part of Federation V2.
+Further sections describe few of higher level APIs implemented as part of Kubefed.
 
 ### Multi-Cluster Ingress DNS
 
@@ -927,6 +927,6 @@ there is always a leader elected among multiple instances which takes care of
 running the controllers. In case the active instance goes down, one of the standby instances
 gets elected as leader to ensure minimum downtime. Leader election ensures that
 only one instance is responsible for reconciliation. You can refer to the
-[helm chart configuration](https://github.com/kubernetes-sigs/federation-v2/tree/master/charts/federation-v2#configuration)
+[helm chart configuration](https://github.com/kubernetes-sigs/kubefed/tree/master/charts/kubefed#configuration)
 to configure parameters for leader election to tune for your environment
 (the defaults should be sane for most environments).

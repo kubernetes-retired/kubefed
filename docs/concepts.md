@@ -2,11 +2,11 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Federation V2 Concepts](#federation-v2-concepts)
+- [Kubefed Concepts](#kubefed-concepts)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-### Federation V2 Concepts
+### Kubefed Concepts
 
 | Concept              | Description                                                                                                                                                                                                                                                                                                         |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

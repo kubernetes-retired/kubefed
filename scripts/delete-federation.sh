@@ -31,9 +31,9 @@ function delete-helm-deployment() {
   fi
 
   if [[ "${NAMESPACED}" ]]; then
-    helm delete --purge federation-v2-${NS}
+    helm delete --purge kubefed-${NS}
   else
-    helm delete --purge federation-v2
+    helm delete --purge kubefed
   fi
 }
 
@@ -43,7 +43,7 @@ NAMESPACED="${NAMESPACED:-}"
 DELETE_CLUSTER_RESOURCE="${DELETE_CLUSTER_RESOURCE:-}"
 
 IMAGE_NAME=`kubectl get deploy -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
-LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/kubefed:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
 else

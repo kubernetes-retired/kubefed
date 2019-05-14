@@ -77,9 +77,9 @@ fmt:
 	$(shell ./hack/update-gofmt.sh)
 
 container: $(HYPERFED_TARGET)-linux
-	cp -f $(HYPERFED_TARGET)-linux images/federation-v2/hyperfed
-	$(DOCKER) build images/federation-v2 -t $(IMAGE_NAME)
-	rm -f images/federation-v2/hyperfed
+	cp -f $(HYPERFED_TARGET)-linux images/kubefed/hyperfed
+	$(DOCKER) build images/kubefed -t $(IMAGE_NAME)
+	rm -f images/kubefed/hyperfed
 
 bindir:
 	mkdir -p $(BIN_DIR)

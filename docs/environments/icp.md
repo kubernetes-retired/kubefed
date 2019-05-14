@@ -10,8 +10,8 @@
 
 # IBM Cloud Private Deployment Guide
 
-Federation v2 can be deployed to and manage [IBM Cloud Private](https://www.ibm.com/cloud/private) clusters.
-As Federation v2 requires Kubernetes v1.11 or greater, please make sure to deploy IBM Cloud Private 3.1.1
+Kubefed can be deployed to and manage [IBM Cloud Private](https://www.ibm.com/cloud/private) clusters.
+As Kubefed requires Kubernetes v1.11 or greater, please make sure to deploy IBM Cloud Private 3.1.1
 or higher.
 
 The following example deploys two IBM Cloud Private 3.1.1 clusters named `cluster1` and `cluster2`.
@@ -39,21 +39,21 @@ cluster_name: cluster2
 ## Post Install Configuration
 
 As IBM Cloud Private is [enforcing container image security](https://www.ibm.com/support/knowledgecenter/SSBS6K_3.1.1/manage_images/image_security.html)
-policy by default, and the default image security policy does not allow pulling the Federation v2
-image from `quay.io/kubernetes-multicluster/federation-v2:*`, we need to update the image security
+policy by default, and the default image security policy does not allow pulling the Kubefed
+image from `quay.io/kubernetes-multicluster/kubefed:*`, we need to update the image security
 policy as follows:
 
 ```bash
 $ kubectl edit clusterimagepolicies ibmcloud-default-cluster-image-policy
 ```
 
-Update `spec.repositories` by adding `quay.io/kubernetes-multicluster/federation-v2:*`:
+Update `spec.repositories` by adding `quay.io/kubernetes-multicluster/kubefed:*`:
 
 ```yaml
 spec:
   repositories:
-    - name: "quay.io/kubernetes-multicluster/federation-v2:*"
+    - name: "quay.io/kubernetes-multicluster/kubefed:*"
 ```
 
 Once all pods are running you can return to the [User Guide](../userguide.md) to deploy the
-Federation v2 control-plane.
+Kubefed control-plane.

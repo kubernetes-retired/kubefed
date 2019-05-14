@@ -1,4 +1,4 @@
 apiVersion: v1
-description: Kubernetes Federation V2 helm chart
-name: federation-v2
+description: Kubefed helm chart
+name: kubefed
 version: 0.0.2

@@ -1,14 +1,14 @@
-# Default values for federation-v2.
+# Default values for kubefed.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-## Configuration values for federation v2 controllermanager deployment.
+## Configuration values for kubefed controllermanager deployment.
 ##
 controllermanager:
   enabled: true
   replicaCount: 2
   repository: quay.io/kubernetes-multicluster
-  image: federation-v2
+  image: kubefed
   tag: canary
   imagePullPolicy: IfNotPresent
   resources:

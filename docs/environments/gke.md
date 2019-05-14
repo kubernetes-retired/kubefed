@@ -9,7 +9,7 @@
 
 # Google Kubernetes Engine (GKE) Deployment Guide
 
-Federation v2 can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters running
+Kubefed can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters running
 Kubernetes v1.11 or greater. The following example deploys two GKE clusters named `cluster1` and `cluster2`.
 
 ```bash
@@ -19,7 +19,7 @@ gcloud container clusters create cluster1 --zone $ZONE --cluster-version $GKE_VE
 gcloud container clusters create cluster2 --zone $ZONE --cluster-version $GKE_VERSION
 ```
 
-If you are following along with the Federation v2 [User Guide](../userguide.md), change the cluster context names:
+If you are following along with the Kubefed [User Guide](../userguide.md), change the cluster context names:
 
 ```bash
 export GCP_PROJECT=$(gcloud config list --format='value(core.project)')
@@ -27,12 +27,12 @@ kubectl config rename-context gke_${GCP_PROJECT}_${ZONE}_cluster1 cluster1
 kubectl config rename-context gke_${GCP_PROJECT}_${ZONE}_cluster2 cluster2
 ```
 
-Before proceeding with the Federation v2 deployment, you must complete the steps in the RBAC Workaround section of this
+Before proceeding with the Kubefed deployment, you must complete the steps in the RBAC Workaround section of this
 document.
 
 ## RBAC Workaround
 
-You can expect the following error when deploying Federation v2 to Google Kubernetes Engine (GKE)
+You can expect the following error when deploying Kubefed to Google Kubernetes Engine (GKE)
 v1.6 or later:
 
 ```
@@ -62,4 +62,4 @@ kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=clu
 ```
 
 Once all pods are running you can return to the [User Guide](../userguide.md) to deploy the
-Federation v2 control-plane.
+Kubefed control-plane.

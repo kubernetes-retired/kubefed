@@ -23,11 +23,11 @@ This tutorial describes how to set up a federation cluster DNS with [ExternalDNS
 - Install [metallb](https://github.com/google/metallb) for your minikube clusters to enable LoadBalancer Service
 
 You can use either Loadbalancer Service or Ingress resource or both in your environment, this tutorial includes guidance for both Loadbalancer Service and Ingress resource.
-For related conceptions of Muilti-cluster Ingress and Service, you can refer to [ingressdns-with-externaldns.md](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md) and [servicedns-with-externaldns.md](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/servicedns-with-externaldns.md).
+For related conceptions of Muilti-cluster Ingress and Service, you can refer to [ingressdns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) and [servicedns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md).
 
 ## Creating federation cluster
 
-Install Federation-v2 with minikube in [User Guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md).
+Install Kubefed with minikube in [User Guide](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md).
 
 ## Installing ExternalDNS
 
@@ -126,7 +126,7 @@ EOF
 
 ### Creating service resources
 
-After metallb works, create a sample deployment and service from [sample](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md). Make service as LoadBalancer type.
+After metallb works, create a sample deployment and service from [sample](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md). Make service as LoadBalancer type.
 
 ```bash
 sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice.yaml
@@ -172,7 +172,7 @@ $ kubectl --context cluster2 apply -f https://raw.githubusercontent.com/kubernet
 $ kubectl --context cluster2 patch svc ingress-nginx -n ingress-nginx -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
-After ingress controller enabled, create a sample deployment, service and ingress from [sample](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md).
+After ingress controller enabled, create a sample deployment, service and ingress from [sample](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md).
 
 ### Creating ingress resources
 

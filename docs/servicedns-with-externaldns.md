@@ -48,8 +48,8 @@ MCSDNS is comprised of multiple types and controllers:
 
 Setting-up MCSDNS can be accomplished by referencing the following documentation:
 
-- The Federation-v2 [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
-  control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/federation-v2/issues/370), the environment running
+- The Kubefed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
+  control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/kubefed/issues/370), the environment running
   the clusters must support service `type: LoadBalancer`. For the GKE deployment option, the cluster hosting the ExternalDNS controller must have scope
   `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with

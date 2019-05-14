@@ -9,7 +9,7 @@
     - [docker](#docker)
   - [Adding a new API type](#adding-a-new-api-type)
   - [Running E2E Tests](#running-e2e-tests)
-    - [Setup Clusters and Deploy the Federation-v2 Control Plane](#setup-clusters-and-deploy-the-federation-v2-control-plane)
+    - [Setup Clusters and Deploy the Kubefed Control Plane](#setup-clusters-and-deploy-the-kubefed-control-plane)
     - [Running Tests](#running-tests)
     - [Running Tests With In-Memory Controllers](#running-tests-with-in-memory-controllers)
     - [Cleanup](#cleanup)
@@ -23,7 +23,7 @@
 
 # Development Guide
 
-If you would like to contribute to the federation v2 project, this guide will
+If you would like to contribute to the kubefed project, this guide will
 help you get started.
 
 ## Prerequisites
@@ -45,7 +45,7 @@ export PATH=$(pwd)/bin:${PATH}
 
 ### kubernetes
 
-The federation v2 deployment requires kubernetes version >= 1.11. To see a
+The kubefed deployment requires kubernetes version >= 1.11. To see a
 detailed list of binaries required, [see the prerequisites section in the
 user guide](userguide.md#prerequisites).
 
@@ -58,7 +58,7 @@ Set up your [Docker environment](https://docs.docker.com/install/)
 
 As per the
 [docs](http://book.kubebuilder.io/quick_start.html)
-for kubebuilder, bootstrapping a new federation v2 API type can be
+for kubebuilder, bootstrapping a new kubefed API type can be
 accomplished as follows:
 
 ```bash
@@ -83,7 +83,7 @@ non-generated code in the commit history.
 
 ## Running E2E Tests
 
-The federation-v2 E2E tests must be executed against a deployed
+The kubefed E2E tests must be executed against a deployed
 federation of one or more clusters.  Optionally, the federation
 controllers can be run in-memory to enable debugging.
 
@@ -98,16 +98,16 @@ types enabled by default:
 
 The read operation is implicit.
 
-### Setup Clusters and Deploy the Federation-v2 Control Plane
+### Setup Clusters and Deploy the Kubefed Control Plane
 
 In order to run E2E tests, you first need to:
 
 1. Create clusters
    - See the [user guide for a way to deploy clusters](userguide.md#create-clusters)
-     for testing federation-v2.
-1. Deploy the federation-v2 control plane
-   - To deploy the latest version of the federation-v2 control plane, follow
-     the [Helm chart deployment in the user guide](../charts/federation-v2/README.md#installing-the-chart).
+     for testing kubefed.
+1. Deploy the kubefed control plane
+   - To deploy the latest version of the kubefed control plane, follow
+     the [Helm chart deployment in the user guide](../charts/kubefed/README.md#installing-the-chart).
    - To deploy your own changes, follow the [Test Your Changes](#test-your-changes)
      section of this guide.
 
@@ -150,7 +150,7 @@ race detector.  The prerequisite for this mode is scaling down the
 federation controller manager:
 
 1. Reduce the `federation-controller-manager` deployment replicas to 0. This way
-   we can launch the necessary federation-v2 controllers ourselves via the test
+   we can launch the necessary kubefed controllers ourselves via the test
    binary.
 
    ```bash
@@ -184,7 +184,7 @@ federation controller manager:
 
 ### Cleanup
 
-Follow the [cleanup instructions in the user guide](../charts/federation-v2/README.md#uninstalling-the-chart).
+Follow the [cleanup instructions in the user guide](../charts/kubefed/README.md#uninstalling-the-chart).
 
 ## Test Your Changes
 
@@ -202,18 +202,18 @@ Ensure binaries from kubebuilder for `etcd` and `kube-apiserver` are in the path
 
 If you just want to have this automated, then run the following command
 specifying your own image. This assumes you've used the steps [documented
-above](#setup-clusters-and-deploy-the-federation-v2-control-plane) to
+above](#setup-clusters-and-deploy-the-kubefed-control-plane) to
 set up two `kind` or `minikube` clusters (`cluster1` and `cluster2`):
 
 ```bash
-./scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:test cluster2
+./scripts/deploy-federation.sh <containerregistry>/<username>/kubefed:test cluster2
 ```
 
 **NOTE:** You can list multiple joining cluster names in the above command.
 Also, please make sure the joining cluster name(s) provided matches the joining
 cluster context from your kubeconfig. This will already be the case if you used
 the steps [documented
-above](#setup-clusters-and-deploy-the-federation-v2-control-plane)
+above](#setup-clusters-and-deploy-the-kubefed-control-plane)
 to create your clusters.
 
 ## Test Latest Master Changes (`canary`)
@@ -224,14 +224,14 @@ image and generated CRDs. To do that, run the following command:
 
 ```bash
 make generate
-./scripts/deploy-federation.sh <containerregistry>/<username>/federation-v2:canary cluster2
+./scripts/deploy-federation.sh <containerregistry>/<username>/kubefed:canary cluster2
 ```
 
 ## Test Latest Stable Version (`latest`)
 
 In order to test the latest stable released version (tagged as `latest`) on
 your kubernetes cluster, follow the
-[Helm Chart Deployment](../charts/federation-v2/README.md#installing-the-chart) instructions from the user guide.
+[Helm Chart Deployment](../charts/kubefed/README.md#installing-the-chart) instructions from the user guide.
 
 ## Updating Document
 

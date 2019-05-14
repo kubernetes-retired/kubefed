@@ -70,7 +70,7 @@ func NewControllerManagerCommand() *cobra.Command {
 which watches federation CRD's and the corresponding resources in federation
 member clusters and does the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "Federation v2 controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
+			fmt.Fprintf(os.Stdout, "Kubefed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
 			if verFlag {
 				os.Exit(0)
 			}
@@ -188,7 +188,7 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 	fedConfig := &corev1a1.FederationConfig{}
 	if federationConfig == "" {
-		// there is no --federation-config specified, get `federation-v2` FederationConfig from the cluster
+		// there is no --federation-config specified, get `kubefed` FederationConfig from the cluster
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "federationconfig")
 
 		name := util.FederationConfigName
