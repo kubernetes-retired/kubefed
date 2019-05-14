@@ -28,43 +28,43 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1/validation"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1/validation"
 )
 
-type FederatedClusterValidationHook struct {
+type KubefedClusterValidationHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-func (a *FederatedClusterValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+func (a *KubefedClusterValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
 			Group:    "admission.core.federation.k8s.io",
 			Version:  "v1alpha1",
-			Resource: "federatedclusters",
+			Resource: "KubefedClusters",
 		},
-		"federatedcluster"
+		"KubefedCluster"
 }
 
-func (a *FederatedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *KubefedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for subresources
-	// - Requests for things that are not FederatedClusters
+	// - Requests for things that are not KubefedClusters
 	if (admissionSpec.Operation != admissionv1beta1.Create && admissionSpec.Operation != admissionv1beta1.Update) ||
 		len(admissionSpec.SubResource) != 0 ||
-		(admissionSpec.Resource.Group != "core.federation.k8s.io" && admissionSpec.Resource.Resource != "federatedclusters") {
+		(admissionSpec.Resource.Group != "core.federation.k8s.io" && admissionSpec.Resource.Resource != "KubefedClusters") {
 		status.Allowed = true
 		return status
 	}
 
 	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
-	admittingObject := &v1alpha1.FederatedCluster{}
+	admittingObject := &v1alpha1.KubefedCluster{}
 	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
 	if err != nil {
 		status.Allowed = false
@@ -86,7 +86,7 @@ func (a *FederatedClusterValidationHook) Validate(admissionSpec *admissionv1beta
 		return status
 	}
 
-	errs := validation.ValidateFederatedCluster(admittingObject)
+	errs := validation.ValidateKubefedCluster(admittingObject)
 	if len(errs) != 0 {
 		status.Allowed = false
 		status.Result = &metav1.Status{
@@ -100,7 +100,7 @@ func (a *FederatedClusterValidationHook) Validate(admissionSpec *admissionv1beta
 	return status
 }
 
-func (a *FederatedClusterValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (a *KubefedClusterValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -119,7 +119,7 @@ func (a *FederatedClusterValidationHook) Initialize(kubeClientConfig *rest.Confi
 	a.client = dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    "core.federation.k8s.io",
 		Version:  "v1alpha1",
-		Resource: "federatedcluster",
+		Resource: "KubefedCluster",
 	})
 
 	return nil

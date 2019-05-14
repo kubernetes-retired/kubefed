@@ -19,16 +19,17 @@ package webhook
 import (
 	"os"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/webhook"
 	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	"github.com/openshift/generic-admission-server/pkg/cmd/server"
 	"github.com/spf13/cobra"
+
+	"sigs.k8s.io/kubefed/pkg/controller/webhook"
 )
 
 func NewWebhookCommand(stopCh <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
 		&webhook.FederatedTypeConfigValidationHook{},
-		&webhook.FederatedClusterValidationHook{},
+		&webhook.KubefedClusterValidationHook{},
 	}
 
 	// done to avoid cannot use admissionHooks (type []AdmissionHook) as type []apiserver.AdmissionHook in argument to "github.com/openshift/kubernetes-namespace-reservation/pkg/genericadmissionserver/cmd/server".NewCommandStartAdmissionServer

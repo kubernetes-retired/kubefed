@@ -40,7 +40,7 @@ import (
 
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
-	"sigs.kis.io/kubefed/pkg/webhook"
+	"sigs.k8s.io/kubefed/pkg/webhook"
 )
 
 func main() {

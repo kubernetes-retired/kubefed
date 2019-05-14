@@ -19,7 +19,7 @@ package validation
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 )
 
 func ValidateFederatedTypeConfig(object *v1alpha1.FederatedTypeConfig) field.ErrorList {
@@ -30,7 +30,7 @@ func ValidateFederatedTypeConfig(object *v1alpha1.FederatedTypeConfig) field.Err
 	return allErrs
 }
 
-func ValidateFederatedCluster(object *v1alpha1.FederatedCluster) field.ErrorList {
+func ValidateKubefedCluster(object *v1alpha1.KubefedCluster) field.ErrorList {
 	allErrs := field.ErrorList{}
 	return allErrs
 }
