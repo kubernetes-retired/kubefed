@@ -23,7 +23,7 @@ spec:
       serviceAccountName: federation-controller
       containers:
       - args:
-        - --federation-namespace=$(FEDERATION_NAMESPACE)
+        - --kubefed-namespace=$(FEDERATION_NAMESPACE)
         command:
         - /root/controller-manager
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"

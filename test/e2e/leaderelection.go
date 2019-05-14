@@ -87,7 +87,7 @@ func spawnControllerManagerProcess(tl common.TestLogger, kubeConfigPath, namespa
 	}
 
 	args := []string{fmt.Sprintf("--kubeconfig=%s", kubeConfigPath),
-		fmt.Sprintf("--federation-namespace=%s", namespace),
+		fmt.Sprintf("--kubefed-namespace=%s", namespace),
 		fmt.Sprintf("--federation-config=%s", confFile),
 	}
 	cmd := exec.Command("controller-manager", args...)

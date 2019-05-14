@@ -50,7 +50,7 @@ else
   USE_LATEST=
 fi
 
-KF_NS_ARG="--federation-namespace=${NS} "
+KF_NS_ARG="--kubefed-namespace=${NS} "
 
 # Unjoin clusters by removing objects added by kubefedctl.
 HOST_CLUSTER="$(kubectl config current-context)"

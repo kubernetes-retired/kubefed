@@ -122,7 +122,7 @@ else
   USE_LATEST=
 fi
 
-KF_NS_ARGS="--federation-namespace=${NS} "
+KF_NS_ARGS="--kubefed-namespace=${NS} "
 
 if [[ -z "${IMAGE_NAME}" ]]; then
   >&2 echo "Usage: $0 <image> [join-cluster]...

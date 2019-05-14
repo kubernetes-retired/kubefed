@@ -681,7 +681,7 @@ instructions](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kube
 Joining additional clusters to a namespaced federation requires
 providing additional arguments to `kubefedctl join`:
 
-- `--federation-namespace=<namespace>` to ensure the cluster is joined
+- `--kubefed-namespace=<namespace>` to ensure the cluster is joined
   to the federation running in the specified namespace
 
 To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for deployment:
@@ -689,7 +689,7 @@ To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for depl
 ```bash
 kubefedctl join mycluster --cluster-context mycluster \
     --host-cluster-context mycluster --v=2 \
-    --federation-namespace=test-namespace
+    --kubefed-namespace=test-namespace
 ```
 
 ## Local Value Retention
