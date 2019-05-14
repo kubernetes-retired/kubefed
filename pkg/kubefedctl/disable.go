@@ -209,7 +209,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 				return err
 			}
 		}
-		if typeConfig.Spec.PropagationEnabled {
+		if typeConfig.GetPropagationEnabled() {
 			err = disablePropagation(client, typeConfig, typeConfigName, write)
 			if err != nil {
 				return err
@@ -261,8 +261,8 @@ func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fed
 }
 
 func disablePropagation(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
-	if typeConfig.Spec.PropagationEnabled {
-		typeConfig.Spec.PropagationEnabled = false
+	if typeConfig.GetPropagationEnabled() {
+		typeConfig.Spec.Propagation = fedv1a1.PropagationDisabled
 		err := client.Update(context.TODO(), typeConfig)
 		if err != nil {
 			return errors.Wrapf(err, "Error disabling propagation for FederatedTypeConfig %q", typeConfigName)

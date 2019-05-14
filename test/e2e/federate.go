@@ -83,8 +83,8 @@ var _ = Describe("Federate ", func() {
 				framework.Skipf("Federation of cluster-scoped type %s is not supported by a namespaced control plane.", typeConfigName)
 			}
 
-			kind := typeConfig.GetTarget().Kind
-			targetAPIResource := typeConfig.GetTarget()
+			kind := typeConfig.GetTargetType().Kind
+			targetAPIResource := typeConfig.GetTargetType()
 			targetResource, err := common.NewTestTargetObject(typeConfig, f.TestNamespaceName(), fixture)
 			if err != nil {
 				tl.Fatalf("Error creating test resource: %v", err)
@@ -146,7 +146,7 @@ var _ = Describe("Federate ", func() {
 		createdTargetResources = append(createdTargetResources, namespaceTestResource)
 
 		namespaceTypeConfig := namespaceTestResource.typeConfig
-		namespaceKind := namespaceTypeConfig.GetTarget().Kind
+		namespaceKind := namespaceTypeConfig.GetTargetType().Kind
 		namespaceResourceName := util.NewQualifiedName(namespaceTestResource.targetResource)
 
 		By(fmt.Sprintf("Federating %s %q with content", namespaceKind, namespaceResourceName))
@@ -231,7 +231,7 @@ func validateResourcesEquality(tl common.TestLogger, targetResources []testResou
 		targetResource := t.targetResource
 		for _, federatedResource := range federatedResources {
 			if targetResource.GetName() == federatedResource.GetName() {
-				validateTemplateEquality(tl, federatedResource, targetResource, t.typeConfig.GetTarget().Kind, t.typeConfig.GetFederatedType().Kind)
+				validateTemplateEquality(tl, federatedResource, targetResource, t.typeConfig.GetTargetType().Kind, t.typeConfig.GetFederatedType().Kind)
 				count++
 			}
 		}
@@ -244,7 +244,7 @@ func validateResourcesEquality(tl common.TestLogger, targetResources []testResou
 func validateResourcesEqualityFromAPI(tl common.TestLogger, testResources []testResources, kubeConfig *restclient.Config) {
 	for _, resources := range testResources {
 		typeConfig := resources.typeConfig
-		kind := typeConfig.GetTarget().Kind
+		kind := typeConfig.GetTargetType().Kind
 		targetResource := resources.targetResource
 		testResourceName := util.NewQualifiedName(targetResource)
 		if kind == util.NamespaceKind {
@@ -279,7 +279,7 @@ func deleteResources(f framework.FederationFramework, tl common.TestLogger, type
 	client := getFedClient(tl, typeConfig, f.KubeConfig())
 	deleteResource(tl, client, testResourceName, typeConfig.GetFederatedType().Kind)
 
-	targetAPIResource := typeConfig.GetTarget()
+	targetAPIResource := typeConfig.GetTargetType()
 	// Namespaced resources will be deleted in ns cleanup
 	if !targetAPIResource.Namespaced {
 		testClusters := f.ClusterDynamicClients(&targetAPIResource, "federate-resource")
@@ -337,7 +337,7 @@ func getFedClient(tl common.TestLogger, typeConfig typeconfig.Interface, kubeCon
 }
 
 func getTargetClient(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config) util.ResourceClient {
-	apiResource := typeConfig.GetTarget()
+	apiResource := typeConfig.GetTargetType()
 	fedKind := apiResource.Kind
 	client, err := util.NewResourceClient(kubeConfig, &apiResource)
 	if err != nil {
@@ -388,7 +388,7 @@ func createTargetResources(resources []testResources, kubeConfig *restclient.Con
 	for _, resource := range resources {
 		typeConfig := resource.typeConfig
 		targetResource := resource.targetResource
-		createdTargetResource, err := common.CreateResource(kubeConfig, typeConfig.GetTarget(), targetResource)
+		createdTargetResource, err := common.CreateResource(kubeConfig, typeConfig.GetTargetType(), targetResource)
 		if err != nil {
 			return resources, errors.Wrapf(err, "Error creating target resource %q", util.NewQualifiedName(targetResource))
 		}

@@ -169,7 +169,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	// Wait for the CRDs to become available in the API
 	for _, c := range configs {
-		waitForCrd(c, tl, typeConfig.GetTarget())
+		waitForCrd(c, tl, typeConfig.GetTargetType())
 	}
 	waitForCrd(hostConfig, tl, typeConfig.GetFederatedType())
 

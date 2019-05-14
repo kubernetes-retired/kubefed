@@ -34,3 +34,7 @@ const (
 	// GenerationComparison indicates comparison via the Generation field
 	GenerationField = "Generation"
 )
+
+const (
+	NamespaceName = "namespaces"
+)

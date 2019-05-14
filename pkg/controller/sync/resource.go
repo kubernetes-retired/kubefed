@@ -83,7 +83,7 @@ func (r *federatedResource) TargetName() util.QualifiedName {
 }
 
 func (r *federatedResource) TargetKind() string {
-	return r.typeConfig.GetTarget().Kind
+	return r.typeConfig.GetTargetType().Kind
 }
 
 func (r *federatedResource) Object() *unstructured.Unstructured {
@@ -174,7 +174,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	if !r.targetIsNamespace {
 		obj.SetNamespace(r.federatedResource.GetNamespace())
 	}
-	targetApiResource := r.typeConfig.GetTarget()
+	targetApiResource := r.typeConfig.GetTargetType()
 	obj.SetKind(targetApiResource.Kind)
 	obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
 

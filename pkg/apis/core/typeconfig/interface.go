@@ -23,12 +23,12 @@ import (
 // Interface defines how to interact with a FederatedTypeConfig
 type Interface interface {
 	GetObjectMeta() metav1.ObjectMeta
-	GetTarget() metav1.APIResource
+	GetTargetType() metav1.APIResource
 	GetNamespaced() bool
 	GetPropagationEnabled() bool
 	GetFederatedType() metav1.APIResource
-	GetStatus() *metav1.APIResource
-	GetEnableStatus() bool
+	GetStatusType() *metav1.APIResource
+	GetStatusEnabled() bool
 	GetFederatedNamespaced() bool
 	IsNamespace() bool
 }

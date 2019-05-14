@@ -196,7 +196,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	artifactsList := []*FederateArtifacts{}
 	artifactsList = append(artifactsList, artifacts)
 
-	kind := artifacts.typeConfig.GetTarget().Kind
+	kind := artifacts.typeConfig.GetTargetType().Kind
 	if kind != ctlutil.NamespaceKind && j.federateContents {
 		return errors.New("Flag '--contents' can only be used with type 'namespaces'.")
 	}
@@ -245,7 +245,7 @@ func FederateResources(resources []*unstructured.Unstructured) ([]*unstructured.
 		typeConfig := enable.GenerateTypeConfigForTarget(apiResource, enable.NewEnableTypeDirective())
 		federatedResource, err := FederatedResourceFromTargetResource(typeConfig, targetResource)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTarget().Kind, qualifiedName)
+			return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTargetType().Kind, qualifiedName)
 		}
 
 		federatedResources = append(federatedResources, federatedResource)
@@ -284,7 +284,7 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, kubefedNamespace st
 
 	federatedResource, err := FederatedResourceFromTargetResource(typeConfig, targetResource)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTarget().Kind, qualifiedName)
+		return nil, errors.Wrapf(err, "Error getting %s from %s %q", typeConfig.GetFederatedType().Kind, typeConfig.GetTargetType().Kind, qualifiedName)
 	}
 
 	var federatedResources []*unstructured.Unstructured
@@ -333,7 +333,7 @@ func getInstalledTypeConfig(hostConfig *rest.Config, typeName, kubefedNamespace 
 }
 
 func getTargetResource(hostConfig *rest.Config, typeConfig typeconfig.Interface, qualifiedName ctlutil.QualifiedName) (*unstructured.Unstructured, error) {
-	targetAPIResource := typeConfig.GetTarget()
+	targetAPIResource := typeConfig.GetTargetType()
 	targetClient, err := ctlutil.NewResourceClient(hostConfig, &targetAPIResource)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error creating client for %s", targetAPIResource.Kind)
@@ -354,7 +354,7 @@ func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resour
 	targetResource := resource.DeepCopy()
 
 	// Special handling is needed for some controller set fields.
-	switch typeConfig.GetTarget().Kind {
+	switch typeConfig.GetTargetType().Kind {
 	case ctlutil.NamespaceKind:
 		{
 			unstructured.RemoveNestedField(targetResource.Object, "spec", "finalizers")
@@ -404,7 +404,7 @@ func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resour
 }
 
 func getNamespace(typeConfig typeconfig.Interface, qualifiedName ctlutil.QualifiedName) string {
-	if typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
+	if typeConfig.GetTargetType().Kind == ctlutil.NamespaceKind {
 		return qualifiedName.Name
 	}
 	return qualifiedName.Namespace
@@ -446,7 +446,7 @@ func CreateFederatedResources(hostConfig *rest.Config, typeConfig typeconfig.Int
 }
 
 func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Interface, federatedResource *unstructured.Unstructured, dryRun bool) error {
-	if typeConfig.GetTarget().Kind == ctlutil.NamespaceKind {
+	if typeConfig.GetTargetType().Kind == ctlutil.NamespaceKind {
 		// TODO: irfanurrehman: Can a target namespace be federated into another namespace?
 		klog.Infof("Resource to federate is a namespace. Given namespace will itself be the container for the federated namespace")
 	}
@@ -477,7 +477,7 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 		}
 	}
 
-	klog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, typeConfig.GetTarget().Kind)
+	klog.Infof("Successfully created %s %q from %s", fedKind, qualifiedFedName, typeConfig.GetTargetType().Kind)
 	return nil
 }
 

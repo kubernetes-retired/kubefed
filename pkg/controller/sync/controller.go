@@ -137,7 +137,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	targetAPIResource := typeConfig.GetTarget()
+	targetAPIResource := typeConfig.GetTargetType()
 
 	// Federated informer on the resource type in members of federation.
 	var err error
@@ -249,7 +249,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 		return util.StatusError
 	}
 	if possibleOrphan {
-		targetKind := s.typeConfig.GetTarget().Kind
+		targetKind := s.typeConfig.GetTargetType().Kind
 		klog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
 		err = s.removeManagedLabel(targetKind, qualifiedName)
 		if err != nil {

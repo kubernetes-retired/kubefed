@@ -120,7 +120,7 @@ var _ = Describe("Placement", func() {
 		}()
 
 		// Check for removal of the propagated resource from all clusters
-		targetAPIResource := selectedTypeConfig.GetTarget()
+		targetAPIResource := selectedTypeConfig.GetTargetType()
 		targetKind := targetAPIResource.Kind
 		qualifiedName := util.NewQualifiedName(fedObject)
 		for clusterName, testCluster := range crudTester.TestClusters() {

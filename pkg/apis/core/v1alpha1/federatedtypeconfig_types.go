@@ -20,7 +20,10 @@ import (
 	"fmt"
 	"strings"
 
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 )
 
 // FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig.
@@ -28,16 +31,9 @@ type FederatedTypeConfigSpec struct {
 	// The configuration of the target type. If not set, the pluralName and
 	// groupName fields will be set from the metadata.name of this resource. The
 	// kind field must be set.
-	Target APIResource `json:"target"`
-	// Whether or not the target type is namespaced. The federation
-	// types (FederatedType, Status) for the type will share this
-	// characteristic.
-	//
-	// TODO(marun) Remove in favor of using the value from Target and
-	// FederatedType (depending on context).
-	Namespaced bool `json:"namespaced"`
+	TargetType APIResource `json:"targetType"`
 	// Whether or not propagation to member clusters should be enabled.
-	PropagationEnabled bool `json:"propagationEnabled"`
+	Propagation PropagationMode `json:"propagation"`
 	// Configuration for the federated type that defines (via
 	// template, placement and overrides fields) how the target type
 	// should appear in multiple cluster.
@@ -47,10 +43,10 @@ type FederatedTypeConfigSpec struct {
 	// and version will default to those provided for the federated type api
 	// resource.
 	// +optional
-	Status *APIResource `json:"status,omitempty"`
+	StatusType *APIResource `json:"statusType,omitempty"`
 	// Whether or not Status object should be populated.
 	// +optional
-	EnableStatus bool `json:"enableStatus,omitempty"`
+	StatusCollection *StatusCollectionMode `json:"statusCollection,omitempty"`
 }
 
 // APIResource defines how to configure the dynamic client for an API resource.
@@ -59,16 +55,35 @@ type APIResource struct {
 	// the fields enforces them as mandatory.
 
 	// Group of the resource.
+	// +optional
 	Group string `json:"group,omitempty"`
 	// Version of the resource.
-	Version string `json:"version,omitempty"`
+	Version string `json:"version"`
 	// Camel-cased singular name of the resource (e.g. ConfigMap)
 	Kind string `json:"kind"`
 	// Lower-cased plural name of the resource (e.g. configmaps).  If
 	// not provided, it will be computed by lower-casing the kind and
 	// suffixing an 's'.
-	PluralName string `json:"pluralName,omitempty"`
+	PluralName string `json:"pluralName"`
+	// Scope of the resource.
+	Scope apiextv1b1.ResourceScope `json:"scope"`
 }
+
+// PropagationMode defines the state of propagation to member clusters.
+type PropagationMode string
+
+const (
+	PropagationEnabled  PropagationMode = "Enabled"
+	PropagationDisabled PropagationMode = "Disabled"
+)
+
+// StatusCollectionMode defines the state of status collection.
+type StatusCollectionMode string
+
+const (
+	StatusCollectionEnabled  StatusCollectionMode = "Enabled"
+	StatusCollectionDisabled StatusCollectionMode = "Disabled"
+)
 
 // ControllerStatus defines the current state of the controller
 type ControllerStatus string
@@ -83,14 +98,12 @@ const (
 // FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig
 type FederatedTypeConfigStatus struct {
 	// ObservedGeneration is the generation as observed by the controller consuming the FederatedTypeConfig.
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	ObservedGeneration int64 `json:"observedGeneration"`
 	// PropagationController tracks the status of the sync controller.
-	// +optional
-	PropagationController ControllerStatus `json:"propagationController,omitempty"`
+	PropagationController ControllerStatus `json:"propagationController"`
 	// StatusController tracks the status of the status controller.
 	// +optional
-	StatusController ControllerStatus `json:"statusController,omitempty"`
+	StatusController *ControllerStatus `json:"statusController,omitempty"`
 }
 
 // +genclient
@@ -113,7 +126,8 @@ type FederatedTypeConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FederatedTypeConfigSpec   `json:"spec,omitempty"`
+	Spec FederatedTypeConfigSpec `json:"spec"`
+	// +optional
 	Status FederatedTypeConfigStatus `json:"status,omitempty"`
 }
 
@@ -122,6 +136,7 @@ type FederatedTypeConfig struct {
 // FederatedTypeConfigList contains a list of FederatedTypeConfig
 type FederatedTypeConfigList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FederatedTypeConfig `json:"items"`
 }
@@ -134,16 +149,16 @@ func SetFederatedTypeConfigDefaults(obj *FederatedTypeConfig) {
 	// TODO(marun) will name always be populated?
 	nameParts := strings.SplitN(obj.Name, ".", 2)
 	targetPluralName := nameParts[0]
-	setStringDefault(&obj.Spec.Target.PluralName, targetPluralName)
+	setStringDefault(&obj.Spec.TargetType.PluralName, targetPluralName)
 	if len(nameParts) > 1 {
 		group := nameParts[1]
-		setStringDefault(&obj.Spec.Target.Group, group)
+		setStringDefault(&obj.Spec.TargetType.Group, group)
 	}
 	setStringDefault(&obj.Spec.FederatedType.PluralName, PluralName(obj.Spec.FederatedType.Kind))
-	if obj.Spec.Status != nil {
-		setStringDefault(&obj.Spec.Status.PluralName, PluralName(obj.Spec.Status.Kind))
-		setStringDefault(&obj.Spec.Status.Group, obj.Spec.FederatedType.Group)
-		setStringDefault(&obj.Spec.Status.Version, obj.Spec.FederatedType.Version)
+	if obj.Spec.StatusType != nil {
+		setStringDefault(&obj.Spec.StatusType.PluralName, PluralName(obj.Spec.StatusType.Kind))
+		setStringDefault(&obj.Spec.StatusType.Group, obj.Spec.FederatedType.Group)
+		setStringDefault(&obj.Spec.StatusType.Version, obj.Spec.FederatedType.Version)
 	}
 }
 
@@ -176,52 +191,60 @@ func (f *FederatedTypeConfig) GetObjectMeta() metav1.ObjectMeta {
 	return f.ObjectMeta
 }
 
-func (f *FederatedTypeConfig) GetTarget() metav1.APIResource {
-	return apiResourceToMeta(f.Spec.Target, f.Spec.Namespaced)
+func (f *FederatedTypeConfig) GetTargetType() metav1.APIResource {
+	return apiResourceToMeta(f.Spec.TargetType, f.GetNamespaced())
 }
 
+// TODO(font): This method should be removed from the interface in favor of
+// checking the namespaced property of the appropriate APIResource (TargetType,
+// FederatedType) depending on context.
 func (f *FederatedTypeConfig) GetNamespaced() bool {
-	return f.Spec.Namespaced
+	return f.Spec.TargetType.Namespaced()
 }
 
 func (f *FederatedTypeConfig) GetPropagationEnabled() bool {
-	return f.Spec.PropagationEnabled
+	return f.Spec.Propagation == PropagationEnabled
 }
 
 func (f *FederatedTypeConfig) GetFederatedType() metav1.APIResource {
 	return apiResourceToMeta(f.Spec.FederatedType, f.GetFederatedNamespaced())
 }
 
-func (f *FederatedTypeConfig) GetStatus() *metav1.APIResource {
-	if f.Spec.Status == nil {
+func (f *FederatedTypeConfig) GetStatusType() *metav1.APIResource {
+	if f.Spec.StatusType == nil {
 		return nil
 	}
-	metaAPIResource := apiResourceToMeta(*f.Spec.Status, f.Spec.Namespaced)
+	metaAPIResource := apiResourceToMeta(*f.Spec.StatusType, f.Spec.StatusType.Namespaced())
 	return &metaAPIResource
 }
 
-func (f *FederatedTypeConfig) GetEnableStatus() bool {
-	return f.Spec.EnableStatus
+func (f *FederatedTypeConfig) GetStatusEnabled() bool {
+	return f.Spec.StatusCollection != nil && *f.Spec.StatusCollection == StatusCollectionEnabled
 }
 
-// TODO(marun) Remove in favor of using 'true' for namespaces and the
-// value from target otherwise.
+// TODO(font): This method should be removed from the interface i.e. remove
+// special-case handling for namespaces, in favor of checking the namespaced
+// property of the appropriate APIResource (TargetType, FederatedType)
+// depending on context.
 func (f *FederatedTypeConfig) GetFederatedNamespaced() bool {
 	// Special-case the scope of federated namespace since it will
 	// hopefully be the only instance of the scope of a federated
 	// type differing from the scope of its target.
 
-	// TODO(marun) Use the constant in pkg/controller/util
 	if f.IsNamespace() {
-		// Namespace placement is namespaced to allow the control
-		// plane to run with only namespace-scoped permissions.
+		// FederatedNamespace is namespaced to allow the control plane to run
+		// with only namespace-scoped permissions e.g. to determine placement.
 		return true
 	}
-	return f.Spec.Namespaced
+	return f.GetNamespaced()
 }
 
 func (f *FederatedTypeConfig) IsNamespace() bool {
-	return f.Name == "namespaces"
+	return f.Name == common.NamespaceName
+}
+
+func (a *APIResource) Namespaced() bool {
+	return a.Scope == apiextv1b1.NamespaceScoped
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {

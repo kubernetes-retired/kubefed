@@ -27,7 +27,7 @@ import (
 // CheckTypeConfigName checks that the name of the type config is
 // '<target plural name>[.<target group name>]'.
 func CheckTypeConfigName(typeConfig Interface) error {
-	expectedName := GroupQualifiedName(typeConfig.GetTarget())
+	expectedName := GroupQualifiedName(typeConfig.GetTargetType())
 	name := typeConfig.GetObjectMeta().Name
 	if expectedName != name {
 		return errors.Errorf("Expected name of FederatedTypeConfig to be %q but got: %q",

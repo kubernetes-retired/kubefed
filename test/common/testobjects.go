@@ -87,7 +87,7 @@ func NewTestTargetObject(typeConfig typeconfig.Interface, namespace string, fixt
 		obj.Object = template.(map[string]interface{})
 	}
 
-	federate.SetBasicMetaFields(obj, typeConfig.GetTarget(), "", namespace, "test-e2e-")
+	federate.SetBasicMetaFields(obj, typeConfig.GetTargetType(), "", namespace, "test-e2e-")
 	return obj, nil
 }
 

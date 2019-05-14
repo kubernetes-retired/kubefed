@@ -88,7 +88,7 @@ var _ = Describe("Federated", func() {
 
 				By("Creating a labeled resource in the selected cluster")
 				util.AddManagedLabel(targetObject)
-				labeledObj, err := common.CreateResource(clusterConfig, typeConfig.GetTarget(), targetObject)
+				labeledObj, err := common.CreateResource(clusterConfig, typeConfig.GetTargetType(), targetObject)
 				if err != nil {
 					tl.Fatalf("Failed to create labeled resource in cluster %q: %v", clusterName, err)
 				}
@@ -136,7 +136,7 @@ var _ = Describe("Federated", func() {
 					framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
 				By("Creating an unlabeled resource in the selected cluster")
-				unlabeledObj, err := common.CreateResource(clusterConfig, typeConfig.GetTarget(), targetObject)
+				unlabeledObj, err := common.CreateResource(clusterConfig, typeConfig.GetTargetType(), targetObject)
 				if err != nil {
 					tl.Fatalf("Failed to create unlabeled resource in cluster %q: %v", clusterName, err)
 				}
@@ -179,7 +179,7 @@ var _ = Describe("Federated", func() {
 					obj.SetGroupVersionKind(unlabeledObj.GroupVersionKind())
 					err := clusterClient.Get(context.TODO(), obj, unlabeledObj.GetNamespace(), unlabeledObj.GetName())
 					if apierrors.IsNotFound(err) {
-						tl.Fatalf("Unlabeled resource %s %q was deleted", typeConfig.GetTarget().Kind, util.NewQualifiedName(unlabeledObj))
+						tl.Fatalf("Unlabeled resource %s %q was deleted", typeConfig.GetTargetType().Kind, util.NewQualifiedName(unlabeledObj))
 					}
 					if err != nil {
 						tl.Errorf("Error retrieving unlabeled resource: %v", err)
@@ -214,7 +214,7 @@ func getCrudTestInput(f framework.FederationFramework, tl common.TestLogger,
 		if err != nil {
 			return nil, nil, err
 		}
-		if typeConfig.GetTarget().Kind == util.NamespaceKind {
+		if typeConfig.GetTargetType().Kind == util.NamespaceKind {
 			// Namespace crud testing needs to have the same name as its namespace.
 			targetObject.SetName(namespace)
 			targetObject.SetNamespace(namespace)
@@ -247,7 +247,7 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(federatedKind))
 
 	kubeConfig := f.KubeConfig()
-	targetAPIResource := typeConfig.GetTarget()
+	targetAPIResource := typeConfig.GetTargetType()
 	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
 	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 	if err != nil {
@@ -257,7 +257,7 @@ func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
 	namespace := ""
 	// A test namespace is only required for namespaced resources or
 	// namespaces themselves.
-	if typeConfig.GetNamespaced() || typeConfig.GetTarget().Name == util.NamespaceName {
+	if typeConfig.GetNamespaced() || typeConfig.GetTargetType().Name == util.NamespaceName {
 		namespace = f.TestNamespaceName()
 	}
 
