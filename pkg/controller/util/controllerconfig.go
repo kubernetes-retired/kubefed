@@ -51,7 +51,6 @@ type LeaderElectionConfiguration struct {
 // most federation controllers.
 type FederationNamespaces struct {
 	FederationNamespace string
-	ClusterNamespace    string
 	TargetNamespace     string
 }
 

@@ -69,7 +69,7 @@ function run-e2e-tests-with-in-memory-controllers() {
 }
 
 function run-namespaced-e2e-tests() {
-  local namespaced_e2e_test_cmd="${E2E_TEST_CMD} -federation-namespace=foo -registry-namespace=foo -limited-scope=true"
+  local namespaced_e2e_test_cmd="${E2E_TEST_CMD} -federation-namespace=foo -limited-scope=true"
   # Run the placement test separately to avoid crud failures if
   # teardown doesn't remove namespace placement.
   ${namespaced_e2e_test_cmd} --ginkgo.skip=Placement

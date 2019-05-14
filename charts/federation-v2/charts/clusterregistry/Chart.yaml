@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: 0.0.2
-description: Cluster Registry helm chart
-name: clusterregistry
-version: 0.0.6

@@ -50,11 +50,13 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only on Ginkgo node 1
 
 	if framework.TestContext.InMemoryControllers {
-		// This supports a hybrid setup where the user asks for an unmanaged
-		// federation with in memory controllers. This means the k8s clusters
-		// are already running along with the federation and cluster registry
-		// API servers. This will then join the clusters and launch the
-		// required federation controllers e.g. cluster and sync controllers.
+		// Start the cluster controller to ensure clusters will be
+		// reported as healthy when running the control plane
+		// in-memory.
+		//
+		// TODO(marun) Rename the function to reflect its purpose as
+		// part of refactoring the unmanaged framework into the sole
+		// available framework.
 		framework.SetUpUnmanagedFederation()
 	}
 	// Wait for readiness of registered clusters to ensure tests

@@ -5,7 +5,6 @@ metadata:
   namespace: kube-federation-system
 spec:
   scope: Cluster
-  registry-namespace: kube-multicluster-public
   controller-duration:
     available-delay: 20s
     unavailable-delay: 60s

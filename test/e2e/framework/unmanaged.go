@@ -62,7 +62,6 @@ func SetUpUnmanagedFederation() {
 	clusterControllerFixture = NewClusterControllerFixture(NewE2ELogger(), &util.ControllerConfig{
 		FederationNamespaces: util.FederationNamespaces{
 			FederationNamespace: TestContext.FederationSystemNamespace,
-			ClusterNamespace:    TestContext.ClusterNamespace,
 		},
 		KubeConfig: config,
 	})
@@ -164,7 +163,6 @@ func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
 	return &util.ControllerConfig{
 		FederationNamespaces: util.FederationNamespaces{
 			FederationNamespace: TestContext.FederationSystemNamespace,
-			ClusterNamespace:    TestContext.ClusterNamespace,
 			TargetNamespace:     f.inMemoryTargetNamespace(),
 		},
 		KubeConfig:      f.Config,
@@ -248,7 +246,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 
 	clusterConfigs := make(map[string]common.TestClusterConfig)
 	for _, cluster := range clusterList.Items {
-		config, err := util.BuildClusterConfig(&cluster, client, TestContext.FederationSystemNamespace, TestContext.ClusterNamespace)
+		config, err := util.BuildClusterConfig(&cluster, client, TestContext.FederationSystemNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{

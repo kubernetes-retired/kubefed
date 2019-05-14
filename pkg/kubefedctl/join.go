@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	crv1a1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 
 	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
@@ -86,13 +85,11 @@ var (
 type joinFederation struct {
 	options.GlobalSubcommandOptions
 	options.CommonJoinOptions
-	options.FederationConfigOptions
 	joinFederationOptions
 }
 
 type joinFederationOptions struct {
 	secretName      string
-	addToRegistry   bool
 	Scope           apiextv1b1.ResourceScope
 	errorOnExisting bool
 }
@@ -102,8 +99,6 @@ type joinFederationOptions struct {
 func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.secretName, "secret-name", "",
 		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. If unspecified, defaults to a generated name containing the cluster name.")
-	flags.BoolVar(&o.addToRegistry, "add-to-registry", false,
-		"Add the cluster to the cluster registry that is aggregated with the kubernetes API server running in the host cluster context.")
 	flags.BoolVar(&o.errorOnExisting, "error-on-existing", false,
 		"Whether the join operation will throw an error if it encounters existing artifacts with the same name as those it's trying to create. If false, the join operation will update existing artifacts to match its own specification.")
 }
@@ -176,7 +171,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.Scope, j.ClusterNamespace, err = options.GetOptionsFromFederationConfig(hostConfig, j.FederationNamespace)
+	j.Scope, err = options.GetScopeFromFederationConfig(hostConfig, j.FederationNamespace)
 	if err != nil {
 		return err
 	}
@@ -192,14 +187,14 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName = j.HostClusterName
 	}
 
-	return JoinCluster(hostConfig, clusterConfig, j.FederationNamespace, j.ClusterNamespace,
-		hostClusterName, j.ClusterName, j.secretName, j.addToRegistry, j.Scope, j.DryRun, j.errorOnExisting)
+	return JoinCluster(hostConfig, clusterConfig, j.FederationNamespace,
+		hostClusterName, j.ClusterName, j.secretName, j.Scope, j.DryRun, j.errorOnExisting)
 }
 
 // JoinCluster performs all the necessary steps to join a cluster to the
 // federation provided the required set of parameters are passed in.
-func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, clusterNamespace,
-	hostClusterName, joiningClusterName, secretName string, addToRegistry bool, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
+	hostClusterName, joiningClusterName, secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get host cluster clientset: %v", err)
@@ -222,21 +217,6 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterName, federationNamespace, errorOnExisting)
 	if err != nil {
 		return err
-	}
-
-	if addToRegistry {
-		err = addToClusterRegistry(hostConfig, clusterNamespace, clusterConfig.Host, joiningClusterName, dryRun, errorOnExisting)
-		if err != nil {
-			return err
-		}
-	} else {
-		// TODO(font): If cluster exists in clusterregistry, grab the
-		// ServerAddress from the KubernetesAPIEndpoints to create a
-		// clusterClientset from it.
-		err = verifyExistsInClusterRegistry(hostConfig, clusterNamespace, joiningClusterName)
-		if err != nil {
-			return err
-		}
 	}
 
 	klog.V(2).Infof("Creating %s namespace in joining cluster", federationNamespace)
@@ -264,8 +244,8 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, cl
 
 	klog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createFederatedCluster(client, joiningClusterName, secret.Name,
-		federationNamespace, dryRun, errorOnExisting)
+	_, err = createFederatedCluster(client, joiningClusterName, clusterConfig.Host,
+		secret.Name, federationNamespace, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return err
@@ -297,105 +277,9 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 	}
 }
 
-// addToClusterRegistry handles adding the cluster to the cluster registry and
-// reports progress.
-func addToClusterRegistry(hostConfig *rest.Config, clusterNamespace, host, joiningClusterName string,
-	dryRun, errorOnExisting bool) error {
-	// Get the cluster registry clientset using the host cluster config.
-	client, err := util.ClusterRegistryClientset(hostConfig)
-	if err != nil {
-		klog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
-		return err
-	}
-
-	klog.V(2).Infof("Registering cluster: %s with the cluster registry.", joiningClusterName)
-
-	err = registerCluster(client, clusterNamespace, host, joiningClusterName, dryRun, errorOnExisting)
-	if err != nil {
-		klog.V(2).Infof("Could not register cluster: %s with the cluster registry: %v",
-			joiningClusterName, err)
-		return err
-	}
-
-	klog.V(2).Infof("Registered cluster: %s with the cluster registry.", joiningClusterName)
-	return nil
-}
-
-// verifyExistsInClusterRegistry verifies that the given joining cluster name exists
-// in the cluster registry.
-func verifyExistsInClusterRegistry(hostConfig *rest.Config, clusterNamespace, joiningClusterName string) error {
-	client, err := util.ClusterRegistryClientset(hostConfig)
-	if err != nil {
-		klog.V(2).Infof("Failed to get cluster registry clientset: %v", err)
-		return err
-	}
-
-	klog.V(2).Infof("Verifying cluster: %s exists in the cluster registry.",
-		joiningClusterName)
-
-	cluster := &crv1a1.Cluster{}
-	err = client.Get(context.TODO(), cluster, clusterNamespace, joiningClusterName)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return errors.Errorf("Cluster %s does not exist in the cluster registry.",
-				joiningClusterName)
-		}
-
-		klog.V(2).Infof("Could not retrieve cluster %s from the cluster registry: %v",
-			joiningClusterName, err)
-		return err
-	}
-
-	klog.V(2).Infof("Verified cluster %s exists in the cluster registry.", joiningClusterName)
-	return nil
-}
-
-// registerCluster registers a cluster with the cluster registry.
-// TODO: save off service account authinfo for cluster.
-func registerCluster(client genericclient.Client, clusterNamespace, host, joiningClusterName string,
-	dryRun, errorOnExisting bool) error {
-	cluster := &crv1a1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: clusterNamespace,
-			Name:      joiningClusterName,
-		},
-		Spec: crv1a1.ClusterSpec{
-			KubernetesAPIEndpoints: crv1a1.KubernetesAPIEndpoints{
-				ServerEndpoints: []crv1a1.ServerAddressByClientCIDR{
-					{
-						ClientCIDR:    "0.0.0.0/0",
-						ServerAddress: host,
-					},
-				},
-			},
-		},
-	}
-
-	if dryRun {
-		return nil
-	}
-
-	existingCluster := &crv1a1.Cluster{}
-	err := client.Get(context.TODO(), existingCluster, clusterNamespace, cluster.Name)
-	switch {
-	case err != nil && !apierrors.IsNotFound(err):
-		klog.V(2).Infof("Cannot retrieve cluster registry cluster %s due to %v", cluster.Name, err)
-		return err
-	case err == nil && errorOnExisting:
-		return errors.Errorf("cluster registry cluster %s already exists", cluster.Name)
-	case err == nil:
-		existingCluster.Spec = cluster.Spec
-		klog.V(2).Infof("Updating existing cluster registry cluster %s", cluster.Name)
-		return client.Update(context.TODO(), existingCluster)
-	default:
-		klog.V(2).Infof("Creating cluster registry cluster %s", cluster.Name)
-		return client.Create(context.TODO(), cluster)
-	}
-}
-
 // createFederatedCluster creates a federated cluster resource that associates
 // the cluster and secret.
-func createFederatedCluster(client genericclient.Client, joiningClusterName,
+func createFederatedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
 	secretName, federationNamespace string, dryRun, errorOnExisting bool) (*fedv1a1.FederatedCluster, error) {
 	fedCluster := &fedv1a1.FederatedCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -403,9 +287,7 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName,
 			Name:      joiningClusterName,
 		},
 		Spec: fedv1a1.FederatedClusterSpec{
-			ClusterRef: fedv1a1.LocalClusterReference{
-				Name: joiningClusterName,
-			},
+			APIEndpoint: apiEndpoint,
 			SecretRef: &fedv1a1.LocalSecretReference{
 				Name: secretName,
 			},

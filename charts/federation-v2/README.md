@@ -60,14 +60,7 @@ $ helm init --service-account tiller
 
 ## Installing the Chart
 
-First you'll need to create the reserved namespace for registering clusters with the
-cluster registry:
-
-```bash
-$ kubectl create ns kube-multicluster-public
-```
-
-Next, add the fedv2 chart repo to your local repository.
+First, add the fedv2 chart repo to your local repository.
 ```bash
 $ helm repo add fedv2-charts https://raw.githubusercontent.com/kubernetes-sigs/federation-v2/master/charts
 
@@ -87,9 +80,6 @@ Install the chart and specify the version to install with the
 $ helm install fedv2-charts/federation-v2 --version=<x.x.x> --namespace kube-federation-system
 ```
 
-If you already have clusterregistry installed, skip installing it by
-providing `--set clusterregistry.enabled=false` to the above command.
-
 ## Uninstalling the Chart
 
 Due to this helm [issue](https://github.com/helm/helm/issues/4440), the CRDs cannot be deleted
@@ -108,12 +98,6 @@ Delete all federation v2 CRDs:
 $ kubectl delete crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
 ```
 
-If you want to delete `clusters.clusterregistry.k8s.io` as well, do it as follows:
-
-```bash
-$ kubectl delete crd clusters.clusterregistry.k8s.io
-```
-
 Then you can uninstall/delete the `federation-v2` release:
 
 ```bash
@@ -122,12 +106,6 @@ $ helm delete --purge federation-v2
 
 The command above removes all the Kubernetes components associated with the chart
 and deletes the release.
-
-Delete the reserved namespace for registering clusters:
-
-```bash
-$ kubectl delete ns kube-multicluster-public
-```
 
 ## Configuration
 
@@ -146,7 +124,6 @@ chart and their default values.
 | controllermanager.featureGates.SchedulerPreferences         | Scheduler preferences feature.                                                                                                                                                        | true                                                                                                  |
 | controllermanager.featureGates.CrossClusterServiceDiscovery | Cross cluster service discovery feature.                                                                                                                                              | true                                                                                                  |
 | controllermanager.featureGates.FederatedIngress             | Federated ingress feature.                                                                                                                                                            | true                                                                                                  |
-| controllermanager.registryNamespace   | The cluster registry namespace.                                                                                                                                                                             | kube-multicluster-public                                                                              |
 | controllermanager.clusterAvailableDelay   | Time to wait before reconciling on a healthy cluster.                                                                                                                                                   | 20s                                                                                                   |
 | controllermanager.clusterUnavailableDelay | Time to wait before giving up on an unhealthy cluster.                                                                                                                                                  | 60s                                                                                                   |
 | controllermanager.leaderElectLeaseDuration | The maximum duration that a leader can be stopped before it is replaced by another candidate.                                                                                                          | 15s                                                                                                   |
@@ -158,7 +135,6 @@ chart and their default values.
 | controllermanager.clusterHealthCheckSuccessThreshold | Minimum consecutive successes for the cluster health to be considered successful after having failed.                                                                                        | 1                                                                                                     |
 | controllermanager.clusterHealthCheckTimeoutSeconds   | Number of seconds after which the cluster health check times out.                                                                                                                            | 3                                                                                                     |
 | controllermanager.syncController.skipAdoptingResources  | Whether to skip adopting pre-existing resource in member clusters.                                                                                                                        | false                                                                                                 |
-| clusterregistry.enabled               | Specifies whether to enable the clusterregistry in federation v2.                                                                                                                                           | true                                                                                                  |
 | global.scope                   | Whether the federation namespace will be the only target for federation.                                                                                                                                           | Cluster                                                                                              |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to

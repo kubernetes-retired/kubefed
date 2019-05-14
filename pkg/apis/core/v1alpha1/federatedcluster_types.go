@@ -25,33 +25,20 @@ import (
 
 // FederatedClusterSpec defines the desired state of FederatedCluster
 type FederatedClusterSpec struct {
-	// Name of the cluster registry Cluster resource from which to source api
-	// endpoints.
-	// TODO(marun) should this go away in favor of a 1:1 mapping?
-	ClusterRef LocalClusterReference `json:"clusterRef,omitempty"`
+	// The API endpoint of the member cluster. This can be a hostname,
+	// hostname:port, IP or IP:port.
+	APIEndpoint string `json:"apiEndpoint"`
 
-	// Name of the secret containing kubeconfig to access the referenced cluster.
+	// Name of the secret containing a kubeconfig to access the member
+	// cluster.
 	//
 	// Admin needs to ensure that the required secret exists. Secret
-	// should be in the same namespace where federation control plane
-	// is hosted and it should have kubeconfig in its data with key
-	// "kubeconfig".
-	//
-	// This will later be changed to a reference to secret in
-	// federation control plane when the federation control plane
-	// supports secrets.
+	// should be in the same namespace as the control plane and it
+	// should have kubeconfig in its data with key "kubeconfig".
 	//
 	// This can be left empty if the cluster allows insecure access.
 	// +optional
 	SecretRef *LocalSecretReference `json:"secretRef,omitempty"`
-}
-
-// LocalClusterReference contains information to identify a cluster in the
-// cluster registry.
-type LocalClusterReference struct {
-	// Name of the cluster registry Cluster resource from which to source API
-	// endpoints.
-	Name string `json:"name"`
 }
 
 // LocalSecretReference is a reference to a secret within the enclosing
@@ -79,8 +66,8 @@ type FederatedClusterStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedCluster configures federation to be aware of a Kubernetes cluster
-// from the cluster-registry and provides a Kubeconfig for federation to use to
+// FederatedCluster configures federation to be aware of a Kubernetes
+// cluster and provides a Kubeconfig for federation to use to
 // communicate with the cluster.
 //
 // +k8s:openapi-gen=true

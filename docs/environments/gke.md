@@ -61,5 +61,5 @@ kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=clu
   --user=$(gcloud config get-value core/account) --context cluster2
 ```
 
-Once all pods are running you can return to the [User Guide](../userguide.md) to deploy the cluster registry and
+Once all pods are running you can return to the [User Guide](../userguide.md) to deploy the
 Federation v2 control-plane.

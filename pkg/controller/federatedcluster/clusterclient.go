@@ -52,11 +52,10 @@ type ClusterClient struct {
 }
 
 // NewClusterClientSet returns a ClusterClient for the given FederatedCluster.
-// The kubeClient and crClient are used to configure the ClusterClient's
-// internal client with information from a kubeconfig stored in a kubernetes
-// secret and an API endpoint from the cluster-registry.
-func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fedNamespace, clusterNamespace string, timeout time.Duration) (*ClusterClient, error) {
-	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace, clusterNamespace)
+// The kubeClient is used to configure the ClusterClient's internal client
+// with information from a kubeconfig stored in a kubernetes secret.
+func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string, timeout time.Duration) (*ClusterClient, error) {
+	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace)
 	if err != nil {
 		return nil, err
 	}

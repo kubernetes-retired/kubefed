@@ -1,4 +1,7 @@
 # Unreleased
+-  [#869](https://github.com/kubernetes-sigs/federation-v2/issues/869)
+   The api endpoint of a member cluster is now stored in
+   FederatedCluster instead of a cluster registry Cluster.
 -  [#688](https://github.com/kubernetes-sigs/federation-v2/issues/688)
    Cluster references in placement are now objects instead of strings
    to ensure extensibility.
