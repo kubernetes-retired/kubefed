@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+SHELL := /bin/bash
 TARGET = kubefed
 GOTARGET = sigs.k8s.io/$(TARGET)
 REGISTRY ?= quay.io/kubernetes-multicluster
@@ -119,13 +120,13 @@ generate: generate-code kubefedctl
 
 push: container
 
-	if [ -z "$(TRAVIS_PULL_REQUEST)" ]; \
+	if [[ -z "$(TRAVIS_PULL_REQUEST)" ]]; \
 	then \
 		$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION); \
-	elif [ "$(TRAVIS_PULL_REQUEST)" = "false" && "$(TRAVIS_SECURE_ENV_VARS)" = "true" ]; \
+	elif [[ "$(TRAVIS_PULL_REQUEST)" == "false" && "$(TRAVIS_SECURE_ENV_VARS)" == "true" ]]; \
 	then \
 		$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io; \
-		if [ "$(TRAVIS_BRANCH)" = "master" ]; \
+		if [[ "$(TRAVIS_BRANCH)" == "master" ]]; \
 		then \
 			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):canary; \
 			$(DOCKER) push $(REGISTRY)/$(TARGET):canary; \
