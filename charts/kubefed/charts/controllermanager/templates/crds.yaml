@@ -374,12 +374,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: federationconfigs.core.kubefed.k8s.io
+  name: kubefedconfigs.core.kubefed.k8s.io
 spec:
   group: core.kubefed.k8s.io
   names:
-    kind: FederationConfig
-    plural: federationconfigs
+    kind: KubefedConfig
+    plural: kubefedconfigs
   scope: Namespaced
   validation:
     openAPIV3Schema:

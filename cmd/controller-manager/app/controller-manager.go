@@ -56,7 +56,7 @@ import (
 )
 
 var (
-	kubeconfig, federationConfig, masterURL string
+	kubeconfig, kubefedConfig, masterURL string
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -88,7 +88,7 @@ member clusters and does the necessary reconciliation`,
 
 	opts.AddFlags(cmd.Flags())
 	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
-	cmd.Flags().StringVar(&federationConfig, "kubefed-config", "", "Path to a federation config yaml file. Test only.")
+	cmd.Flags().StringVar(&kubefedConfig, "kubefed-config", "", "Path to a kubefed config yaml file. Test only.")
 	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
@@ -111,7 +111,7 @@ func Run(opts *options.Options) error {
 		panic(err)
 	}
 
-	setOptionsByFederationConfig(opts)
+	setOptionsByKubefedConfig(opts)
 
 	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
 		klog.Fatalf("Invalid Feature Gate: %v", err)
@@ -185,13 +185,13 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 }
 
-func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
-	fedConfig := &corev1a1.FederationConfig{}
-	if federationConfig == "" {
-		// there is no --kubefed-config specified, get `kubefed` FederationConfig from the cluster
-		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "federationconfig")
+func getKubefedConfig(opts *options.Options) *corev1a1.KubefedConfig {
+	fedConfig := &corev1a1.KubefedConfig{}
+	if kubefedConfig == "" {
+		// there is no --kubefed-config specified, get `kubefed` KubefedConfig from the cluster
+		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "kubefedconfig")
 
-		name := util.FederationConfigName
+		name := util.KubefedConfigName
 		namespace := opts.Config.FederationNamespace
 		qualifiedName := util.QualifiedName{
 			Namespace: namespace,
@@ -200,33 +200,33 @@ func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 
 		err := client.Get(context.Background(), fedConfig, namespace, name)
 		if apierrors.IsNotFound(err) {
-			klog.Infof("Cannot retrieve FederationConfig %q: %v. Default options are used.", qualifiedName.String(), err)
+			klog.Infof("Cannot retrieve KubefedConfig %q: %v. Default options are used.", qualifiedName.String(), err)
 			return nil
 		}
 		if err != nil {
-			klog.Fatalf("Error retrieving FederationConfig %q: %v.", qualifiedName.String(), err)
+			klog.Fatalf("Error retrieving KubefedConfig %q: %v.", qualifiedName.String(), err)
 		}
 
-		klog.Infof("Setting Options with FederationConfig %q", qualifiedName.String())
+		klog.Infof("Setting Options with KubefedConfig %q", qualifiedName.String())
 		return fedConfig
 	}
 
-	file, err := os.Open(federationConfig)
+	file, err := os.Open(kubefedConfig)
 	if err != nil {
-		// when federation config file is specified, it should be fatal error if the file does not valid
-		klog.Fatalf("Cannot open federation config file %q: %v", federationConfig, err)
+		// when kubefed config file is specified, it should be fatal error if the file does not valid
+		klog.Fatalf("Cannot open kubefed config file %q: %v", kubefedConfig, err)
 	}
 	defer file.Close()
 
 	decoder := yaml.NewYAMLToJSONDecoder(file)
 	err = decoder.Decode(fedConfig)
 	if err != nil {
-		klog.Fatalf("Cannot decode FederationConfig from file %q: %v", federationConfig, err)
+		klog.Fatalf("Cannot decode KubefedConfig from file %q: %v", kubefedConfig, err)
 	}
 
-	// set to current namespace to make sure `FederationConfig` is updated in correct namespace
+	// set to current namespace to make sure `KubefedConfig` is updated in correct namespace
 	fedConfig.Namespace = opts.Config.FederationNamespace
-	klog.Infof("Setting Options with FederationConfig from file %q: %v", federationConfig, fedConfig.Spec)
+	klog.Infof("Setting Options with KubefedConfig from file %q: %v", kubefedConfig, fedConfig.Spec)
 	return fedConfig
 }
 
@@ -248,7 +248,7 @@ func setInt(target *int, defaultValue int) {
 	}
 }
 
-func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
+func setDefaultKubefedConfig(fedConfig *corev1a1.KubefedConfig) {
 	spec := &fedConfig.Spec
 
 	if len(spec.Scope) == 0 {
@@ -283,7 +283,7 @@ func setDefaultFederationConfig(fedConfig *corev1a1.FederationConfig) {
 
 }
 
-func updateFederationConfig(config *rest.Config, fedConfig *corev1a1.FederationConfig) {
+func updateKubefedConfig(config *rest.Config, fedConfig *corev1a1.KubefedConfig) {
 	name := fedConfig.Name
 	namespace := fedConfig.Namespace
 	qualifiedName := util.QualifiedName{
@@ -291,39 +291,39 @@ func updateFederationConfig(config *rest.Config, fedConfig *corev1a1.FederationC
 		Name:      name,
 	}
 
-	configResource := &corev1a1.FederationConfig{}
-	client := genericclient.NewForConfigOrDieWithUserAgent(config, "federationconfig")
+	configResource := &corev1a1.KubefedConfig{}
+	client := genericclient.NewForConfigOrDieWithUserAgent(config, "kubefedconfig")
 	err := client.Get(context.Background(), configResource, namespace, name)
 	if err != nil && !apierrors.IsNotFound(err) {
-		klog.Fatalf("Error retrieving FederationConfig %q: %v", qualifiedName, err)
+		klog.Fatalf("Error retrieving KubefedConfig %q: %v", qualifiedName, err)
 	}
 	if apierrors.IsNotFound(err) {
-		// if `--kubefed-config` is specifed but there is not FederationConfig resource accordingly
+		// if `--kubefed-config` is specifed but there is not KubefedConfig resource accordingly
 		err = client.Create(context.Background(), fedConfig)
 		if err != nil {
-			klog.Fatalf("Error creating FederationConfig %q: %v", qualifiedName, err)
+			klog.Fatalf("Error creating KubefedConfig %q: %v", qualifiedName, err)
 		}
 	} else {
 		configResource.Spec = fedConfig.Spec
 		err = client.Update(context.Background(), configResource)
 		if err != nil {
-			klog.Fatalf("Error updating FederationConfig %q: %v", qualifiedName, err)
+			klog.Fatalf("Error updating KubefedConfig %q: %v", qualifiedName, err)
 		}
 	}
 }
 
-func setOptionsByFederationConfig(opts *options.Options) {
-	fedConfig := getFederationConfig(opts)
+func setOptionsByKubefedConfig(opts *options.Options) {
+	fedConfig := getKubefedConfig(opts)
 	if fedConfig == nil {
-		// FederationConfig could not be sourced from --kubefed-config or from the API.
+		// KubefedConfig could not be sourced from --kubefed-config or from the API.
 		qualifiedName := util.QualifiedName{
 			Namespace: opts.Config.FederationNamespace,
-			Name:      util.FederationConfigName,
+			Name:      util.KubefedConfigName,
 		}
 
-		klog.Infof("Creating FederationConfig %q with default values", qualifiedName)
+		klog.Infof("Creating KubefedConfig %q with default values", qualifiedName)
 
-		fedConfig = &corev1a1.FederationConfig{
+		fedConfig = &corev1a1.KubefedConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      qualifiedName.Name,
 				Namespace: qualifiedName.Namespace,
@@ -331,7 +331,7 @@ func setOptionsByFederationConfig(opts *options.Options) {
 		}
 	}
 
-	setDefaultFederationConfig(fedConfig)
+	setDefaultKubefedConfig(fedConfig)
 
 	spec := fedConfig.Spec
 	opts.Scope = spec.Scope
@@ -351,7 +351,7 @@ func setOptionsByFederationConfig(opts *options.Options) {
 
 	opts.Config.SkipAdoptingResources = spec.SyncController.SkipAdoptingResources
 
-	updateFederationConfig(opts.Config.KubeConfig, fedConfig)
+	updateKubefedConfig(opts.Config.KubeConfig, fedConfig)
 
 	var featureGates = make(map[string]bool)
 	for _, v := range fedConfig.Spec.FeatureGates {

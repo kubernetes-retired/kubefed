@@ -81,7 +81,7 @@ func spawnControllerManagerProcess(tl common.TestLogger, kubeConfigPath, namespa
 	// Get the directory of the current executable
 	_, filename, _, _ := runtime.Caller(0)
 	managedPath := filepath.Dir(filename)
-	confFile, err := filepath.Abs(fmt.Sprintf("%s/../../config/federationconfig.yaml", managedPath))
+	confFile, err := filepath.Abs(fmt.Sprintf("%s/../../config/kubefedconfig.yaml", managedPath))
 	if err != nil {
 		tl.Fatalf("Error discovering the configuration file for FecerationConfig resources: %v", err)
 	}

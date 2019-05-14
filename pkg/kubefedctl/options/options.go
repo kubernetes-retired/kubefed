@@ -76,21 +76,21 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 	return nil
 }
 
-func GetScopeFromFederationConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
+func GetScopeFromKubefedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get federation clientset")
 		return "", err
 	}
 
-	fedConfig := &fedv1a1.FederationConfig{}
-	err = client.Get(context.TODO(), fedConfig, namespace, util.FederationConfigName)
+	fedConfig := &fedv1a1.KubefedConfig{}
+	err = client.Get(context.TODO(), fedConfig, namespace, util.KubefedConfigName)
 	if err != nil {
 		config := util.QualifiedName{
 			Namespace: namespace,
-			Name:      util.FederationConfigName,
+			Name:      util.KubefedConfigName,
 		}
-		err = errors.Wrapf(err, "Error retrieving FederationConfig %q", config)
+		err = errors.Wrapf(err, "Error retrieving KubefedConfig %q", config)
 		return "", err
 	}
 
