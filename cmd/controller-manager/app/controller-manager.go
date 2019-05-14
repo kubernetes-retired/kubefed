@@ -88,7 +88,7 @@ member clusters and does the necessary reconciliation`,
 
 	opts.AddFlags(cmd.Flags())
 	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
-	cmd.Flags().StringVar(&federationConfig, "federation-config", "", "Path to a federation config yaml file. Test only.")
+	cmd.Flags().StringVar(&federationConfig, "kubefed-config", "", "Path to a federation config yaml file. Test only.")
 	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
@@ -188,7 +188,7 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 func getFederationConfig(opts *options.Options) *corev1a1.FederationConfig {
 	fedConfig := &corev1a1.FederationConfig{}
 	if federationConfig == "" {
-		// there is no --federation-config specified, get `kubefed` FederationConfig from the cluster
+		// there is no --kubefed-config specified, get `kubefed` FederationConfig from the cluster
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "federationconfig")
 
 		name := util.FederationConfigName
@@ -298,7 +298,7 @@ func updateFederationConfig(config *rest.Config, fedConfig *corev1a1.FederationC
 		klog.Fatalf("Error retrieving FederationConfig %q: %v", qualifiedName, err)
 	}
 	if apierrors.IsNotFound(err) {
-		// if `--federation-config` is specifed but there is not FederationConfig resource accordingly
+		// if `--kubefed-config` is specifed but there is not FederationConfig resource accordingly
 		err = client.Create(context.Background(), fedConfig)
 		if err != nil {
 			klog.Fatalf("Error creating FederationConfig %q: %v", qualifiedName, err)
@@ -315,7 +315,7 @@ func updateFederationConfig(config *rest.Config, fedConfig *corev1a1.FederationC
 func setOptionsByFederationConfig(opts *options.Options) {
 	fedConfig := getFederationConfig(opts)
 	if fedConfig == nil {
-		// FederationConfig could not be sourced from --federation-config or from the API.
+		// FederationConfig could not be sourced from --kubefed-config or from the API.
 		qualifiedName := util.QualifiedName{
 			Namespace: opts.Config.FederationNamespace,
 			Name:      util.FederationConfigName,
