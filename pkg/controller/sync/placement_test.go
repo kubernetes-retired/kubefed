@@ -29,7 +29,7 @@ import (
 )
 
 func TestSelectedClusterNames(t *testing.T) {
-	clusters := []*fedv1a1.FederatedCluster{
+	clusters := []*fedv1a1.KubefedCluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "cluster1",

@@ -201,15 +201,15 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace, 
 
 	// deletionSucceeded when all operations in deleteRBACResources and deleteFedNSFromUnjoinCluster succeed.
 	if deletionSucceeded || forceDeletion {
-		deleteFederatedClusterAndSecret(hostClientset, client, federationNamespace, unjoiningClusterName, dryRun)
+		deleteKubefedClusterAndSecret(hostClientset, client, federationNamespace, unjoiningClusterName, dryRun)
 	}
 
 	return nil
 }
 
-// deleteFederatedClusterAndSecret deletes a federated cluster resource that associates
+// deleteKubefedClusterAndSecret deletes a federated cluster resource that associates
 // the cluster and secret.
-func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client genericclient.Client,
+func deleteKubefedClusterAndSecret(hostClientset kubeclient.Interface, client genericclient.Client,
 	federationNamespace, unjoiningClusterName string, dryRun bool) {
 	if dryRun {
 		return
@@ -218,10 +218,10 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 	klog.V(2).Infof("Deleting federated cluster resource from namespace: %s for unjoin cluster: %s",
 		federationNamespace, unjoiningClusterName)
 
-	fedCluster := &fedv1a1.FederatedCluster{}
+	fedCluster := &fedv1a1.KubefedCluster{}
 	err := client.Get(context.TODO(), fedCluster, federationNamespace, unjoiningClusterName)
 	if err != nil {
-		klog.Errorf("Failed to get FederatedCluster resource from namespace: %s for unjoin cluster: %s due to: %v", federationNamespace, unjoiningClusterName, err)
+		klog.Errorf("Failed to get KubefedCluster resource from namespace: %s for unjoin cluster: %s due to: %v", federationNamespace, unjoiningClusterName, err)
 		return
 	}
 
@@ -235,9 +235,9 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 
 	err = client.Delete(context.TODO(), fedCluster, fedCluster.Namespace, fedCluster.Name)
 	if err != nil {
-		klog.Errorf("Failed to delete FederatedCluster resource from namespace: %s for unjoin cluster: %s due to: %v", federationNamespace, unjoiningClusterName, err)
+		klog.Errorf("Failed to delete KubefedCluster resource from namespace: %s for unjoin cluster: %s due to: %v", federationNamespace, unjoiningClusterName, err)
 	} else {
-		klog.V(2).Infof("Deleted FederatedCluster resource from namespace: %s for unjoin cluster: %s", federationNamespace, unjoiningClusterName)
+		klog.V(2).Infof("Deleted KubefedCluster resource from namespace: %s for unjoin cluster: %s", federationNamespace, unjoiningClusterName)
 	}
 }
 

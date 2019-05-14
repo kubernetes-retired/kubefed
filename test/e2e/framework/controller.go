@@ -21,7 +21,7 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
-	"sigs.k8s.io/kubefed/pkg/controller/federatedcluster"
+	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
@@ -107,7 +107,7 @@ func NewClusterControllerFixture(tl common.TestLogger, config *util.ControllerCo
 		stopChan: make(chan struct{}),
 	}
 	clusterHealthCheckConfig := util.ClusterHealthCheckConfig{PeriodSeconds: 1, FailureThreshold: 1}
-	err := federatedcluster.StartClusterController(config, clusterHealthCheckConfig, f.stopChan)
+	err := kubefedcluster.StartClusterController(config, clusterHealthCheckConfig, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting cluster controller: %v", err)
 	}

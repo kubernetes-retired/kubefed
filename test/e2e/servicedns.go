@@ -49,7 +49,7 @@ var _ = Describe("ServiceDNS", func() {
 	const Domain = "example.com"
 
 	var client genericclient.Client
-	var clusterRegionZones map[string]fedv1a1.FederatedClusterStatus
+	var clusterRegionZones map[string]fedv1a1.KubefedClusterStatus
 	var federation string
 	var namespace string
 
@@ -170,7 +170,7 @@ var _ = Describe("ServiceDNS", func() {
 })
 
 func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, domain string,
-	clusterRegionZones map[string]fedv1a1.FederatedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
+	clusterRegionZones map[string]fedv1a1.KubefedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
 
 	const userAgent = "test-service-dns"
 
@@ -217,13 +217,13 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	return serviceDNSStatus
 }
 
-func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, federationSystemNamespace string) map[string]fedv1a1.FederatedClusterStatus {
-	federatedClusters := &fedv1a1.FederatedClusterList{}
-	err := client.List(context.TODO(), federatedClusters, federationSystemNamespace)
+func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, federationSystemNamespace string) map[string]fedv1a1.KubefedClusterStatus {
+	clusters := &fedv1a1.KubefedClusterList{}
+	err := client.List(context.TODO(), clusters, federationSystemNamespace)
 	framework.ExpectNoError(err, "Error listing federated clusters")
 
-	clusterRegionZones := make(map[string]fedv1a1.FederatedClusterStatus)
-	for i, cluster := range federatedClusters.Items {
+	clusterRegionZones := make(map[string]fedv1a1.KubefedClusterStatus)
+	for i, cluster := range clusters.Items {
 		err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 			cluster.Status.Region = fmt.Sprintf("r%d", i)
 			cluster.Status.Zones = []string{fmt.Sprintf("z%d", i)}
@@ -245,7 +245,7 @@ func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client generic
 		})
 		framework.ExpectNoError(err, "Error updating federated cluster status")
 
-		clusterRegionZones[cluster.Name] = fedv1a1.FederatedClusterStatus{
+		clusterRegionZones[cluster.Name] = fedv1a1.KubefedClusterStatus{
 			Region: cluster.Status.Region,
 			Zones:  cluster.Status.Zones,
 		}

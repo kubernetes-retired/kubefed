@@ -5,12 +5,12 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedclusterroles.types.kubefed.k8s.io
+  name: kubefedclusterroles.types.kubefed.k8s.io
 spec:
   group: types.kubefed.k8s.io
   names:
-    kind: FederatedClusterRole
-    plural: federatedclusterroles
+    kind: KubefedClusterRole
+    plural: kubefedclusterroles
   scope: Cluster
   subresources:
     status: {}

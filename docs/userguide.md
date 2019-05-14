@@ -136,7 +136,7 @@ specified.
 Check the status of the joined clusters until you verify they are ready:
 
 ```bash
-kubectl -n kube-federation-system get federatedclusters
+kubectl -n kube-federation-system get kubefedclusters
 
 NAME       READY   AGE
 cluster1   True    1m
@@ -565,13 +565,13 @@ to via the `spec.placement.clusters` field of a federated resource, it is possib
 use the `spec.placement.clusterSelector` field to provide a label selector that determines
 that list of clusters at runtime.
 
-If the goal is to select a subset of member clusters, make sure that the `FederatedCluster`
+If the goal is to select a subset of member clusters, make sure that the `KubefedCluster`
 resources that are intended to be selected have the appropriate labels applied.
 
-The following command is an example to label a `FederatedCluster`:
+The following command is an example to label a `KubefedCluster`:
 
 ```bash
-kubectl label federatedclusters -n kube-federation-system cluster1 foo=bar
+kubectl label kubefedclusters -n kube-federation-system cluster1 foo=bar
 ```
 
 Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)

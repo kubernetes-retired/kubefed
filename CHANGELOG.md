@@ -1,10 +1,10 @@
 # Unreleased
 -  [#875](https://sigs.k8s.io/kubefed/issues/875)
    Insecure member clusters are no longer supported due to
-   FederatedCluster.SecretRef being made a required field.
+   KubefedCluster.SecretRef being made a required field.
 -  [#869](https://sigs.k8s.io/kubefed/issues/869)
    The api endpoint of a member cluster is now stored in
-   FederatedCluster instead of a cluster registry Cluster.
+   KubefedCluster instead of a cluster registry Cluster.
 -  [#688](https://sigs.k8s.io/kubefed/issues/688)
    Cluster references in placement are now objects instead of strings
    to ensure extensibility.
@@ -47,7 +47,7 @@
    `Namespaced` or `Cluster` scoped federation deployment.
 -  [#797](https://sigs.k8s.io/kubefed/pull/797) -
    Cross-cluster service discovery now works for multi-zone clusters.
-   There is an update to FederatedClusters and ServiceDNSRecord API
+   There is an update to KubefedClusters and ServiceDNSRecord API
    types wherein the zone field is changed to zones.
 -  [#720](https://sigs.k8s.io/kubefed/issues/720) -
    `kubefed2 enable` now succeeds if federation of the type is already

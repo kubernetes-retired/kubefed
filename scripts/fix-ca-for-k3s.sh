@@ -42,7 +42,7 @@ NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
 
 for CLUSTER_NAME in $CLUSTER_NAMES; do
 	CA_CRT=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="'"${CLUSTER_NAME}"'")].cluster.certificate-authority-data}')
-	SECRET_NAME=$(kubectl get -n ${NS} federatedclusters ${CLUSTER_NAME} -o jsonpath='{.spec.secretRef.name}')
+	SECRET_NAME=$(kubectl get -n ${NS} kubefedclusters ${CLUSTER_NAME} -o jsonpath='{.spec.secretRef.name}')
 	kubectl patch -n ${NS} secret ${SECRET_NAME} \
 		--patch '{"data":{"ca.crt": "'${CA_CRT}'"}}'
 done

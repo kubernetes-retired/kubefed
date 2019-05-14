@@ -54,7 +54,7 @@ KF_NS_ARG="--kubefed-namespace=${NS} "
 
 # Unjoin clusters by removing objects added by kubefedctl.
 HOST_CLUSTER="$(kubectl config current-context)"
-JOINED_CLUSTERS="$(kubectl -n "${NS}" get federatedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
+JOINED_CLUSTERS="$(kubectl -n "${NS}" get kubefedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
 for c in ${JOINED_CLUSTERS}; do
   ./bin/kubefedctl unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --v=2 ${KF_NS_ARG}
 done

@@ -244,7 +244,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, federationNamespace,
 
 	klog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createFederatedCluster(client, joiningClusterName, clusterConfig.Host,
+	_, err = createKubefedCluster(client, joiningClusterName, clusterConfig.Host,
 		secret.Name, federationNamespace, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
@@ -277,16 +277,16 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 	}
 }
 
-// createFederatedCluster creates a federated cluster resource that associates
+// createKubefedCluster creates a federated cluster resource that associates
 // the cluster and secret.
-func createFederatedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
-	secretName, federationNamespace string, dryRun, errorOnExisting bool) (*fedv1a1.FederatedCluster, error) {
-	fedCluster := &fedv1a1.FederatedCluster{
+func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
+	secretName, federationNamespace string, dryRun, errorOnExisting bool) (*fedv1a1.KubefedCluster, error) {
+	fedCluster := &fedv1a1.KubefedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: federationNamespace,
 			Name:      joiningClusterName,
 		},
-		Spec: fedv1a1.FederatedClusterSpec{
+		Spec: fedv1a1.KubefedClusterSpec{
 			APIEndpoint: apiEndpoint,
 			SecretRef: fedv1a1.LocalSecretReference{
 				Name: secretName,
@@ -298,7 +298,7 @@ func createFederatedCluster(client genericclient.Client, joiningClusterName, api
 		return fedCluster, nil
 	}
 
-	existingFedCluster := &fedv1a1.FederatedCluster{}
+	existingFedCluster := &fedv1a1.KubefedCluster{}
 	err := client.Get(context.TODO(), existingFedCluster, federationNamespace, joiningClusterName)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):

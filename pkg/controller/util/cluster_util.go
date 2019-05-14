@@ -53,9 +53,9 @@ const (
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
-// a client for the given FederatedCluster or an error. The client is used to
+// a client for the given KubefedCluster or an error. The client is used to
 // access kubernetes secrets in the kubefed namespace.
-func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
+func BuildClusterConfig(fedCluster *fedv1a1.KubefedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	apiEndpoint := fedCluster.Spec.APIEndpoint

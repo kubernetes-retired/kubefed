@@ -148,12 +148,12 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 			Namespaced:   true},
 		s.worker.EnqueueObject,
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
+			ClusterAvailable: func(cluster *fedv1a1.KubefedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1a1.KubefedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package federatedcluster
+package kubefedcluster
 
 import (
 	"reflect"
@@ -46,9 +46,9 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		clusterStatus         *fedv1a1.FederatedClusterStatus
+		clusterStatus         *fedv1a1.KubefedClusterStatus
 		storedClusterData     *ClusterData
-		expectedClusterStatus *fedv1a1.FederatedClusterStatus
+		expectedClusterStatus *fedv1a1.KubefedClusterStatus
 		expectedResultRun     int
 	}{
 		"ClusterReadyAtBegining": {
@@ -104,8 +104,8 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 
 }
 
-func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1a1.FederatedClusterStatus {
-	return &fedv1a1.FederatedClusterStatus{
+func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1a1.KubefedClusterStatus {
+	return &fedv1a1.KubefedClusterStatus{
 		Conditions: []fedv1a1.ClusterCondition{{
 			Type:               common.ClusterReady,
 			Status:             status,

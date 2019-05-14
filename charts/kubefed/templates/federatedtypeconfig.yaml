@@ -6,8 +6,8 @@ metadata:
 spec:
   federatedType:
     group: types.kubefed.k8s.io
-    kind: FederatedClusterRole
-    pluralName: federatedclusterroles
+    kind: KubefedClusterRole
+    pluralName: kubefedclusterroles
     version: v1alpha1
   namespaced: false
   propagationEnabled: true

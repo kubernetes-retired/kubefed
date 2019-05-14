@@ -191,7 +191,7 @@ func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 	var clusters []string
 	client := f.Client(userAgent)
-	clusterList := &fedv1a1.FederatedClusterList{}
+	clusterList := &fedv1a1.KubefedClusterList{}
 	err := client.List(context.TODO(), clusterList, TestContext.FederationSystemNamespace)
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
@@ -239,7 +239,7 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 
 	By("Obtaining a list of federated clusters")
 	client := f.Client(userAgent)
-	clusterList := ListFederatedClusters(NewE2ELogger(), client, TestContext.FederationSystemNamespace)
+	clusterList := ListKubefedClusters(NewE2ELogger(), client, TestContext.FederationSystemNamespace)
 
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext

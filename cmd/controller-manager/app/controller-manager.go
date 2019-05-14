@@ -45,7 +45,7 @@ import (
 	corev1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
-	"sigs.k8s.io/kubefed/pkg/controller/federatedcluster"
+	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
@@ -148,7 +148,7 @@ func Run(opts *options.Options) error {
 }
 
 func startControllers(opts *options.Options, stopChan <-chan struct{}) {
-	if err := federatedcluster.StartClusterController(opts.Config, opts.ClusterHealthCheckConfig, stopChan); err != nil {
+	if err := kubefedcluster.StartClusterController(opts.Config, opts.ClusterHealthCheckConfig, stopChan); err != nil {
 		klog.Fatalf("Error starting cluster controller: %v", err)
 	}
 
