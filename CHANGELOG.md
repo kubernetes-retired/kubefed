@@ -80,7 +80,7 @@
      deployment method to install federation control plane.
  - [#622](https://sigs.k8s.io/kubefed/pull/622) -
    Switched the sync controller to using a new finalizer
-   (`federation.k8s.io/sync-controller` instead of
+   (`kubefed.k8s.io/sync-controller` instead of
    `federation.kubernetes.io/delete-from-underlying-clusters`) and
    replaced the use of the kube `orphan` finalizer in favor of an
    annotation to avoid conflicting with the garbage collector.  This

@@ -27,7 +27,7 @@ function delete-helm-deployment() {
   # Clean federation resources
   ${KCD} -n "${NS}" FederatedTypeConfig --all
   if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
-    ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+    ${KCD} crd $(kubectl get crd | grep -E 'kubefed.k8s.io' | awk '{print $1}')
   fi
 
   if [[ "${NAMESPACED}" ]]; then

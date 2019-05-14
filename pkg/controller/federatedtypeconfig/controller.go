@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
-const finalizer string = "core.federation.k8s.io/federated-type-config"
+const finalizer string = "core.kubefed.k8s.io/federated-type-config"
 
 // Controller manages the FederatedTypeConfig objects in federation.
 type Controller struct {

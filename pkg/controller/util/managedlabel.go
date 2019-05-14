@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	ManagedByFederationLabelKey   = "federation.k8s.io/managed"
+	ManagedByFederationLabelKey   = "kubefed.k8s.io/managed"
 	ManagedByFederationLabelValue = "true"
 )
 

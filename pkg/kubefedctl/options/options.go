@@ -108,7 +108,7 @@ type CommonEnableOptions struct {
 // Default value for shared Federation group across enable and
 // disable subcommands of `kubefedctl`.
 const (
-	DefaultFederationGroup   = "types.federation.k8s.io"
+	DefaultFederationGroup   = "types.kubefed.k8s.io"
 	DefaultFederationVersion = "v1alpha1"
 )
 

@@ -53,13 +53,13 @@ const (
 	// If this finalizer is present on a federated resource, the sync
 	// controller will have the opportunity to perform pre-deletion operations
 	// (like deleting managed resources from member clusters).
-	FinalizerSyncController = "federation.k8s.io/sync-controller"
+	FinalizerSyncController = "kubefed.k8s.io/sync-controller"
 
 	// If this annotation is present on a federated resource, resources in the
 	// member clusters managed by the federated resource should be orphaned.
 	// If the annotation is not present (the default), resources in member
 	// clusters will be deleted before the federated resource is deleted.
-	OrphanManagedResources = "federation.k8s.io/orphan"
+	OrphanManagedResources = "kubefed.k8s.io/orphan"
 )
 
 // FederationSyncController synchronizes the state of a federated type
