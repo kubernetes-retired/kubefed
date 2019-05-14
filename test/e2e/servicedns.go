@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"sort"
 	"strings"
 
@@ -62,10 +63,7 @@ var _ = Describe("ServiceDNS", func() {
 		client = f.Client(userAgent)
 		namespace = f.TestNamespaceName()
 
-		federatedClusters := &fedv1a1.FederatedClusterList{}
-		err := client.List(context.TODO(), federatedClusters, f.FederationSystemNamespace())
-		framework.ExpectNoError(err, "Error listing federated clusters")
-		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, federatedClusters)
+		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.FederationSystemNamespace())
 		if framework.TestContext.RunControllers() {
 			fixture := framework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
@@ -73,7 +71,7 @@ var _ = Describe("ServiceDNS", func() {
 		f.EnsureTestNamespacePropagation()
 		domainObj := common.NewDomainObject(federationPrefix, Domain)
 		domainObj.Namespace = f.FederationSystemNamespace()
-		err = client.Create(context.TODO(), domainObj)
+		err := client.Create(context.TODO(), domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")
 		federation = domainObj.Name
 	})
@@ -219,16 +217,25 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	return serviceDNSStatus
 }
 
-func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, federatedClusters *fedv1a1.FederatedClusterList) map[string]fedv1a1.FederatedClusterStatus {
+func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, federationSystemNamespace string) map[string]fedv1a1.FederatedClusterStatus {
+	federatedClusters := &fedv1a1.FederatedClusterList{}
+	err := client.List(context.TODO(), federatedClusters, federationSystemNamespace)
+	framework.ExpectNoError(err, "Error listing federated clusters")
+
 	clusterRegionZones := make(map[string]fedv1a1.FederatedClusterStatus)
 	for i, cluster := range federatedClusters.Items {
-		cluster.Status.Region = fmt.Sprintf("r%d", i)
-		cluster.Status.Zones = []string{fmt.Sprintf("z%d", i)}
-
 		err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+			cluster.Status.Region = fmt.Sprintf("r%d", i)
+			cluster.Status.Zones = []string{fmt.Sprintf("z%d", i)}
+
 			err := client.UpdateStatus(context.TODO(), &cluster)
 			if apierrors.IsConflict(err) {
-				tl.Logf("Failed to update status for federated cluster %q: %v", cluster.Name, err)
+				clusterName := cluster.Name
+				tl.Logf("Failed to update status for federated cluster %q: %v", clusterName, err)
+				err = client.Get(context.TODO(), &cluster, federationSystemNamespace, clusterName)
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to retrieve cluster object")
+				}
 				return false, nil
 			}
 			if err != nil {
