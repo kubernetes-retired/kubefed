@@ -103,12 +103,12 @@ func ClusterServiceAccountName(joiningClusterName, hostClusterName string) strin
 // associated RoleBinding or ClusterRoleBinding that are used to allow
 // the service account to access necessary resources on the cluster.
 func RoleName(serviceAccountName string) string {
-	return fmt.Sprintf("federation-controller-manager:%s", serviceAccountName)
+	return fmt.Sprintf("kubefed-controller-manager:%s", serviceAccountName)
 }
 
 // HealthCheckRoleName returns the name of a ClusterRole and its
 // associated ClusterRoleBinding that is used to allow the service
 // account to check the health of the cluster and list nodes.
 func HealthCheckRoleName(serviceAccountName, namespace string) string {
-	return fmt.Sprintf("federation-controller-manager:%s:healthcheck-%s", namespace, serviceAccountName)
+	return fmt.Sprintf("kubefed-controller-manager:%s:healthcheck-%s", namespace, serviceAccountName)
 }

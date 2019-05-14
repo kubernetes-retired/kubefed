@@ -657,7 +657,7 @@ kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
 It may also be useful to inspect the kubefed controller log as follows:
 
 ```bash
-kubectl logs -f federation-controller-manager-0 -n kube-federation-system
+kubectl logs -f kubefed-controller-manager-0 -n kube-federation-system
 ```
 
 ## Namespaced Federation

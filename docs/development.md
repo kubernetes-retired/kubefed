@@ -149,21 +149,21 @@ controllers to be targeted by a debugger (e.g. delve) or the golang
 race detector.  The prerequisite for this mode is scaling down the
 kubefed controller manager:
 
-1. Reduce the `federation-controller-manager` deployment replicas to 0. This way
+1. Reduce the `kubefed-controller-manager` deployment replicas to 0. This way
    we can launch the necessary kubefed controllers ourselves via the test
    binary.
 
    ```bash
-   kubectl scale deployments federation-controller-manager -n kube-federation-system --replicas=0
+   kubectl scale deployments kubefed-controller-manager -n kube-federation-system --replicas=0
    ```
 
    Once you've reduced the replicas to 0, you should see the
-   `federation-controller-manager` deployment update to show 0 pods running:
+   `kubefed-controller-manager` deployment update to show 0 pods running:
 
    ```bash
-   kubectl -n kube-federation-system get deployment.apps federation-controller-manager
+   kubectl -n kube-federation-system get deployment.apps kubefed-controller-manager
    NAME                            DESIRED   CURRENT   AGE
-   federation-controller-manager   0         0         14s
+   kubefed-controller-manager   0         0         14s
    ```
 
 1. Run tests.

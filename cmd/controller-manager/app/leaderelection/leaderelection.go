@@ -35,7 +35,7 @@ import (
 )
 
 func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*options.Options, <-chan struct{})) (*leaderelection.LeaderElector, error) {
-	const component = "federation-controller-manager"
+	const component = "kubefed-controller-manager"
 	restclient.AddUserAgent(opts.Config.KubeConfig, "federation-leader-election")
 	leaderElectionClient := kubeclient.NewForConfigOrDie(opts.Config.KubeConfig)
 

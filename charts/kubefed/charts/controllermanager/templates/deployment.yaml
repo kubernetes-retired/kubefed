@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: federation-controller-manager
+  name: kubefed-controller-manager
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: controller-manager
