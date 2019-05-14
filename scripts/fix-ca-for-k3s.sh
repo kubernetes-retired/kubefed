@@ -42,9 +42,8 @@ NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 
 for CLUSTER_NAME in $CLUSTER_NAMES; do
 	CA_CRT=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="'"${CLUSTER_NAME}"'")].cluster.certificate-authority-data}')
-	SECRET_NAME=$(kubectl get -n ${NS} kubefedclusters ${CLUSTER_NAME} -o jsonpath='{.spec.secretRef.name}')
-	kubectl patch -n ${NS} secret ${SECRET_NAME} \
-		--patch '{"data":{"ca.crt": "'${CA_CRT}'"}}'
+	kubectl patch -n ${NS} kubefedclusters "${CLUSTER_NAME}"
+		--patch '{"spec": {"caBundle": "'${CA_CRT}'"}}'
 done
 
 # Restart the controller manager to make it reload the secrets
