@@ -110,11 +110,10 @@ spec:
                 hostname:port, IP or IP:port.
               type: string
             secretRef:
-              description: Name of the secret containing a kubeconfig to access the
-                member cluster.  Admin needs to ensure that the required secret exists.
-                Secret should be in the same namespace as the control plane and it
-                should have kubeconfig in its data with key "kubeconfig".  This can
-                be left empty if the cluster allows insecure access.
+              description: Name of the secret containing a token and ca bundle required
+                to access the member cluster.  The secret needs to exist in the same
+                namespace as the control plane and should have keys for "token" and
+                "ca.crt".
               properties:
                 name:
                   description: Name of a secret within the enclosing namespace
@@ -124,6 +123,7 @@ spec:
               type: object
           required:
           - apiEndpoint
+          - secretRef
           type: object
         status:
           properties:

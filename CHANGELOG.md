@@ -1,4 +1,7 @@
 # Unreleased
+-  [#875](https://github.com/kubernetes-sigs/federation-v2/issues/875)
+   Insecure member clusters are no longer supported due to
+   FederatedCluster.SecretRef being made a required field.
 -  [#869](https://github.com/kubernetes-sigs/federation-v2/issues/869)
    The api endpoint of a member cluster is now stored in
    FederatedCluster instead of a cluster registry Cluster.
