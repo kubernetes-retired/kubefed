@@ -38,7 +38,7 @@ v1.6 or later:
 ```
 <....>
 Error from server (Forbidden): error when creating "hack/install-latest.yaml": clusterroles.rbac.authorization.k8s.io
-"federation-role" is forbidden: attempt to grant extra privileges:
+"kubefed-role" is forbidden: attempt to grant extra privileges:
 <....>
 ```
 

@@ -20,7 +20,7 @@ spec:
         control-plane: controller-manager
         controller-tools.k8s.io: "1.0"
     spec:
-      serviceAccountName: federation-controller
+      serviceAccountName: kubefed-controller
       containers:
       - args:
         - --kubefed-namespace=$(KUBEFED_NAMESPACE)

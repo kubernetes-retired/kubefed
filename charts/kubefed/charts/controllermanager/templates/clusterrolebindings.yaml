@@ -3,13 +3,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: federation-rolebinding
+  name: kubefed-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: federation-role
+  name: kubefed-role
 subjects:
 - kind: ServiceAccount
-  name: federation-controller
+  name: kubefed-controller
   namespace: {{ .Release.Namespace }}
 {{- end }}

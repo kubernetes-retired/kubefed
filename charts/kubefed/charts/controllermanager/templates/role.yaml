@@ -6,7 +6,7 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
-  name: federation-role
+  name: kubefed-role
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:
@@ -64,7 +64,7 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
-  name: federation-config-role
+  name: kubefed-config-role
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:

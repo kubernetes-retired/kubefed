@@ -243,7 +243,7 @@ For example, after federation deployment, `deployments.apps` is enabled by defau
 `deployments.example.com`, you should:
 ```bash
 kubefedctl enable deployments.example.com --federation-group federation.example.com
-kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
+kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
             "apiGroups": [
                 "federation.example.com"
             ],
@@ -260,7 +260,7 @@ kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path
 }]'
 ```
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
-you can patch role `federation-role` in the kubefed namespace instead.
+you can patch role `kubefed-role` in the kubefed namespace instead.
 
 ## Disabling federation of an API type
 

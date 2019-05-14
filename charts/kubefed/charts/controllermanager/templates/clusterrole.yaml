@@ -6,7 +6,7 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
-  name: federation-role
+  name: kubefed-role
 rules:
 - apiGroups:
   - scheduling.kubefed.k8s.io
