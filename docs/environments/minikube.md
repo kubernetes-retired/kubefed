@@ -33,4 +33,4 @@ kubectl get all --all-namespaces
 ```
 
 After all pods reach a Running status, you can return to the [User Guide](../userguide.md) to deploy the cluster
-registry and Federation v2 control plane.
+registry and Kubefed control plane.

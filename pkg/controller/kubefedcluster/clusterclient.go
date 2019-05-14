@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package federatedcluster
+package kubefedcluster
 
 import (
 	"strings"
@@ -30,10 +30,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	fedcommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedcommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 const (
@@ -45,16 +45,16 @@ const (
 )
 
 // ClusterClient provides methods for determining the status and zones of a
-// particular FederatedCluster.
+// particular KubefedCluster.
 type ClusterClient struct {
 	kubeClient  *kubeclientset.Clientset
 	clusterName string
 }
 
-// NewClusterClientSet returns a ClusterClient for the given FederatedCluster.
+// NewClusterClientSet returns a ClusterClient for the given KubefedCluster.
 // The kubeClient is used to configure the ClusterClient's internal client
 // with information from a kubeconfig stored in a kubernetes secret.
-func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string, timeout time.Duration) (*ClusterClient, error) {
+func NewClusterClientSet(c *fedv1a1.KubefedCluster, client generic.Client, fedNamespace string, timeout time.Duration) (*ClusterClient, error) {
 	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace)
 	if err != nil {
 		return nil, err
@@ -71,8 +71,8 @@ func NewClusterClientSet(c *fedv1a1.FederatedCluster, client generic.Client, fed
 }
 
 // GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.FederatedClusterStatus {
-	clusterStatus := fedv1a1.FederatedClusterStatus{}
+func (self *ClusterClient) GetClusterHealthStatus() *fedv1a1.KubefedClusterStatus {
+	clusterStatus := fedv1a1.KubefedClusterStatus{}
 	currentTime := metav1.Now()
 	newClusterReadyCondition := fedv1a1.ClusterCondition{
 		Type:               fedcommon.ClusterReady,

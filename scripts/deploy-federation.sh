@@ -18,9 +18,9 @@
 # the README - to the current kubectl context.  It also joins the
 # hosting cluster as a member of the federation.
 #
-# WARNING: The service account for the federation namespace will be
+# WARNING: The service account for the kubefed namespace will be
 # granted the cluster-admin role.  Until more restrictive permissions
-# are used, access to the federation namespace should be restricted to
+# are used, access to the kubefed namespace should be restricted to
 # trusted users.
 #
 # If using minikube, a cluster must be started prior to invoking this
@@ -85,10 +85,10 @@ EOF
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd federation-v2-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd federation-v2 ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -106,30 +106,30 @@ function helm-deploy-cmd {
   local image="${4}"
   local tag="${5}"
 
-  echo "helm install charts/federation-v2 --name ${name} --namespace ${ns} \
+  echo "helm install charts/kubefed --name ${name} --namespace ${ns} \
       --set controllermanager.repository=${repo} --set controllermanager.image=${image} \
       --set controllermanager.tag=${tag}"
 }
 
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
 
-LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/kubefed:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
 else
   USE_LATEST=
 fi
 
-KF_NS_ARGS="--federation-namespace=${NS} "
+KF_NS_ARGS="--kubefed-namespace=${NS} "
 
 if [[ -z "${IMAGE_NAME}" ]]; then
   >&2 echo "Usage: $0 <image> [join-cluster]...
 
 <image>        should be in the form <containerregistry>/<username>/<imagename>:<tagname>
 
-Example: docker.io/<username>/federation-v2:test
+Example: docker.io/<username>/kubefed:test
 
 If intending to use the docker hub as the container registry to push
 the federation image to, make sure to login to the local docker daemon

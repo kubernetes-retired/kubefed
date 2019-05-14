@@ -19,9 +19,9 @@ package common
 import (
 	"context"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	client "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	client "sigs.k8s.io/kubefed/pkg/client/generic"
 )
 
 func GetTypeConfig(genericClient client.Client, name, namespace string) (typeconfig.Interface, error) {

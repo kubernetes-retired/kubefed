@@ -35,11 +35,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
 
 const (
@@ -55,7 +55,7 @@ var (
 		a sync controller.
 
 		Current context is assumed to be a Kubernetes cluster hosting
-		the federation control plane. Please use the
+		the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
 	enable_example = `
@@ -186,7 +186,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	return CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace)
+	return CreateResources(cmdOut, hostConfig, resources, j.KubefedNamespace)
 }
 
 type typeResources struct {
@@ -309,7 +309,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		}
 		createdOrUpdated = "updated"
 	}
-	write(fmt.Sprintf("federatedtypeconfig.core.federation.k8s.io/%s %s in namespace %s\n",
+	write(fmt.Sprintf("federatedtypeconfig.core.kubefed.k8s.io/%s %s in namespace %s\n",
 		concreteTypeConfig.Name, createdOrUpdated, namespace))
 	return nil
 }
@@ -323,7 +323,7 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 		// serialized properly to yaml.
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FederatedTypeConfig",
-			APIVersion: "core.federation.k8s.io/v1alpha1",
+			APIVersion: "core.kubefed.k8s.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: typeconfig.GroupQualifiedName(apiResource),

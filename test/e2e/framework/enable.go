@@ -23,8 +23,8 @@ import (
 	"runtime"
 	"strings"
 
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	"sigs.k8s.io/kubefed/test/common"
 )
 
 func LoadEnableTypeDirectives(tl common.TestLogger) []*kfenable.EnableTypeDirective {

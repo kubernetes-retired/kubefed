@@ -40,7 +40,7 @@ const (
 	// Scheduler controllers which dynamically schedules workloads based on user preferences.
 	SchedulerPreferences utilfeature.Feature = "SchedulerPreferences"
 
-	// owner: @kubernetes-sigs/federation-v2-maintainers
+	// owner: @kubernetes-sigs/kubefed-maintainers
 	// alpha: v0.1
 	//
 	// DNS based cross cluster service discovery.

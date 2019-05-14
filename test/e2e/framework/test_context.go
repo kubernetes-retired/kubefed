@@ -24,14 +24,14 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type TestContextType struct {
 	InMemoryControllers             bool
 	KubeConfig                      string
 	KubeContext                     string
-	FederationSystemNamespace       string
+	KubefedSystemNamespace          string
 	SingleCallTimeout               time.Duration
 	LimitedScope                    bool
 	LimitedScopeInMemoryControllers bool
@@ -46,18 +46,18 @@ var TestContext *TestContextType = &TestContextType{}
 
 func registerFlags(t *TestContextType) {
 	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", false,
-		"Whether federation controllers should be started in memory.")
+		"Whether kubefed controllers should be started in memory.")
 	flag.StringVar(&t.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"),
 		"Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&t.KubeContext, "context", "",
 		"kubeconfig context to use/override. If unset, will use value from 'current-context'.")
-	flag.StringVar(&t.FederationSystemNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
-		fmt.Sprintf("The namespace the federation control plane is deployed in.  If unset, will default to %q.", util.DefaultFederationSystemNamespace))
+	flag.StringVar(&t.KubefedSystemNamespace, "kubefed-namespace", util.DefaultKubefedSystemNamespace,
+		fmt.Sprintf("The namespace the kubefed control plane is deployed in.  If unset, will default to %q.", util.DefaultKubefedSystemNamespace))
 	flag.DurationVar(&t.SingleCallTimeout, "single-call-timeout", DefaultSingleCallTimeout,
 		fmt.Sprintf("The maximum duration of a single call.  If unset, will default to %v", DefaultSingleCallTimeout))
-	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the federation namespace (configurable via --federation-namespace) will be the only target for federation.")
+	flag.BoolVar(&t.LimitedScope, "limited-scope", false, "Whether the kubefed namespace (configurable via --kubefed-namespace) will be the only target for federation.")
 	flag.BoolVar(&t.LimitedScopeInMemoryControllers, "limited-scope-in-memory-controllers", true,
-		"Whether federation controllers started in memory should target only the test namespace.  If debugging cluster-scoped federation outside of a test namespace, this should be set to false.")
+		"Whether kubefed controllers started in memory should target only the test namespace.  If debugging cluster-scoped federation outside of a test namespace, this should be set to false.")
 	flag.BoolVar(&t.WaitForFinalization, "wait-for-finalization", true,
 		"Whether the test suite should wait for finalization before stopping fixtures or exiting.  Setting this to false will speed up test execution but likely result in wedged namespaces and is only recommended for disposeable clusters.")
 }
@@ -67,7 +67,7 @@ func validateFlags(t *TestContextType) {
 		klog.Fatalf("kubeconfig is required")
 	}
 	if t.InMemoryControllers {
-		klog.Info("in-memory-controllers=true - this will launch the federation controllers outside the cluster hosting the federation control plane.")
+		klog.Info("in-memory-controllers=true - this will launch the kubefed controllers outside the cluster hosting the kubefed control plane.")
 	}
 }
 

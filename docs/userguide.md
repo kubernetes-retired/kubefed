@@ -52,14 +52,14 @@
 
 # User Guide
 
-If you are looking to use federation v2, you've come to the right place. Below
-is a walkthrough tutorial for how to deploy the federation v2 control plane.
+If you are looking to use kubefed, you've come to the right place. Below
+is a walkthrough tutorial for how to deploy the kubefed control plane.
 
-Please refer to [Federation V2 Concepts](./concepts.md) first before you go through this user guide.
+Please refer to [Kubefed Concepts](./concepts.md) first before you go through this user guide.
 
 ## Prerequisites
 
-The federation v2 deployment requires kubernetes version >= 1.11. The following
+The kubefed deployment requires kubernetes version >= 1.11. The following
 is a detailed list of binaries required.
 
 ### Binaries
@@ -67,10 +67,10 @@ is a detailed list of binaries required.
 `kubectl` is installed by the [guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 `kubefedctl` is the federation command line utility. You can download
-the latest binary from the [release page](https://github.com/kubernetes-sigs/federation-v2/releases).
+the latest binary from the [release page](https://github.com/kubernetes-sigs/kubefed/releases).
 ```bash
 VERSION=<latest-version>
-curl -LO https://github.com/kubernetes-sigs/federation-v2/releases/download/${VERSION}/kubefedctl.tgz
+curl -LO https://github.com/kubernetes-sigs/kubefed/releases/download/${VERSION}/kubefedctl.tgz
 tar -zxvf kubefedctl.tgz
 chmod u+x kubefedctl
 sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
@@ -81,15 +81,15 @@ sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
 ### Deployment Image
 
 If you follow this user guide without any changes you will be using the latest
-stable released version of the federation-v2 image tagged as `latest`.
+stable released version of the kubefed image tagged as `latest`.
 Alternatively, we support the ability to deploy the [latest master image tagged
 as `canary`](development.md#test-latest-master-changes-canary) or [your own
 custom image](development.md#test-your-changes).
 
 ### Create Clusters
 
-The federation v2 control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
-Kubernetes environments that have been tested and are supported by the Federation v2 community:
+The kubefed control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
+Kubernetes environments that have been tested and are supported by the Kubefed community:
 
 - [kind](./environments/kind.md)
 
@@ -99,7 +99,7 @@ Kubernetes environments that have been tested and are supported by the Federatio
 
 - [IBM Cloud Private](./environments/icp.md)
 
-After completing the steps in one of the above guides, return here to continue the Federation v2 deployment.
+After completing the steps in one of the above guides, return here to continue the Kubefed deployment.
 
 **NOTE:** You must set the correct context using the command below as this guide depends on it.
 
@@ -109,8 +109,8 @@ kubectl config use-context cluster1
 
 ## Helm Chart Deployment
 
-You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md)
-to install and uninstall a federation-v2 control plane.
+You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md)
+to install and uninstall a kubefed control plane.
 
 ## Operations
 
@@ -136,7 +136,7 @@ specified.
 Check the status of the joined clusters until you verify they are ready:
 
 ```bash
-kubectl -n kube-federation-system get federatedclusters
+kubectl -n kube-federation-system get kubefedclusters
 
 NAME       READY   AGE
 cluster1   True    1m
@@ -181,14 +181,14 @@ kubefedctl enable <target API type> --output=yaml
 **NOTE:** Federation of an API type requires that the API type be installed on
 all member clusters. If the API type is not installed on a member cluster,
 propagation to that cluster will fail. See issue
-[314](https://github.com/kubernetes-sigs/federation-v2/issues/314) for more
+[314](https://github.com/kubernetes-sigs/kubefed/issues/314) for more
 details.
 
 ### Verifying API type is installed on all member clusters
 
 If the API type is not installed on one of your member clusters, you will see a
 repeated `controller-manager` log error similar to the one reported in issue
-[314](https://github.com/kubernetes-sigs/federation-v2/issues/314). At this
+[314](https://github.com/kubernetes-sigs/kubefed/issues/314). At this
 time, you must manually verify that the API type is installed on each of your
 clusters as the `controller-manager` log error is the only indication.
 
@@ -232,18 +232,18 @@ propagation to that cluster.
 ### Enabling an API type in a new federation group
 When `kubefedctl enable` is used to enable types whose plural names (e.g. **deployments**.example.com
 and **deployments**.apps) match, the crd name of the generated federated type would also match (e.g.
-**deployments**.types.federation.k8s.io).
+**deployments**.types.kubefed.k8s.io).
 
 `kubefedctl enable --federation-group string` specifies the name of the API group to use for the
-generated federation type. It is `types.federation.k8s.io` by default. If a new federation group is
-enabled, the RBAC permissions for the federation controller manager will need to be updated to include
+generated federation type. It is `types.kubefed.k8s.io` by default. If a new federation group is
+enabled, the RBAC permissions for the kubefed controller manager will need to be updated to include
 permissions for the new group.
 
 For example, after federation deployment, `deployments.apps` is enabled by default. To enable
 `deployments.example.com`, you should:
 ```bash
 kubefedctl enable deployments.example.com --federation-group federation.example.com
-kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
+kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
             "apiGroups": [
                 "federation.example.com"
             ],
@@ -260,7 +260,7 @@ kubectl patch clusterrole federation-role --type='json' -p='[{"op": "add", "path
 }]'
 ```
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
-you can patch role `federation-role` in the federation namespace instead.
+you can patch role `kubefed-role` in the kubefed namespace instead.
 
 ## Disabling federation of an API type
 
@@ -292,7 +292,7 @@ clusters, propagation status will be written to the resource as per
 the following example:
 
 ```yaml
-apiVersion: types.federation.k8s.io/v1alpha1
+apiVersion: types.kubefed.k8s.io/v1alpha1
 kind: FederatedNamespace
 metadata:
   name: myns
@@ -334,9 +334,9 @@ For reasons other than `CheckClusters`, an event will be logged with
 the same reason and can be examined for more detail:
 
 ```bash
-kubectl describe federationnamespace myns -n myns | grep ComputePlacementFailed
+kubectl describe kubefednamespace myns -n myns | grep ComputePlacementFailed
 
-Warning  ComputePlacementFailed  5m   federationnamespace-controller  Invalid selector <nil>
+Warning  ComputePlacementFailed  5m   kubefednamespace-controller  Invalid selector <nil>
 ```
 
 #### Troubleshooting CheckClusters
@@ -348,7 +348,7 @@ example, namespace `myns` has been verified to exist in `cluster1`.
 The namespace should not exist in `cluster2`, but deletion has failed.
 
 ```yaml
-apiVersion: types.federation.k8s.io/v1alpha1
+apiVersion: types.kubefed.k8s.io/v1alpha1
 kind: FederatedNamespace
 metadata:
   name: myns
@@ -405,19 +405,19 @@ The following table enumerates the possible values for cluster status:
 ## Deletion policy
 
 All federated resources reconciled by the sync controller have a
-finalizer (`federation.k8s.io/sync-controller`) added to their
+finalizer (`kubefed.k8s.io/sync-controller`) added to their
 metadata. This finalizer will prevent deletion of a federated resource
 until the sync controller has a chance to perform pre-deletion
 cleanup.
 
 Pre-deletion cleanup of a federated resource includes removal of
 resources managed by the federated resource from member clusters. To
-ensure retention of managed resources, add `federation.k8s.io/orphan:
+ensure retention of managed resources, add `kubefed.k8s.io/orphan:
 true` as an annotation to the federated resource prior to deletion:
 
 ```bash
 kubectl patch <federated type> <name> \
-    --type=merge -p '{"metadata": {"annotations": {"federation.k8s.io/orphan": "true"}}}'
+    --type=merge -p '{"metadata": {"annotations": {"kubefed.k8s.io/orphan": "true"}}}'
 ```
 
 In the event that a sync controller for a given federated type is not
@@ -456,7 +456,7 @@ kubectl apply -R -f example/sample1
 **NOTE:** If you get the following error while creating a test resource i.e.
 
 ```
-unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.federation.k8s.io/v1alpha1",
+unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.kubefed.k8s.io/v1alpha1",
 
 ```
 
@@ -556,7 +556,7 @@ done
 ```
 
 If you were able to verify the resources removed and added back then you have
-successfully verified a working federation-v2 deployment.
+successfully verified a working kubefed deployment.
 
 #### Using Cluster Selector
 
@@ -565,13 +565,13 @@ to via the `spec.placement.clusters` field of a federated resource, it is possib
 use the `spec.placement.clusterSelector` field to provide a label selector that determines
 that list of clusters at runtime.
 
-If the goal is to select a subset of member clusters, make sure that the `FederatedCluster`
+If the goal is to select a subset of member clusters, make sure that the `KubefedCluster`
 resources that are intended to be selected have the appropriate labels applied.
 
-The following command is an example to label a `FederatedCluster`:
+The following command is an example to label a `KubefedCluster`:
 
 ```bash
-kubectl label federatedclusters -n kube-federation-system cluster1 foo=bar
+kubectl label kubefedclusters -n kube-federation-system cluster1 foo=bar
 ```
 
 Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)
@@ -654,18 +654,18 @@ An example for CRD of `federatedserviceaccounts` is as follows:
 kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
 ```
 
-It may also be useful to inspect the federation controller log as follows:
+It may also be useful to inspect the kubefed controller log as follows:
 
 ```bash
-kubectl logs -f federation-controller-manager-0 -n kube-federation-system
+kubectl logs -f kubefed-controller-manager-0 -n kube-federation-system
 ```
 
 ## Namespaced Federation
 
 All prior instructions referred to the deployment and use of a
-cluster-scoped federation control plane. It is also possible to
+cluster-scoped kubefed control plane. It is also possible to
 deploy a namespace-scoped control plane. In this mode of operation,
-federation controllers will target resources in a single namespace on
+kubefed controllers will target resources in a single namespace on
 both host and member clusters. This may be desirable when
 experimenting with federation on a production cluster.
 
@@ -673,7 +673,7 @@ experimenting with federation on a production cluster.
 
 To deploy a federation in a namespaced configuration, set
 `global.scope` to `Namespaced` as per the Helm chart [install
-instructions](https://github.com/kubernetes-sigs/federation-v2/blob/master/charts/federation-v2/README.md#configuration).
+instructions](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md#configuration).
 
 
 ### Joining Clusters
@@ -681,15 +681,15 @@ instructions](https://github.com/kubernetes-sigs/federation-v2/blob/master/chart
 Joining additional clusters to a namespaced federation requires
 providing additional arguments to `kubefedctl join`:
 
-- `--federation-namespace=<namespace>` to ensure the cluster is joined
+- `--kubefed-namespace=<namespace>` to ensure the cluster is joined
   to the federation running in the specified namespace
 
-To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for deployment:
+To join `mycluster` when `KUBEFED_NAMESPACE=test-namespace` was used for deployment:
 
 ```bash
 kubefedctl join mycluster --cluster-context mycluster \
     --host-cluster-context mycluster --v=2 \
-    --federation-namespace=test-namespace
+    --kubefed-namespace=test-namespace
 ```
 
 ## Local Value Retention
@@ -732,10 +732,10 @@ generated value.
 
 ## Higher order behaviour
 
-The architecture of federation v2 API allows higher level APIs to be constructed using the
+The architecture of kubefed API allows higher level APIs to be constructed using the
 mechanics provided by the standard form of the federated API types (containing fields for
 `template`, `placement` and `override`) and associated controllers for a given resource.
-Further sections describe few of higher level APIs implemented as part of Federation V2.
+Further sections describe few of higher level APIs implemented as part of Kubefed.
 
 ### Multi-Cluster Ingress DNS
 
@@ -807,7 +807,7 @@ examples considers 3 federated clusters `A`, `B` and `C`.
 #### Distribute total replicas evenly in all available clusters
 
 ```yaml
-apiVersion: scheduling.federation.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -820,7 +820,7 @@ spec:
 or
 
 ```yaml
-apiVersion: scheduling.federation.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -838,7 +838,7 @@ A, B and C get 3 replicas each.
 #### Distribute total replicas in weighted proportions
 
 ```yaml
-apiVersion: scheduling.federation.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -859,7 +859,7 @@ any replica as missing weight preference is considered as weight=0.
 #### Distribute replicas in weighted proportions, also enforcing replica limits per cluster
 
 ```yaml
-apiVersion: scheduling.federation.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -883,7 +883,7 @@ A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas
 #### Distribute replicas evenly in all clusters, however not more than 20 in C
 
 ```yaml
-apiVersion: scheduling.federation.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.k8s.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -921,12 +921,12 @@ Replica layout: C=20
 
 ## Controller-Manager Leader Election
 
-The federation controller manager is always deployed with leader election feature
+The kubefed controller manager is always deployed with leader election feature
 to ensure high availability of the control plane. Leader election module ensures
 there is always a leader elected among multiple instances which takes care of
 running the controllers. In case the active instance goes down, one of the standby instances
 gets elected as leader to ensure minimum downtime. Leader election ensures that
 only one instance is responsible for reconciliation. You can refer to the
-[helm chart configuration](https://github.com/kubernetes-sigs/federation-v2/tree/master/charts/federation-v2#configuration)
+[helm chart configuration](https://github.com/kubernetes-sigs/kubefed/tree/master/charts/kubefed#configuration)
 to configure parameters for leader election to tune for your environment
 (the defaults should be sane for most environments).

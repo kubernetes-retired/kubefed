@@ -33,15 +33,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
-	versionmanager "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/sync"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
+	versionmanager "sigs.k8s.io/kubefed/pkg/controller/sync/version"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
 )
 
 // FederatedTypeCrudTester exercises Create/Read/Update/Delete operations for
@@ -625,7 +625,7 @@ func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, o
 
 		_, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		if apierrors.IsConflict(err) {
-			// The resource was updated by the federation controller.
+			// The resource was updated by the kubefed controller.
 			// Get the latest version and retry.
 			obj, err = client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
 			return false, err

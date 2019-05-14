@@ -17,7 +17,7 @@
 # `kind` - `k`ubernetes `in` `d`ocker
 
 [kind](https://github.com/kubernetes-sigs/kind) provides the quickest way to
-set up clusters for use with the Federation v2 control plane.
+set up clusters for use with the Kubefed control plane.
 
 ## Download and Install kind
 

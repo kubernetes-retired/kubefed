@@ -24,12 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func TestSelectedClusterNames(t *testing.T) {
-	clusters := []*fedv1a1.FederatedCluster{
+	clusters := []*fedv1a1.KubefedCluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "cluster1",

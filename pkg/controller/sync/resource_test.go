@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
+	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 )
 
 func TestGetTemplateHash(t *testing.T) {

@@ -38,13 +38,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/dispatch"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/dispatch"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	finalizersutil "sigs.k8s.io/kubefed/pkg/controller/util/finalizers"
 )
 
 const (
@@ -53,13 +53,13 @@ const (
 	// If this finalizer is present on a federated resource, the sync
 	// controller will have the opportunity to perform pre-deletion operations
 	// (like deleting managed resources from member clusters).
-	FinalizerSyncController = "federation.k8s.io/sync-controller"
+	FinalizerSyncController = "kubefed.k8s.io/sync-controller"
 
 	// If this annotation is present on a federated resource, resources in the
 	// member clusters managed by the federated resource should be orphaned.
 	// If the annotation is not present (the default), resources in member
 	// clusters will be deleted before the federated resource is deleted.
-	OrphanManagedResources = "federation.k8s.io/orphan"
+	OrphanManagedResources = "kubefed.k8s.io/orphan"
 )
 
 // FederationSyncController synchronizes the state of a federated type
@@ -150,12 +150,12 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
+			ClusterAvailable: func(cluster *fedv1a1.KubefedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1a1.KubefedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},

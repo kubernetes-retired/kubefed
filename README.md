@@ -1,10 +1,10 @@
-[![Build Status](https://travis-ci.org/kubernetes-sigs/federation-v2.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/federation-v2 "Travis")
-[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/federation-v2)](https://goreportcard.com/report/github.com/kubernetes-sigs/federation-v2)
-[![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/federation-v2/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/federation-v2)
-[![LICENSE](https://img.shields.io/badge/license-apache2.0-green.svg)](https://github.com/kubernetes-sigs/federation-v2/blob/master/LICENSE)
-[![Releases](https://img.shields.io/badge/version-v0.0.10-orange.svg)](https://github.com/kubernetes-sigs/federation-v2/releases "Federation v2 latest release")
+[![Build Status](https://travis-ci.org/kubernetes-sigs/kubefed.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/kubefed "Travis")
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/kubefed)](https://goreportcard.com/report/github.com/kubernetes-sigs/kubefed)
+[![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/kubefed/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/kubefed)
+[![LICENSE](https://img.shields.io/badge/license-apache2.0-green.svg)](https://github.com/kubernetes-sigs/kubefed/blob/master/LICENSE)
+[![Releases](https://img.shields.io/badge/version-v0.0.10-orange.svg)](https://github.com/kubernetes-sigs/kubefed/releases "Kubefed latest release")
 
-# Kubernetes Federation v2
+# Kubernetes Cluster Federation
 
 This repo contains an in-progress prototype of some of the
 foundational aspects of V2 of Kubernetes Federation.  The prototype
@@ -55,19 +55,19 @@ higher-level APIs:
 
 | Feature | Maturity |
 |---------|----------|
-| [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#example) | Alpha |
-| [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#operations) | Alpha |
-| [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha |
-| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/servicedns-with-externaldns.md) | Alpha |
-| [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md) | Alpha |
-| [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha |
+| [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#example) | Alpha |
+| [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#operations) | Alpha |
+| [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha |
+| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md) | Alpha |
+| [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) | Alpha |
+| [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha |
 
 ## Guides
 
 ### User Guide
 
 Take a look at our [user guide](docs/userguide.md) if you are interested in
-using Federation v2.
+using Kubefed.
 
 ### Development Guide
 

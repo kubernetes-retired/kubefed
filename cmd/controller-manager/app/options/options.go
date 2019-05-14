@@ -22,7 +22,7 @@ import (
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 // Options contains everything necessary to create and run controller-manager.
@@ -36,7 +36,7 @@ type Options struct {
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Config.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace, "The namespace the federation control plane is deployed in.")
+	fs.StringVar(&o.Config.KubefedNamespace, "kubefed-namespace", util.DefaultKubefedSystemNamespace, "The namespace the kubefed control plane is deployed in.")
 }
 
 func NewOptions() *Options {

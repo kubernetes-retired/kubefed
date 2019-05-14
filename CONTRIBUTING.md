@@ -4,15 +4,15 @@ This repo contains an alpha release of some of the foundational aspects of V2 of
 ## Sign the CLA
 Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests. Please see https://github.com/kubernetes/community/blob/master/CLA.md for more information
 
-## Learn About Kubernetes Federation v2
-If you want to learn about Kubernetes Federation v2, please read through the doc:
-https://github.com/kubernetes-sigs/federation-v2#kubernetes-federation-v2
+## Learn About Kubernetes Cluster Federation
+If you want to learn about Kubernetes Cluster Federation, please read through the doc:
+https://github.com/kubernetes-sigs/kubefed#kubernetes-cluster-federation
 
-To learn how to use Kubernetes Federation v2, please read through the User Guide:
-https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md
+To learn how to use Kubernetes Cluster Federation, please read through the User Guide:
+https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md
 
-If you are interested in contributing to Kubernetes Federation v2 project, please read through the Development Guide:
-https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/development.md
+If you are interested in contributing to Kubernetes Cluster Federation project, please read through the Development Guide:
+https://github.com/kubernetes-sigs/kubefed/blob/master/docs/development.md
 
 
 ## Submitting a Pull Request (PR)

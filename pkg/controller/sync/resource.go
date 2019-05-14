@@ -31,16 +31,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/dispatch"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/dispatch"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/version"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 // FederatedResource encapsulates the behavior of a logical federated
 // resource which may be implemented by one or more kubernetes
-// resources in the cluster hosting the federation control plane.
+// resources in the cluster hosting the kubefed control plane.
 type FederatedResource interface {
 	dispatch.FederatedResourceForDispatch
 
@@ -48,7 +48,7 @@ type FederatedResource interface {
 	FederatedKind() string
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
-	ComputePlacement(clusters []*fedv1a1.FederatedCluster) (selectedClusters sets.String, err error)
+	ComputePlacement(clusters []*fedv1a1.KubefedCluster) (selectedClusters sets.String, err error)
 	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
 }
 
@@ -122,7 +122,7 @@ func (r *federatedResource) DeleteVersions() {
 	r.versionManager.Delete(r.federatedName)
 }
 
-func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.FederatedCluster) (sets.String, error) {
+func (r *federatedResource) ComputePlacement(clusters []*fedv1a1.KubefedCluster) (sets.String, error) {
 	if r.typeConfig.GetNamespaced() {
 		return computeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope)
 	}
@@ -148,7 +148,7 @@ func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Objec
 	//
 	// Deletion of a federated namespace should also not result in
 	// deletion of its containing namespace, since that could result
-	// in the deletion of a namespaced federation control plane.
+	// in the deletion of a namespaced kubefed control plane.
 	return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
 }
 
@@ -193,7 +193,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 
 	// Ensure that resources managed by federation always have the
 	// managed label.  The label is intended to be targeted by all the
-	// federation controllers.
+	// kubefed controllers.
 	util.AddManagedLabel(obj)
 
 	return obj, nil

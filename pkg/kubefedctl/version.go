@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/version"
+	"sigs.k8s.io/kubefed/pkg/version"
 )
 
 var (

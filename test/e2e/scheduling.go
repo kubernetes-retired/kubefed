@@ -26,17 +26,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
 	restclient "k8s.io/client-go/rest"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedschedulingv1a1 "sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl"
+	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -75,7 +75,7 @@ var _ = Describe("Scheduling", func() {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
 			}
 			for targetTypeName := range schedulingTypes {
-				typeConfig, err := common.GetTypeConfig(client, targetTypeName, f.FederationSystemNamespace())
+				typeConfig, err := common.GetTypeConfig(client, targetTypeName, f.KubefedSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
 				}
@@ -112,7 +112,7 @@ var _ = Describe("Scheduling", func() {
 
 				By("Deleting federatedtypeconfig resources for scheduler/plugin controllers")
 				for targetTypeName := range schedulingTypes {
-					deleteTypeConfigResource(targetTypeName, f.FederationSystemNamespace(), kubeConfig, tl)
+					deleteTypeConfigResource(targetTypeName, f.KubefedSystemNamespace(), kubeConfig, tl)
 				}
 
 				By("Waiting for scheduler/plugin controllers are destroyed in scheduling manager")
@@ -120,7 +120,7 @@ var _ = Describe("Scheduling", func() {
 
 				By("Enabling federatedtypeconfig resources again for scheduler/plugin controllers")
 				for targetTypeName := range schedulingTypes {
-					enableTypeConfigResource(targetTypeName, f.FederationSystemNamespace(), kubeConfig, tl)
+					enableTypeConfigResource(targetTypeName, f.KubefedSystemNamespace(), kubeConfig, tl)
 				}
 
 				By("Waiting for the scheduler/plugin controllers are started in scheduling manager")

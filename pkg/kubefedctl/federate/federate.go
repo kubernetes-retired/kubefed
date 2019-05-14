@@ -33,13 +33,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
 
 const (
@@ -54,7 +54,7 @@ var (
 		"endpoints",
 		"events",
 		"events.events.k8s.io",
-		"propagatedversions.core.federation.k8s.io",
+		"propagatedversions.core.kubefed.k8s.io",
 	}
 
 	federate_long = `
@@ -67,7 +67,7 @@ var (
 		federation API to be installed in the cluster).
 
 		Current context is assumed to be a Kubernetes cluster hosting
-		the federation control plane. Please use the --host-cluster-context
+		the kubefed control plane. Please use the --host-cluster-context
 		flag otherwise.`
 
 	federate_example = `
@@ -189,7 +189,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Namespace: j.resourceNamespace,
 		Name:      j.resourceName,
 	}
-	artifacts, err := GetFederateArtifacts(hostConfig, j.typeName, j.FederationNamespace, qualifiedResourceName, j.enableType, j.outputYAML)
+	artifacts, err := GetFederateArtifacts(hostConfig, j.typeName, j.KubefedNamespace, qualifiedResourceName, j.enableType, j.outputYAML)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if kind == ctlutil.NamespaceKind && j.federateContents {
-		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.FederationNamespace, j.skipAPIResourceNames, j.enableType, j.outputYAML)
+		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.KubefedNamespace, j.skipAPIResourceNames, j.enableType, j.outputYAML)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	return CreateResources(cmdOut, hostConfig, artifactsList, j.FederationNamespace, j.enableType, j.DryRun)
+	return CreateResources(cmdOut, hostConfig, artifactsList, j.KubefedNamespace, j.enableType, j.DryRun)
 }
 
 func FederateResources(resources []*unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
@@ -264,7 +264,7 @@ type FederateArtifacts struct {
 	federatedResources []*unstructured.Unstructured
 }
 
-func GetFederateArtifacts(hostConfig *rest.Config, typeName, federationNamespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
+func GetFederateArtifacts(hostConfig *rest.Config, typeName, kubefedNamespace string, qualifiedName ctlutil.QualifiedName, enableType, outputYAML bool) (*FederateArtifacts, error) {
 	// Lookup kubernetes API availability
 	apiResource, err := enable.LookupAPIResource(hostConfig, typeName, "")
 	if err != nil {
@@ -272,7 +272,7 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, federationNamespace
 	}
 	klog.V(2).Infof("API Resource for %s found", typeName)
 
-	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, federationNamespace, enableType, outputYAML)
+	typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, *apiResource, kubefedNamespace, enableType, outputYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -296,9 +296,9 @@ func GetFederateArtifacts(hostConfig *rest.Config, typeName, federationNamespace
 	}, nil
 }
 
-func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, federationNamespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
+func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, kubefedNamespace string, enableType, outputYAML bool) (bool, typeconfig.Interface, error) {
 	resolvedTypeName := typeconfig.GroupQualifiedName(apiResource)
-	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, federationNamespace)
+	installedTypeConfig, err := getInstalledTypeConfig(hostConfig, resolvedTypeName, kubefedNamespace)
 	if err == nil {
 		return true, installedTypeConfig, nil
 	}
@@ -318,14 +318,14 @@ func getTypeConfig(hostConfig *rest.Config, apiResource metav1.APIResource, fede
 	return false, nil, err
 }
 
-func getInstalledTypeConfig(hostConfig *rest.Config, typeName, federationNamespace string) (typeconfig.Interface, error) {
+func getInstalledTypeConfig(hostConfig *rest.Config, typeName, kubefedNamespace string) (typeconfig.Interface, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get generic client")
 	}
 
 	concreteTypeConfig := &fedv1a1.FederatedTypeConfig{}
-	err = client.Get(context.TODO(), concreteTypeConfig, federationNamespace, typeName)
+	err = client.Get(context.TODO(), concreteTypeConfig, kubefedNamespace, typeName)
 	if err != nil {
 		return nil, err
 	}
@@ -481,7 +481,7 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 	return nil
 }
 
-func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, federationNamespace string, skipAPIResourceNames []string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
+func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, kubefedNamespace string, skipAPIResourceNames []string, enableType, outputYAML bool) ([]*FederateArtifacts, error) {
 	targetResourcesList, err := getResourcesInNamespace(hostConfig, containerNamespace, skipAPIResourceNames)
 	if err != nil {
 		return nil, err
@@ -490,7 +490,7 @@ func GetContainedArtifactsList(hostConfig *rest.Config, containerNamespace, fede
 	artifactsList := []*FederateArtifacts{}
 	for _, targetResources := range targetResourcesList {
 		apiResource := targetResources.apiResource
-		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, federationNamespace, enableType, outputYAML)
+		typeConfigInstalled, typeConfig, err := getTypeConfig(hostConfig, apiResource, kubefedNamespace, enableType, outputYAML)
 		if err != nil {
 			return nil, err
 		}

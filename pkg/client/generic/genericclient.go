@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic/scheme"
+	"sigs.k8s.io/kubefed/pkg/client/generic/scheme"
 )
 
 type Client interface {

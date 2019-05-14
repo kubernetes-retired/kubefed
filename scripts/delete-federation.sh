@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This script unjoins any clusters passed as arguments and removes the
-# federation control plane from the current kubectl context.
+# kubefed control plane from the current kubectl context.
 
 set -o errexit
 set -o nounset
@@ -27,34 +27,34 @@ function delete-helm-deployment() {
   # Clean federation resources
   ${KCD} -n "${NS}" FederatedTypeConfig --all
   if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
-    ${KCD} crd $(kubectl get crd | grep -E 'federation.k8s.io' | awk '{print $1}')
+    ${KCD} crd $(kubectl get crd | grep -E 'kubefed.k8s.io' | awk '{print $1}')
   fi
 
   if [[ "${NAMESPACED}" ]]; then
-    helm delete --purge federation-v2-${NS}
+    helm delete --purge kubefed-${NS}
   else
-    helm delete --purge federation-v2
+    helm delete --purge kubefed
   fi
 }
 
 KCD="kubectl --ignore-not-found=true delete"
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 NAMESPACED="${NAMESPACED:-}"
 DELETE_CLUSTER_RESOURCE="${DELETE_CLUSTER_RESOURCE:-}"
 
 IMAGE_NAME=`kubectl get deploy -n ${NS} -oyaml | grep "image:" | awk '{print $2}'`
-LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/federation-v2:latest
+LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/kubefed:latest
 if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
   USE_LATEST=y
 else
   USE_LATEST=
 fi
 
-KF_NS_ARG="--federation-namespace=${NS} "
+KF_NS_ARG="--kubefed-namespace=${NS} "
 
 # Unjoin clusters by removing objects added by kubefedctl.
 HOST_CLUSTER="$(kubectl config current-context)"
-JOINED_CLUSTERS="$(kubectl -n "${NS}" get federatedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
+JOINED_CLUSTERS="$(kubectl -n "${NS}" get kubefedclusters -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
 for c in ${JOINED_CLUSTERS}; do
   ./bin/kubefedctl unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --v=2 ${KF_NS_ARG}
 done

@@ -27,14 +27,14 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/client/generic"
 )
 
 const (
-	DefaultFederationSystemNamespace = "kube-federation-system"
-	DefaultClusterAvailableDelay     = 20 * time.Second
-	DefaultClusterUnavailableDelay   = 60 * time.Second
+	DefaultKubefedSystemNamespace  = "kube-federation-system"
+	DefaultClusterAvailableDelay   = 20 * time.Second
+	DefaultClusterUnavailableDelay = 60 * time.Second
 
 	KubeAPIQPS   = 20.0
 	KubeAPIBurst = 30
@@ -49,13 +49,13 @@ const (
 	DefaultClusterHealthCheckSuccessThreshold = 1
 	DefaultClusterHealthCheckTimeout          = 3
 
-	FederationConfigName = "federation-v2"
+	KubefedConfigName = "kubefed"
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
-// a client for the given FederatedCluster or an error. The client is used to
-// access kubernetes secrets in the federation namespace.
-func BuildClusterConfig(fedCluster *fedv1a1.FederatedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
+// a client for the given KubefedCluster or an error. The client is used to
+// access kubernetes secrets in the kubefed namespace.
+func BuildClusterConfig(fedCluster *fedv1a1.KubefedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	apiEndpoint := fedCluster.Spec.APIEndpoint

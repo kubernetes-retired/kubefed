@@ -24,11 +24,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingpreference"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	corev1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/schedulingpreference"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
 )
 
 type SchedulingManager struct {
@@ -96,7 +96,7 @@ func newSchedulingManager(config *util.ControllerConfig) (*SchedulingManager, er
 	var err error
 	c.store, c.controller, err = util.NewGenericInformer(
 		kubeConfig,
-		config.FederationNamespace,
+		config.KubefedNamespace,
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
 		c.worker.EnqueueObject,

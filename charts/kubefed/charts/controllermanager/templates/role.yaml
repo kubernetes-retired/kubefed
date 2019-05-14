@@ -6,11 +6,11 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
-  name: federation-role
+  name: kubefed-role
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:
-  - scheduling.federation.k8s.io
+  - scheduling.kubefed.k8s.io
   resources:
   - '*'
   verbs:
@@ -19,17 +19,7 @@ rules:
   - list
   - update
 - apiGroups:
-  - multiclusterdns.federation.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - get
-  - watch
-  - list
-  - create
-  - update
-- apiGroups:
-  - core.federation.k8s.io
+  - multiclusterdns.kubefed.k8s.io
   resources:
   - '*'
   verbs:
@@ -39,7 +29,17 @@ rules:
   - create
   - update
 - apiGroups:
-  - types.federation.k8s.io
+  - core.kubefed.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+  - update
+- apiGroups:
+  - types.kubefed.k8s.io
   resources:
   - '*'
   verbs:
@@ -64,7 +64,7 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
-  name: federation-config-role
+  name: kubefed-config-role
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:

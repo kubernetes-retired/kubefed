@@ -19,8 +19,8 @@ package schedulingtypes
 import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	. "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	. "sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type Scheduler interface {

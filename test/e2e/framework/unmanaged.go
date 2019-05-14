@@ -32,11 +32,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/test/common"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,8 +60,8 @@ func SetUpUnmanagedFederation() {
 	Expect(err).NotTo(HaveOccurred())
 
 	clusterControllerFixture = NewClusterControllerFixture(NewE2ELogger(), &util.ControllerConfig{
-		FederationNamespaces: util.FederationNamespaces{
-			FederationNamespace: TestContext.FederationSystemNamespace,
+		KubefedNamespaces: util.KubefedNamespaces{
+			KubefedNamespace: TestContext.KubefedSystemNamespace,
 		},
 		KubeConfig: config,
 	})
@@ -161,9 +161,9 @@ func (f *UnmanagedFramework) AfterEach() {
 
 func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
 	return &util.ControllerConfig{
-		FederationNamespaces: util.FederationNamespaces{
-			FederationNamespace: TestContext.FederationSystemNamespace,
-			TargetNamespace:     f.inMemoryTargetNamespace(),
+		KubefedNamespaces: util.KubefedNamespaces{
+			KubefedNamespace: TestContext.KubefedSystemNamespace,
+			TargetNamespace:  f.inMemoryTargetNamespace(),
 		},
 		KubeConfig:      f.Config,
 		MinimizeLatency: true,
@@ -191,8 +191,8 @@ func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 	var clusters []string
 	client := f.Client(userAgent)
-	clusterList := &fedv1a1.FederatedClusterList{}
-	err := client.List(context.TODO(), clusterList, TestContext.FederationSystemNamespace)
+	clusterList := &fedv1a1.KubefedClusterList{}
+	err := client.List(context.TODO(), clusterList, TestContext.KubefedSystemNamespace)
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
 	for _, cluster := range clusterList.Items {
@@ -239,14 +239,14 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 
 	By("Obtaining a list of federated clusters")
 	client := f.Client(userAgent)
-	clusterList := ListFederatedClusters(NewE2ELogger(), client, TestContext.FederationSystemNamespace)
+	clusterList := ListKubefedClusters(NewE2ELogger(), client, TestContext.KubefedSystemNamespace)
 
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
 
 	clusterConfigs := make(map[string]common.TestClusterConfig)
 	for _, cluster := range clusterList.Items {
-		config, err := util.BuildClusterConfig(&cluster, client, TestContext.FederationSystemNamespace)
+		config, err := util.BuildClusterConfig(&cluster, client, TestContext.KubefedSystemNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{
@@ -258,14 +258,14 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 	return clusterConfigs
 }
 
-func (f *UnmanagedFramework) FederationSystemNamespace() string {
-	return TestContext.FederationSystemNamespace
+func (f *UnmanagedFramework) KubefedSystemNamespace() string {
+	return TestContext.KubefedSystemNamespace
 }
 
 func (f *UnmanagedFramework) TestNamespaceName() string {
 	if f.testNamespaceName == "" {
 		if TestContext.LimitedScope {
-			f.testNamespaceName = TestContext.FederationSystemNamespace
+			f.testNamespaceName = TestContext.KubefedSystemNamespace
 		} else {
 			client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
 			f.testNamespaceName = createTestNamespace(client, f.BaseName)
@@ -401,5 +401,5 @@ func WaitForUnmanagedClusterReadiness() {
 	Expect(err).NotTo(HaveOccurred())
 	restclient.AddUserAgent(config, "readiness-check")
 	client := genericclient.NewForConfigOrDie(config)
-	WaitForClusterReadiness(NewE2ELogger(), client, TestContext.FederationSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
+	WaitForClusterReadiness(NewE2ELogger(), client, TestContext.KubefedSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
 }

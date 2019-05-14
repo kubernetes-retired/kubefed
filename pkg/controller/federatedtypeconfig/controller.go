@@ -31,15 +31,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	corev1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	statuscontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
-	synccontroller "github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	corev1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	statuscontroller "sigs.k8s.io/kubefed/pkg/controller/status"
+	synccontroller "sigs.k8s.io/kubefed/pkg/controller/sync"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
-const finalizer string = "core.federation.k8s.io/federated-type-config"
+const finalizer string = "core.kubefed.k8s.io/federated-type-config"
 
 // Controller manages the FederatedTypeConfig objects in federation.
 type Controller struct {
@@ -89,12 +89,12 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
 
-	// Only watch the federation namespace to ensure
+	// Only watch the kubefed namespace to ensure
 	// restrictive authz can be applied to a namespaced
 	// control plane.
 	c.store, c.controller, err = util.NewGenericInformer(
 		kubeConfig,
-		config.FederationNamespace,
+		config.KubefedNamespace,
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
 		c.worker.EnqueueObject,
@@ -161,7 +161,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 			c.lock.Lock()
 			c.stopChannels[typeConfig.Name] = holderChan
 			c.lock.Unlock()
-			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced federation control plane.", typeConfig.GetFederatedType().Kind)
+			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced kubefed control plane.", typeConfig.GetFederatedType().Kind)
 		}
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
@@ -291,7 +291,7 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 func (c *Controller) startSyncController(tc *corev1a1.FederatedTypeConfig) error {
 	// TODO(marun) Consider using a shared informer for federated
 	// namespace that can be shared between all controllers of a
-	// cluster-scoped federation control plane.  A namespace-scoped
+	// cluster-scoped kubefed control plane.  A namespace-scoped
 	// control plane would still have to use a non-shared informer due
 	// to it not being possible to limit its scope.
 	kind := tc.Spec.FederatedType.Kind
@@ -375,7 +375,7 @@ func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, er
 	defer c.lock.Unlock()
 
 	qualifiedName := util.QualifiedName{
-		Namespace: c.controllerConfig.FederationNamespace,
+		Namespace: c.controllerConfig.KubefedNamespace,
 		Name:      util.NamespaceName,
 	}
 	key := qualifiedName.String()

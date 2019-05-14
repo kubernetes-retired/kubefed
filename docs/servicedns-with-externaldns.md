@@ -48,20 +48,20 @@ MCSDNS is comprised of multiple types and controllers:
 
 Setting-up MCSDNS can be accomplished by referencing the following documentation:
 
-- The Federation-v2 [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
-  control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/federation-v2/issues/370), the environment running
+- The Kubefed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
+  control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/kubefed/issues/370), the environment running
   the clusters must support service `type: LoadBalancer`. For the GKE deployment option, the cluster hosting the ExternalDNS controller must have scope
   `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with
   ExternalDNS. Reference your DNS provider documentation on how to create a domain or delegate a subdomain.
 - The [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) user guides to run the external-dns
   controller. You must ensure the following `args` are provided in the external-dns Deployment manifest:
-  `--source=crd --crd-source-apiversion=multiclusterdns.federation.k8s.io/v1alpha1 --crd-source-kind=DNSEndpoint --registry=txt --txt-prefix=cname`
+  `--source=crd --crd-source-apiversion=multiclusterdns.kubefed.k8s.io/v1alpha1 --crd-source-kind=DNSEndpoint --registry=txt --txt-prefix=cname`
   **Note**: If you do not deploy the external-dns controller to the same namespace and use the default service account
-  of the federation control-plane, you must setup RBAC permissions allowing the controller access to necessary
+  of the kubefed control-plane, you must setup RBAC permissions allowing the controller access to necessary
   resources.
 
-After the cluster, federation control-plane, and external-dns controller are running, use the
+After the cluster, kubefed control-plane, and external-dns controller are running, use the
 [sample](../example/sample1) federated deployment and service to test MCSDNS. You must change the sample service type to
 `LoadBalancer` for the Service DNS controller to populate the status IP of the `ServiceDNSRecord` and the target IP's of
 the `DNSEndpoint`:
@@ -88,17 +88,17 @@ It may take a few minutes for the `EXTERNAL-IP` field of each `Service` to be po
 
 ```bash
 $ cat <<EOF | kubectl create -f -
-apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
 kind: Domain
 metadata:
   # Corresponds to <federation> in the resource records.
   name: test-domain
-  # The namespace running federation-controller-manager.
+  # The namespace running kubefed-controller-manager.
   namespace: kube-federation-system
 # The domain/subdomain that is setup in your external-dns provider.
 domain: your.domain.name
 ---
-apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
 kind: ServiceDNSRecord
 metadata:
   # The name of the sample service.
@@ -117,7 +117,7 @@ The DNS Endpoint controller will use the external IP address from each `Service`
 
 ```bash
 $ kubectl -n test-namespace get dnsendpoint -o yaml
-apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
 kind: DNSEndpoint
 metadata:
   creationTimestamp: 2018-10-12T21:41:12Z
@@ -125,7 +125,7 @@ metadata:
   name: service-test-service
   namespace: test-namespace
   resourceVersion: "755496"
-  selfLink: /apis/multiclusterdns.federation.k8s.io/v1alpha1/namespaces/test-namespace/dnsendpoints/service-test-service
+  selfLink: /apis/multiclusterdns.kubefed.k8s.io/v1alpha1/namespaces/test-namespace/dnsendpoints/service-test-service
   uid: 89c18705-ce67-11e8-bebb-42010a8a00b8
 spec:
   endpoints:

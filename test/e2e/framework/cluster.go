@@ -22,23 +22,23 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/test/common"
 )
 
 func WaitForClusterReadiness(tl common.TestLogger, client genericclient.Client,
 	namespace string, interval, timeout time.Duration) {
-	clusterList := ListFederatedClusters(tl, client, namespace)
+	clusterList := ListKubefedClusters(tl, client, namespace)
 	for _, cluster := range clusterList.Items {
 		clusterIsReadyOrFail(tl, client, namespace, interval, timeout, &cluster)
 	}
 	tl.Logf("All federated clusters are ready")
 }
 
-func ListFederatedClusters(tl common.TestLogger, client genericclient.Client, namespace string) *fedv1a1.FederatedClusterList {
-	clusterList := &fedv1a1.FederatedClusterList{}
+func ListKubefedClusters(tl common.TestLogger, client genericclient.Client, namespace string) *fedv1a1.KubefedClusterList {
+	clusterList := &fedv1a1.KubefedClusterList{}
 	err := client.List(context.TODO(), clusterList, namespace)
 	if err != nil {
 		tl.Fatalf("Error retrieving list of federated clusters: %+v", err)
@@ -50,14 +50,14 @@ func ListFederatedClusters(tl common.TestLogger, client genericclient.Client, na
 }
 
 func clusterIsReadyOrFail(tl common.TestLogger, client genericclient.Client,
-	namespace string, interval, timeout time.Duration, cluster *fedv1a1.FederatedCluster) {
+	namespace string, interval, timeout time.Duration, cluster *fedv1a1.KubefedCluster) {
 	clusterName := cluster.Name
 	tl.Logf("Checking readiness for federated cluster %q", clusterName)
 	if util.IsClusterReady(&cluster.Status) {
 		return
 	}
 	err := wait.Poll(interval, timeout, func() (bool, error) {
-		cluster := &fedv1a1.FederatedCluster{}
+		cluster := &fedv1a1.KubefedCluster{}
 		err := client.Get(context.TODO(), cluster, namespace, clusterName)
 		if err != nil {
 			return false, err

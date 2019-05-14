@@ -6,10 +6,10 @@ metadata:
   labels:
     api: federation
     kubebuilder.k8s.io: 1.0.0
-  name: federation-role
+  name: kubefed-role
 rules:
 - apiGroups:
-  - scheduling.federation.k8s.io
+  - scheduling.kubefed.k8s.io
   resources:
   - '*'
   verbs:
@@ -18,7 +18,7 @@ rules:
   - list
   - update
 - apiGroups:
-  - multiclusterdns.federation.k8s.io
+  - multiclusterdns.kubefed.k8s.io
   resources:
   - '*'
   verbs:
@@ -29,7 +29,7 @@ rules:
   - update
   - delete
 - apiGroups:
-  - core.federation.k8s.io
+  - core.kubefed.k8s.io
   resources:
   - '*'
   verbs:
@@ -39,7 +39,7 @@ rules:
   - create
   - update
 - apiGroups:
-  - types.federation.k8s.io
+  - types.kubefed.k8s.io
   resources:
   - '*'
   verbs:

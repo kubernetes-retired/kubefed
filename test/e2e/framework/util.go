@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework/ginkgowrapper"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework/ginkgowrapper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

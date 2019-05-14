@@ -28,7 +28,7 @@
 # users (KUBECONFIG) and pods (service accounts).
 # Because "kubefedctl join" uses the endpoint from KUBECONFIG and
 # the certificate from a service account in the member cluster,
-# the federation controller manager fails to communicate with the
+# the kubefed controller manager fails to communicate with the
 # member clusters, producing the messages like the following.
 #
 # 	x509: certificate signed by unknown authority
@@ -38,11 +38,11 @@ set -o nounset
 set -o pipefail
 
 CLUSTER_NAMES="${*-}"
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 
 for CLUSTER_NAME in $CLUSTER_NAMES; do
 	CA_CRT=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="'"${CLUSTER_NAME}"'")].cluster.certificate-authority-data}')
-	SECRET_NAME=$(kubectl get -n ${NS} federatedclusters ${CLUSTER_NAME} -o jsonpath='{.spec.secretRef.name}')
+	SECRET_NAME=$(kubectl get -n ${NS} kubefedclusters ${CLUSTER_NAME} -o jsonpath='{.spec.secretRef.name}')
 	kubectl patch -n ${NS} secret ${SECRET_NAME} \
 		--patch '{"data":{"ca.crt": "'${CA_CRT}'"}}'
 done

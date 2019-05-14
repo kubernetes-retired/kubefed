@@ -25,25 +25,25 @@ import (
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/rest"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 // GlobalSubcommandOptions holds the configuration required by the subcommands of
 // `kubefedctl`.
 type GlobalSubcommandOptions struct {
-	HostClusterContext  string
-	FederationNamespace string
-	Kubeconfig          string
-	DryRun              bool
+	HostClusterContext string
+	KubefedNamespace   string
+	Kubeconfig         string
+	DryRun             bool
 }
 
 // GlobalSubcommandBind adds the global subcommand flags to the flagset passed in.
 func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
-	flags.StringVar(&o.FederationNamespace, "federation-namespace", util.DefaultFederationSystemNamespace,
+	flags.StringVar(&o.KubefedNamespace, "kubefed-namespace", util.DefaultKubefedSystemNamespace,
 		"Namespace in the host cluster where the federation system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
@@ -76,21 +76,21 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 	return nil
 }
 
-func GetScopeFromFederationConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
+func GetScopeFromKubefedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get federation clientset")
 		return "", err
 	}
 
-	fedConfig := &fedv1a1.FederationConfig{}
-	err = client.Get(context.TODO(), fedConfig, namespace, util.FederationConfigName)
+	fedConfig := &fedv1a1.KubefedConfig{}
+	err = client.Get(context.TODO(), fedConfig, namespace, util.KubefedConfigName)
 	if err != nil {
 		config := util.QualifiedName{
 			Namespace: namespace,
-			Name:      util.FederationConfigName,
+			Name:      util.KubefedConfigName,
 		}
-		err = errors.Wrapf(err, "Error retrieving FederationConfig %q", config)
+		err = errors.Wrapf(err, "Error retrieving KubefedConfig %q", config)
 		return "", err
 	}
 
@@ -108,7 +108,7 @@ type CommonEnableOptions struct {
 // Default value for shared Federation group across enable and
 // disable subcommands of `kubefedctl`.
 const (
-	DefaultFederationGroup   = "types.federation.k8s.io"
+	DefaultFederationGroup   = "types.kubefed.k8s.io"
 	DefaultFederationVersion = "v1alpha1"
 )
 

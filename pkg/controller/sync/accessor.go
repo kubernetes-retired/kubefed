@@ -24,10 +24,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/version"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 // FederatedResourceAccessor provides a way to retrieve and visit
@@ -82,7 +82,7 @@ func NewFederatedResourceAccessor(
 		limitedScope:            controllerConfig.LimitedScope(),
 		typeConfig:              typeConfig,
 		targetIsNamespace:       typeConfig.GetTarget().Kind == util.NamespaceKind,
-		fedNamespace:            controllerConfig.FederationNamespace,
+		fedNamespace:            controllerConfig.KubefedNamespace,
 		fedNamespaceAPIResource: fedNamespaceAPIResource,
 		eventRecorder:           eventRecorder,
 	}

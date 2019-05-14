@@ -1,13 +1,13 @@
-{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.federation.k8s.io/v1alpha1"))) }}
+{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.kubefed.k8s.io/v1alpha1"))) }}
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedclusterroles.types.federation.k8s.io
+  name: federatedclusterroles.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedClusterRole
     plural: federatedclusterroles
@@ -310,9 +310,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedconfigmaps.types.federation.k8s.io
+  name: federatedconfigmaps.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedConfigMap
     plural: federatedconfigmaps
@@ -571,9 +571,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federateddeployments.types.federation.k8s.io
+  name: federateddeployments.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedDeployment
     plural: federateddeployments
@@ -2878,9 +2878,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedingresses.types.federation.k8s.io
+  name: federatedingresses.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedIngress
     plural: federatedingresses
@@ -3191,9 +3191,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedjobs.types.federation.k8s.io
+  name: federatedjobs.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedJob
     plural: federatedjobs
@@ -5478,9 +5478,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatednamespaces.types.federation.k8s.io
+  name: federatednamespaces.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedNamespace
     plural: federatednamespaces
@@ -5737,9 +5737,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedreplicasets.types.federation.k8s.io
+  name: federatedreplicasets.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedReplicaSet
     plural: federatedreplicasets
@@ -8017,9 +8017,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedsecrets.types.federation.k8s.io
+  name: federatedsecrets.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedSecret
     plural: federatedsecrets
@@ -8278,9 +8278,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedserviceaccounts.types.federation.k8s.io
+  name: federatedserviceaccounts.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedServiceAccount
     plural: federatedserviceaccounts
@@ -8558,9 +8558,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
-  name: federatedservices.types.federation.k8s.io
+  name: federatedservices.types.kubefed.k8s.io
 spec:
-  group: types.federation.k8s.io
+  group: types.kubefed.k8s.io
   names:
     kind: FederatedService
     plural: federatedservices

@@ -33,9 +33,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/schedulingtypes"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
 )
 
 const (
@@ -116,12 +116,12 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
 		ClusterLifecycleHandlers: &util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
+			ClusterAvailable: func(cluster *fedv1a1.KubefedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1a1.KubefedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},

@@ -19,20 +19,20 @@ package framework
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/dnsendpoint"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedcluster"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/federatedtypeconfig"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/ingressdns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/schedulingmanager"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/servicedns"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/status"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
+	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
+	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
+	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
+	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
+	"sigs.k8s.io/kubefed/pkg/controller/servicedns"
+	"sigs.k8s.io/kubefed/pkg/controller/status"
+	"sigs.k8s.io/kubefed/pkg/controller/sync"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/test/common"
 )
 
-// ControllerFixture manages a federation controller for testing.
+// ControllerFixture manages a kubefed controller for testing.
 type ControllerFixture struct {
 	stopChan chan struct{}
 }
@@ -107,7 +107,7 @@ func NewClusterControllerFixture(tl common.TestLogger, config *util.ControllerCo
 		stopChan: make(chan struct{}),
 	}
 	clusterHealthCheckConfig := util.ClusterHealthCheckConfig{PeriodSeconds: 1, FailureThreshold: 1}
-	err := federatedcluster.StartClusterController(config, clusterHealthCheckConfig, f.stopChan)
+	err := kubefedcluster.StartClusterController(config, clusterHealthCheckConfig, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting cluster controller: %v", err)
 	}

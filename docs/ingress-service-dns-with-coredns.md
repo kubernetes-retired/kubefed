@@ -23,11 +23,11 @@ This tutorial describes how to set up a federation cluster DNS with [ExternalDNS
 - Install [metallb](https://github.com/google/metallb) for your minikube clusters to enable LoadBalancer Service
 
 You can use either Loadbalancer Service or Ingress resource or both in your environment, this tutorial includes guidance for both Loadbalancer Service and Ingress resource.
-For related conceptions of Muilti-cluster Ingress and Service, you can refer to [ingressdns-with-externaldns.md](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md) and [servicedns-with-externaldns.md](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/servicedns-with-externaldns.md).
+For related conceptions of Muilti-cluster Ingress and Service, you can refer to [ingressdns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) and [servicedns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md).
 
 ## Creating federation cluster
 
-Install Federation-v2 with minikube in [User Guide](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/userguide.md).
+Install Kubefed with minikube in [User Guide](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md).
 
 ## Installing ExternalDNS
 
@@ -62,7 +62,7 @@ spec:
         image: registry.opensource.zalan.do/teapot/external-dns:latest
         args:
         - --source=crd
-        - --crd-source-apiversion=multiclusterdns.federation.k8s.io/v1alpha1
+        - --crd-source-apiversion=multiclusterdns.kubefed.k8s.io/v1alpha1
         - --crd-source-kind=DNSEndpoint
         - --registry=txt
         - --provider=coredns
@@ -126,7 +126,7 @@ EOF
 
 ### Creating service resources
 
-After metallb works, create a sample deployment and service from [sample](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md). Make service as LoadBalancer type.
+After metallb works, create a sample deployment and service from [sample](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md). Make service as LoadBalancer type.
 
 ```bash
 sed -i 's/NodePort/LoadBalancer/' example/sample1/federatedservice.yaml
@@ -136,17 +136,17 @@ Create `ServiceDNSRecord` to make DNS work for service.
 
 ```bash
 $ cat <<EOF | kubectl create -f -
-apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
 kind: Domain
 metadata:
   # Corresponds to <federation> in the resource records.
   name: test-domain
-  # The namespace running federation-controller-manager.
+  # The namespace running kubefed-controller-manager.
   namespace: kube-federation-system
 # The domain/subdomain that is setup in your externl-dns provider.
 domain: example.com
 ---
-apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
 kind: ServiceDNSRecord
 metadata:
   # The name of the sample service.
@@ -172,7 +172,7 @@ $ kubectl --context cluster2 apply -f https://raw.githubusercontent.com/kubernet
 $ kubectl --context cluster2 patch svc ingress-nginx -n ingress-nginx -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
-After ingress controller enabled, create a sample deployment, service and ingress from [sample](https://github.com/kubernetes-sigs/federation-v2/blob/master/docs/ingressdns-with-externaldns.md).
+After ingress controller enabled, create a sample deployment, service and ingress from [sample](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md).
 
 ### Creating ingress resources
 
@@ -180,7 +180,7 @@ Create `IngressDNSRecord` to make DNS work for ingress.
 
 ```bash
 $ cat <<EOF | kubectl create -f -
-apiVersion: multiclusterdns.federation.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
 kind: IngressDNSRecord
 metadata:
   name: test-ingress

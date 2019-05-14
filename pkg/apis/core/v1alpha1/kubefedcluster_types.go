@@ -20,11 +20,11 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 )
 
-// FederatedClusterSpec defines the desired state of FederatedCluster
-type FederatedClusterSpec struct {
+// KubefedClusterSpec defines the desired state of KubefedCluster
+type KubefedClusterSpec struct {
 	// The API endpoint of the member cluster. This can be a hostname,
 	// hostname:port, IP or IP:port.
 	APIEndpoint string `json:"apiEndpoint"`
@@ -45,9 +45,9 @@ type LocalSecretReference struct {
 	Name string `json:"name"`
 }
 
-// FederatedClusterStatus contains information about the current status of a
+// KubefedClusterStatus contains information about the current status of a
 // cluster updated periodically by cluster controller.
-type FederatedClusterStatus struct {
+type KubefedClusterStatus struct {
 	// Conditions is an array of current cluster conditions.
 	// +optional
 	Conditions []ClusterCondition `json:"conditions,omitempty"`
@@ -62,21 +62,21 @@ type FederatedClusterStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedCluster configures federation to be aware of a Kubernetes
+// KubefedCluster configures federation to be aware of a Kubernetes
 // cluster and provides a Kubeconfig for federation to use to
 // communicate with the cluster.
 //
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=federatedclusters
+// +kubebuilder:resource:path=kubefedclusters
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
 // +kubebuilder:printcolumn:name=age,type=date,JSONPath=.metadata.creationTimestamp
-type FederatedCluster struct {
+type KubefedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FederatedClusterSpec   `json:"spec,omitempty"`
-	Status FederatedClusterStatus `json:"status,omitempty"`
+	Spec   KubefedClusterSpec   `json:"spec,omitempty"`
+	Status KubefedClusterStatus `json:"status,omitempty"`
 }
 
 // ClusterCondition describes current state of a cluster.
@@ -101,13 +101,13 @@ type ClusterCondition struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedClusterList contains a list of FederatedCluster
-type FederatedClusterList struct {
+// KubefedClusterList contains a list of KubefedCluster
+type KubefedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederatedCluster `json:"items"`
+	Items           []KubefedCluster `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&FederatedCluster{}, &FederatedClusterList{})
+	SchemeBuilder.Register(&KubefedCluster{}, &KubefedClusterList{})
 }

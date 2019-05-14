@@ -21,10 +21,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// FederationConfigSpec defines the desired state of FederationConfig
-type FederationConfigSpec struct {
-	// The scope of the federation control plane should be either `Namespaced` or `Cluster`.
-	// `Namespaced` indicates that the federation namespace will be the only target for federation.
+// KubefedConfigSpec defines the desired state of KubefedConfig
+type KubefedConfigSpec struct {
+	// The scope of the kubefed control plane should be either `Namespaced` or `Cluster`.
+	// `Namespaced` indicates that the kubefed namespace will be the only target for federation.
 	Scope              apiextv1b1.ResourceScope `json:"scope,omitempty"`
 	ControllerDuration DurationConfig           `json:"controller-duration,omitempty"`
 	LeaderElect        LeaderElectConfig        `json:"leader-elect,omitempty"`
@@ -81,25 +81,25 @@ type SyncControllerConfig struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederationConfig
+// KubefedConfig
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=federationconfigs
-type FederationConfig struct {
+// +kubebuilder:resource:path=kubefedconfigs
+type KubefedConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec FederationConfigSpec `json:"spec,omitempty"`
+	Spec KubefedConfigSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederationConfigList contains a list of FederationConfig
-type FederationConfigList struct {
+// KubefedConfigList contains a list of KubefedConfig
+type KubefedConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederationConfig `json:"items"`
+	Items           []KubefedConfig `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&FederationConfig{}, &FederationConfigList{})
+	SchemeBuilder.Register(&KubefedConfig{}, &KubefedConfigList{})
 }

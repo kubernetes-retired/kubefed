@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package federatedcluster
+package kubefedcluster
 
 import (
 	"context"
@@ -29,10 +29,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/features"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/features"
 )
 
 // ClusterData stores cluster client and previous health check probe results of individual cluster.
@@ -41,14 +41,14 @@ type ClusterData struct {
 	clusterKubeClient *ClusterClient
 
 	// clusterStatus is the cluster status as of last sampling.
-	clusterStatus *fedv1a1.FederatedClusterStatus
+	clusterStatus *fedv1a1.KubefedClusterStatus
 
 	// How many times in a row the probe has returned the same result.
 	resultRun int
 }
 
 // ClusterController is responsible for maintaining the health status of each
-// FederatedCluster in a particular namespace.
+// KubefedCluster in a particular namespace.
 type ClusterController struct {
 	client genericclient.Client
 
@@ -61,11 +61,11 @@ type ClusterController struct {
 	clusterDataMap map[string]*ClusterData
 
 	// clusterController is the cache.Controller where callbacks are registered
-	// for events on FederatedClusters.
+	// for events on KubefedClusters.
 	clusterController cache.Controller
 
 	// fedNamespace is the name of the namespace containing
-	// FederatedCluster resources and their associated secrets.
+	// KubefedCluster resources and their associated secrets.
 	fedNamespace string
 }
 
@@ -90,13 +90,13 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		client:                   client,
 		clusterHealthCheckConfig: clusterHealthCheckConfig,
 		clusterDataMap:           make(map[string]*ClusterData),
-		fedNamespace:             config.FederationNamespace,
+		fedNamespace:             config.KubefedNamespace,
 	}
 	var err error
 	_, cc.clusterController, err = util.NewGenericInformerWithEventHandler(
 		config.KubeConfig,
-		config.FederationNamespace,
-		&fedv1a1.FederatedCluster{},
+		config.KubefedNamespace,
+		&fedv1a1.KubefedCluster{},
 		util.NoResyncPeriod,
 		&cache.ResourceEventHandlerFuncs{
 			DeleteFunc: cc.delFromClusterSet,
@@ -110,7 +110,7 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	cluster := obj.(*fedv1a1.FederatedCluster)
+	cluster := obj.(*fedv1a1.KubefedCluster)
 	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", cluster.Name)
 	delete(cc.clusterDataMap, cluster.Name)
 }
@@ -119,7 +119,7 @@ func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 func (cc *ClusterController) addToClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	cluster := obj.(*fedv1a1.FederatedCluster)
+	cluster := obj.(*fedv1a1.KubefedCluster)
 	clusterData := cc.clusterDataMap[cluster.Name]
 	if clusterData != nil && clusterData.clusterKubeClient != nil {
 		return
@@ -147,9 +147,9 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 	}, time.Duration(cc.clusterHealthCheckConfig.PeriodSeconds)*time.Second, stopChan)
 }
 
-// updateClusterStatus checks cluster health and updates status of all FederatedClusters
+// updateClusterStatus checks cluster health and updates status of all KubefedClusters
 func (cc *ClusterController) updateClusterStatus() error {
-	clusters := &fedv1a1.FederatedClusterList{}
+	clusters := &fedv1a1.KubefedClusterList{}
 	err := cc.client.List(context.TODO(), clusters, cc.fedNamespace)
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 	return nil
 }
 
-func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.FederatedCluster,
+func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.KubefedCluster,
 	storedData *ClusterData, wg *sync.WaitGroup) {
 	clusterClient := storedData.clusterKubeClient
 
@@ -193,8 +193,8 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.Fede
 	wg.Done()
 }
 
-func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.FederatedClusterStatus, storedData *ClusterData,
-	clusterHealthCheckConfig util.ClusterHealthCheckConfig) *fedv1a1.FederatedClusterStatus {
+func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.KubefedClusterStatus, storedData *ClusterData,
+	clusterHealthCheckConfig util.ClusterHealthCheckConfig) *fedv1a1.KubefedClusterStatus {
 
 	if storedData.clusterStatus == nil {
 		storedData.resultRun = 1
@@ -229,8 +229,8 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.FederatedClusterStatu
 	return clusterStatus
 }
 
-func updateClusterZonesAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, cluster *fedv1a1.FederatedCluster,
-	clusterClient *ClusterClient) *fedv1a1.FederatedClusterStatus {
+func updateClusterZonesAndRegion(clusterStatus *fedv1a1.KubefedClusterStatus, cluster *fedv1a1.KubefedCluster,
+	clusterClient *ClusterClient) *fedv1a1.KubefedClusterStatus {
 
 	if !util.IsClusterReady(clusterStatus) {
 		return clusterStatus
@@ -255,17 +255,17 @@ func updateClusterZonesAndRegion(clusterStatus *fedv1a1.FederatedClusterStatus, 
 	return clusterStatus
 }
 
-func clusterStatusEqual(newClusterStatus, oldClusterStatus *fedv1a1.FederatedClusterStatus) bool {
+func clusterStatusEqual(newClusterStatus, oldClusterStatus *fedv1a1.KubefedClusterStatus) bool {
 	return util.IsClusterReady(newClusterStatus) == util.IsClusterReady(oldClusterStatus)
 }
 
-func setProbeTime(clusterStatus *fedv1a1.FederatedClusterStatus, probeTime metav1.Time) {
+func setProbeTime(clusterStatus *fedv1a1.KubefedClusterStatus, probeTime metav1.Time) {
 	for i := 0; i < len(clusterStatus.Conditions); i++ {
 		clusterStatus.Conditions[i].LastProbeTime = probeTime
 	}
 }
 
-func setTransitionTime(clusterStatus *fedv1a1.FederatedClusterStatus, transitionTime metav1.Time) {
+func setTransitionTime(clusterStatus *fedv1a1.KubefedClusterStatus, transitionTime metav1.Time) {
 	for i := 0; i < len(clusterStatus.Conditions); i++ {
 		clusterStatus.Conditions[i].LastTransitionTime = transitionTime
 	}

@@ -50,21 +50,21 @@ pushd "${ROOT_DIR}"
   # Build release artifacts for the helm chart
   pushd "${ROOT_DIR}/charts"
     # Update the image tag for the chart
-    sed -i.backup "s+\(  tag: \)canary+\1${RELEASE_TAG}+" federation-v2/values.yaml
+    sed -i.backup "s+\(  tag: \)canary+\1${RELEASE_TAG}+" kubefed/values.yaml
 
     # Update the chart version
-    sed -i.backup "s+\(version: \).*+\1${RELEASE_VERSION}+" federation-v2/Chart.yaml
+    sed -i.backup "s+\(version: \).*+\1${RELEASE_VERSION}+" kubefed/Chart.yaml
 
-    helm package federation-v2
+    helm package kubefed
 
     # Update the repo index (will need to be committed)
-    helm repo index . --merge index.yaml --url="https://github.com/kubernetes-sigs/federation-v2/releases/download/${RELEASE_TAG}"
+    helm repo index . --merge index.yaml --url="https://sigs.k8s.io/kubefed/releases/download/${RELEASE_TAG}"
 
-    sha256sum "federation-v2-${RELEASE_VERSION}.tgz" > "federation-v2-${RELEASE_VERSION}.tgz.sha"
-    mv federation-v2-${RELEASE_VERSION}.tgz* "${ROOT_DIR}/"
+    sha256sum "kubefed-${RELEASE_VERSION}.tgz" > "kubefed-${RELEASE_VERSION}.tgz.sha"
+    mv kubefed-${RELEASE_VERSION}.tgz* "${ROOT_DIR}/"
 
     # Revert the chart changes (should not be committed)
-    mv federation-v2/values.yaml.backup federation-v2/values.yaml
-    mv federation-v2/Chart.yaml.backup federation-v2/Chart.yaml
+    mv kubefed/values.yaml.backup kubefed/values.yaml
+    mv kubefed/Chart.yaml.backup kubefed/Chart.yaml
   popd
 popd

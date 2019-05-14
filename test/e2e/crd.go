@@ -31,14 +31,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
-	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	kfenableopts "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	apicommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl"
+	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	kfenableopts "sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -150,7 +150,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 	typeConfig := resources.TypeConfig
 
-	err = kfenable.CreateResources(nil, hostConfig, resources, f.FederationSystemNamespace())
+	err = kfenable.CreateResources(nil, hostConfig, resources, f.KubefedSystemNamespace())
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
@@ -160,7 +160,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// TODO(marun) Make this more resilient so that removal of all
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
-		qualifiedName := util.QualifiedName{Namespace: f.FederationSystemNamespace(), Name: objectMeta.Name}
+		qualifiedName := util.QualifiedName{Namespace: f.KubefedSystemNamespace(), Name: objectMeta.Name}
 		err := kubefedctl.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun, false)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
@@ -178,7 +178,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
 	// FederateResource needs the typeconfig to carry ns within
-	concreteTypeConfig.Namespace = f.FederationSystemNamespace()
+	concreteTypeConfig.Namespace = f.KubefedSystemNamespace()
 	testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {
 		fixtureYAML := `
 kind: fixture

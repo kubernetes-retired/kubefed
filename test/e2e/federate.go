@@ -32,13 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -74,7 +74,7 @@ var _ = Describe("Federate ", func() {
 		fixture := typeConfigFixtures[testKey]
 		It(fmt.Sprintf("resource %q, should create an equivalant federated resource in federation", typeConfigName), func() {
 			typeConfig := &fedv1a1.FederatedTypeConfig{}
-			err := client.Get(context.Background(), typeConfig, f.FederationSystemNamespace(), typeConfigName)
+			err := client.Get(context.Background(), typeConfig, f.KubefedSystemNamespace(), typeConfigName)
 			if err != nil {
 				tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 			}
@@ -126,7 +126,7 @@ var _ = Describe("Federate ", func() {
 			framework.Skipf("Federate namespace with content is not tested when control plane is namespace scoped")
 		}
 
-		systemNamespace := f.FederationSystemNamespace()
+		systemNamespace := f.KubefedSystemNamespace()
 		testNamespace := f.TestNamespaceName()
 		// Set of arbitrary contained resources in a namespace
 		containedTypeNames := []string{"configmaps", "secrets", "replicasets.apps"}
@@ -186,7 +186,7 @@ var _ = Describe("Federate ", func() {
 			os.Remove(tmpFile.Name())
 		}()
 
-		systemNamespace := f.FederationSystemNamespace()
+		systemNamespace := f.KubefedSystemNamespace()
 		testNamespace := f.TestNamespaceName()
 		// Set of arbitrary  resources representing both namespaced and non namespaced types
 		testTypeNames := []string{"clusterroles.rbac.authorization.k8s.io", "configmaps", "replicasets.apps"}

@@ -22,9 +22,9 @@ source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 WORKDIR=$(mktemp -d)
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
-CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/federation-v2/charts/controllermanager/templates}"
-CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/federation-v2/templates}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
+CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/kubefed/charts/controllermanager/templates}"
+CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/kubefed/templates}"
 TEMP_CRDS_YAML="/tmp/federation-crds.yaml"
 
 # Check for existence of kube-apiserver and etcd binaries in bin directory
@@ -52,7 +52,7 @@ sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install
 crd_diff=`(diff -U 4 ${TEMP_CRDS_YAML} ${CHART_FEDERATED_CRD_DIR}/crds.yaml; true;)`
 if [ -n "${crd_diff}" ]; then
   cp -f ${TEMP_CRDS_YAML} $CHART_FEDERATED_CRD_DIR/crds.yaml
-  sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
+  sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
   sed -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
 fi
 
@@ -87,7 +87,7 @@ echo -n > ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 for filename in ./config/enabletypedirectives/*.yaml; do
   full_name=${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
 
-  ./bin/kubefedctl --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --federation-namespace="${NS}" --host-cluster-context federation -o yaml > ${full_name}
+  ./bin/kubefedctl --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --kubefed-namespace="${NS}" --host-cluster-context federation -o yaml > ${full_name}
   sed -n '/^---/,/^---/p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
   sed -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
 
@@ -97,7 +97,7 @@ for filename in ./config/enabletypedirectives/*.yaml; do
   rm ${full_name}
 done
 sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/'  ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
-sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.federation.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.kubefed.k8s.io\/v1alpha1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 sed -i '$a{{ end }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 
 # Clean kube-apiserver daemons and temporary files

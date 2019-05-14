@@ -1,7 +1,7 @@
-apiVersion: core.federation.k8s.io/v1alpha1
-kind: FederationConfig
+apiVersion: core.kubefed.k8s.io/v1alpha1
+kind: KubefedConfig
 metadata:
-  name: federation-v2
+  name: kubefed
   namespace: kube-federation-system
 spec:
   leader-elect:

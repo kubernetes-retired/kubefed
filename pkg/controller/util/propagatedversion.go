@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 )
 
 const (

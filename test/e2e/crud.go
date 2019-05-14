@@ -27,12 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/federate"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -200,7 +200,7 @@ func getCrudTestInput(f framework.FederationFramework, tl common.TestLogger,
 	if err != nil {
 		tl.Fatalf("Error initializing dynamic client: %v", err)
 	}
-	typeConfig, err := common.GetTypeConfig(client, typeConfigName, f.FederationSystemNamespace())
+	typeConfig, err := common.GetTypeConfig(client, typeConfigName, f.KubefedSystemNamespace())
 	if err != nil {
 		tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 	}

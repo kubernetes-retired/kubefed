@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TARGET = federation-v2
-GOTARGET = github.com/kubernetes-sigs/$(TARGET)
+TARGET = kubefed
+GOTARGET = sigs.k8s.io/$(TARGET)
 REGISTRY ?= quay.io/kubernetes-multicluster
 IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
@@ -45,10 +45,10 @@ HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
 KUBEFEDCTL_TARGET = bin/kubefedctl
 
-LDFLAG_OPTIONS = -ldflags "-X github.com/kubernetes-sigs/federation-v2/pkg/version.version=$(GIT_VERSION) \
-                      -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitCommit=$(GIT_HASH) \
-                      -X github.com/kubernetes-sigs/federation-v2/pkg/version.gitTreeState=$(GIT_TREESTATE) \
-                      -X github.com/kubernetes-sigs/federation-v2/pkg/version.buildDate=$(BUILDDATE)"
+LDFLAG_OPTIONS = -ldflags "-X sigs.k8s.io/kubefed/pkg/version.version=$(GIT_VERSION) \
+                      -X sigs.k8s.io/kubefed/pkg/version.gitCommit=$(GIT_HASH) \
+                      -X sigs.k8s.io/kubefed/pkg/version.gitTreeState=$(GIT_TREESTATE) \
+                      -X sigs.k8s.io/kubefed/pkg/version.buildDate=$(BUILDDATE)"
 
 GO_BUILDCMD = CGO_ENABLED=0 go build $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
@@ -77,9 +77,9 @@ fmt:
 	$(shell ./hack/update-gofmt.sh)
 
 container: $(HYPERFED_TARGET)-linux
-	cp -f $(HYPERFED_TARGET)-linux images/federation-v2/hyperfed
-	$(DOCKER) build images/federation-v2 -t $(IMAGE_NAME)
-	rm -f images/federation-v2/hyperfed
+	cp -f $(HYPERFED_TARGET)-linux images/kubefed/hyperfed
+	$(DOCKER) build images/kubefed -t $(IMAGE_NAME)
+	rm -f images/kubefed/hyperfed
 
 bindir:
 	mkdir -p $(BIN_DIR)

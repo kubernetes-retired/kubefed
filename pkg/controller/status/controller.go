@@ -33,10 +33,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 const (
@@ -115,7 +115,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 		typeConfig:              typeConfig,
 		client:                  client,
 		statusClient:            statusClient,
-		fedNamespace:            controllerConfig.FederationNamespace,
+		fedNamespace:            controllerConfig.KubefedNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -145,12 +145,12 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1a1.FederatedCluster) {
+			ClusterAvailable: func(cluster *fedv1a1.KubefedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1a1.FederatedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1a1.KubefedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},
