@@ -1,4 +1,13 @@
 # Unreleased
+-  [#865](https://sigs.k8s.io/kubefed/pull/865)
+   github repo is renamed to kubefed. Following changes are done:
+   - API group changed from federation.k8s.io to kubefed.k8s.io
+   - FederatedCluster API is renamed to KubefedCluster
+   - FederationConfig API is renamed to KubefedConfig
+   - golang imports changed to use vanity url sigs.k8s.io/kubefed
+   - docker image is renamed to quay.io/kubernetes-multicluster/kubefed
+   - helm chart is renamed to kubefed
+   - All role, rolebindings, service-account begining with federation- prefix renamed to kubefed-
 -  [#875](https://sigs.k8s.io/kubefed/issues/875)
    Insecure member clusters are no longer supported due to
    KubefedCluster.SecretRef being made a required field.
