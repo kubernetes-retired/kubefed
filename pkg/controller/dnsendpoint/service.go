@@ -23,8 +23,8 @@ import (
 
 	restclient "k8s.io/client-go/rest"
 
-	feddnsv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/multiclusterdns/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	feddnsv1a1 "sigs.k8s.io/kubefed/pkg/apis/multiclusterdns/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <-chan struct{}) error {

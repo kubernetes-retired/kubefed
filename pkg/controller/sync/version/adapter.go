@@ -20,8 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type VersionAdapter interface {

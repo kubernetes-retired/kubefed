@@ -31,14 +31,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
-	apicommon "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
-	kfenable "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	kfenableopts "github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	apicommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl"
+	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	kfenableopts "sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )

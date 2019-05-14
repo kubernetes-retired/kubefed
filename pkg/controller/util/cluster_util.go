@@ -27,8 +27,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/client/generic"
 )
 
 const (

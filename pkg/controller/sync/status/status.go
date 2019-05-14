@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type PropagationStatus string

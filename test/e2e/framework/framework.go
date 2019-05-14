@@ -29,11 +29,11 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/test/common"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/test/common"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

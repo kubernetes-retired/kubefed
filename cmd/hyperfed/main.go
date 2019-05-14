@@ -36,8 +36,8 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
-	"github.com/kubernetes-sigs/federation-v2/cmd/controller-manager/app"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl"
+	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl"
 )
 
 func main() {

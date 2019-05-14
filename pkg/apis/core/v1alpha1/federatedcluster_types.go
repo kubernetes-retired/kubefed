@@ -20,7 +20,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 )
 
 // FederatedClusterSpec defines the desired state of FederatedCluster

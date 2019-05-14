@@ -25,8 +25,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kubernetes-sigs/federation-v2/test/common"
-	"github.com/kubernetes-sigs/federation-v2/test/e2e/framework"
+	"sigs.k8s.io/kubefed/test/common"
+	"sigs.k8s.io/kubefed/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 )

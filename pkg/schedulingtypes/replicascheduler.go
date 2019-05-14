@@ -31,12 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedschedulingv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/scheduling/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/planner"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util/podanalyzer"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedschedulingv1a1 "sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/util/planner"
+	"sigs.k8s.io/kubefed/pkg/controller/util/podanalyzer"
 )
 
 const (

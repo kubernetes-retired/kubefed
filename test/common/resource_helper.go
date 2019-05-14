@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func CreateResource(kubeconfig *restclient.Config, apiResource metav1.APIResource, desiredObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {

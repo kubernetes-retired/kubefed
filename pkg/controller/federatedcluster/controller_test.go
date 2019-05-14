@@ -24,9 +24,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/common"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func TestThresholdCheckedClusterStatus(t *testing.T) {

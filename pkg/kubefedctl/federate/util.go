@@ -33,10 +33,10 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 )
 
 var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}

@@ -34,13 +34,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	ctlutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/enable"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/options"
-	"github.com/kubernetes-sigs/federation-v2/pkg/kubefedctl/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
 
 const (

@@ -25,9 +25,9 @@ import (
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/rest"
 
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 // GlobalSubcommandOptions holds the configuration required by the subcommands of

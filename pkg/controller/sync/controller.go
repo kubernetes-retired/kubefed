@@ -38,13 +38,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	fedv1a1 "github.com/kubernetes-sigs/federation-v2/pkg/apis/core/v1alpha1"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/dispatch"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
-	finalizersutil "github.com/kubernetes-sigs/federation-v2/pkg/controller/util/finalizers"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/dispatch"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	finalizersutil "sigs.k8s.io/kubefed/pkg/controller/util/finalizers"
 )
 
 const (

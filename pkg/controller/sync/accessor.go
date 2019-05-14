@@ -24,10 +24,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/apis/core/typeconfig"
-	genericclient "github.com/kubernetes-sigs/federation-v2/pkg/client/generic"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/version"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/version"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 // FederatedResourceAccessor provides a way to retrieve and visit

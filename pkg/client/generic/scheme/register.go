@@ -24,7 +24,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
 
-	fedapis "github.com/kubernetes-sigs/federation-v2/pkg/apis"
+	fedapis "sigs.k8s.io/kubefed/pkg/apis"
 )
 
 var Scheme = runtime.NewScheme()

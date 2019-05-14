@@ -24,8 +24,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/sync/status"
-	"github.com/kubernetes-sigs/federation-v2/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type clientAccessorFunc func(clusterName string) (util.ResourceClient, error)
