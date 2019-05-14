@@ -296,6 +296,86 @@ kubefedctl disable <FederatedTypeConfig Name> --delete-from-api
 
 **WARNING:** Using this command will remove all custom resources for the specified API type.
 
+## Federating a target resource
+Apart from `enabling` and `disabling` a `type` for `propagation` as specified in the previous 
+section, `kubefedctl` can also be used to `federate` a target resource of an API type.
+We define the term `federate` [here](concepts.md#federation-v2-concepts) and use the command keyword 
+`federate` in `kudefedctl` with similar meaning.
+
+`kubefedctl federate` creates a federated resource from a kubernetes resource. The federated 
+resource will embed the kubernetes resource as its template and its placement will select all 
+clusters.
+
+***Syntax***
+```bash
+kubefedctl federate <target kubernetes API type> <target resource> [flags]
+```
+
+If the flag `--namespace` is additionally not specified, the `<target resource>` will be 
+searched for in the namespace `default`. Please take note that `--namespace` flag is of no 
+meaning when federating a `namespace` itself and is discarded even if specified. 
+Please check the next section for more details about [federating a namespace](#federate-a-namespace).
+
+***Example:***
+Federate a resource named "my-configmap" in namespace "my-namespace" of kubernetes type "configmaps"
+```bash
+kubefedctl federate configmaps my-configmap -n my-namespace
+```
+
+By default, `kubefedctl federate` creates a federated resource in the same namespace as the 
+target resource.  This requires that the target type already be enabled for federation 
+(i.e. via `kubefedctl enable`).
+
+If `--output=yaml` is specified, and the target type is not yet enabled for federation, 
+`kubefedctl federate` will assume the default form of the federated type in generating the 
+federated resource.  This may not be compatible with a kubefed control plane that has enabled 
+a federated type in a non-default way (e.g. the group of the federated type has been set to 
+something other than `types.kubefed.k8s.io`).
+
+### Federate a namespace with contents
+`kubefedctl federate` can also be used to federate a target namespace and its contained resources
+with a single invocation. This can be achieved using the flag `--contents` which is valid only when
+the `<target kubernetes API type>` is a `namespace`. `kubefedctl federate` with `--contents` looks
+up all the existing resources in the target namespace and federates them one by one. It will skip the
+resources created by controllers (e.g. `endpoints` and `events`).
+It is also possible to explicitly skip resource types with the `--skip-api-resources` argument.
+
+***Example:***
+Federate a namespace named "my-namespace" skipping API Resource "configmaps" and API Resource group "apps"
+```bash
+kubefedctl federate namespace my-namespace --contents --skip-api-resources "configmaps,apps"
+```
+
+### Optionally enable type while federating a resource
+`kubefedctl federate` allows optionally enabling the given `<target kubernetes API type>` before
+federating the resource by supplying the `--enable-type flag`. This will enable federation of the
+target type if it is not already enabled. Its recommended to use
+[`kubefectl enable`](#enabling-federation-of-an-api-type) beforehand if the intention is to
+specify non default type configuration values.
+
+***Example:***
+Federate a configmap named "my-configmap" while also enabling type `configmaps` for propagation 
+```bash
+kubefedctl federate configmap my-configmap --enable-type
+```
+
+### Federate resources from input file and stdin
+In addition to supporting conversion of resources in a Kubernetes API, `kubefedctl federeate`
+supports converting resources to `stdout` from resources read from a local file. API resources can
+be read in yaml format via the `--filename` argument. The command currently does not look up
+for an already enabled type to use the type configuration values while translating yaml resources
+and uses default values for the same.
+The command in this mode can also take input from `stdin` in place of an actual file.
+The output could be piped to `kubectl create -f -` if the intention is to create the federate
+resource in the federated API surface.
+No other arguments or flag options are needed in this mode.
+
+***Example:***
+Get federated resources for the target resources listed in a yaml file "my-file"
+```bash
+kubefedctl federate --filename ./my-file
+```
+
 ## Propagation status
 
 When the sync controller reconciles a federated resource with member
