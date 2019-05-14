@@ -298,11 +298,14 @@ spec:
               description: The API endpoint of the member cluster. This can be a hostname,
                 hostname:port, IP or IP:port.
               type: string
+            caBundle:
+              description: CABundle contains the certificate authority information.
+              format: byte
+              type: string
             secretRef:
-              description: Name of the secret containing a token and ca bundle required
-                to access the member cluster.  The secret needs to exist in the same
-                namespace as the control plane and should have keys for "token" and
-                "ca.crt".
+              description: Name of the secret containing the token required to access
+                the member cluster. The secret needs to exist in the same namespace
+                as the control plane and should have a "token" key.
               properties:
                 name:
                   description: Name of a secret within the enclosing namespace
