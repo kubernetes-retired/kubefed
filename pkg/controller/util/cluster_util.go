@@ -38,6 +38,7 @@ const (
 
 	KubeAPIQPS   = 20.0
 	KubeAPIBurst = 30
+	TokenKey     = "token"
 
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second
@@ -74,22 +75,16 @@ func BuildClusterConfig(fedCluster *fedv1a1.KubefedCluster, client generic.Clien
 		return nil, err
 	}
 
-	tokenKey := "token"
-	token, tokenFound := secret.Data[tokenKey]
-	if !tokenFound {
-		return nil, errors.Errorf("The secret for cluster %s is missing a value for %q", clusterName, tokenKey)
-	}
-	caKey := "ca.crt"
-	ca, caFound := secret.Data[caKey]
-	if !caFound {
-		return nil, errors.Errorf("The secret for cluster %s is missing a value for %q", clusterName, caKey)
+	token, tokenFound := secret.Data[TokenKey]
+	if !tokenFound || len(token) == 0 {
+		return nil, errors.Errorf("The secret for cluster %s is missing a non-empty value for %q", clusterName, TokenKey)
 	}
 
 	clusterConfig, err := clientcmd.BuildConfigFromFlags(apiEndpoint, "")
 	if err != nil {
 		return nil, err
 	}
-	clusterConfig.CAData = ca
+	clusterConfig.CAData = fedCluster.Spec.CABundle
 	clusterConfig.BearerToken = string(token)
 	clusterConfig.QPS = KubeAPIQPS
 	clusterConfig.Burst = KubeAPIBurst
