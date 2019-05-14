@@ -58,7 +58,7 @@ pushd "${ROOT_DIR}"
     helm package federation-v2
 
     # Update the repo index (will need to be committed)
-    helm repo index . --merge index.yaml --url="https://github.com/kubernetes-sigs/federation-v2/releases/download/${RELEASE_TAG}"
+    helm repo index . --merge index.yaml --url="https://sigs.k8s.io/kubefed/releases/download/${RELEASE_TAG}"
 
     sha256sum "federation-v2-${RELEASE_VERSION}.tgz" > "federation-v2-${RELEASE_VERSION}.tgz.sha"
     mv federation-v2-${RELEASE_VERSION}.tgz* "${ROOT_DIR}/"
