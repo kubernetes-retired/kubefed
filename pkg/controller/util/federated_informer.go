@@ -150,7 +150,7 @@ func NewFederatedInformer(
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
 		clientFactory: func(cluster *fedv1a1.KubefedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, client, config.FederationNamespace)
+			config, err := BuildClusterConfig(cluster, client, config.KubefedNamespace)
 			if err != nil {
 				return nil, err
 			}
@@ -162,7 +162,7 @@ func NewFederatedInformer(
 			return NewResourceClient(config, apiResource)
 		},
 		targetInformers: make(map[string]informer),
-		fedNamespace:    config.FederationNamespace,
+		fedNamespace:    config.KubefedNamespace,
 	}
 
 	getClusterData := func(name string) []interface{} {
@@ -177,7 +177,7 @@ func NewFederatedInformer(
 	var err error
 	federatedInformer.clusterInformer.store, federatedInformer.clusterInformer.controller, err = NewGenericInformerWithEventHandler(
 		config.KubeConfig,
-		config.FederationNamespace,
+		config.KubefedNamespace,
 		&fedv1a1.KubefedCluster{},
 		clusterSyncPeriod,
 		&cache.ResourceEventHandlerFuncs{

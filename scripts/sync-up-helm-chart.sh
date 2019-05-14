@@ -22,7 +22,7 @@ source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 WORKDIR=$(mktemp -d)
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/kubefed/charts/controllermanager/templates}"
 CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/kubefed/templates}"
 TEMP_CRDS_YAML="/tmp/federation-crds.yaml"

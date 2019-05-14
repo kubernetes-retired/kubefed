@@ -38,7 +38,7 @@ function delete-helm-deployment() {
 }
 
 KCD="kubectl --ignore-not-found=true delete"
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 NAMESPACED="${NAMESPACED:-}"
 DELETE_CLUSTER_RESOURCE="${DELETE_CLUSTER_RESOURCE:-}"
 

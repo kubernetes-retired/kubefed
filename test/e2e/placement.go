@@ -62,7 +62,7 @@ var _ = Describe("Placement", func() {
 		var fixture *unstructured.Unstructured
 		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
 			typeConfig := &fedv1a1.FederatedTypeConfig{}
-			err = client.Get(context.Background(), typeConfig, f.FederationSystemNamespace(), typeConfigName)
+			err = client.Get(context.Background(), typeConfig, f.KubefedSystemNamespace(), typeConfigName)
 			if errors.IsNotFound(err) {
 				continue
 			}

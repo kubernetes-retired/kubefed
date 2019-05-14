@@ -60,7 +60,7 @@ type FederationFrameworkImpl interface {
 	ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface
 	ClusterNames(userAgent string) []string
 
-	FederationSystemNamespace() string
+	KubefedSystemNamespace() string
 
 	// Name of the namespace for the current test to target
 	TestNamespaceName() string
@@ -181,8 +181,8 @@ func (f *frameworkWrapper) ClusterKubeClients(userAgent string) map[string]kubec
 	return f.framework().ClusterKubeClients(userAgent)
 }
 
-func (f *frameworkWrapper) FederationSystemNamespace() string {
-	return f.framework().FederationSystemNamespace()
+func (f *frameworkWrapper) KubefedSystemNamespace() string {
+	return f.framework().KubefedSystemNamespace()
 }
 
 func (f *frameworkWrapper) TestNamespaceName() string {
@@ -280,7 +280,7 @@ func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
 		typeConfig := &fedv1a1.FederatedTypeConfig{}
-		err = client.Get(context.Background(), typeConfig, f.FederationSystemNamespace(), util.NamespaceName)
+		err = client.Get(context.Background(), typeConfig, f.KubefedSystemNamespace(), util.NamespaceName)
 		if err != nil {
 			tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", util.NamespaceName, err)
 		}

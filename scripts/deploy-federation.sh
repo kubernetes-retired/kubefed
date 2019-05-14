@@ -111,7 +111,7 @@ function helm-deploy-cmd {
       --set controllermanager.tag=${tag}"
 }
 
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
 

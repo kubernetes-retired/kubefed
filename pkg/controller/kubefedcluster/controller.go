@@ -90,12 +90,12 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		client:                   client,
 		clusterHealthCheckConfig: clusterHealthCheckConfig,
 		clusterDataMap:           make(map[string]*ClusterData),
-		fedNamespace:             config.FederationNamespace,
+		fedNamespace:             config.KubefedNamespace,
 	}
 	var err error
 	_, cc.clusterController, err = util.NewGenericInformerWithEventHandler(
 		config.KubeConfig,
-		config.FederationNamespace,
+		config.KubefedNamespace,
 		&fedv1a1.KubefedCluster{},
 		util.NoResyncPeriod,
 		&cache.ResourceEventHandlerFuncs{

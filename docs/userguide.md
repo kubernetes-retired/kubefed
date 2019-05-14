@@ -334,9 +334,9 @@ For reasons other than `CheckClusters`, an event will be logged with
 the same reason and can be examined for more detail:
 
 ```bash
-kubectl describe federationnamespace myns -n myns | grep ComputePlacementFailed
+kubectl describe kubefednamespace myns -n myns | grep ComputePlacementFailed
 
-Warning  ComputePlacementFailed  5m   federationnamespace-controller  Invalid selector <nil>
+Warning  ComputePlacementFailed  5m   kubefednamespace-controller  Invalid selector <nil>
 ```
 
 #### Troubleshooting CheckClusters
@@ -684,7 +684,7 @@ providing additional arguments to `kubefedctl join`:
 - `--kubefed-namespace=<namespace>` to ensure the cluster is joined
   to the federation running in the specified namespace
 
-To join `mycluster` when `FEDERATION_NAMESPACE=test-namespace` was used for deployment:
+To join `mycluster` when `KUBEFED_NAMESPACE=test-namespace` was used for deployment:
 
 ```bash
 kubefedctl join mycluster --cluster-context mycluster \

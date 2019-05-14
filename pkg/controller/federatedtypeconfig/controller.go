@@ -94,7 +94,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// control plane.
 	c.store, c.controller, err = util.NewGenericInformer(
 		kubeConfig,
-		config.FederationNamespace,
+		config.KubefedNamespace,
 		&corev1a1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
 		c.worker.EnqueueObject,
@@ -375,7 +375,7 @@ func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, er
 	defer c.lock.Unlock()
 
 	qualifiedName := util.QualifiedName{
-		Namespace: c.controllerConfig.FederationNamespace,
+		Namespace: c.controllerConfig.KubefedNamespace,
 		Name:      util.NamespaceName,
 	}
 	key := qualifiedName.String()

@@ -186,7 +186,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	return CreateResources(cmdOut, hostConfig, resources, j.FederationNamespace)
+	return CreateResources(cmdOut, hostConfig, resources, j.KubefedNamespace)
 }
 
 type typeResources struct {

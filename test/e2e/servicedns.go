@@ -63,14 +63,14 @@ var _ = Describe("ServiceDNS", func() {
 		client = f.Client(userAgent)
 		namespace = f.TestNamespaceName()
 
-		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.FederationSystemNamespace())
+		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.KubefedSystemNamespace())
 		if framework.TestContext.RunControllers() {
 			fixture := framework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
 		f.EnsureTestNamespacePropagation()
 		domainObj := common.NewDomainObject(federationPrefix, Domain)
-		domainObj.Namespace = f.FederationSystemNamespace()
+		domainObj.Namespace = f.KubefedSystemNamespace()
 		err := client.Create(context.TODO(), domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")
 		federation = domainObj.Name
@@ -78,7 +78,7 @@ var _ = Describe("ServiceDNS", func() {
 
 	AfterEach(func() {
 		domainObj := &dnsv1a1.Domain{}
-		err := client.Delete(context.TODO(), domainObj, f.FederationSystemNamespace(), federation)
+		err := client.Delete(context.TODO(), domainObj, f.KubefedSystemNamespace(), federation)
 		framework.ExpectNoError(err, "Error deleting Domain object")
 	})
 
@@ -217,9 +217,9 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	return serviceDNSStatus
 }
 
-func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, federationSystemNamespace string) map[string]fedv1a1.KubefedClusterStatus {
+func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, clusterNamespace string) map[string]fedv1a1.KubefedClusterStatus {
 	clusters := &fedv1a1.KubefedClusterList{}
-	err := client.List(context.TODO(), clusters, federationSystemNamespace)
+	err := client.List(context.TODO(), clusters, clusterNamespace)
 	framework.ExpectNoError(err, "Error listing federated clusters")
 
 	clusterRegionZones := make(map[string]fedv1a1.KubefedClusterStatus)
@@ -232,7 +232,7 @@ func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client generic
 			if apierrors.IsConflict(err) {
 				clusterName := cluster.Name
 				tl.Logf("Failed to update status for federated cluster %q: %v", clusterName, err)
-				err = client.Get(context.TODO(), &cluster, federationSystemNamespace, clusterName)
+				err = client.Get(context.TODO(), &cluster, clusterNamespace, clusterName)
 				if err != nil {
 					return false, errors.Wrapf(err, "failed to retrieve cluster object")
 				}

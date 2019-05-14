@@ -118,8 +118,8 @@ func Run(opts *options.Options) error {
 	}
 
 	if opts.Scope == apiextv1b1.NamespaceScoped {
-		opts.Config.TargetNamespace = opts.Config.FederationNamespace
-		klog.Infof("Federation will be limited to the %q namespace", opts.Config.FederationNamespace)
+		opts.Config.TargetNamespace = opts.Config.KubefedNamespace
+		klog.Infof("Federation will be limited to the %q namespace", opts.Config.KubefedNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
 		klog.Info("Federation will target all namespaces")
@@ -192,7 +192,7 @@ func getKubefedConfig(opts *options.Options) *corev1a1.KubefedConfig {
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "kubefedconfig")
 
 		name := util.KubefedConfigName
-		namespace := opts.Config.FederationNamespace
+		namespace := opts.Config.KubefedNamespace
 		qualifiedName := util.QualifiedName{
 			Namespace: namespace,
 			Name:      name,
@@ -225,7 +225,7 @@ func getKubefedConfig(opts *options.Options) *corev1a1.KubefedConfig {
 	}
 
 	// set to current namespace to make sure `KubefedConfig` is updated in correct namespace
-	fedConfig.Namespace = opts.Config.FederationNamespace
+	fedConfig.Namespace = opts.Config.KubefedNamespace
 	klog.Infof("Setting Options with KubefedConfig from file %q: %v", kubefedConfig, fedConfig.Spec)
 	return fedConfig
 }
@@ -317,7 +317,7 @@ func setOptionsByKubefedConfig(opts *options.Options) {
 	if fedConfig == nil {
 		// KubefedConfig could not be sourced from --kubefed-config or from the API.
 		qualifiedName := util.QualifiedName{
-			Namespace: opts.Config.FederationNamespace,
+			Namespace: opts.Config.KubefedNamespace,
 			Name:      util.KubefedConfigName,
 		}
 

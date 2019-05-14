@@ -165,10 +165,10 @@ echo "Deleting cluster-scoped kubefed"
 ./scripts/delete-federation.sh
 
 echo "Deploying namespace-scoped kubefed"
-FEDERATION_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
+KUBEFED_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
 
 echo "Running go e2e tests with namespace-scoped kubefed"
 run-namespaced-e2e-tests
 
 echo "Deleting namespace-scoped kubefed"
-FEDERATION_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-federation.sh
+KUBEFED_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-federation.sh

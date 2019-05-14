@@ -98,7 +98,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
 		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
-		fedNamespace:            config.FederationNamespace,
+		fedNamespace:            config.KubefedNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -124,7 +124,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// Informer for the Domain resource
 	s.domainStore, s.domainController, err = util.NewGenericInformer(
 		config.KubeConfig,
-		config.FederationNamespace,
+		config.KubefedNamespace,
 		&dnsv1a1.Domain{},
 		util.NoResyncPeriod,
 		func(pkgruntime.Object) {

@@ -23,7 +23,7 @@ spec:
       serviceAccountName: federation-controller
       containers:
       - args:
-        - --kubefed-namespace=$(FEDERATION_NAMESPACE)
+        - --kubefed-namespace=$(KUBEFED_NAMESPACE)
         command:
         - /root/controller-manager
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
@@ -41,7 +41,7 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
 {{- end }}
         env:
-        - name: FEDERATION_NAMESPACE
+        - name: KUBEFED_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace

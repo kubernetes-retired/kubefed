@@ -38,7 +38,7 @@ set -o nounset
 set -o pipefail
 
 CLUSTER_NAMES="${*-}"
-NS="${FEDERATION_NAMESPACE:-kube-federation-system}"
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 
 for CLUSTER_NAME in $CLUSTER_NAMES; do
 	CA_CRT=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="'"${CLUSTER_NAME}"'")].cluster.certificate-authority-data}')
