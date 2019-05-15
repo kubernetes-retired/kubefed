@@ -94,6 +94,9 @@ spec:
                 type: string
               status:
                 type: object
+            required:
+            - clusterName
+            - status
             type: object
           type: array
         kind:
