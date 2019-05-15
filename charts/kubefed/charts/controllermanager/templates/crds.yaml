@@ -32,8 +32,6 @@ spec:
           type: string
         metadata:
           type: object
-        spec:
-          type: object
         status:
           properties:
             clusterVersions:
