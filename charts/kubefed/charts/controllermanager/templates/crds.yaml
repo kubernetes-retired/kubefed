@@ -47,6 +47,9 @@ spec:
                     description: The last version produced for the resource by a federation
                       operation.
                     type: string
+                required:
+                - clusterName
+                - version
                 type: object
               type: array
             overridesVersion:
@@ -55,6 +58,9 @@ spec:
             templateVersion:
               description: The observed version of the template for this resource.
               type: string
+          required:
+          - templateVersion
+          - overridesVersion
           type: object
   version: v1alpha1
 status:
@@ -444,8 +450,6 @@ spec:
           type: string
         metadata:
           type: object
-        spec:
-          type: object
         status:
           properties:
             clusterVersions:
@@ -459,6 +463,9 @@ spec:
                     description: The last version produced for the resource by a federation
                       operation.
                     type: string
+                required:
+                - clusterName
+                - version
                 type: object
               type: array
             overridesVersion:
@@ -467,6 +474,9 @@ spec:
             templateVersion:
               description: The observed version of the template for this resource.
               type: string
+          required:
+          - templateVersion
+          - overridesVersion
           type: object
   version: v1alpha1
 status:
