@@ -45,8 +45,8 @@ type ClusterPropagatedVersion struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterPropagatedVersionSpec `json:"spec,omitempty"`
-	Status PropagatedVersionStatus      `json:"status,omitempty"`
+	// +optional
+	Status PropagatedVersionStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
