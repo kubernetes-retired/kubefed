@@ -424,12 +424,113 @@ spec:
           type: object
         spec:
           properties:
+            clusterHealthCheck:
+              properties:
+                failureThreshold:
+                  description: Minimum consecutive failures for the cluster health
+                    to be considered failed after having succeeded.
+                  format: int64
+                  type: integer
+                periodSeconds:
+                  description: How often to monitor the cluster health (in seconds).
+                  format: int64
+                  type: integer
+                successThreshold:
+                  description: Minimum consecutive successes for the cluster health
+                    to be considered successful after having failed.
+                  format: int64
+                  type: integer
+                timeoutSeconds:
+                  description: Number of seconds after which the cluster health check
+                    times out.
+                  format: int64
+                  type: integer
+              required:
+              - periodSeconds
+              - failureThreshold
+              - successThreshold
+              - timeoutSeconds
+              type: object
+            controllerDuration:
+              properties:
+                availableDelay:
+                  description: Time to wait before reconciling on a healthy cluster.
+                  type: string
+                unavailableDelay:
+                  description: Time to wait before giving up on an unhealthy cluster.
+                  type: string
+              required:
+              - availableDelay
+              - unavailableDelay
+              type: object
+            featureGates:
+              items:
+                properties:
+                  configuration:
+                    type: string
+                  name:
+                    type: string
+                required:
+                - name
+                - configuration
+                type: object
+              type: array
+            leaderElect:
+              properties:
+                leaseDuration:
+                  description: The duration that non-leader candidates will wait after
+                    observing a leadership renewal until attempting to acquire leadership
+                    of a led but unrenewed leader slot. This is effectively the maximum
+                    duration that a leader can be stopped before it is replaced by
+                    another candidate. This is only applicable if leader election
+                    is enabled.
+                  type: string
+                renewDeadline:
+                  description: The interval between attempts by the acting master
+                    to renew a leadership slot before it stops leading. This must
+                    be less than or equal to the lease duration. This is only applicable
+                    if leader election is enabled.
+                  type: string
+                resourceLock:
+                  description: The type of resource object that is used for locking
+                    during leader election. Supported options are `configmaps` (default)
+                    and `endpoints`.
+                  type: string
+                retryPeriod:
+                  description: The duration the clients should wait between attempting
+                    acquisition and renewal of a leadership. This is only applicable
+                    if leader election is enabled.
+                  type: string
+              required:
+              - leaseDuration
+              - renewDeadline
+              - retryPeriod
+              - resourceLock
+              type: object
             scope:
               description: The scope of the kubefed control plane should be either
                 `Namespaced` or `Cluster`. `Namespaced` indicates that the kubefed
                 namespace will be the only target for federation.
               type: string
+            syncController:
+              properties:
+                adoptResources:
+                  description: Whether to adopt pre-existing resources in member clusters.
+                    Defaults to "Enabled".
+                  type: string
+              required:
+              - adoptResources
+              type: object
+          required:
+          - scope
+          - controllerDuration
+          - leaderElect
+          - featureGates
+          - clusterHealthCheck
+          - syncController
           type: object
+      required:
+      - spec
   version: v1alpha1
 status:
   acceptedNames:
