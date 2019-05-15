@@ -26,7 +26,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
 
-	"github.com/kubernetes-sigs/federation-v2/pkg/webhook"
+	"sigs.k8s.io/kubefed/pkg/webhook"
 )
 
 func main() {

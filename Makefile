@@ -113,7 +113,7 @@ kubefedctl: $(KUBEFEDCTL_TARGET)
 webhook: $(WEBHOOK_TARGET)
 
 # Generate code
-generate: kubefedctl
+generate-code:
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
