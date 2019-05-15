@@ -25,6 +25,19 @@ install:
 script:
   - test $DOC_ONLY && echo "Skipped!" || DOWNLOAD_BINARIES=y bash -x ./scripts/pre-commit.sh
 
+# Note on configuration of quay account:
+#
+# The image push is done using a quay robot account configured in the
+# kubernetes-multicluster org.
+#
+# There are two environment variables configured in travis that allow the travis
+# build job to use this robot account:
+#
+# - QUAY_USERNAME
+# - QUAY_PASSWORD
+#
+# These are statically configured in the travis settings and are set by travis
+# in the build job's execution environment.
 after_success:
   - test $DOC_ONLY && echo "Skipped!" || make push
 
