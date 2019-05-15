@@ -122,25 +122,25 @@ push: container
 
 	if [[ -z "$(TRAVIS_PULL_REQUEST)" ]]; \
 	then \
-		$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_VERSION); \
+		$(DOCKER) push $(IMAGE):$(GIT_VERSION); \
 	elif [[ "$(TRAVIS_PULL_REQUEST)" == "false" && "$(TRAVIS_SECURE_ENV_VARS)" == "true" ]]; \
 	then \
 		$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io; \
 		if [[ "$(TRAVIS_BRANCH)" == "master" ]]; \
 		then \
-			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):canary; \
-			$(DOCKER) push $(REGISTRY)/$(TARGET):canary; \
+			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):canary; \
+			$(DOCKER) push $(IMAGE):canary; \
 		fi; \
 		\
 		if git describe --tags --exact-match >/dev/null 2>&1; \
 		then \
-			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):$(GIT_TAG); \
-			$(DOCKER) push $(REGISTRY)/$(TARGET):$(GIT_TAG); \
-			$(DOCKER) tag $(REGISTRY)/$(TARGET):$(GIT_VERSION) $(REGISTRY)/$(TARGET):latest; \
-			$(DOCKER) push $(REGISTRY)/$(TARGET):latest; \
+			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):$(GIT_TAG); \
+			$(DOCKER) push $(IMAGE):$(GIT_TAG); \
+			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):latest; \
+			$(DOCKER) push $(IMAGE):latest; \
 		fi \
 	fi
 
 clean:
 	rm -f $(ALL_BINS)
-	$(DOCKER) rmi $(REGISTRY)/$(TARGET):$(GIT_VERSION) || true
+	$(DOCKER) rmi $(IMAGE):$(GIT_VERSION) || true
