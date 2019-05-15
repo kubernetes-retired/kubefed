@@ -23,8 +23,8 @@ import (
 
 // FederatedServiceClusterStatus is the observed status of the resource for a named cluster
 type FederatedServiceClusterStatus struct {
-	ClusterName string               `json:"clusterName,omitempty"`
-	Status      corev1.ServiceStatus `json:"status,omitempty"`
+	ClusterName string               `json:"clusterName"`
+	Status      corev1.ServiceStatus `json:"status"`
 }
 
 // +genclient
@@ -37,6 +37,7 @@ type FederatedServiceStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	ClusterStatus []FederatedServiceClusterStatus `json:"clusterStatus,omitempty"`
 }
 
