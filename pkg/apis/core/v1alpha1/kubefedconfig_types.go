@@ -26,18 +26,18 @@ type KubefedConfigSpec struct {
 	// The scope of the kubefed control plane should be either `Namespaced` or `Cluster`.
 	// `Namespaced` indicates that the kubefed namespace will be the only target for federation.
 	Scope              apiextv1b1.ResourceScope `json:"scope,omitempty"`
-	ControllerDuration DurationConfig           `json:"controller-duration,omitempty"`
-	LeaderElect        LeaderElectConfig        `json:"leader-elect,omitempty"`
-	FeatureGates       []FeatureGatesConfig     `json:"feature-gates,omitempty"`
-	ClusterHealthCheck ClusterHealthCheckConfig `json:"cluster-health-check,omitempty"`
-	SyncController     SyncControllerConfig     `json:"sync-controller,omitempty"`
+	ControllerDuration DurationConfig           `json:"controllerDuration,omitempty"`
+	LeaderElect        LeaderElectConfig        `json:"leaderElect,omitempty"`
+	FeatureGates       []FeatureGatesConfig     `json:"featureGates,omitempty"`
+	ClusterHealthCheck ClusterHealthCheckConfig `json:"clusterHealthCheck,omitempty"`
+	SyncController     SyncControllerConfig     `json:"syncController,omitempty"`
 }
 
 type DurationConfig struct {
 	// Time to wait before reconciling on a healthy cluster.
-	AvailableDelay metav1.Duration `json:"available-delay,omitempty"`
+	AvailableDelay metav1.Duration `json:"availableDelay,omitempty"`
 	// Time to wait before giving up on an unhealthy cluster.
-	UnavailableDelay metav1.Duration `json:"unavailable-delay,omitempty"`
+	UnavailableDelay metav1.Duration `json:"unavailableDelay,omitempty"`
 }
 type LeaderElectConfig struct {
 	// The duration that non-leader candidates will wait after observing a leadership
@@ -45,17 +45,17 @@ type LeaderElectConfig struct {
 	// slot. This is effectively the maximum duration that a leader can be stopped
 	// before it is replaced by another candidate. This is only applicable if leader
 	// election is enabled.
-	LeaseDuration metav1.Duration `json:"lease-duration,omitempty"`
+	LeaseDuration metav1.Duration `json:"leaseDuration,omitempty"`
 	// The interval between attempts by the acting master to renew a leadership slot
 	// before it stops leading. This must be less than or equal to the lease duration.
 	// This is only applicable if leader election is enabled.
-	RenewDeadline metav1.Duration `json:"renew-deadline,omitempty"`
+	RenewDeadline metav1.Duration `json:"renewDeadline,omitempty"`
 	// The duration the clients should wait between attempting acquisition and renewal
 	// of a leadership. This is only applicable if leader election is enabled.
-	RetryPeriod metav1.Duration `json:"retry-period,omitempty"`
+	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty"`
 	// The type of resource object that is used for locking during
 	// leader election. Supported options are `configmaps` (default) and `endpoints`.
-	ResourceLock string `json:"resource-lock,omitempty"`
+	ResourceLock string `json:"resourceLock,omitempty"`
 }
 type FeatureGatesConfig struct {
 	Name    string `json:"name,omitempty"`
@@ -64,18 +64,18 @@ type FeatureGatesConfig struct {
 
 type ClusterHealthCheckConfig struct {
 	// How often to monitor the cluster health (in seconds).
-	PeriodSeconds int `json:"period-seconds,omitempty"`
+	PeriodSeconds int `json:"periodSeconds,omitempty"`
 	// Minimum consecutive failures for the cluster health to be considered failed after having succeeded.
-	FailureThreshold int `json:"failure-threshold,omitempty"`
+	FailureThreshold int `json:"failureThreshold,omitempty"`
 	// Minimum consecutive successes for the cluster health to be considered successful after having failed.
-	SuccessThreshold int `json:"success-threshold,omitempty"`
+	SuccessThreshold int `json:"successThreshold,omitempty"`
 	// Number of seconds after which the cluster health check times out.
-	TimeoutSeconds int `json:"timeout-seconds,omitempty"`
+	TimeoutSeconds int `json:"timeoutSeconds,omitempty"`
 }
 
 type SyncControllerConfig struct {
 	// Whether to skip adopting pre-existing resource in member clusters. Defaults to false
-	SkipAdoptingResources bool `json:"skip-adopting-resources,omitempty"`
+	SkipAdoptingResources bool `json:"skipAdoptingResources,omitempty"`
 }
 
 // +genclient

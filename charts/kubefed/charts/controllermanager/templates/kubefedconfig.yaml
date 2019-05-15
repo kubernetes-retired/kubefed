@@ -5,22 +5,22 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   scope: {{ .Values.global.scope | default "Cluster" | quote }}
-  controller-duration:
-    available-delay: {{ .Values.clusterAvailableDelay | default "20s" | quote }}
-    unavailable-delay: {{ .Values.clusterUnavailableDelay | default "60s" | quote }}
-  leader-elect:
-    lease-duration: {{ .Values.leaderElectLeaseDuration | default "15s" | quote }}
-    renew-deadline: {{ .Values.leaderElectRenewDeadline | default "10s" | quote }}
-    retry-period: {{ .Values.leaderElectRetryPeriod | default "5s" | quote }}
-    resource-lock: {{ .Values.leaderElectResourceLock | default "configmaps" | quote }}
-  cluster-health-check:
-    period-seconds: {{ .Values.clusterHealthCheckPeriodSeconds | default 10 }}
-    failure-threshold: {{ .Values.clusterHealthCheckFailureThreshold | default 3 }}
-    success-threshold: {{ .Values.clusterHealthCheckSuccessThreshold | default 1 }}
-    timeout-seconds: {{ .Values.clusterHealthCheckTimeoutSeconds | default 3 }}
-  sync-controller:
-    skip-adopting-resources: {{ .Values.syncController.skipAdoptingResources | default false }}
-  feature-gates:
+  controllerDuration:
+    availableDelay: {{ .Values.clusterAvailableDelay | default "20s" | quote }}
+    unavailableDelay: {{ .Values.clusterUnavailableDelay | default "60s" | quote }}
+  leaderElect:
+    leaseDuration: {{ .Values.leaderElectLeaseDuration | default "15s" | quote }}
+    renewDeadline: {{ .Values.leaderElectRenewDeadline | default "10s" | quote }}
+    retryPeriod: {{ .Values.leaderElectRetryPeriod | default "5s" | quote }}
+    resourceLock: {{ .Values.leaderElectResourceLock | default "configmaps" | quote }}
+  clusterHealthCheck:
+    periodSeconds: {{ .Values.clusterHealthCheckPeriodSeconds | default 10 }}
+    failureThreshold: {{ .Values.clusterHealthCheckFailureThreshold | default 3 }}
+    successThreshold: {{ .Values.clusterHealthCheckSuccessThreshold | default 1 }}
+    timeoutSeconds: {{ .Values.clusterHealthCheckTimeoutSeconds | default 3 }}
+  syncController:
+    skipAdoptingResources: {{ .Values.syncController.skipAdoptingResources | default false }}
+  featureGates:
 {{- if .Values.featureGates }}
   - name: PushReconciler
     enabled: {{ .Values.featureGates.PushReconciler | default true }}
