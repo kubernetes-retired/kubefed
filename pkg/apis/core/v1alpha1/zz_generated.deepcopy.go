@@ -615,7 +615,6 @@ func (in *PropagatedVersion) DeepCopyInto(out *PropagatedVersion) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	out.Spec = in.Spec
 	in.Status.DeepCopyInto(&out.Status)
 	return
 }
