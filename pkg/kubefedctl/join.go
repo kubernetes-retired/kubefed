@@ -40,6 +40,7 @@ import (
 
 	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
@@ -232,7 +233,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	// Create a service account and use its credentials.
 	klog.V(2).Info("Creating cluster credentials secret")
 
-	secret, err := createRBACSecret(hostClientset, clusterClientset,
+	secret, caBundle, err := createRBACSecret(hostClientset, clusterClientset,
 		kubefedNamespace, joiningClusterName, hostClusterName,
 		secretName, Scope, dryRun, errorOnExisting)
 	if err != nil {
@@ -245,7 +246,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	klog.V(2).Info("Creating federated cluster resource")
 
 	_, err = createKubefedCluster(client, joiningClusterName, clusterConfig.Host,
-		secret.Name, kubefedNamespace, dryRun, errorOnExisting)
+		secret.Name, kubefedNamespace, caBundle, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return err
@@ -280,7 +281,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 // createKubefedCluster creates a federated cluster resource that associates
 // the cluster and secret.
 func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
-	secretName, kubefedNamespace string, dryRun, errorOnExisting bool) (*fedv1a1.KubefedCluster, error) {
+	secretName, kubefedNamespace string, caBundle []byte, dryRun, errorOnExisting bool) (*fedv1a1.KubefedCluster, error) {
 	fedCluster := &fedv1a1.KubefedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: kubefedNamespace,
@@ -288,6 +289,7 @@ func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEn
 		},
 		Spec: fedv1a1.KubefedClusterSpec{
 			APIEndpoint: apiEndpoint,
+			CABundle:    caBundle,
 			SecretRef: fedv1a1.LocalSecretReference{
 				Name: secretName,
 			},
@@ -363,7 +365,7 @@ func createKubefedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 // access the joining cluster.
 func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.Interface,
 	namespace, joiningClusterName, hostClusterName,
-	secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, error) {
+	secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, []byte, error) {
 
 	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
@@ -372,7 +374,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 	if err != nil {
 		klog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
 			saName, joiningClusterName, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	klog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
@@ -383,7 +385,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)
 		if err != nil {
 			klog.V(2).Infof("Error creating role and binding for service account: %s in joining cluster: %s due to: %v", saName, joiningClusterName, err)
-			return nil, err
+			return nil, nil, err
 		}
 
 		klog.V(2).Infof("Created role and binding for service account: %s in joining cluster: %s",
@@ -396,7 +398,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 		if err != nil {
 			klog.V(2).Infof("Error creating health check cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 				saName, joiningClusterName, err)
-			return nil, err
+			return nil, nil, err
 		}
 
 		klog.V(2).Infof("Created health check cluster role and binding for service account: %s in joining cluster: %s",
@@ -409,7 +411,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 		if err != nil {
 			klog.V(2).Infof("Error creating cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 				saName, joiningClusterName, err)
-			return nil, err
+			return nil, nil, err
 		}
 
 		klog.V(2).Infof("Created cluster role and binding for service account: %s in joining cluster: %s",
@@ -418,16 +420,16 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 
 	klog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
 
-	secret, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
+	secret, caBundle, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
 		saName, namespace, joiningClusterName, secretName, dryRun)
 	if err != nil {
 		klog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	klog.V(2).Infof("Created secret in host cluster: %s", hostClusterName)
 
-	return secret, nil
+	return secret, caBundle, nil
 }
 
 // createServiceAccount creates a service account in the cluster associated
@@ -780,11 +782,11 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 // namespace.
 func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Interface,
 	saName, namespace, joiningClusterName, secretName string,
-	dryRun bool) (*corev1.Secret, error) {
+	dryRun bool) (*corev1.Secret, []byte, error) {
 	if dryRun {
 		dryRunSecret := &corev1.Secret{}
 		dryRunSecret.Name = secretName
-		return dryRunSecret, nil
+		return dryRunSecret, nil, nil
 	}
 
 	// Get the secret from the joining cluster.
@@ -814,15 +816,22 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 
 	if err != nil {
 		klog.V(2).Infof("Could not get service account secret from joining cluster: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	// Create a parallel secret in the host cluster.
+	token, ok := secret.Data[ctlutil.TokenKey]
+	if !ok {
+		return nil, nil, errors.Errorf("Key %q not found in service account secret", ctlutil.TokenKey)
+	}
+
+	// Create a secret in the host cluster containing the token.
 	v1Secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Data: secret.Data,
+		Data: map[string][]byte{
+			ctlutil.TokenKey: token,
+		},
 	}
 
 	if secretName == "" {
@@ -834,9 +843,13 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	v1SecretResult, err := hostClientset.CoreV1().Secrets(namespace).Create(&v1Secret)
 	if err != nil {
 		klog.V(2).Infof("Could not create secret in host cluster: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
+	// caBundle is optional so no error is suggested if it is not
+	// found in the secret.
+	caBundle := secret.Data["ca.crt"]
+
 	klog.V(2).Infof("Created secret in host cluster named: %s", v1SecretResult.Name)
-	return v1SecretResult, nil
+	return v1SecretResult, caBundle, nil
 }

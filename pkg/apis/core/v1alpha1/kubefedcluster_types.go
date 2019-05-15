@@ -29,11 +29,13 @@ type KubefedClusterSpec struct {
 	// hostname:port, IP or IP:port.
 	APIEndpoint string `json:"apiEndpoint"`
 
-	// Name of the secret containing a token and ca bundle required to
-	// access the member cluster.
-	//
-	// The secret needs to exist in the same namespace as the control
-	// plane and should have keys for "token" and "ca.crt".
+	// CABundle contains the certificate authority information.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// Name of the secret containing the token required to access the
+	// member cluster. The secret needs to exist in the same namespace
+	// as the control plane and should have a "token" key.
 	SecretRef LocalSecretReference `json:"secretRef"`
 }
 

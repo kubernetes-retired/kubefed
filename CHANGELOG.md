@@ -1,4 +1,9 @@
 # Unreleased
+-  [#886](https://sigs.k8s.io/kubefed/issues/886)
+   The ca bundle for a member cluster is now stored as an optional
+   field of KubefedCluster since a ca bundle may not be required for
+   all clusters and is not sensitive information that requires storage
+   in a secret.
 -  [#865](https://sigs.k8s.io/kubefed/pull/865)
    github repo is renamed to kubefed. Following changes are done:
    - API group changed from federation.k8s.io to kubefed.k8s.io
