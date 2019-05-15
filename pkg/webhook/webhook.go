@@ -29,6 +29,7 @@ import (
 func NewWebhookCommand(stopCh <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
 		&webhook.FederatedTypeConfigValidationHook{},
+		&webhook.KubefedClusterValidationHook{},
 	}
 
 	// done to avoid cannot use admissionHooks (type []AdmissionHook) as type []apiserver.AdmissionHook in argument to "github.com/openshift/kubernetes-namespace-reservation/pkg/genericadmissionserver/cmd/server".NewCommandStartAdmissionServer
