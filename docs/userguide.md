@@ -47,6 +47,8 @@
       - [Distribute replicas in weighted proportions, also enforcing replica limits per cluster](#distribute-replicas-in-weighted-proportions-also-enforcing-replica-limits-per-cluster)
       - [Distribute replicas evenly in all clusters, however not more than 20 in C](#distribute-replicas-evenly-in-all-clusters-however-not-more-than-20-in-c)
   - [Controller-Manager Leader Election](#controller-manager-leader-election)
+  - [Limitations](#limitations)
+    - [Immutable Fields](#immutable-fields)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -935,16 +937,21 @@ to configure parameters for leader election to tune for your environment
 ### Immutable Fields
 Federation API does not implement immutable fields in the federated resource yet.
 
-A kubernetes resource field can be patched during runtime to change the resource
-specification. But the immutable field is not allowed to be modified after the
-resource was created.
+A kubernetes resource field can be modified at runtime to change the resource
+specification. An immutable field cannot be modified after the resource is created.
 
-For federated resource, `spec.template` defines target resource specification.
-You can change any fields in runtime. Federation API does not check attribute of
-any fields. So, it accepts the request even it tries to change an immutable field
-for the target resource. For example, `spec.completions` is an immutable field of
-a job resource. You cannot change it after job resource is created. But you can
-change `spec.template.spec.completions` of the federated job resource. However, 
-the changed value does not propagate to member clusters.
+For a federated resource, `spec.template` defines the resource specification common
+to all clusters. Though it is possible to modify any template field of a federated
+resource (or set an override for the field), changing the value of an immutable field
+will prevent all subsequent updates from completing successfully. This will be
+indicated by a propagation status of `UpdateFailed` for affected clusters. These
+errors can only be resolved by reverting the template field back to the value set at
+creation.
 
-Immutable field is planned to be supported after beta.
+For example, `spec.completions` is an immutable field of a job resource. You cannot
+change it after a job has been created. Changing `spec.template.spec.completions`
+of the federated job resource will prevent all subsequent updates to jobs managed by
+the federated job. The changed value does not propagate to member clusters.
+
+Support for validation of immutable fields in federated resources is intended to be
+implemented before kubefed goes GA.
