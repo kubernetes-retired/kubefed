@@ -930,3 +930,21 @@ only one instance is responsible for reconciliation. You can refer to the
 [helm chart configuration](https://github.com/kubernetes-sigs/kubefed/tree/master/charts/kubefed#configuration)
 to configure parameters for leader election to tune for your environment
 (the defaults should be sane for most environments).
+
+## Limitations
+### Immutable Fields
+Federation API does not implement immutable fields in the federated resource yet.
+
+A kubernetes resource field can be patched during runtime to change the resource
+specification. But the immutable field is not allowed to be modified after the
+resource was created.
+
+For federated resource, `spec.template` defines target resource specification.
+You can change any fields in runtime. Federation API does not check attribute of
+any fields. So, it accepts the request even it tries to change an immutable field
+for the target resource. For example, `spec.completions` is an immutable field of
+a job resource. You cannot change it after job resource is created. But you can
+change `spec.template.spec.completions` of the federated job resource. However, 
+the changed value does not propagate to member clusters.
+
+Immutable field is planned to be supported after beta.
