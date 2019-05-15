@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
@@ -31,7 +32,9 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	if err := app.NewControllerManagerCommand().Execute(); err != nil {
+	stopChan := genericapiserver.SetupSignalHandler()
+
+	if err := app.NewControllerManagerCommand(stopChan).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

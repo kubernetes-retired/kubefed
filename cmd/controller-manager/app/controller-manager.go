@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -60,7 +58,7 @@ var (
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
-func NewControllerManagerCommand() *cobra.Command {
+func NewControllerManagerCommand(stopChan <-chan struct{}) *cobra.Command {
 	verFlag := false
 	opts := options.NewOptions()
 
@@ -76,7 +74,7 @@ member clusters and does the necessary reconciliation`,
 			}
 			PrintFlags(cmd.Flags())
 
-			if err := Run(opts); err != nil {
+			if err := Run(opts, stopChan); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -96,14 +94,12 @@ member clusters and does the necessary reconciliation`,
 }
 
 // Run runs the controller-manager with options. This should never exit.
-func Run(opts *options.Options) error {
+func Run(opts *options.Options, stopChan <-chan struct{}) error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
 	// TODO: Make healthz endpoint configurable
 	go serveHealthz(":8080")
-
-	stopChan := setupSignalHandler()
 
 	var err error
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
@@ -370,28 +366,6 @@ func PrintFlags(flags *pflag.FlagSet) {
 	flags.VisitAll(func(flag *pflag.Flag) {
 		klog.V(1).Infof("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
-}
-
-var onlyOneSignalHandler = make(chan struct{})
-var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
-
-// setupSignalHandler registered for SIGTERM and SIGINT. A stop channel is returned
-// which is closed on one of these signals. If a second signal is caught, the program
-// is terminated with exit code 1.
-func setupSignalHandler() (stopCh <-chan struct{}) {
-	close(onlyOneSignalHandler) // panics when called twice
-
-	stop := make(chan struct{})
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, shutdownSignals...)
-	go func() {
-		<-c
-		close(stop)
-		<-c
-		os.Exit(1) // second signal. Exit directly.
-	}()
-
-	return stop
 }
 
 func serveHealthz(address string) {

@@ -18,13 +18,10 @@ package main
 
 import (
 	"flag"
-	"os"
-	"runtime"
-
-	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/webhook"
 )
@@ -33,13 +30,9 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	if len(os.Getenv("GOMAXPROCS")) == 0 {
-		runtime.GOMAXPROCS(runtime.NumCPU())
-	}
+	stopChan := genericapiserver.SetupSignalHandler()
 
-	stopCh := genericapiserver.SetupSignalHandler()
-
-	cmd := webhook.NewWebhookCommand(stopCh)
+	cmd := webhook.NewWebhookCommand(stopChan)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	if err := cmd.Execute(); err != nil {

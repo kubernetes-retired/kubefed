@@ -26,18 +26,13 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/webhook"
 )
 
-func NewWebhookCommand(stopCh <-chan struct{}) *cobra.Command {
+func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
 		&webhook.FederatedTypeConfigValidationHook{},
 		&webhook.KubefedClusterValidationHook{},
 	}
 
-	// done to avoid cannot use admissionHooks (type []AdmissionHook) as type []apiserver.AdmissionHook in argument to "github.com/openshift/kubernetes-namespace-reservation/pkg/genericadmissionserver/cmd/server".NewCommandStartAdmissionServer
-	var castSlice []apiserver.AdmissionHook
-	for i := range admissionHooks {
-		castSlice = append(castSlice, admissionHooks[i])
-	}
-	cmd := server.NewCommandStartAdmissionServer(os.Stdout, os.Stderr, stopCh, castSlice...)
+	cmd := server.NewCommandStartAdmissionServer(os.Stdout, os.Stderr, stopChan, admissionHooks...)
 	cmd.Use = "webhook"
 	cmd.Short = "Start a kubefed webhook server"
 	cmd.Long = "Start a kubefed webhook server"
