@@ -34,6 +34,9 @@ then
   exit 1
 fi
 
+# Remove existing generated crds to ensure that stale content doesn't linger.
+rm -f ./config/crds/*.yaml
+
 # Generate CRD manifest files
 go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
 
