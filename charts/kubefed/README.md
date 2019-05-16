@@ -134,7 +134,7 @@ chart and their default values.
 | controllermanager.clusterHealthCheckFailureThreshold | Minimum consecutive failures for the cluster health to be considered failed after having succeeded.                                                                          | 3                               |
 | controllermanager.clusterHealthCheckSuccessThreshold | Minimum consecutive successes for the cluster health to be considered successful after having failed.                                                                        | 1                               |
 | controllermanager.clusterHealthCheckTimeoutSeconds   | Number of seconds after which the cluster health check times out.                                                                                                            | 3                               |
-| controllermanager.syncController.skipAdoptingResources  | Whether to skip adopting pre-existing resource in member clusters.                                                                                                        | false                           |
+| controllermanager.syncController.adoptResources  | Whether to adopt pre-existing resource in member clusters.                                                                                                        		          | Enabled                         |
 | global.scope                   | Whether the kubefed namespace will be the only target for federation.                                                                                                                           | Cluster                         |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to

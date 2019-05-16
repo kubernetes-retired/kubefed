@@ -43,7 +43,7 @@ const (
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second
 	DefaultLeaderElectionRetryPeriod   = 5 * time.Second
-	DefaultLeaderElectionResourceLock  = "configmaps"
+	DefaultLeaderElectionResourceLock  = fedv1a1.ConfigMapsResourceLock
 
 	DefaultClusterHealthCheckPeriod           = 10
 	DefaultClusterHealthCheckFailureThreshold = 3

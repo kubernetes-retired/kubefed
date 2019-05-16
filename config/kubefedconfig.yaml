@@ -8,3 +8,12 @@ spec:
     leaseDuration: 1500ms
     renewDeadline: 1000ms
     retryPeriod: 500ms
+  featureGates:
+  - name: PushReconciler
+    configuration: "Enabled"
+  - name: SchedulerPreferences
+    configuration: "Enabled"
+  - name: CrossClusterServiceDiscovery
+    configuration: "Enabled"
+  - name: FederatedIngress
+    configuration: "Enabled"

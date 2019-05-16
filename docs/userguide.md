@@ -395,7 +395,7 @@ The following table enumerates the possible values for cluster status:
 
 | Status                 | Description                  |
 |------------------------|------------------------------|
-| AlreadyExists          | The target resource already exists in the cluster, and cannot be adopted due to `skipAdoptingResources` being configured. |
+| AlreadyExists          | The target resource already exists in the cluster, and cannot be adopted due to `adoptResources` being disabled. |
 | CachedRetrievalFailed  | An error occurred when retrieving the cached target resource. |
 | ClientRetrievalFailed  | An error occurred while attempting to create an API client for the member cluster. |
 | ClusterNotReady        | The latest health check for the cluster did not succeed. |

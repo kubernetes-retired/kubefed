@@ -31,7 +31,7 @@ type Options struct {
 	FeatureGates             map[string]bool
 	Scope                    apiextv1b1.ResourceScope
 	LeaderElection           *util.LeaderElectionConfiguration
-	ClusterHealthCheckConfig util.ClusterHealthCheckConfig
+	ClusterHealthCheckConfig *util.ClusterHealthCheckConfig
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -41,8 +41,9 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 
 func NewOptions() *Options {
 	return &Options{
-		Config:         new(util.ControllerConfig),
-		FeatureGates:   make(map[string]bool),
-		LeaderElection: new(util.LeaderElectionConfiguration),
+		Config:                   new(util.ControllerConfig),
+		FeatureGates:             make(map[string]bool),
+		LeaderElection:           new(util.LeaderElectionConfiguration),
+		ClusterHealthCheckConfig: new(util.ClusterHealthCheckConfig),
 	}
 }

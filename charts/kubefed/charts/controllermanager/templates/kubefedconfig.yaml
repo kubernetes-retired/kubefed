@@ -19,15 +19,15 @@ spec:
     successThreshold: {{ .Values.clusterHealthCheckSuccessThreshold | default 1 }}
     timeoutSeconds: {{ .Values.clusterHealthCheckTimeoutSeconds | default 3 }}
   syncController:
-    skipAdoptingResources: {{ .Values.syncController.skipAdoptingResources | default false }}
+    adoptResources: {{ .Values.syncController.adoptResources | default "Enabled" | quote }}
   featureGates:
 {{- if .Values.featureGates }}
   - name: PushReconciler
-    enabled: {{ .Values.featureGates.PushReconciler | default true }}
+    configuration: {{ .Values.featureGates.PushReconciler | default "Enabled" | quote }}
   - name: SchedulerPreferences
-    enabled: {{ .Values.featureGates.SchedulerPreferences | default true }}
+    configuration: {{ .Values.featureGates.SchedulerPreferences | default "Enabled" | quote }}
   - name: CrossClusterServiceDiscovery
-    enabled: {{ .Values.featureGates.CrossClusterServiceDiscovery | default true }}
+    configuration: {{ .Values.featureGates.CrossClusterServiceDiscovery | default "Enabled" | quote }}
   - name: FederatedIngress
-    enabled: {{ .Values.featureGates.FederatedIngress | default true }}
+    configuration: {{ .Values.featureGates.FederatedIngress | default "Enabled" | quote }}
 {{- end }}

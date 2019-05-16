@@ -38,7 +38,7 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 	t4 := metav1.Time{Time: epoch.Add(4 * time.Second)}
 	t5 := metav1.Time{Time: epoch.Add(5 * time.Second)}
 
-	config := util.ClusterHealthCheckConfig{
+	config := &util.ClusterHealthCheckConfig{
 		PeriodSeconds:    10,
 		FailureThreshold: 3,
 		SuccessThreshold: 1,
@@ -49,7 +49,7 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 		clusterStatus         *fedv1a1.KubefedClusterStatus
 		storedClusterData     *ClusterData
 		expectedClusterStatus *fedv1a1.KubefedClusterStatus
-		expectedResultRun     int
+		expectedResultRun     int64
 	}{
 		"ClusterReadyAtBegining": {
 			clusterStatus:         clusterStatus(corev1.ConditionTrue, t1, t1),
