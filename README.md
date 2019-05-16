@@ -53,14 +53,14 @@ higher-level APIs:
 
 ## Features
 
-| Feature | Maturity |
-|---------|----------|
-| [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#example) | Alpha |
-| [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#operations) | Alpha |
-| [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha |
-| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md) | Alpha |
-| [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) | Alpha |
-| [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha |
+| Feature | Maturity | Feature Gate | Default |
+|---------|----------|--------------|---------|
+| [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#example) | Alpha | PushReconciler | true |
+| [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#operations) | Alpha | | |
+| [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha | | |
+| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md) | Alpha | CrossClusterServiceDiscovery | true |
+| [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) | Alpha | FederatedIngress | true |
+| [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha | SchedulerPreferences | true |
 
 ## Guides
 
