@@ -34,7 +34,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
@@ -324,7 +324,7 @@ func getInstalledTypeConfig(hostConfig *rest.Config, typeName, kubefedNamespace 
 		return nil, errors.Wrap(err, "Failed to get generic client")
 	}
 
-	concreteTypeConfig := &fedv1a1.FederatedTypeConfig{}
+	concreteTypeConfig := &fedv1b1.FederatedTypeConfig{}
 	err = client.Get(context.TODO(), concreteTypeConfig, kubefedNamespace, typeName)
 	if err != nil {
 		return nil, err

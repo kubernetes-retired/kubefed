@@ -25,7 +25,7 @@ import (
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/rest"
 
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -83,7 +83,7 @@ func GetScopeFromKubefedConfig(hostConfig *rest.Config, namespace string) (apiex
 		return "", err
 	}
 
-	fedConfig := &fedv1a1.KubefedConfig{}
+	fedConfig := &fedv1b1.KubefedConfig{}
 	err = client.Get(context.TODO(), fedConfig, namespace, util.KubefedConfigName)
 	if err != nil {
 		config := util.QualifiedName{
@@ -109,7 +109,7 @@ type CommonEnableOptions struct {
 // disable subcommands of `kubefedctl`.
 const (
 	DefaultFederationGroup   = "types.kubefed.k8s.io"
-	DefaultFederationVersion = "v1alpha1"
+	DefaultFederationVersion = "v1beta1"
 )
 
 // CommonSubcommandBind adds the common subcommand flags to the flagset passed in.

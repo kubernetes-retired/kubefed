@@ -25,7 +25,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	corev1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingpreference"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
@@ -97,7 +97,7 @@ func newSchedulingManager(config *util.ControllerConfig) (*SchedulingManager, er
 	c.store, c.controller, err = util.NewGenericInformer(
 		kubeConfig,
 		config.KubefedNamespace,
-		&corev1a1.FederatedTypeConfig{},
+		&corev1b1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
 		c.worker.EnqueueObject,
 	)
@@ -165,14 +165,14 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 		return util.StatusAllOK
 	}
 
-	typeConfig := cachedObj.(*corev1a1.FederatedTypeConfig)
+	typeConfig := cachedObj.(*corev1b1.FederatedTypeConfig)
 	if !typeConfig.GetPropagationEnabled() || typeConfig.DeletionTimestamp != nil {
 		c.stopScheduler(schedulingKind, typeConfigName)
 		return util.StatusAllOK
 	}
 
 	// set name and group for the type config target
-	corev1a1.SetFederatedTypeConfigDefaults(typeConfig)
+	corev1b1.SetFederatedTypeConfigDefaults(typeConfig)
 
 	// TODO(marun) Replace with validation webhook
 	err = typeconfig.CheckTypeConfigName(typeConfig)

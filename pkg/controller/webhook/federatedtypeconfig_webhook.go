@@ -28,8 +28,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	"sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
-	"sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1/validation"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
 )
 
 type FederatedTypeConfigValidationHook struct {
@@ -42,7 +42,7 @@ type FederatedTypeConfigValidationHook struct {
 func (a *FederatedTypeConfigValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
 			Group:    "admission.core.kubefed.k8s.io",
-			Version:  "v1alpha1",
+			Version:  "v1beta1",
 			Resource: "federatedtypeconfigs",
 		},
 		"federatedtypeconfig"
@@ -64,7 +64,7 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 
 	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
-	admittingObject := &v1alpha1.FederatedTypeConfig{}
+	admittingObject := &v1beta1.FederatedTypeConfig{}
 	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
 	if err != nil {
 		status.Allowed = false
@@ -109,7 +109,7 @@ func (a *FederatedTypeConfigValidationHook) Initialize(kubeClientConfig *rest.Co
 	shallowClientConfigCopy := *kubeClientConfig
 	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
 		Group:   "core.kubefed.k8s.io",
-		Version: "v1alpha1",
+		Version: "v1beta1",
 	}
 	shallowClientConfigCopy.APIPath = "/apis"
 	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
@@ -118,7 +118,7 @@ func (a *FederatedTypeConfigValidationHook) Initialize(kubeClientConfig *rest.Co
 	}
 	a.client = dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    "core.kubefed.k8s.io",
-		Version:  "v1alpha1",
+		Version:  "v1beta1",
 		Resource: "federatedtypeconfig",
 	})
 

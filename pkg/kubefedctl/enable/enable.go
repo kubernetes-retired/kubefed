@@ -36,7 +36,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
@@ -171,7 +171,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if j.outputYAML {
-		concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
+		concreteTypeConfig := resources.TypeConfig.(*fedv1b1.FederatedTypeConfig)
 		objects := []pkgruntime.Object{concreteTypeConfig, resources.CRD}
 		err := writeObjectsToYAML(objects, cmdOut)
 		if err != nil {
@@ -249,8 +249,8 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		return errors.Wrap(err, "Failed to get federation clientset")
 	}
 
-	concreteTypeConfig := resources.TypeConfig.(*fedv1a1.FederatedTypeConfig)
-	existingTypeConfig := &fedv1a1.FederatedTypeConfig{}
+	concreteTypeConfig := resources.TypeConfig.(*fedv1b1.FederatedTypeConfig)
+	existingTypeConfig := &fedv1b1.FederatedTypeConfig{}
 	err = client.Get(context.TODO(), existingTypeConfig, namespace, concreteTypeConfig.Name)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", concreteTypeConfig.Name)
@@ -318,24 +318,24 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 	spec := enableTypeDirective.Spec
 	kind := apiResource.Kind
 	pluralName := apiResource.Name
-	typeConfig := &fedv1a1.FederatedTypeConfig{
+	typeConfig := &fedv1b1.FederatedTypeConfig{
 		// Explicitly including TypeMeta will ensure it will be
 		// serialized properly to yaml.
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FederatedTypeConfig",
-			APIVersion: "core.kubefed.k8s.io/v1alpha1",
+			APIVersion: "core.kubefed.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: typeconfig.GroupQualifiedName(apiResource),
 		},
-		Spec: fedv1a1.FederatedTypeConfigSpec{
-			TargetType: fedv1a1.APIResource{
+		Spec: fedv1b1.FederatedTypeConfigSpec{
+			TargetType: fedv1b1.APIResource{
 				Version: apiResource.Version,
 				Kind:    kind,
 				Scope:   namespacedToScope(apiResource),
 			},
-			Propagation: fedv1a1.PropagationEnabled,
-			FederatedType: fedv1a1.APIResource{
+			Propagation: fedv1b1.PropagationEnabled,
+			FederatedType: fedv1b1.APIResource{
 				Group:      spec.FederationGroup,
 				Version:    spec.FederationVersion,
 				Kind:       fmt.Sprintf("Federated%s", kind),
@@ -346,7 +346,7 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 	}
 
 	// Set defaults that would normally be set by the api
-	fedv1a1.SetFederatedTypeConfigDefaults(typeConfig)
+	fedv1b1.SetFederatedTypeConfigDefaults(typeConfig)
 	return typeConfig
 }
 
