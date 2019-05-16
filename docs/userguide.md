@@ -59,15 +59,15 @@
 
 Please refer to [Kubefed Concepts](./concepts.md) first before you go through this user guide.
 
-This user guide contains concepts and procedures to help you get started with Federation v2.
+This user guide contains concepts and procedures to help you get started with Kubefed.
 
-For information about installing Federation v2, see the [installation documentation](./installation.md).
+For information about installing Kubefed, see the [installation documentation](./installation.md).
 
 ## Joining and unjoining clusters
 
 ### Joining clusters
 
-`kubefedctl` is the federation command line utility. You can download
+`kubefedctl` is the Kubefed command line utility. You can download
 the latest binary from the [release page](https://github.com/kubernetes-sigs/kubefed/releases).
 ```bash
 VERSION=<latest-version>
@@ -157,7 +157,7 @@ Repeat this step to unjoin any additional clusters.
 ### Enabling federation of an API type
 
 You can enable federation of any Kubernetes API type (including CRDs) by using the
-`kubefed2` command as follows.
+`kubefedctl` command as follows.
 
 **NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
 the CRD is not installed on a member cluster, propagation to that cluster will fail.
@@ -174,7 +174,7 @@ The `<target kubernetes API type>` can be any of the following
 
 for the intended target API type.
 
-The `kubefed2` command will create
+The `kubefedctl` command will create
  - a CRD for the federated type named `Federated<Kind>`
  - a `FederatedTypeConfig` in the federation system namespace with the group-qualified plural name of the target type.
 
@@ -277,7 +277,7 @@ you can patch role `kubefed-role` in the kubefed namespace instead.
 ### Disabling federation of an API type
 
 You can disable propagation of an API type using the
-`kubefed2` command.
+`kubefedctl` command.
 
 ```bash
 kubefedctl disable <FederatedTypeConfig Name>
@@ -578,7 +578,7 @@ To cleanup the example simply delete the namespace:
 ```bash
 kubectl delete ns test-namespace
 ```
-> **NOTE:** Deleting the test namespace requires that the Federation controllers first perform the removal of managed resources from member clusters. This may take a few moments.
+> **NOTE:** Deleting the test namespace requires that the kubefed controllers first perform the removal of managed resources from member clusters. This may take a few moments.
 
 ## Using Cluster Selector
 
@@ -684,17 +684,17 @@ Resources such as `namespaces` associated with a `FederatedNamespace` or `Federa
 should be deleted before cleaning up the deployment, otherwise, the process will fail.
 
 Run the following command to perform a cleanup of the cluster registry and
-federation deployments:
+kubefed deployments:
 
 ```bash
 ./scripts/delete-federation.sh
 ```
 
-The above script unjoins the all of the clusters from the federation control plane it deploys,
+The above script unjoins the all of the clusters from the kubefed control plane it deploys,
 by default.
 
 On successful completion of the script, both `cluster1` and
-`cluster2` will be unjoined from the deployed federation control plane.
+`cluster2` will be unjoined from the deployed kubefed control plane.
 
 ## Namespaced Federation
 
@@ -703,7 +703,7 @@ cluster-scoped kubefed control plane. It is also possible to
 deploy a namespace-scoped control plane. In this mode of operation,
 kubefed controllers will target resources in a single namespace on
 both host and member clusters. This may be desirable when
-experimenting with federation on a production cluster.
+experimenting with kubefed on a production cluster.
 
 ### Helm Configuration
 
@@ -730,7 +730,7 @@ kubefedctl join mycluster --cluster-context mycluster \
 
 ## Local Value Retention
 
-In most cases, the federation sync controller will overwrite any
+In most cases, the kubefed sync controller will overwrite any
 changes made to resources it manages in member clusters.  The
 exceptions appear in the following table.  Where retention is
 conditional, an explanation will be provided in a subsequent section.
@@ -760,7 +760,7 @@ federated resource for each retention strategy (i.e. one with
 ### ServiceAccount
 
 A populated `secrets` field of a `ServiceAccount` resource managed by
-federation will be retained if the managing federated resource does
+kubefed will be retained if the managing federated resource does
 not specify a value for the field.  This avoids the possibility of the
 sync controller attempting to repeatedly clear the field while a local
 serviceaccounts controller attempts to repeatedly set it to a
@@ -969,7 +969,7 @@ to configure parameters for leader election to tune for your environment
 
 ## Limitations
 ### Immutable Fields
-Federation API does not implement immutable fields in the federated resource yet.
+Kubefed API does not implement immutable fields in the federated resource yet.
 
 A kubernetes resource field can be modified at runtime to change the resource
 specification. An immutable field cannot be modified after the resource is created.
