@@ -6,17 +6,16 @@
 
 # Kubernetes Cluster Federation
 
-This repo contains an in-progress prototype of some of the
-foundational aspects of Kubernetes Cluster Federation. The prototype
-builds on the sync controller (a.k.a. push reconciler) from
-[Federation v1](https://github.com/kubernetes/federation/) to iterate
-on the API concepts laid down in the [brainstorming
-doc](https://docs.google.com/document/d/159cQGlfgXo6O4WxXyWzjZiPoIuiHVl933B43xhmqPEE/edit#)
-and further refined in the [architecture
-doc](https://docs.google.com/document/d/1ihWETo-zE8U_QNuzw5ECxOWX0Df_2BVfO3lC4OesKRQ/edit#).
-Access to both documents is available to members of the
-[kubernetes-sig-multicluster google
-group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
+Kubernetes Cluster Federation (KubeFed for short) allows you to coordinate the
+configuration of multiple Kubernetes clusters from a single set of APIs in a
+hosting cluster. KubeFed aims to provide mechanisms for expressing which
+clusters should have their configuration managed and what that configuration
+should be. The mechanisms that KubeFed provides are intentionally low-level, and
+intended to be foundational for more complex multicluster use cases such as
+deploying multi-geo applications and disaster recovery.
+
+KubeFed is currently **alpha** and moving rapidly toward its initial
+[beta release](https://github.com/kubernetes-sigs/kubefed/milestone/4).
 
 ## Concepts
 
