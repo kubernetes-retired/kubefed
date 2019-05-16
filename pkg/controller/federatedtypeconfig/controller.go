@@ -150,8 +150,8 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return util.StatusError
 	}
 
-	syncEnabled := typeConfig.Spec.PropagationEnabled
-	statusEnabled := typeConfig.Spec.EnableStatus
+	syncEnabled := typeConfig.GetPropagationEnabled()
+	statusEnabled := typeConfig.GetStatusEnabled()
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {
@@ -166,7 +166,11 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
-		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
+
+		if typeConfig.Status.StatusController == nil {
+			typeConfig.Status.StatusController = new(corev1a1.ControllerStatus)
+		}
+		*typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
 		err = c.client.UpdateStatus(context.TODO(), typeConfig)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Could not update status fields of the CRD: %q", key))
@@ -243,11 +247,15 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		typeConfig.Status.PropagationController = corev1a1.ControllerStatusNotRunning
 	}
 
+	if typeConfig.Status.StatusController == nil {
+		typeConfig.Status.StatusController = new(corev1a1.ControllerStatus)
+	}
+
 	statusControllerRunning := startNewStatusController || (statusRunning && !stopStatusController)
 	if statusControllerRunning {
-		typeConfig.Status.StatusController = corev1a1.ControllerStatusRunning
+		*typeConfig.Status.StatusController = corev1a1.ControllerStatusRunning
 	} else {
-		typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
+		*typeConfig.Status.StatusController = corev1a1.ControllerStatusNotRunning
 	}
 	err = c.client.UpdateStatus(context.TODO(), typeConfig)
 	if err != nil {

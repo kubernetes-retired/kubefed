@@ -81,7 +81,7 @@ func NewFederatedResourceAccessor(
 	a := &resourceAccessor{
 		limitedScope:            controllerConfig.LimitedScope(),
 		typeConfig:              typeConfig,
-		targetIsNamespace:       typeConfig.GetTarget().Kind == util.NamespaceKind,
+		targetIsNamespace:       typeConfig.GetTargetType().Kind == util.NamespaceKind,
 		fedNamespace:            controllerConfig.KubefedNamespace,
 		fedNamespaceAPIResource: fedNamespaceAPIResource,
 		eventRecorder:           eventRecorder,
@@ -100,7 +100,7 @@ func NewFederatedResourceAccessor(
 		// Initialize an informer for namespaces.  The namespace
 		// containing a federated namespace resource is used as the
 		// template for target resources in member clusters.
-		namespaceAPIResource := typeConfig.GetTarget()
+		namespaceAPIResource := typeConfig.GetTargetType()
 		namespaceTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &namespaceAPIResource)
 		if err != nil {
 			return nil, err
@@ -139,7 +139,7 @@ func NewFederatedResourceAccessor(
 		client,
 		typeConfig.GetFederatedNamespaced(),
 		typeConfig.GetFederatedType().Kind,
-		typeConfig.GetTarget().Kind,
+		typeConfig.GetTargetType().Kind,
 		targetNamespace,
 	)
 
@@ -240,7 +240,7 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 
 	var namespace *unstructured.Unstructured
 	if a.targetIsNamespace {
-		namespace, err = util.ObjFromCache(a.namespaceStore, a.typeConfig.GetTarget().Kind, targetName.String())
+		namespace, err = util.ObjFromCache(a.namespaceStore, a.typeConfig.GetTargetType().Kind, targetName.String())
 		if err != nil {
 			return nil, false, err
 		}

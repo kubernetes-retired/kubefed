@@ -76,7 +76,7 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
-		targetIsNamespace:  typeConfig.GetTarget().Kind == util.NamespaceKind,
+		targetIsNamespace:  typeConfig.GetTargetType().Kind == util.NamespaceKind,
 		client:             genericclient.NewForConfigOrDie(kubeConfig),
 		kubeConfig:         kubeConfig,
 		testClusters:       testClusters,
@@ -101,7 +101,7 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(targetObject *unstructured.Unst
 
 func (c *FederatedTypeCrudTester) Create(targetObject *unstructured.Unstructured, overrides []interface{}) *unstructured.Unstructured {
 	qualifiedName := util.NewQualifiedName(targetObject)
-	kind := c.typeConfig.GetTarget().Kind
+	kind := c.typeConfig.GetTargetType().Kind
 	fedKind := c.typeConfig.GetFederatedType().Kind
 	fedObject, err := federate.FederatedResourceFromTargetResource(c.typeConfig, targetObject)
 	if err != nil {
@@ -326,7 +326,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		qualifiedName = util.QualifiedName{Name: name}
 	}
 
-	targetKind := c.typeConfig.GetTarget().Kind
+	targetKind := c.typeConfig.GetTargetType().Kind
 
 	// TODO(marun) Consider using informer to detect expected deletion state.
 	var stateMsg string = "unlabeled"
@@ -389,7 +389,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 		c.tl.Fatalf("Error reading cluster overrides for %s %q: %v", federatedKind, qualifiedName, err)
 	}
 
-	targetKind := c.typeConfig.GetTarget().Kind
+	targetKind := c.typeConfig.GetTargetType().Kind
 
 	// TODO(marun) run checks in parallel
 	primaryClusterName := c.getPrimaryClusterName()
@@ -605,13 +605,13 @@ func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceCl
 		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			if !versionRemoved() {
-				c.tl.Logf("Removal of %q %s successful, but propagated version still exists", c.typeConfig.GetTarget().Kind, qualifiedName)
+				c.tl.Logf("Removal of %q %s successful, but propagated version still exists", c.typeConfig.GetTargetType().Kind, qualifiedName)
 				return false, nil
 			}
 			return true, nil
 		}
 		if err != nil {
-			c.tl.Errorf("Error checking that %q %s was deleted: %v", c.typeConfig.GetTarget().Kind, qualifiedName, err)
+			c.tl.Errorf("Error checking that %q %s was deleted: %v", c.typeConfig.GetTargetType().Kind, qualifiedName, err)
 		}
 		return false, nil
 	})
@@ -641,7 +641,7 @@ func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, o
 
 // expectedVersion retrieves the version of the resource expected in the named cluster
 func (c *FederatedTypeCrudTester) expectedVersion(qualifiedName util.QualifiedName, templateVersion, overrideVersion, clusterName string) (string, bool) {
-	targetKind := c.typeConfig.GetTarget().Kind
+	targetKind := c.typeConfig.GetTargetType().Kind
 	versionName := util.QualifiedName{
 		Namespace: qualifiedName.Namespace,
 		Name:      common.PropagatedVersionName(targetKind, qualifiedName.Name),
@@ -717,11 +717,11 @@ func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedV
 }
 
 func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.QualifiedName) {
-	if !c.typeConfig.GetEnableStatus() {
+	if !c.typeConfig.GetStatusEnabled() {
 		return
 	}
 
-	statusAPIResource := c.typeConfig.GetStatus()
+	statusAPIResource := c.typeConfig.GetStatusType()
 	statusKind := statusAPIResource.Kind
 
 	c.tl.Logf("Checking creation of %s %q", statusKind, qualifiedName)

@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 )
 
@@ -151,6 +152,25 @@ func GetServerPreferredResources(config *rest.Config) ([]*metav1.APIResourceList
 		return nil, errors.Wrap(err, "Error listing api resources")
 	}
 	return resourceLists, nil
+}
+
+func namespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
+	if apiResource.Namespaced {
+		return apiextv1b1.NamespaceScoped
+	}
+	return apiextv1b1.ClusterScoped
+}
+
+func federatedNamespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
+	// Special-case the scope of federated namespace since it will
+	// hopefully be the only instance of the scope of a federated
+	// type differing from the scope of its target.
+	if typeconfig.GroupQualifiedName(apiResource) == common.NamespaceName {
+		// FederatedNamespace is namespaced to allow the control plane to run
+		// with only namespace-scoped permissions e.g. to determine placement.
+		return apiextv1b1.NamespaceScoped
+	}
+	return namespacedToScope(apiResource)
 }
 
 func resourceKey(apiResource metav1.APIResource) string {

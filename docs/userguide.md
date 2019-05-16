@@ -271,8 +271,8 @@ It is possible to disable propagation of a type that is configured for propagati
 kubefedctl disable <FederatedTypeConfig Name>
 ```
 
-This command will set the `propagationEnabled` field in the `FederatedTypeConfig`
-associated with this target API type to `false`, which will prompt the sync
+This command will set the `propagation` field in the `FederatedTypeConfig`
+associated with this target API type to `Disabled`, which will prompt the sync
 controller for the target API type to be stopped.
 
 If the goal is to permanently disable federation of the target API type, passing the

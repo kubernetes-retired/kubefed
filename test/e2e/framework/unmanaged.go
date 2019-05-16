@@ -288,7 +288,7 @@ func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.In
 	if TestContext.InMemoryControllers {
 		controllerConfig := f.ControllerConfig()
 		// Namespaces are cluster scoped so all namespaces must be targeted
-		if typeConfig.GetTarget().Kind == util.NamespaceKind {
+		if typeConfig.GetTargetType().Kind == util.NamespaceKind {
 			controllerConfig.TargetNamespace = metav1.NamespaceAll
 		}
 		return NewSyncControllerFixture(f.logger, controllerConfig, typeConfig, namespacePlacement)

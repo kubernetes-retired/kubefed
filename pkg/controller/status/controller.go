@@ -94,7 +94,7 @@ func StartFederationStatusController(controllerConfig *util.ControllerConfig, st
 // newFederationStatusController returns a new status controller for the federated type
 func newFederationStatusController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*FederationStatusController, error) {
 	federatedAPIResource := typeConfig.GetFederatedType()
-	statusAPIResource := typeConfig.GetStatus()
+	statusAPIResource := typeConfig.GetStatusType()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
 	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
 
@@ -133,7 +133,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 	s.federatedStore, s.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, enqueueObj)
 	s.statusStore, s.statusController = util.NewResourceInformer(statusClient, targetNamespace, enqueueObj)
 
-	targetAPIResource := typeConfig.GetTarget()
+	targetAPIResource := typeConfig.GetTargetType()
 
 	// Federated informer on the resource type in members of federation.
 	s.informer, err = util.NewFederatedInformer(
@@ -233,7 +233,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	}
 
 	federatedKind := s.typeConfig.GetFederatedType().Kind
-	statusKind := s.typeConfig.GetStatus().Kind
+	statusKind := s.typeConfig.GetStatusType().Kind
 	key := qualifiedName.String()
 
 	klog.V(4).Infof("Starting to reconcile %v %v", statusKind, key)
@@ -267,10 +267,10 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 		return util.StatusError
 	}
 
-	resourceGroupVersion := schema.GroupVersion{Group: s.typeConfig.GetStatus().Group, Version: s.typeConfig.GetStatus().Version}
+	resourceGroupVersion := schema.GroupVersion{Group: s.typeConfig.GetStatusType().Group, Version: s.typeConfig.GetStatusType().Version}
 	federatedResource := util.FederatedResource{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       s.typeConfig.GetStatus().Kind,
+			Kind:       s.typeConfig.GetStatusType().Kind,
 			APIVersion: resourceGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -356,7 +356,7 @@ func (s *FederationStatusController) clusterNames() ([]string, error) {
 func (s *FederationStatusController) clusterStatuses(clusterNames []string, key string) ([]util.ResourceClusterStatus, error) {
 	clusterStatus := []util.ResourceClusterStatus{}
 
-	targetKind := s.typeConfig.GetTarget().Kind
+	targetKind := s.typeConfig.GetTargetType().Kind
 	for _, clusterName := range clusterNames {
 		clusterObj, exist, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {

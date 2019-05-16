@@ -46,7 +46,7 @@ func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.Contr
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
-	if typeConfig.GetEnableStatus() {
+	if typeConfig.GetStatusEnabled() {
 		err := status.StartFederationStatusController(controllerConfig, f.stopChan, typeConfig)
 		if err != nil {
 			tl.Fatalf("Error starting status controller: %v", err)

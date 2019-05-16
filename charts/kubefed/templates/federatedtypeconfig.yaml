@@ -8,13 +8,14 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedClusterRole
     pluralName: federatedclusterroles
+    scope: Cluster
     version: v1alpha1
-  namespaced: false
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     group: rbac.authorization.k8s.io
     kind: ClusterRole
     pluralName: clusterroles
+    scope: Cluster
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -26,12 +27,13 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedConfigMap
     pluralName: federatedconfigmaps
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     kind: ConfigMap
     pluralName: configmaps
+    scope: Namespaced
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -43,13 +45,14 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedDeployment
     pluralName: federateddeployments
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     group: apps
     kind: Deployment
     pluralName: deployments
+    scope: Namespaced
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -61,13 +64,14 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedIngress
     pluralName: federatedingresses
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     group: extensions
     kind: Ingress
     pluralName: ingresses
+    scope: Namespaced
     version: v1beta1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -79,13 +83,14 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedJob
     pluralName: federatedjobs
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     group: batch
     kind: Job
     pluralName: jobs
+    scope: Namespaced
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -97,12 +102,13 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedNamespace
     pluralName: federatednamespaces
+    scope: Namespaced
     version: v1alpha1
-  namespaced: false
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     kind: Namespace
     pluralName: namespaces
+    scope: Cluster
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -114,13 +120,14 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedReplicaSet
     pluralName: federatedreplicasets
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     group: apps
     kind: ReplicaSet
     pluralName: replicasets
+    scope: Namespaced
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -132,12 +139,13 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedSecret
     pluralName: federatedsecrets
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     kind: Secret
     pluralName: secrets
+    scope: Namespaced
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -149,12 +157,13 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedServiceAccount
     pluralName: federatedserviceaccounts
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     kind: ServiceAccount
     pluralName: serviceaccounts
+    scope: Namespaced
     version: v1
 ---
 apiVersion: core.kubefed.k8s.io/v1alpha1
@@ -166,10 +175,11 @@ spec:
     group: types.kubefed.k8s.io
     kind: FederatedService
     pluralName: federatedservices
+    scope: Namespaced
     version: v1alpha1
-  namespaced: true
-  propagationEnabled: true
-  target:
+  propagation: Enabled
+  targetType:
     kind: Service
     pluralName: services
+    scope: Namespaced
     version: v1

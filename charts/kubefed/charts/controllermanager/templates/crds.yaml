@@ -152,9 +152,6 @@ spec:
           type: object
         spec:
           properties:
-            enableStatus:
-              description: Whether or not Status object should be populated.
-              type: boolean
             federatedType:
               description: Configuration for the federated type that defines (via
                 template, placement and overrides fields) how the target type should
@@ -171,23 +168,26 @@ spec:
                     not provided, it will be computed by lower-casing the kind and
                     suffixing an 's'.
                   type: string
+                scope:
+                  description: Scope of the resource.
+                  type: string
                 version:
                   description: Version of the resource.
                   type: string
               required:
+              - version
               - kind
+              - pluralName
+              - scope
               type: object
-            namespaced:
-              description: Whether or not the target type is namespaced. The federation
-                types (FederatedType, Status) for the type will share this characteristic.  TODO(marun)
-                Remove in favor of using the value from Target and FederatedType (depending
-                on context).
-              type: boolean
-            propagationEnabled:
+            propagation:
               description: Whether or not propagation to member clusters should be
                 enabled.
-              type: boolean
-            status:
+              type: string
+            statusCollection:
+              description: Whether or not Status object should be populated.
+              type: string
+            statusType:
               description: Configuration for the status type that holds information
                 about which type holds the status of the federated resource. If not
                 provided, the group and version will default to those provided for
@@ -204,13 +204,19 @@ spec:
                     not provided, it will be computed by lower-casing the kind and
                     suffixing an 's'.
                   type: string
+                scope:
+                  description: Scope of the resource.
+                  type: string
                 version:
                   description: Version of the resource.
                   type: string
               required:
+              - version
               - kind
+              - pluralName
+              - scope
               type: object
-            target:
+            targetType:
               description: The configuration of the target type. If not set, the pluralName
                 and groupName fields will be set from the metadata.name of this resource.
                 The kind field must be set.
@@ -226,16 +232,21 @@ spec:
                     not provided, it will be computed by lower-casing the kind and
                     suffixing an 's'.
                   type: string
+                scope:
+                  description: Scope of the resource.
+                  type: string
                 version:
                   description: Version of the resource.
                   type: string
               required:
+              - version
               - kind
+              - pluralName
+              - scope
               type: object
           required:
-          - target
-          - namespaced
-          - propagationEnabled
+          - targetType
+          - propagation
           - federatedType
           type: object
         status:
@@ -251,7 +262,12 @@ spec:
             statusController:
               description: StatusController tracks the status of the status controller.
               type: string
+          required:
+          - observedGeneration
+          - propagationController
           type: object
+      required:
+      - spec
   version: v1alpha1
 status:
   acceptedNames:

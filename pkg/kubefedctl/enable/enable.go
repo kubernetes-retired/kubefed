@@ -257,7 +257,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	}
 	if err == nil {
 		fedType := existingTypeConfig.GetFederatedType()
-		target := existingTypeConfig.GetTarget()
+		target := existingTypeConfig.GetTargetType()
 		concreteType := concreteTypeConfig.GetFederatedType()
 		if fedType.Name != concreteType.Name || fedType.Version != concreteType.Version || fedType.Group != concreteType.Group {
 			return errors.Errorf("Federation is already enabled for %q with federated type %q. Changing the federated type to %q is not supported.",
@@ -329,17 +329,18 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 			Name: typeconfig.GroupQualifiedName(apiResource),
 		},
 		Spec: fedv1a1.FederatedTypeConfigSpec{
-			Target: fedv1a1.APIResource{
+			TargetType: fedv1a1.APIResource{
 				Version: apiResource.Version,
 				Kind:    kind,
+				Scope:   namespacedToScope(apiResource),
 			},
-			Namespaced:         apiResource.Namespaced,
-			PropagationEnabled: true,
+			Propagation: fedv1a1.PropagationEnabled,
 			FederatedType: fedv1a1.APIResource{
 				Group:      spec.FederationGroup,
 				Version:    spec.FederationVersion,
 				Kind:       fmt.Sprintf("Federated%s", kind),
 				PluralName: fmt.Sprintf("federated%s", pluralName),
+				Scope:      federatedNamespacedToScope(apiResource),
 			},
 		},
 	}
