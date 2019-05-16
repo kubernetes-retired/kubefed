@@ -1,4 +1,4 @@
-{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.kubefed.k8s.io/v1alpha1"))) }}
+{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.kubefed.k8s.io/v1beta1"))) }}
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -303,7 +303,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -564,7 +564,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -2871,7 +2871,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -3184,7 +3184,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -5471,7 +5471,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -5730,7 +5730,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -8010,7 +8010,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -8271,7 +8271,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -8551,7 +8551,7 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -8866,5 +8866,5 @@ spec:
                 type: object
               type: array
           type: object
-  version: v1alpha1
+  version: v1beta1
 {{ end }}

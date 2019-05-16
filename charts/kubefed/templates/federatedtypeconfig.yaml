@@ -1,5 +1,5 @@
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: clusterroles.rbac.authorization.k8s.io
@@ -9,7 +9,7 @@ spec:
     kind: FederatedClusterRole
     pluralName: federatedclusterroles
     scope: Cluster
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     group: rbac.authorization.k8s.io
@@ -18,7 +18,7 @@ spec:
     scope: Cluster
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: configmaps
@@ -28,7 +28,7 @@ spec:
     kind: FederatedConfigMap
     pluralName: federatedconfigmaps
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     kind: ConfigMap
@@ -36,7 +36,7 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: deployments.apps
@@ -46,7 +46,7 @@ spec:
     kind: FederatedDeployment
     pluralName: federateddeployments
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     group: apps
@@ -55,7 +55,7 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: ingresses.extensions
@@ -65,7 +65,7 @@ spec:
     kind: FederatedIngress
     pluralName: federatedingresses
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     group: extensions
@@ -74,7 +74,7 @@ spec:
     scope: Namespaced
     version: v1beta1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: jobs.batch
@@ -84,7 +84,7 @@ spec:
     kind: FederatedJob
     pluralName: federatedjobs
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     group: batch
@@ -93,7 +93,7 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: namespaces
@@ -103,7 +103,7 @@ spec:
     kind: FederatedNamespace
     pluralName: federatednamespaces
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     kind: Namespace
@@ -111,7 +111,7 @@ spec:
     scope: Cluster
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: replicasets.apps
@@ -121,7 +121,7 @@ spec:
     kind: FederatedReplicaSet
     pluralName: federatedreplicasets
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     group: apps
@@ -130,7 +130,7 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: secrets
@@ -140,7 +140,7 @@ spec:
     kind: FederatedSecret
     pluralName: federatedsecrets
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     kind: Secret
@@ -148,7 +148,7 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: serviceaccounts
@@ -158,7 +158,7 @@ spec:
     kind: FederatedServiceAccount
     pluralName: federatedserviceaccounts
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     kind: ServiceAccount
@@ -166,7 +166,7 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1alpha1
+apiVersion: core.kubefed.k8s.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: services
@@ -176,7 +176,7 @@ spec:
     kind: FederatedService
     pluralName: federatedservices
     scope: Namespaced
-    version: v1alpha1
+    version: v1beta1
   propagation: Enabled
   targetType:
     kind: Service
