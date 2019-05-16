@@ -26,7 +26,7 @@ The following binaries are required to install and use Kubefed.
 All of the binaries listed can be installed by the `download-binaries.sh` script. Use the following commands to clone the repository and run the script.
 
    `git clone https://github.com/kubernetes-sigs/kubefed.git`   
-   `./script/download-binaries.sh`   
+   `./scripts/download-binaries.sh`   
    `export PATH=$(pwd)/bin:${PATH}`   
 
 ### Creating Clusters
@@ -47,7 +47,7 @@ kubectl config use-context cluster1
 ```
 ### Deployment Image
 
-If you follow this user guide without any changes you will be using the latest master image tagged as `canary`](development.md#test-latest-master-changes-canary).
+If you follow this user guide without any changes you will be using the latest master image tagged as [`canary`](development.md#test-latest-master-changes-canary).
 
 ## Helm Chart Deployment
 
