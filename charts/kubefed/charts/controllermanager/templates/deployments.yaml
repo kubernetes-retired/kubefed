@@ -1,4 +1,3 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,3 +45,48 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
       terminationGracePeriodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: kubefed-admission-webhook
+  labels:
+    kubefed-admission-webhook: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      kubefed-admission-webhook: "true"
+  template:
+    metadata:
+      labels:
+        kubefed-admission-webhook: "true"
+    spec:
+      serviceAccountName: kubefed-admission-webhook
+      containers:
+      - name: admission-webhook
+        image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
+        command:
+        - "/root/webhook"
+        - "--secure-port=8443"
+        - "--audit-log-path=-"
+        - "--tls-cert-file=/var/serving-cert/tls.crt"
+        - "--tls-private-key-file=/var/serving-cert/tls.key"
+        - "--v=8"
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - mountPath: /var/serving-cert
+          name: serving-cert
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTPS
+      volumes:
+      - name: serving-cert
+        secret:
+          defaultMode: 420
+          secretName: kubefed-admission-webhook-serving-cert

@@ -32,12 +32,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
+	"sigs.k8s.io/kubefed/pkg/webhook"
 )
 
 func main() {
@@ -76,12 +78,16 @@ func commandFor(basename string, defaultCommand *cobra.Command, commands []func(
 
 // NewHyperFedCommand is the entry point for hyperfed
 func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
-	controller := func() *cobra.Command { return app.NewControllerManagerCommand() }
+	stopChan := genericapiserver.SetupSignalHandler()
+
+	controller := func() *cobra.Command { return app.NewControllerManagerCommand(stopChan) }
 	kubefedctlCmd := func() *cobra.Command { return kubefedctl.NewKubeFedCtlCommand(os.Stdout) }
+	webhookCmd := func() *cobra.Command { return webhook.NewWebhookCommand(stopChan) }
 
 	commandFns := []func() *cobra.Command{
 		controller,
 		kubefedctlCmd,
+		webhookCmd,
 	}
 
 	makeSymlinksFlag := false

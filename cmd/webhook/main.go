@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,25 +17,25 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
-	"os"
+	"flag"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
-	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
+	"k8s.io/klog"
 
-	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
+	"sigs.k8s.io/kubefed/pkg/webhook"
 )
 
-// Controller-manager main.
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
 	stopChan := genericapiserver.SetupSignalHandler()
 
-	if err := app.NewControllerManagerCommand(stopChan).Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+	cmd := webhook.NewWebhookCommand(stopChan)
+	cmd.Flags().AddGoFlagSet(flag.CommandLine)
+
+	if err := cmd.Execute(); err != nil {
+		klog.Fatal(err)
 	}
 }

@@ -45,6 +45,7 @@ BUILD_IMAGE ?= golang:1.11.2
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
 KUBEFEDCTL_TARGET = bin/kubefedctl
+WEBHOOK_TARGET = bin/webhook
 
 LDFLAG_OPTIONS = -ldflags "-X sigs.k8s.io/kubefed/pkg/version.version=$(GIT_VERSION) \
                       -X sigs.k8s.io/kubefed/pkg/version.gitCommit=$(GIT_HASH) \
@@ -61,15 +62,15 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate
+.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook
 
-all: container hyperfed controller kubefedctl
+all: container hyperfed controller kubefedctl webhook
 
 # Unit tests
 test: vet
 	go test $(TEST_PKGS)
 
-build: hyperfed controller kubefedctl
+build: hyperfed controller kubefedctl webhook
 
 vet:
 	go vet $(TEST_PKGS)
@@ -85,7 +86,7 @@ container: $(HYPERFED_TARGET)-linux
 bindir:
 	mkdir -p $(BIN_DIR)
 
-COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFEDCTL_TARGET)
+COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFEDCTL_TARGET) $(WEBHOOK_TARGET)
 OSES := linux darwin
 ALL_BINS :=
 
@@ -109,6 +110,9 @@ controller: $(CONTROLLER_TARGET)
 
 kubefedctl: $(KUBEFEDCTL_TARGET)
 
+webhook: $(WEBHOOK_TARGET)
+
+# Generate code
 generate-code:
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)

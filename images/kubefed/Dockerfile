@@ -19,6 +19,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY /hyperfed .
 RUN ln -s hyperfed controller-manager \
- && ln -s hyperfed kubefedctl
+ && ln -s hyperfed kubefedctl \
+ && ln -s hyperfed webhook
 
 ENTRYPOINT ["./controller-manager"]
