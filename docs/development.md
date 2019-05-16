@@ -6,6 +6,7 @@
   - [Prerequisites](#prerequisites)
     - [Binaries](#binaries)
     - [kubernetes](#kubernetes)
+  - [Prerequisites](#prerequisites-1)
     - [docker](#docker)
   - [Adding a new API type](#adding-a-new-api-type)
   - [Running E2E Tests](#running-e2e-tests)
@@ -45,14 +46,15 @@ export PATH=$(pwd)/bin:${PATH}
 
 ### kubernetes
 
-The kubefed deployment requires kubernetes version >= 1.11. To see a
-detailed list of binaries required, [see the prerequisites section in the
-user guide](userguide.md#prerequisites).
+The kubefed deployment requires kubernetes version >= 1.11. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
+
+## Prerequisites
 
 ### docker
 
-This repo depends on `docker` >= 1.12 to do the docker build work.
-Set up your [Docker environment](https://docs.docker.com/install/)
+This repo requires `docker` >= 1.12 to do the docker build work.
+
+Set up your [Docker environment](https://docs.docker.com/install/).
 
 ## Adding a new API type
 
@@ -68,13 +70,13 @@ $ git add .
 $ git commit -m 'Bootstrapped a new api resource <your-group>.kubefed.k8s.io./v1alpha1/<your-kind>'
 
 # Modify and commit the bootstrapped type
-$ vi pkg/apis/<your-group>/v1alpha1/<your-kind>_types.go
-$ git commit -a -m 'Added fields to <your-kind>'
+vi pkg/apis/<your-group>/v1alpha1/<your-kind>_types.go
+git commit -a -m 'Added fields to <your-kind>'
 
 # Update the generated code and commit
-$ make generate
-$ git add .
-$ git commit -m 'Updated generated code'
+make generate
+git add .
+git commit -m 'Updated generated code'
 ```
 
 The generated code will need to be updated whenever the code for a

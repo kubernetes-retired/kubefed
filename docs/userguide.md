@@ -3,35 +3,38 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [User Guide](#user-guide)
-  - [Prerequisites](#prerequisites)
-    - [Binaries](#binaries)
+  - [Joining and unjoining clusters](#joining-and-unjoining-clusters)
+    - [Joining clusters](#joining-clusters)
     - [Deployment Image](#deployment-image)
     - [Create Clusters](#create-clusters)
   - [Helm Chart Deployment](#helm-chart-deployment)
   - [Operations](#operations)
     - [Join Clusters](#join-clusters)
-    - [Check Status of Joined Clusters](#check-status-of-joined-clusters)
-    - [Unjoin Clusters](#unjoin-clusters)
-  - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
+    - [Checking status of joined clusters](#checking-status-of-joined-clusters)
+    - [Unjoining clusters](#unjoining-clusters)
+  - [Federated API types](#federated-api-types)
+    - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
     - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
-  - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
+    - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Propagation status](#propagation-status)
     - [Troubleshooting condition status](#troubleshooting-condition-status)
       - [Troubleshooting CheckClusters](#troubleshooting-checkclusters)
   - [Deletion policy](#deletion-policy)
-  - [Example](#example)
-    - [Create the Test Namespace](#create-the-test-namespace)
-    - [Create Test Resources](#create-test-resources)
-    - [Check Status of Resources](#check-status-of-resources)
-    - [Update FederatedNamespace Placement](#update-federatednamespace-placement)
-      - [Using Cluster Selector](#using-cluster-selector)
+  - [Verify your deployment is working](#verify-your-deployment-is-working)
+      - [Creating the test namespace](#creating-the-test-namespace)
+      - [Creating test resources](#creating-test-resources)
+      - [Checking resources status](#checking-resources-status)
+      - [Updating FederatedNamespace placement](#updating-federatednamespace-placement)
+      - [Cleaning up](#cleaning-up)
+  - [Using Cluster Selector](#using-cluster-selector)
         - [Neither `spec.placement.clusters` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusters-nor-specplacementclusterselector-is-provided)
         - [Both `spec.placement.clusters` and `spec.placement.clusterSelector` are provided](#both-specplacementclusters-and-specplacementclusterselector-are-provided)
         - [`spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusters-is-not-provided-specplacementclusterselector-is-provided-but-empty)
         - [`spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusters-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
-    - [Example Cleanup](#example-cleanup)
-    - [Troubleshooting](#troubleshooting)
+  - [Troubleshooting](#troubleshooting)
+  - [Cleanup](#cleanup)
+    - [Deployment Cleanup](#deployment-cleanup)
   - [Namespaced Federation](#namespaced-federation)
     - [Helm Configuration](#helm-configuration)
     - [Joining Clusters](#joining-clusters)
@@ -52,19 +55,15 @@
 
 # User Guide
 
-If you are looking to use kubefed, you've come to the right place. Below
-is a walkthrough tutorial for how to deploy the kubefed control plane.
-
 Please refer to [Kubefed Concepts](./concepts.md) first before you go through this user guide.
 
-## Prerequisites
+This user guide contains concepts and procedures to help you get started with Federation v2.
 
-The kubefed deployment requires kubernetes version >= 1.11. The following
-is a detailed list of binaries required.
+For information about installing Federation v2, see the [installation documentation](./installation.md).
 
-### Binaries
+## Joining and unjoining clusters
 
-`kubectl` is installed by the [guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+### Joining clusters
 
 `kubefedctl` is the federation command line utility. You can download
 the latest binary from the [release page](https://github.com/kubernetes-sigs/kubefed/releases).
@@ -116,8 +115,7 @@ to install and uninstall a kubefed control plane.
 
 ### Join Clusters
 
-Next, you'll want to use the `kubefedctl` tool to join all your
-clusters that you want to test against.
+You can use the `kubefed2` tool to join clusters as follows.
 
 ```bash
 kubefedctl join cluster1 --cluster-context cluster1 \
@@ -126,14 +124,14 @@ kubefedctl join cluster2 --cluster-context cluster2 \
     --host-cluster-context cluster1 --v=2
 ```
 
-You can repeat these steps to join any additional clusters.
+Repeat this step to join any additional clusters.
 
 **NOTE:** `cluster-context` will default to use the joining cluster name if not
 specified.
 
-### Check Status of Joined Clusters
+### Checking status of joined clusters
 
-Check the status of the joined clusters until you verify they are ready:
+Check the status of the joined clusters by using the following command.
 
 ```bash
 kubectl -n kube-federation-system get kubefedclusters
@@ -143,36 +141,48 @@ cluster1   True    1m
 cluster2   True    1m
 
 ```
-### Unjoin Clusters
+### Unjoining clusters
 
-If required, federation allows you to unjoin clusters using `kubefedctl` tool.
+You can unjoin clusters using `kubefed2` tool as follows.
 
 ```bash
 kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --v=2
 ```
-You can repeat these steps to unjoin any additional clusters.
+Repeat this step to unjoin any additional clusters.
 
-## Enabling federation of an API type
+## Federated API types
 
-It is possible to enable federation of any Kubernetes API type (including CRDs) using the
-`kubefedctl` command:
+### Enabling federation of an API type
+
+You can enable federation of any Kubernetes API type (including CRDs) by using the
+`kubefed2` command as follows.
+
+**NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
+the CRD is not installed on a member cluster, propagation to that cluster will fail.
 
 ```bash
 kubefedctl enable <target kubernetes API type>
 ```
 
-The `<target kubernetes API type>` above can be the Kind (e.g. `Deployment`), plural name
-(e.g. `deployments`), group-qualified plural name (e.g `deployment.apps`), or short name
-(e.g. `deploy`) of the intended target API type.
+The `<target kubernetes API type>` can be any of the following
+-  the Kind (e.g. `Deployment`)
+- plural name (e.g. `deployments`)
+- group-qualified plural name (e.g `deployment.apps`), or
+- short name (e.g. `deploy`)
 
-The command will create a CRD for the federated type named `Federated<Kind>`.  The command will also
-create a `FederatedTypeConfig` in the federation system namespace with the group-qualified plural name
-of the target type.  A `FederatedTypeConfig` associates the federated type CRD with the target
+for the intended target API type.
+
+The `kubefed2` command will create
+ - a CRD for the federated type named `Federated<Kind>`
+ - a `FederatedTypeConfig` in the federation system namespace with the group-qualified plural name of the target type.
+
+A `FederatedTypeConfig` associates the federated type CRD with the target
 kubernetes type, enabling propagation of federated resources of the given type to the member clusters.
+
 The format used to name the `FederatedTypeConfig` is `<target kubernetes API type name>.<group name>`
 except kubernetes `core` group types where the name format used is `<target kubernetes API type name>`.
 
-It is also possible to output the yaml to `stdout` instead of applying it to the API Server:
+You can also output the yaml to `stdout` instead of applying it to the API Server, using the following command.
 
 ```bash
 kubefedctl enable <target API type> --output=yaml
@@ -262,28 +272,27 @@ kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": 
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
 you can patch role `kubefed-role` in the kubefed namespace instead.
 
-## Disabling federation of an API type
+### Disabling federation of an API type
 
-It is possible to disable propagation of a type that is configured for propagation using the
-`kubefedctl` command:
+You can disable propagation of an API type using the
+`kubefed2` command.
 
 ```bash
 kubefedctl disable <FederatedTypeConfig Name>
 ```
 
-This command will set the `propagation` field in the `FederatedTypeConfig`
-associated with this target API type to `Disabled`, which will prompt the sync
-controller for the target API type to be stopped.
+This command sets the `propagationEnabled` field in the `FederatedTypeConfig`
+associated with this target API type to `false`, which will prompt the sync controller for the target API type to be stopped.
 
-If the goal is to permanently disable federation of the target API type, passing the
-`--delete-from-api` flag will remove the `FederatedTypeConfig` and federated type CRD created by
-`enable`:
+If you want to permanently disable federation of the target API type, pass the
+`--delete-from-api` flag tol remove the `FederatedTypeConfig` and federated type CRD created by
+`enable`.
 
 ```bash
 kubefedctl disable <FederatedTypeConfig Name> --delete-from-api
 ```
 
-**WARNING: All custom resources for the type will be removed by this command.**
+**WARNING:** Using this command will remove all custom resources for the specified API type.
 
 ## Propagation status
 
@@ -404,8 +413,7 @@ The following table enumerates the possible values for cluster status:
 
 ## Deletion policy
 
-All federated resources reconciled by the sync controller have a
-finalizer (`kubefed.k8s.io/sync-controller`) added to their
+All federated resources reconciled by the sync controller have a finalizer (`kubefed.k8s.io/sync-controller`) added to their
 metadata. This finalizer will prevent deletion of a federated resource
 until the sync controller has a chance to perform pre-deletion
 cleanup.
@@ -415,56 +423,64 @@ resources managed by the federated resource from member clusters. To
 ensure retention of managed resources, add `kubefed.k8s.io/orphan:
 true` as an annotation to the federated resource prior to deletion:
 
+Pre-deletion cleanup includes removal of
+resources managed by the federated resource from member clusters.
+
+To prevent removal of these managed resources, add `federation.k8s.io/orphan:
+true` as an annotation to the federated resource prior to deletion, as follows.
+
 ```bash
 kubectl patch <federated type> <name> \
     --type=merge -p '{"metadata": {"annotations": {"kubefed.k8s.io/orphan": "true"}}}'
 ```
 
-In the event that a sync controller for a given federated type is not
-able to reconcile a federated resource slated for deletion - due to
-propagation being disabled for a given type or the federated control
-plane not running - a federated resource that still has the federation
+If the sync controller for a given federated type is not
+able to reconcile a federated resource slated for deletion, a federated resource that still has the federation
 finalizer will linger rather than being garbage collected. If
 necessary, the federation finalizer can be manually removed to ensure
 garbage collection.
 
-## Example
+## Verify your deployment is working
 
-Follow these instructions for running an example to verify your deployment is
-working. The example will create a test namespace with a `federatednamespace`
-resource as well as a federated resource for the following k8s resources:
-`configmap`, `secret`, `deployment`, `service` and `serviceaccount`. It will
-then show how to update the `federatednamespace` resource to move resources.
+You can verify that your deployment is working properly by completing the following example.
 
-### Create the Test Namespace
+The example creates a test namespace with a `federatednamespace`
+resource, as well as a federated resource for the following k8s resources.
 
-First create the `test-namespace` for the test resources:
+- `configmap`
+- `secret`
+- `deployment`
+- `service`, and
+- `serviceaccount`
+
+It will then show how to update the `federatednamespace` resource to move resources.
+
+#### Creating the test namespace
+
+Create the `test-namespace` for the test resources.
 
 ```bash
 kubectl apply -f example/sample1/namespace.yaml \
     -f example/sample1/federatednamespace.yaml
 ```
 
-### Create Test Resources
+#### Creating test resources
 
-Create all the test resources by running:
+Create test resources.
 
 ```bash
 kubectl apply -R -f example/sample1
 ```
-
-**NOTE:** If you get the following error while creating a test resource i.e.
-
+ **NOTE:** If you get the following error while creating a test resource
 ```
 unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.kubefed.k8s.io/v1alpha1",
 
 ```
-
 then it indicates that a given type may need to be enabled with `kubefedctl enable <type>`
 
-### Check Status of Resources
+#### Checking resources status
 
-Check the status of all the resources in each cluster by running:
+Check the status of all the resources in each cluster.
 
 ```bash
 for r in configmaps secrets service deployment serviceaccount job; do
@@ -484,8 +500,7 @@ for r in federatedconfigmaps federatedsecrets federatedservice federateddeployme
     echo; echo
 done
 ```
-
-Now make sure `nginx` is running properly in each cluster:
+Ensure `nginx` is running properly in each cluster:
 
 ```bash
 for c in cluster1 cluster2; do
@@ -496,10 +511,9 @@ for c in cluster1 cluster2; do
     echo; echo
 done
 ```
+#### Updating FederatedNamespace placement
 
-### Update FederatedNamespace Placement
-
-Remove `cluster2` via a patch command or manually:
+Remove `cluster2` via a patch command or manually.
 
 ```bash
 kubectl -n test-namespace patch federatednamespace test-namespace \
@@ -507,7 +521,6 @@ kubectl -n test-namespace patch federatednamespace test-namespace \
 
 kubectl -n test-namespace edit federatednamespace test-namespace
 ```
-
 Then wait to verify all resources are removed from `cluster2`:
 
 ```bash
@@ -520,7 +533,7 @@ for r in configmaps secrets service deployment serviceaccount job; do
 done
 ```
 
-We can quickly add back all the resources by simply updating the
+You can quickly add back all the resources by simply updating the
 `FederatedNamespace` to add `cluster2` again via a patch command or
 manually:
 
@@ -530,8 +543,7 @@ kubectl -n test-namespace patch federatednamespace test-namespace \
 
 kubectl -n test-namespace edit federatednamespace test-namespace
 ```
-
-Then wait and verify all resources are added back to `cluster2`:
+Wait and verify all resources are added back to `cluster2`:
 
 ```bash
 for r in configmaps secrets service deployment serviceaccount job; do
@@ -542,7 +554,6 @@ for r in configmaps secrets service deployment serviceaccount job; do
     done
 done
 ```
-
 Lastly, make sure `nginx` is running properly in each cluster:
 
 ```bash
@@ -558,14 +569,23 @@ done
 If you were able to verify the resources removed and added back then you have
 successfully verified a working kubefed deployment.
 
-#### Using Cluster Selector
+#### Cleaning up
+
+To cleanup the example simply delete the namespace:
+
+```bash
+kubectl delete ns test-namespace
+```
+> **NOTE:** Deleting the test namespace requires that the Federation controllers first perform the removal of managed resources from member clusters. This may take a few moments.
+
+## Using Cluster Selector
 
 In addition to specifying an explicit list of clusters that a resource should be propagated
 to via the `spec.placement.clusters` field of a federated resource, it is possible to
 use the `spec.placement.clusterSelector` field to provide a label selector that determines
-that list of clusters at runtime.
+a list of clusters at runtime.
 
-If the goal is to select a subset of member clusters, make sure that the `KubefedCluster`
+If the goal is to select a subset of member clusters, make sure that the `KubefedCluster` binaries from pre-reqs [now covered by Helm installation]
 resources that are intended to be selected have the appropriate labels applied.
 
 The following command is an example to label a `KubefedCluster`:
@@ -575,7 +595,7 @@ kubectl label kubefedclusters -n kube-federation-system cluster1 foo=bar
 ```
 
 Please refer to [Kubernetes label command](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label)
-to get more detail for how `kubectl label` works.
+for more information on how `kubectl label` works.
 
 The following sections detail how `spec.placement.clusters` and
 `spec.placement.clusterSelector` are used in determining the clusters that a federated
@@ -609,6 +629,9 @@ For this case, `spec.placement.clusterSelector` will be ignored as
 scheduling have priority over manual definition of a cluster selector.
 
 ##### `spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty
+In this case, `spec.placement.clusterSelector` will be ignored, since
+`spec.placement.clusterNames` is provided. This ensures that the results of runtime
+scheduling have priority over manual definition of a cluster selector.
 
 ```yaml
 spec:
@@ -631,23 +654,14 @@ spec:
 In this case, the resource will only be propagated to member clusters that are labeled
 with `foo: bar`.
 
-### Example Cleanup
-
-To cleanup the example simply delete the namespace:
-
-```bash
-kubectl delete ns test-namespace
-```
-
-### Troubleshooting
+## Troubleshooting
 
 If federated resources are not propagated as expected to the member clusters, you can
-use the following command to view `Events` which may aid in diagnosing the problem.
+use the following command to view `Events`, which may help you to diagnose the problem.
 
 ```bash
 kubectl describe <federated CRD> <CR name> -n test-namespace
 ```
-
 An example for CRD of `federatedserviceaccounts` is as follows:
 
 ```bash
@@ -659,6 +673,26 @@ It may also be useful to inspect the kubefed controller log as follows:
 ```bash
 kubectl logs -f kubefed-controller-manager-0 -n kube-federation-system
 ```
+
+## Cleanup
+
+### Deployment Cleanup
+
+Resources such as `namespaces` associated with a `FederatedNamespace` or `FederatedClusterRoles`
+should be deleted before cleaning up the deployment, otherwise, the process will fail.
+
+Run the following command to perform a cleanup of the cluster registry and
+federation deployments:
+
+```bash
+./scripts/delete-federation.sh
+```
+
+The above script unjoins the all of the clusters from the federation control plane it deploys,
+by default.
+
+On successful completion of the script, both `cluster1` and
+`cluster2` will be unjoined from the deployed federation control plane.
 
 ## Namespaced Federation
 
