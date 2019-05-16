@@ -22,10 +22,10 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
 <p align="center"><img src="docs/images/concepts.png" width="711"></p>
 
-Federation is configured with two types of information:
+Kubefed is configured with two types of information:
 
-- **Type configuration** declares which API types federation should handle
-- **Cluster configuration** declares which clusters federation should target
+- **Type configuration** declares which API types Kubefed should handle
+- **Cluster configuration** declares which clusters Kubefed should target
 
 **Propagation** refers to the mechanism that distributes resources to federated
 clusters.
@@ -45,7 +45,7 @@ dynamic scheduling.
 These fundamental concepts provide building blocks that can be used by
 higher-level APIs:
 
-- **Status** collects the status of resources distributed by federation across all federated clusters
+- **Status** collects the status of resources distributed by Kubefed across all federated clusters
 - **Policy** determines which subset of clusters a resource is allowed to be distributed to
 - **Scheduling** refers to a decision-making capability that can decide how 
   workloads should be spread across different clusters similar to how a human
