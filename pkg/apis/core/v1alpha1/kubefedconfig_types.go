@@ -25,19 +25,19 @@ import (
 type KubefedConfigSpec struct {
 	// The scope of the kubefed control plane should be either `Namespaced` or `Cluster`.
 	// `Namespaced` indicates that the kubefed namespace will be the only target for federation.
-	Scope              apiextv1b1.ResourceScope `json:"scope,omitempty"`
-	ControllerDuration DurationConfig           `json:"controllerDuration,omitempty"`
-	LeaderElect        LeaderElectConfig        `json:"leaderElect,omitempty"`
-	FeatureGates       []FeatureGatesConfig     `json:"featureGates,omitempty"`
-	ClusterHealthCheck ClusterHealthCheckConfig `json:"clusterHealthCheck,omitempty"`
-	SyncController     SyncControllerConfig     `json:"syncController,omitempty"`
+	Scope              apiextv1b1.ResourceScope `json:"scope"`
+	ControllerDuration DurationConfig           `json:"controllerDuration"`
+	LeaderElect        LeaderElectConfig        `json:"leaderElect"`
+	FeatureGates       []FeatureGatesConfig     `json:"featureGates"`
+	ClusterHealthCheck ClusterHealthCheckConfig `json:"clusterHealthCheck"`
+	SyncController     SyncControllerConfig     `json:"syncController"`
 }
 
 type DurationConfig struct {
 	// Time to wait before reconciling on a healthy cluster.
-	AvailableDelay metav1.Duration `json:"availableDelay,omitempty"`
+	AvailableDelay metav1.Duration `json:"availableDelay"`
 	// Time to wait before giving up on an unhealthy cluster.
-	UnavailableDelay metav1.Duration `json:"unavailableDelay,omitempty"`
+	UnavailableDelay metav1.Duration `json:"unavailableDelay"`
 }
 type LeaderElectConfig struct {
 	// The duration that non-leader candidates will wait after observing a leadership
@@ -45,38 +45,61 @@ type LeaderElectConfig struct {
 	// slot. This is effectively the maximum duration that a leader can be stopped
 	// before it is replaced by another candidate. This is only applicable if leader
 	// election is enabled.
-	LeaseDuration metav1.Duration `json:"leaseDuration,omitempty"`
+	LeaseDuration metav1.Duration `json:"leaseDuration"`
 	// The interval between attempts by the acting master to renew a leadership slot
 	// before it stops leading. This must be less than or equal to the lease duration.
 	// This is only applicable if leader election is enabled.
-	RenewDeadline metav1.Duration `json:"renewDeadline,omitempty"`
+	RenewDeadline metav1.Duration `json:"renewDeadline"`
 	// The duration the clients should wait between attempting acquisition and renewal
 	// of a leadership. This is only applicable if leader election is enabled.
-	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty"`
+	RetryPeriod metav1.Duration `json:"retryPeriod"`
 	// The type of resource object that is used for locking during
 	// leader election. Supported options are `configmaps` (default) and `endpoints`.
-	ResourceLock string `json:"resourceLock,omitempty"`
+	ResourceLock ResourceLockType `json:"resourceLock"`
 }
+
+type ResourceLockType string
+
+const (
+	ConfigMapsResourceLock ResourceLockType = "configmaps"
+	EndpointsResourceLock  ResourceLockType = "endpoints"
+)
+
 type FeatureGatesConfig struct {
-	Name    string `json:"name,omitempty"`
-	Enabled bool   `json:"enabled,omitempty"`
+	Name          string            `json:"name"`
+	Configuration ConfigurationMode `json:"configuration"`
 }
+
+type ConfigurationMode string
+
+const (
+	ConfigurationEnabled  ConfigurationMode = "Enabled"
+	ConfigurationDisabled ConfigurationMode = "Disabled"
+)
 
 type ClusterHealthCheckConfig struct {
 	// How often to monitor the cluster health (in seconds).
-	PeriodSeconds int `json:"periodSeconds,omitempty"`
+	PeriodSeconds int64 `json:"periodSeconds"`
 	// Minimum consecutive failures for the cluster health to be considered failed after having succeeded.
-	FailureThreshold int `json:"failureThreshold,omitempty"`
+	FailureThreshold int64 `json:"failureThreshold"`
 	// Minimum consecutive successes for the cluster health to be considered successful after having failed.
-	SuccessThreshold int `json:"successThreshold,omitempty"`
+	SuccessThreshold int64 `json:"successThreshold"`
 	// Number of seconds after which the cluster health check times out.
-	TimeoutSeconds int `json:"timeoutSeconds,omitempty"`
+	TimeoutSeconds int64 `json:"timeoutSeconds"`
 }
 
 type SyncControllerConfig struct {
-	// Whether to skip adopting pre-existing resource in member clusters. Defaults to false
-	SkipAdoptingResources bool `json:"skipAdoptingResources,omitempty"`
+	// Whether to adopt pre-existing resources in member clusters. Defaults to
+	// "Enabled".
+	AdoptResources ResourceAdoption `json:"adoptResources"`
 }
+
+type ResourceAdoption string
+
+const (
+	AdoptResourcesEnabled  ResourceAdoption = "Enabled"
+	AdoptResourcesDisabled ResourceAdoption = "Disabled"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -88,7 +111,7 @@ type KubefedConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec KubefedConfigSpec `json:"spec,omitempty"`
+	Spec KubefedConfigSpec `json:"spec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
