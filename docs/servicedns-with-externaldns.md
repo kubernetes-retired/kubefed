@@ -22,7 +22,7 @@ DNS resource records of Kubernetes Service object for supported DNS providers.
 
 The above diagram illustrates MCSDNS. A typical MCSDNS workflow consists of:
 
-1. Creating `FederatedDeployment` and `FederatedService` objects. The Federation sync
+1. Creating `FederatedDeployment` and `FederatedService` objects. The KubeFed sync
    controller propagates the corresponding objects to target clusters.
 2. Creating a `Domain` object that associates a DNS zone and authoritative name server for the federation.
 3. Creating a `ServiceDNSRecord` object that identifies the intended domain name and other optional resource
@@ -48,7 +48,7 @@ MCSDNS is comprised of multiple types and controllers:
 
 Setting-up MCSDNS can be accomplished by referencing the following documentation:
 
-- The Kubefed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
+- The KubeFed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the KubeFed
   control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/kubefed/issues/370), the environment running
   the clusters must support service `type: LoadBalancer`. For the GKE deployment option, the cluster hosting the ExternalDNS controller must have scope
   `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
@@ -58,10 +58,10 @@ Setting-up MCSDNS can be accomplished by referencing the following documentation
   controller. You must ensure the following `args` are provided in the external-dns Deployment manifest:
   `--source=crd --crd-source-apiversion=multiclusterdns.kubefed.k8s.io/v1alpha1 --crd-source-kind=DNSEndpoint --registry=txt --txt-prefix=cname`
   **Note**: If you do not deploy the external-dns controller to the same namespace and use the default service account
-  of the kubefed control-plane, you must setup RBAC permissions allowing the controller access to necessary
+  of the KubeFed control-plane, you must setup RBAC permissions allowing the controller access to necessary
   resources.
 
-After the cluster, kubefed control-plane, and external-dns controller are running, use the
+After the cluster, KubeFed control-plane, and external-dns controller are running, use the
 [sample](../example/sample1) federated deployment and service to test MCSDNS. You must change the sample service type to
 `LoadBalancer` for the Service DNS controller to populate the status IP of the `ServiceDNSRecord` and the target IP's of
 the `DNSEndpoint`:

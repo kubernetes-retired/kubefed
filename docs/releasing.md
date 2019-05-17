@@ -2,13 +2,13 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Releasing Kubefed](#releasing-kubefed)
+- [Releasing KubeFed](#releasing-kubefed)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-### Releasing Kubefed
+### Releasing KubeFed
 
-Creating a kubefed release involves the following steps:
+Creating a KubeFed release involves the following steps:
 
 1. Locally create an annotated tag in the format `v[0-9]+.[0-9]+.[0-9]+`
    - `git tag -a <tag> -m "Creating release tag <tag>"`

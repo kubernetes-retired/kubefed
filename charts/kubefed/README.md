@@ -31,7 +31,7 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
 If your Kubernetes cluster has RBAC enabled, it will be necessary to
 ensure that helm is deployed with a service account with the
-permissions necessary to deploy federation:
+permissions necessary to deploy KubeFed:
 
 ```bash
 $ cat << EOF | kubectl apply -f -
@@ -60,7 +60,7 @@ $ helm init --service-account tiller
 
 ## Installing the Chart
 
-First, add the kubefed chart repo to your local repository.
+First, add the KubeFed chart repo to your local repository.
 ```bash
 $ helm repo add kubefed-charts https://raw.githubusercontent.com/kubernetes-sigs/kubefed/master/charts
 
@@ -84,15 +84,15 @@ $ helm install kubefed-charts/federation-v2 --name kubefed --version=<x.x.x> --n
 
 Due to this helm [issue](https://github.com/helm/helm/issues/4440), the CRDs cannot be deleted
 when delete helm release, so before delete the helm release, we need first delete all
-of the CR and CRDs for kubefed release.
+of the CR and CRDs for KubeFed release.
 
-Delete all kubefed `FederatedTypeConfig`:
+Delete all KubeFed `FederatedTypeConfig`:
 
 ```bash
 $ kubectl -n kube-federation-system delete FederatedTypeConfig --all
 ```
 
-Delete all kubefed CRDs:
+Delete all KubeFed CRDs:
 
 ```bash
 $ kubectl delete crd $(kubectl get crd | grep -E 'kubefed.k8s.io' | awk '{print $1}')
@@ -109,16 +109,16 @@ and deletes the release.
 
 ## Configuration
 
-The following tables lists the configurable parameters of the Kubefed
+The following tables lists the configurable parameters of the KubeFed
 chart and their default values.
 
 | Parameter                             | Description                                                                                                                                                                                 | Default                         |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------|
-| controllermanager.enabled             | Specifies whether to enable the controller manager in kubefed.                                                                                                                              | true                            |
-| controllermanager.replicaCount        | Number of replicas for kubefed controller manager.                                                                                                                                          | 2                               |
-| controllermanager.repository          | Repo of the kubefed image.                                                                                                                                                                  | quay.io/kubernetes-multicluster |
-| controllermanager.image               | Name of the kubefed image.                                                                                                                                                                  | kubefed                         |
-| controllermanager.tag                 | Tag of the kubefed image.                                                                                                                                                                   | latest                          |
+| controllermanager.enabled             | Specifies whether to enable the controller manager in KubeFed.                                                                                                                              | true                            |
+| controllermanager.replicaCount        | Number of replicas for KubeFed controller manager.                                                                                                                                          | 2                               |
+| controllermanager.repository          | Repo of the KubeFed image.                                                                                                                                                                  | quay.io/kubernetes-multicluster |
+| controllermanager.image               | Name of the KubeFed image.                                                                                                                                                                  | kubefed                         |
+| controllermanager.tag                 | Tag of the KubeFed image.                                                                                                                                                                   | latest                          |
 | controllermanager.imagePullPolicy     | Image pull policy.                                                                                                                                                                          | IfNotPresent                    |
 | controllermanager.featureGates.PushReconciler               | Push reconciler feature.                                                                                                                                              | true                            |
 | controllermanager.featureGates.SchedulerPreferences         | Scheduler preferences feature.                                                                                                                                        | true                            |
@@ -135,7 +135,7 @@ chart and their default values.
 | controllermanager.clusterHealthCheckSuccessThreshold | Minimum consecutive successes for the cluster health to be considered successful after having failed.                                                                        | 1                               |
 | controllermanager.clusterHealthCheckTimeoutSeconds   | Number of seconds after which the cluster health check times out.                                                                                                            | 3                               |
 | controllermanager.syncController.adoptResources  | Whether to adopt pre-existing resource in member clusters.                                                                                                        		          | Enabled                         |
-| global.scope                   | Whether the kubefed namespace will be the only target for federation.                                                                                                                           | Cluster                         |
+| global.scope                   | Whether the KubeFed namespace will be the only target for federation.                                                                                                                           | Cluster                         |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.

@@ -2,10 +2,10 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Federation DNS for Ingress and Service](#federation-dns-for-ingress-and-service)
-  - [Creating federation cluster](#creating-federation-cluster)
+- [KubeFed DNS for Ingress and Service](#kubefed-dns-for-ingress-and-service)
+  - [Creating KubeFed cluster](#creating-kubefed-cluster)
   - [Installing ExternalDNS](#installing-externaldns)
-  - [Enable DNS for federation resources](#enable-dns-for-federation-resources)
+  - [Enable DNS for KubeFed resources](#enable-dns-for-kubefed-resources)
     - [Installing MetalLB for LoadBalancer Service](#installing-metallb-for-loadbalancer-service)
     - [Creating service resources](#creating-service-resources)
     - [Enable the ingress controller](#enable-the-ingress-controller)
@@ -14,9 +14,9 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Federation DNS for Ingress and Service
+# KubeFed DNS for Ingress and Service
 
-This tutorial describes how to set up a federation cluster DNS with [ExternalDNS](https://github.com/kubernetes-incubator/external-dns/) based on [CoreDNS](https://github.com/coredns/coredns) in [minikube](https://github.com/kubernetes/minikube) clusters. It provides guidance for the following steps:
+This tutorial describes how to set up a KubeFed cluster DNS with [ExternalDNS](https://github.com/kubernetes-incubator/external-dns/) based on [CoreDNS](https://github.com/coredns/coredns) in [minikube](https://github.com/kubernetes/minikube) clusters. It provides guidance for the following steps:
 
 - Install ExternalDNS with etcd enabled CoreDNS as a provider
 - Install [ingress controller](https://github.com/kubernetes/ingress-nginx) for your minikube clusters to enable Ingress resource
@@ -25,16 +25,16 @@ This tutorial describes how to set up a federation cluster DNS with [ExternalDNS
 You can use either Loadbalancer Service or Ingress resource or both in your environment, this tutorial includes guidance for both Loadbalancer Service and Ingress resource.
 For related conceptions of Muilti-cluster Ingress and Service, you can refer to [ingressdns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) and [servicedns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md).
 
-## Creating federation cluster
+## Creating KubeFed cluster
 
-Install Kubefed with minikube in [User Guide](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md).
+Install KubeFed with minikube in [User Guide](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md).
 
 ## Installing ExternalDNS
 
 Install ExternalDNS with CoreDNS as backend in your host cluster. You can follow the [tutorial](https://github.com/kubernetes-incubator/external-dns/blob/master/docs/tutorials/coredns.md).  
 **Note**: You should replace `parameters: example.org` with `parameters: example.com` when [Installing CoreDNS](https://github.com/kubernetes-incubator/external-dns/blob/master/docs/tutorials/coredns.md#installing-coredns)
 
-To make it work for federation resources, you need to use below ExternalDNS deployment instead of the one in the tutorial.
+To make it work for KubeFed resources, you need to use below ExternalDNS deployment instead of the one in the tutorial.
 **Note**: You should replace value of `ETCD_URLS` with your own etcd client service IP address.
 
 ```bash
@@ -73,7 +73,7 @@ spec:
 EOF
 ```
 
-## Enable DNS for federation resources
+## Enable DNS for KubeFed resources
 
 ### Installing MetalLB for LoadBalancer Service
 
