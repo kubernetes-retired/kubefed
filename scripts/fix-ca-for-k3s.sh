@@ -18,10 +18,11 @@
 # % ./scripts/fix-ca-for-k3s.sh [member-cluster] ...
 #
 # Description:
-# This script fixes up the configuration for k3s. (https://k3s.io/)
-# Namely it updates ca.crt in secrets to match with the ones in
-# KUBECONFIG. It's intended to be run after deploy-federation.sh
-# script.
+# This script fixes up the configuration for member clusters
+# running k3s. (https://k3s.io/)
+# Namely it updates caBundle for the member clusters to match with
+# the ones in KUBECONFIG. It's intended to be run after joining
+# member clusters successfully.
 #
 # Background:
 # In k3s, different endpoints and certificates are configured for
@@ -42,9 +43,10 @@ NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 
 for CLUSTER_NAME in $CLUSTER_NAMES; do
 	CA_CRT=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name=="'"${CLUSTER_NAME}"'")].cluster.certificate-authority-data}')
-	kubectl patch -n ${NS} kubefedclusters "${CLUSTER_NAME}"
+	kubectl patch -n ${NS} kubefedclusters "${CLUSTER_NAME}" \
+		--type='merge' \
 		--patch '{"spec": {"caBundle": "'${CA_CRT}'"}}'
 done
 
-# Restart the controller manager to make it reload the secrets
+# Restart the controller manager to make it reload the caBundle
 kubectl delete -n ${NS} po -l control-plane=controller-manager
