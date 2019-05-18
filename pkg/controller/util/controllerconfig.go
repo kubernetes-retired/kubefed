@@ -21,6 +21,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+
+	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 )
 
 // LeaderElectionConfiguration defines the configuration of leader election
@@ -44,7 +46,7 @@ type LeaderElectionConfiguration struct {
 	RetryPeriod time.Duration
 	// resourceLock indicates the resource object type that will be used to lock
 	// during leader election cycles.
-	ResourceLock string
+	ResourceLock fedv1a1.ResourceLockType
 }
 
 // KubefedNamespaces defines the namespace configuration shared by
@@ -56,10 +58,10 @@ type KubefedNamespaces struct {
 
 // ClusterHealthCheckConfig defines the configurable parameters for cluster health check
 type ClusterHealthCheckConfig struct {
-	PeriodSeconds    int
-	FailureThreshold int
-	SuccessThreshold int
-	TimeoutSeconds   int
+	PeriodSeconds    int64
+	FailureThreshold int64
+	SuccessThreshold int64
+	TimeoutSeconds   int64
 }
 
 // ControllerConfig defines the configuration common to federation

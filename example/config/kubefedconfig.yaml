@@ -5,16 +5,16 @@ metadata:
   namespace: kube-federation-system
 spec:
   scope: Cluster
-  controller-duration:
-    available-delay: 20s
-    unavailable-delay: 60s
-    cluster-monitor-period: 40s
-  leader-elect:
-    lease-duration: 15s
-    renew-deadline: 10s
-    retry-period: 5s
-    resource-lock: configmaps
-  feature-gates:
+  controllerDuration:
+    availableDelay: 20s
+    unavailableDelay: 60s
+    clusterMonitorPeriod: 40s
+  leaderElect:
+    leaseDuration: 15s
+    renewDeadline: 10s
+    retryPeriod: 5s
+    resourceLock: configmaps
+  featureGates:
   - name: PushReconciler
     enabled: true
   - name: SchedulerPreferences

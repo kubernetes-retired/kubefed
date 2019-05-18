@@ -44,7 +44,7 @@ type ClusterData struct {
 	clusterStatus *fedv1a1.KubefedClusterStatus
 
 	// How many times in a row the probe has returned the same result.
-	resultRun int
+	resultRun int64
 }
 
 // ClusterController is responsible for maintaining the health status of each
@@ -53,7 +53,7 @@ type ClusterController struct {
 	client genericclient.Client
 
 	// clusterHealthCheckConfig is the configurable parameters for cluster health check
-	clusterHealthCheckConfig util.ClusterHealthCheckConfig
+	clusterHealthCheckConfig *util.ClusterHealthCheckConfig
 
 	mu sync.RWMutex
 
@@ -70,7 +70,7 @@ type ClusterController struct {
 }
 
 // StartClusterController starts a new cluster controller.
-func StartClusterController(config *util.ControllerConfig, clusterHealthCheckConfig util.ClusterHealthCheckConfig, stopChan <-chan struct{}) error {
+func StartClusterController(config *util.ControllerConfig, clusterHealthCheckConfig *util.ClusterHealthCheckConfig, stopChan <-chan struct{}) error {
 	controller, err := newClusterController(config, clusterHealthCheckConfig)
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func StartClusterController(config *util.ControllerConfig, clusterHealthCheckCon
 }
 
 // newClusterController returns a new cluster controller
-func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig util.ClusterHealthCheckConfig) (*ClusterController, error) {
+func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig *util.ClusterHealthCheckConfig) (*ClusterController, error) {
 	kubeConfig := restclient.CopyConfig(config.KubeConfig)
 	kubeConfig.Timeout = time.Duration(clusterHealthCheckConfig.TimeoutSeconds) * time.Second
 	client := genericclient.NewForConfigOrDieWithUserAgent(kubeConfig, "cluster-controller")
@@ -194,7 +194,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1a1.Kube
 }
 
 func thresholdAdjustedClusterStatus(clusterStatus *fedv1a1.KubefedClusterStatus, storedData *ClusterData,
-	clusterHealthCheckConfig util.ClusterHealthCheckConfig) *fedv1a1.KubefedClusterStatus {
+	clusterHealthCheckConfig *util.ClusterHealthCheckConfig) *fedv1a1.KubefedClusterStatus {
 
 	if storedData.clusterStatus == nil {
 		storedData.resultRun = 1

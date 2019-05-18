@@ -106,7 +106,7 @@ func NewClusterControllerFixture(tl common.TestLogger, config *util.ControllerCo
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	clusterHealthCheckConfig := util.ClusterHealthCheckConfig{PeriodSeconds: 1, FailureThreshold: 1}
+	clusterHealthCheckConfig := &util.ClusterHealthCheckConfig{PeriodSeconds: 1, FailureThreshold: 1}
 	err := kubefedcluster.StartClusterController(config, clusterHealthCheckConfig, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting cluster controller: %v", err)

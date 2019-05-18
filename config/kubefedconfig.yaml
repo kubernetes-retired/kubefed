@@ -4,7 +4,16 @@ metadata:
   name: kubefed
   namespace: kube-federation-system
 spec:
-  leader-elect:
-    lease-duration: 1500ms
-    renew-deadline: 1000ms
-    retry-period: 500ms
+  leaderElect:
+    leaseDuration: 1500ms
+    renewDeadline: 1000ms
+    retryPeriod: 500ms
+  featureGates:
+  - name: PushReconciler
+    configuration: "Enabled"
+  - name: SchedulerPreferences
+    configuration: "Enabled"
+  - name: CrossClusterServiceDiscovery
+    configuration: "Enabled"
+  - name: FederatedIngress
+    configuration: "Enabled"

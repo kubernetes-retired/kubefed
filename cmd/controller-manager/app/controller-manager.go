@@ -232,13 +232,7 @@ func setDuration(target *metav1.Duration, defaultValue time.Duration) {
 	}
 }
 
-func setString(target *string, defaultValue string) {
-	if *target == "" {
-		*target = defaultValue
-	}
-}
-
-func setInt(target *int, defaultValue int) {
+func setInt64(target *int64, defaultValue int64) {
 	if *target == 0 {
 		*target = defaultValue
 	}
@@ -266,17 +260,22 @@ func setDefaultKubefedConfig(fedConfig *corev1a1.KubefedConfig) {
 	setDuration(&duration.UnavailableDelay, util.DefaultClusterUnavailableDelay)
 
 	election := &spec.LeaderElect
-	setString(&election.ResourceLock, util.DefaultLeaderElectionResourceLock)
+	if len(election.ResourceLock) == 0 {
+		election.ResourceLock = util.DefaultLeaderElectionResourceLock
+	}
 	setDuration(&election.RetryPeriod, util.DefaultLeaderElectionRetryPeriod)
 	setDuration(&election.RenewDeadline, util.DefaultLeaderElectionRenewDeadline)
 	setDuration(&election.LeaseDuration, util.DefaultLeaderElectionLeaseDuration)
 
 	healthCheck := &spec.ClusterHealthCheck
-	setInt(&healthCheck.PeriodSeconds, util.DefaultClusterHealthCheckPeriod)
-	setInt(&healthCheck.TimeoutSeconds, util.DefaultClusterHealthCheckTimeout)
-	setInt(&healthCheck.FailureThreshold, util.DefaultClusterHealthCheckFailureThreshold)
-	setInt(&healthCheck.SuccessThreshold, util.DefaultClusterHealthCheckSuccessThreshold)
+	setInt64(&healthCheck.PeriodSeconds, util.DefaultClusterHealthCheckPeriod)
+	setInt64(&healthCheck.TimeoutSeconds, util.DefaultClusterHealthCheckTimeout)
+	setInt64(&healthCheck.FailureThreshold, util.DefaultClusterHealthCheckFailureThreshold)
+	setInt64(&healthCheck.SuccessThreshold, util.DefaultClusterHealthCheckSuccessThreshold)
 
+	if len(spec.SyncController.AdoptResources) == 0 {
+		spec.SyncController.AdoptResources = corev1a1.AdoptResourcesEnabled
+	}
 }
 
 func updateKubefedConfig(config *rest.Config, fedConfig *corev1a1.KubefedConfig) {
@@ -345,13 +344,13 @@ func setOptionsByKubefedConfig(opts *options.Options) {
 	opts.ClusterHealthCheckConfig.FailureThreshold = spec.ClusterHealthCheck.FailureThreshold
 	opts.ClusterHealthCheckConfig.SuccessThreshold = spec.ClusterHealthCheck.SuccessThreshold
 
-	opts.Config.SkipAdoptingResources = spec.SyncController.SkipAdoptingResources
+	opts.Config.SkipAdoptingResources = spec.SyncController.AdoptResources == corev1a1.AdoptResourcesDisabled
 
 	updateKubefedConfig(opts.Config.KubeConfig, fedConfig)
 
 	var featureGates = make(map[string]bool)
 	for _, v := range fedConfig.Spec.FeatureGates {
-		featureGates[v.Name] = v.Enabled
+		featureGates[v.Name] = v.Configuration == corev1a1.ConfigurationEnabled
 	}
 	if len(featureGates) == 0 {
 		return
