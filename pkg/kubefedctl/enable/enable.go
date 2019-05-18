@@ -332,7 +332,7 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 			TargetType: fedv1b1.APIResource{
 				Version: apiResource.Version,
 				Kind:    kind,
-				Scope:   namespacedToScope(apiResource),
+				Scope:   NamespacedToScope(apiResource),
 			},
 			Propagation: fedv1b1.PropagationEnabled,
 			FederatedType: fedv1b1.APIResource{
@@ -340,7 +340,7 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 				Version:    spec.FederatedVersion,
 				Kind:       fmt.Sprintf("Federated%s", kind),
 				PluralName: fmt.Sprintf("federated%s", pluralName),
-				Scope:      federatedNamespacedToScope(apiResource),
+				Scope:      FederatedNamespacedToScope(apiResource),
 			},
 		},
 	}

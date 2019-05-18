@@ -52,13 +52,15 @@ func ValidateFederatedTypeConfigSpec(spec *v1beta1.FederatedTypeConfigSpec, fldP
 	return allErrs
 }
 
+const domainWithAtLeastOneDot string = "should be a domain with at least one dot"
+
 func ValidateFederatedAPIResource(fedType *v1beta1.APIResource, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(fedType.Group) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("group"), ""))
 	} else if len(strings.Split(fedType.Group, ".")) < 2 {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("group"), fedType.Group, "should be a domain with at least one dot"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("group"), fedType.Group, domainWithAtLeastOneDot))
 	}
 
 	allErrs = append(allErrs, ValidateAPIResource(fedType, fldPath)...)
