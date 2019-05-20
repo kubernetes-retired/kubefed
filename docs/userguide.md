@@ -287,11 +287,11 @@ This command sets the `propagationEnabled` field in the `FederatedTypeConfig`
 associated with this target API type to `false`, which will prompt the sync controller for the target API type to be stopped.
 
 If you want to permanently disable federation of the target API type, pass the
-`--delete-from-api` flag tol remove the `FederatedTypeConfig` and federated type CRD created by
+`--delete-crd` flag to remove the `FederatedTypeConfig` and federated type CRD created by
 `enable`.
 
 ```bash
-kubefedctl disable <FederatedTypeConfig Name> --delete-from-api
+kubefedctl disable <FederatedTypeConfig Name> --delete-crd
 ```
 
 **WARNING:** Using this command will remove all custom resources for the specified API type.
@@ -491,14 +491,15 @@ for r in configmaps secrets service deployment serviceaccount job; do
         kubectl --context=${c} -n test-namespace get ${r}
         echo; echo
     done
+done
 ```
 
 The [status of propagation](#propagation-status) is also recorded on each federated resource:
 
 ```bash
 for r in federatedconfigmaps federatedsecrets federatedservice federateddeployment federatedserviceaccount federatedjob; do
-    echo; echo ------------ ${c} resource: ${r} ------------; echo
-    kubectl --context=${c} -n test-namespace get ${r} -o yaml
+    echo; echo ------------ resource: ${r} ------------; echo
+    kubectl -n test-namespace get ${r} -o yaml
     echo; echo
 done
 ```
@@ -509,7 +510,9 @@ for c in cluster1 cluster2; do
     NODE_PORT=$(kubectl --context=${c} -n test-namespace get service \
         test-service -o jsonpath='{.spec.ports[0].nodePort}')
     echo; echo ------------ ${c} ------------; echo
-    curl $(echo -n $(minikube ip -p ${c})):${NODE_PORT}
+    NODE_IP=$(kubectl get node --context=${c} \
+        -o jsonpath='{.items[].status.addresses[*].address}'|sed 's/\S*cluster1\S*//'|tr -d " ")
+    curl ${NODE_IP}:${NODE_PORT}
     echo; echo
 done
 ```
@@ -673,7 +676,7 @@ kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
 It may also be useful to inspect the kubefed controller log as follows:
 
 ```bash
-kubectl logs -f kubefed-controller-manager-0 -n kube-federation-system
+kubectl logs deployment/kubefed-controller-manager -n kube-federation-system
 ```
 
 ## Cleanup
