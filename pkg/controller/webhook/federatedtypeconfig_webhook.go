@@ -54,7 +54,6 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 
 	// We want to let through:
 	// - Requests that are not for create, update
-	// - Requests for subresources
 	// - Requests for things that are not FederatedTypeConfigs
 	if allowed(admissionSpec, resourcePluralName) {
 		status.Allowed = true
@@ -85,7 +84,8 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 		return status
 	}
 
-	errs := validation.ValidateFederatedTypeConfig(admittingObject)
+	isStatusSubResource := len(admissionSpec.SubResource) != 0
+	errs := validation.ValidateFederatedTypeConfig(admittingObject, isStatusSubResource)
 	if len(errs) != 0 {
 		status.Allowed = false
 		status.Result = &metav1.Status{

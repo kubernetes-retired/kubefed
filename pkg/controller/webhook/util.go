@@ -41,10 +41,8 @@ func newValidatingResource(resourcePluralName string) schema.GroupVersionResourc
 func allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string) bool {
 	// We want to let through:
 	// - Requests that are not for create, update
-	// - Requests for subresources
 	// - Requests for things that are not <pluralResourceName>
 	createOrUpdate := a.Operation == admissionv1beta1.Create || a.Operation == admissionv1beta1.Update
-	isSubResource := len(a.SubResource) != 0
 	isMyGroupAndResource := a.Resource.Group == v1beta1.SchemeGroupVersion.Group && a.Resource.Resource == pluralResourceName
-	return !createOrUpdate || isSubResource || !isMyGroupAndResource
+	return !createOrUpdate || !isMyGroupAndResource
 }

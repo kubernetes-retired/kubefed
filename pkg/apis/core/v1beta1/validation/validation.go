@@ -27,10 +27,13 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
 
-func ValidateFederatedTypeConfig(obj *v1beta1.FederatedTypeConfig) field.ErrorList {
-
-	allErrs := ValidateFederatedTypeConfigSpec(&obj.Spec, field.NewPath("spec"))
-	allErrs = append(allErrs, ValidateFederatedTypeConfigStatus(&obj.Status, field.NewPath("status"))...)
+func ValidateFederatedTypeConfig(obj *v1beta1.FederatedTypeConfig, statusSubResource bool) field.ErrorList {
+	var allErrs field.ErrorList
+	if !statusSubResource {
+		allErrs = ValidateFederatedTypeConfigSpec(&obj.Spec, field.NewPath("spec"))
+	} else {
+		allErrs = ValidateFederatedTypeConfigStatus(&obj.Status, field.NewPath("status"))
+	}
 	return allErrs
 }
 
