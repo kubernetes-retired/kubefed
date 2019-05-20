@@ -51,8 +51,7 @@ type LocalSecretReference struct {
 // cluster updated periodically by cluster controller.
 type KubefedClusterStatus struct {
 	// Conditions is an array of current cluster conditions.
-	// +optional
-	Conditions []ClusterCondition `json:"conditions,omitempty"`
+	Conditions []ClusterCondition `json:"conditions"`
 	// Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.
 	// +optional
 	Zones []string `json:"zones,omitempty"`
@@ -77,7 +76,8 @@ type KubefedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubefedClusterSpec   `json:"spec,omitempty"`
+	Spec KubefedClusterSpec `json:"spec"`
+	// +optional
 	Status KubefedClusterStatus `json:"status,omitempty"`
 }
 
@@ -88,8 +88,7 @@ type ClusterCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status apiv1.ConditionStatus `json:"status"`
 	// Last time the condition was checked.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	LastProbeTime metav1.Time `json:"lastProbeTime"`
 	// Last time the condition transit from one status to another.
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
