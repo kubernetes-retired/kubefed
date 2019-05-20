@@ -10,7 +10,7 @@
 # Google Kubernetes Engine (GKE) Deployment Guide
 
 Kubefed can be deployed to and manage [GKE](https://cloud.google.com/kubernetes-engine/) clusters running
-Kubernetes v1.11 or greater. The following example deploys two GKE clusters named `cluster1` and `cluster2`.
+Kubernetes v1.13 or greater. The following example deploys two GKE clusters named `cluster1` and `cluster2`.
 
 ```bash
 export GKE_VERSION=1.11.2-gke.15
