@@ -439,6 +439,7 @@ spec:
                 required:
                 - type
                 - status
+                - lastProbeTime
                 type: object
               type: array
             region:
@@ -451,7 +452,11 @@ spec:
               items:
                 type: string
               type: array
+          required:
+          - conditions
           type: object
+      required:
+      - spec
   version: v1beta1
 status:
   acceptedNames:
