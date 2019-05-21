@@ -9,19 +9,18 @@
 # Minikube
 
 [Minikube](https://kubernetes.io/docs/getting-started-guides/minikube/)
-provides one of the quickest way to set-up clusters for use with the Federation
-v2 control plane.
+provides one of the quickest way to set-up clusters for use with the kubefed.
 
 **NOTE:** You will need to use a minikube version that supports
-deploying a kubernetes cluster >= 1.11. [Recently
+deploying a kubernetes cluster >= 1.13. [Recently
 released](https://github.com/kubernetes/minikube/releases/latest)
-versions of minikube (>= `0.30.0`) will satisfy this requirement.
+versions of minikube (>= `0.32.0`) will satisfy this requirement.
 
 Once you have minikube installed run:
 
 ```bash
-minikube start -p cluster1 --kubernetes-version v1.11.0
-minikube start -p cluster2 --kubernetes-version v1.11.0
+minikube start -p cluster1 --kubernetes-version v1.13.4
+minikube start -p cluster2 --kubernetes-version v1.13.4
 ```
 
 Even though the `minikube` cluster has been started, you'll want to verify all

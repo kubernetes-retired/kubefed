@@ -46,7 +46,7 @@ export PATH=$(pwd)/bin:${PATH}
 
 ### kubernetes
 
-The kubefed deployment requires kubernetes version >= 1.11. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
+The kubefed deployment requires kubernetes version >= 1.13. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
 
 ## Prerequisites
 

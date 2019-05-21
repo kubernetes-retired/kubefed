@@ -11,7 +11,7 @@
 # IBM Cloud Private Deployment Guide
 
 Kubefed can be deployed to and manage [IBM Cloud Private](https://www.ibm.com/cloud/private) clusters.
-As Kubefed requires Kubernetes v1.11 or greater, please make sure to deploy IBM Cloud Private 3.1.1
+As Kubefed requires Kubernetes v1.13 or greater, please make sure to deploy IBM Cloud Private 3.1.1
 or higher.
 
 The following example deploys two IBM Cloud Private 3.1.1 clusters named `cluster1` and `cluster2`.

@@ -1,5 +1,5 @@
 apiVersion: types.kubefed.k8s.io/v1alpha1
-kind: KubefedClusterRoleBinding
+kind: FederatedClusterRoleBinding
 metadata:
   name: test-clusterrolebinding
 spec:
