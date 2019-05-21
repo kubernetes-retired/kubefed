@@ -127,6 +127,11 @@ func validateEnumStrings(fldPath *field.Path, value string, accepted []string) f
 	return field.ErrorList{field.NotSupported(fldPath, value, accepted)}
 }
 
+func ValidateKubeFedConfig(object *v1beta1.KubeFedConfig) field.ErrorList {
+	allErrs := field.ErrorList{}
+	return allErrs
+}
+
 func ValidateFederatedTypeConfigStatus(status *v1beta1.FederatedTypeConfigStatus, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
