@@ -123,14 +123,14 @@ To run E2E tests for all types:
 
 ```bash
 cd test/e2e
-go test -args -kubeconfig=/path/to/kubeconfig -v=4 -test.v
+go test -args -kubeconfig=/path/to/kubeconfig -test.v
 ```
 
 To run E2E tests for a single type:
 
 ```bash
 cd test/e2e
-go test -args -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
+go test -args -kubeconfig=/path/to/kubeconfig -test.v \
     --ginkgo.focus='Federated "secrets"'
 ```
 
@@ -140,7 +140,7 @@ the components involved in the test:
 
 ```bash
 cd test/e2e
-dlv test -- -kubeconfig=/path/to/kubeconfig -v=4 -test.v \
+dlv test -- -kubeconfig=/path/to/kubeconfig -test.v \
     --ginkgo.focus='Federated "secrets"'
 ```
 
