@@ -102,6 +102,8 @@ func (a *KubeFedConfigValidationHook) Initialize(kubeClientConfig *rest.Config, 
 
 	a.initialized = true
 
+	klog.V(2).Infof("KubeFedConfig validation webhook is initialized")
+
 	shallowClientConfigCopy := *kubeClientConfig
 	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
 		Group:   v1beta1.SchemeGroupVersion.Group,
