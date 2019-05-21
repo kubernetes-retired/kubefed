@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-file
+data:
+  index.html: "Hello from Kubernetes Cluster Federation!"
+
