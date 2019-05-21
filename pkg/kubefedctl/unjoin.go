@@ -32,7 +32,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	controllerutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
@@ -221,7 +221,7 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 	klog.V(2).Infof("Deleting kubefed cluster resource from namespace %q for unjoin cluster %q",
 		kubefedNamespace, unjoiningClusterName)
 
-	fedCluster := &fedv1a1.KubefedCluster{}
+	fedCluster := &fedv1b1.KubefedCluster{}
 	err := client.Get(context.TODO(), fedCluster, kubefedNamespace, unjoiningClusterName)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to get kubefed cluster \"%s/%s\"", kubefedNamespace, unjoiningClusterName)

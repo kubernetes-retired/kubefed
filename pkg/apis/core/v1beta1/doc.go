@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,22 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
-
-import (
-	"context"
-
-	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	client "sigs.k8s.io/kubefed/pkg/client/generic"
-)
-
-func GetTypeConfig(genericClient client.Client, name, namespace string) (typeconfig.Interface, error) {
-	typeConfig := &fedv1b1.FederatedTypeConfig{}
-	err := genericClient.Get(context.Background(), typeConfig, namespace, name)
-	if err != nil {
-		return nil, err
-	}
-
-	return typeConfig, nil
-}
+// Package v1beta1 contains API Schema definitions for the core v1beta1 API group
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=sigs.k8s.io/kubefed/pkg/apis/core
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=core.kubefed.k8s.io
+package v1beta1

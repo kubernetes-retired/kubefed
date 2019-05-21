@@ -35,7 +35,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
@@ -188,7 +188,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 		}
 	}
 
-	typeConfig := &fedv1a1.FederatedTypeConfig{}
+	typeConfig := &fedv1b1.FederatedTypeConfig{}
 	ftcExists, err := checkFederatedTypeConfigExists(client, typeConfig, typeConfigName, write)
 	if err != nil {
 		return err
@@ -246,7 +246,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 	return nil
 }
 
-func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) (bool, error) {
+func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fedv1b1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) (bool, error) {
 	err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
 	if err == nil {
 		return true, nil
@@ -260,9 +260,9 @@ func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fed
 	return false, errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", typeConfigName)
 }
 
-func disablePropagation(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
+func disablePropagation(client genericclient.Client, typeConfig *fedv1b1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
 	if typeConfig.GetPropagationEnabled() {
-		typeConfig.Spec.Propagation = fedv1a1.PropagationDisabled
+		typeConfig.Spec.Propagation = fedv1b1.PropagationDisabled
 		err := client.Update(context.TODO(), typeConfig)
 		if err != nil {
 			return errors.Wrapf(err, "Error disabling propagation for FederatedTypeConfig %q", typeConfigName)
@@ -277,15 +277,15 @@ func disablePropagation(client genericclient.Client, typeConfig *fedv1a1.Federat
 func verifyPropagationControllerStopped(client genericclient.Client, typeConfigName ctlutil.QualifiedName, write func(string)) error {
 	write(fmt.Sprintf("Verifying propagation controller is stopped for FederatedTypeConfig %q\n", typeConfigName))
 
-	var typeConfig *fedv1a1.FederatedTypeConfig
+	var typeConfig *fedv1b1.FederatedTypeConfig
 	err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-		typeConfig = &fedv1a1.FederatedTypeConfig{}
+		typeConfig = &fedv1b1.FederatedTypeConfig{}
 		err := client.Get(context.TODO(), typeConfig, typeConfigName.Namespace, typeConfigName.Name)
 		if err != nil {
 			klog.Errorf("Error retrieving FederatedTypeConfig %q: %v", typeConfigName, err)
 			return false, nil
 		}
-		if typeConfig.Status.PropagationController == fedv1a1.ControllerStatusNotRunning {
+		if typeConfig.Status.PropagationController == fedv1b1.ControllerStatusNotRunning {
 			return true, nil
 		}
 		return false, nil
@@ -299,7 +299,7 @@ func verifyPropagationControllerStopped(client genericclient.Client, typeConfigN
 	return nil
 }
 
-func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1a1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
+func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1b1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
 	err := client.Delete(context.TODO(), typeConfig, typeConfig.Namespace, typeConfig.Name)
 	if err != nil {
 		return errors.Wrapf(err, "Error deleting FederatedTypeConfig %q", typeConfigName)
@@ -308,12 +308,12 @@ func deleteFederatedTypeConfig(client genericclient.Client, typeConfig *fedv1a1.
 	return nil
 }
 
-func generatedFederatedTypeConfig(config *rest.Config, enableTypeDirective *enable.EnableTypeDirective) (*fedv1a1.FederatedTypeConfig, error) {
+func generatedFederatedTypeConfig(config *rest.Config, enableTypeDirective *enable.EnableTypeDirective) (*fedv1b1.FederatedTypeConfig, error) {
 	apiResource, err := enable.LookupAPIResource(config, enableTypeDirective.Name, enableTypeDirective.Spec.TargetVersion)
 	if err != nil {
 		return nil, err
 	}
-	typeConfig := enable.GenerateTypeConfigForTarget(*apiResource, enableTypeDirective).(*fedv1a1.FederatedTypeConfig)
+	typeConfig := enable.GenerateTypeConfigForTarget(*apiResource, enableTypeDirective).(*fedv1b1.FederatedTypeConfig)
 	return typeConfig, nil
 }
 

@@ -40,7 +40,7 @@ import (
 
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/leaderelection"
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/options"
-	corev1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
@@ -181,8 +181,8 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 }
 
-func getKubefedConfig(opts *options.Options) *corev1a1.KubefedConfig {
-	fedConfig := &corev1a1.KubefedConfig{}
+func getKubefedConfig(opts *options.Options) *corev1b1.KubefedConfig {
+	fedConfig := &corev1b1.KubefedConfig{}
 	if kubefedConfig == "" {
 		// there is no --kubefed-config specified, get `kubefed` KubefedConfig from the cluster
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "kubefedconfig")
@@ -238,7 +238,7 @@ func setInt64(target *int64, defaultValue int64) {
 	}
 }
 
-func setDefaultKubefedConfig(fedConfig *corev1a1.KubefedConfig) {
+func setDefaultKubefedConfig(fedConfig *corev1b1.KubefedConfig) {
 	spec := &fedConfig.Spec
 
 	if len(spec.Scope) == 0 {
@@ -274,11 +274,11 @@ func setDefaultKubefedConfig(fedConfig *corev1a1.KubefedConfig) {
 	setInt64(&healthCheck.SuccessThreshold, util.DefaultClusterHealthCheckSuccessThreshold)
 
 	if len(spec.SyncController.AdoptResources) == 0 {
-		spec.SyncController.AdoptResources = corev1a1.AdoptResourcesEnabled
+		spec.SyncController.AdoptResources = corev1b1.AdoptResourcesEnabled
 	}
 }
 
-func updateKubefedConfig(config *rest.Config, fedConfig *corev1a1.KubefedConfig) {
+func updateKubefedConfig(config *rest.Config, fedConfig *corev1b1.KubefedConfig) {
 	name := fedConfig.Name
 	namespace := fedConfig.Namespace
 	qualifiedName := util.QualifiedName{
@@ -286,7 +286,7 @@ func updateKubefedConfig(config *rest.Config, fedConfig *corev1a1.KubefedConfig)
 		Name:      name,
 	}
 
-	configResource := &corev1a1.KubefedConfig{}
+	configResource := &corev1b1.KubefedConfig{}
 	client := genericclient.NewForConfigOrDieWithUserAgent(config, "kubefedconfig")
 	err := client.Get(context.Background(), configResource, namespace, name)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -318,7 +318,7 @@ func setOptionsByKubefedConfig(opts *options.Options) {
 
 		klog.Infof("Creating KubefedConfig %q with default values", qualifiedName)
 
-		fedConfig = &corev1a1.KubefedConfig{
+		fedConfig = &corev1b1.KubefedConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      qualifiedName.Name,
 				Namespace: qualifiedName.Namespace,
@@ -344,13 +344,13 @@ func setOptionsByKubefedConfig(opts *options.Options) {
 	opts.ClusterHealthCheckConfig.FailureThreshold = spec.ClusterHealthCheck.FailureThreshold
 	opts.ClusterHealthCheckConfig.SuccessThreshold = spec.ClusterHealthCheck.SuccessThreshold
 
-	opts.Config.SkipAdoptingResources = spec.SyncController.AdoptResources == corev1a1.AdoptResourcesDisabled
+	opts.Config.SkipAdoptingResources = spec.SyncController.AdoptResources == corev1b1.AdoptResourcesDisabled
 
 	updateKubefedConfig(opts.Config.KubeConfig, fedConfig)
 
 	var featureGates = make(map[string]bool)
 	for _, v := range fedConfig.Spec.FeatureGates {
-		featureGates[v.Name] = v.Configuration == corev1a1.ConfigurationEnabled
+		featureGates[v.Name] = v.Configuration == corev1b1.ConfigurationEnabled
 	}
 	if len(featureGates) == 0 {
 		return

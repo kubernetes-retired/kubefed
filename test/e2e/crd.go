@@ -32,7 +32,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	apicommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
 	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
@@ -89,7 +89,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		Version: kfenableopts.DefaultFederationVersion,
 
 		Kind:       targetCrdKind,
-		Name:       fedv1a1.PluralName(targetCrdKind),
+		Name:       fedv1b1.PluralName(targetCrdKind),
 		Namespaced: namespaced,
 	}
 
@@ -176,7 +176,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	// TODO(marun) If not using in-memory controllers, wait until the
 	// controller has started.
 
-	concreteTypeConfig := typeConfig.(*fedv1a1.FederatedTypeConfig)
+	concreteTypeConfig := typeConfig.(*fedv1b1.FederatedTypeConfig)
 	// FederateResource needs the typeconfig to carry ns within
 	concreteTypeConfig.Namespace = f.KubefedSystemNamespace()
 	testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {

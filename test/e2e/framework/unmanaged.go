@@ -33,7 +33,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/test/common"
@@ -191,7 +191,7 @@ func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 	var clusters []string
 	client := f.Client(userAgent)
-	clusterList := &fedv1a1.KubefedClusterList{}
+	clusterList := &fedv1b1.KubefedClusterList{}
 	err := client.List(context.TODO(), clusterList, TestContext.KubefedSystemNamespace)
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 

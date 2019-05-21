@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/test/common"
@@ -61,7 +61,7 @@ var _ = Describe("Placement", func() {
 		var selectedTypeConfig typeconfig.Interface
 		var fixture *unstructured.Unstructured
 		for typeConfigName, typeConfigFixture := range typeConfigFixtures {
-			typeConfig := &fedv1a1.FederatedTypeConfig{}
+			typeConfig := &fedv1b1.FederatedTypeConfig{}
 			err = client.Get(context.Background(), typeConfig, f.KubefedSystemNamespace(), typeConfigName)
 			if errors.IsNotFound(err) {
 				continue

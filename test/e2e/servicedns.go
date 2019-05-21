@@ -29,7 +29,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	dnsv1a1 "sigs.k8s.io/kubefed/pkg/apis/multiclusterdns/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
@@ -49,7 +49,7 @@ var _ = Describe("ServiceDNS", func() {
 	const Domain = "example.com"
 
 	var client genericclient.Client
-	var clusterRegionZones map[string]fedv1a1.KubefedClusterStatus
+	var clusterRegionZones map[string]fedv1b1.KubefedClusterStatus
 	var federation string
 	var namespace string
 
@@ -170,7 +170,7 @@ var _ = Describe("ServiceDNS", func() {
 })
 
 func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, domain string,
-	clusterRegionZones map[string]fedv1a1.KubefedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
+	clusterRegionZones map[string]fedv1b1.KubefedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
 
 	const userAgent = "test-service-dns"
 
@@ -217,12 +217,12 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	return serviceDNSStatus
 }
 
-func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, clusterNamespace string) map[string]fedv1a1.KubefedClusterStatus {
-	clusters := &fedv1a1.KubefedClusterList{}
+func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, clusterNamespace string) map[string]fedv1b1.KubefedClusterStatus {
+	clusters := &fedv1b1.KubefedClusterList{}
 	err := client.List(context.TODO(), clusters, clusterNamespace)
 	framework.ExpectNoError(err, "Error listing federated clusters")
 
-	clusterRegionZones := make(map[string]fedv1a1.KubefedClusterStatus)
+	clusterRegionZones := make(map[string]fedv1b1.KubefedClusterStatus)
 	for i, cluster := range clusters.Items {
 		err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 			cluster.Status.Region = fmt.Sprintf("r%d", i)
@@ -245,7 +245,7 @@ func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client generic
 		})
 		framework.ExpectNoError(err, "Error updating federated cluster status")
 
-		clusterRegionZones[cluster.Name] = fedv1a1.KubefedClusterStatus{
+		clusterRegionZones[cluster.Name] = fedv1b1.KubefedClusterStatus{
 			Region: cluster.Status.Region,
 			Zones:  cluster.Status.Zones,
 		}

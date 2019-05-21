@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/test/common"
@@ -37,8 +37,8 @@ func WaitForClusterReadiness(tl common.TestLogger, client genericclient.Client,
 	tl.Logf("All federated clusters are ready")
 }
 
-func ListKubefedClusters(tl common.TestLogger, client genericclient.Client, namespace string) *fedv1a1.KubefedClusterList {
-	clusterList := &fedv1a1.KubefedClusterList{}
+func ListKubefedClusters(tl common.TestLogger, client genericclient.Client, namespace string) *fedv1b1.KubefedClusterList {
+	clusterList := &fedv1b1.KubefedClusterList{}
 	err := client.List(context.TODO(), clusterList, namespace)
 	if err != nil {
 		tl.Fatalf("Error retrieving list of federated clusters: %+v", err)
@@ -50,14 +50,14 @@ func ListKubefedClusters(tl common.TestLogger, client genericclient.Client, name
 }
 
 func clusterIsReadyOrFail(tl common.TestLogger, client genericclient.Client,
-	namespace string, interval, timeout time.Duration, cluster *fedv1a1.KubefedCluster) {
+	namespace string, interval, timeout time.Duration, cluster *fedv1b1.KubefedCluster) {
 	clusterName := cluster.Name
 	tl.Logf("Checking readiness for federated cluster %q", clusterName)
 	if util.IsClusterReady(&cluster.Status) {
 		return
 	}
 	err := wait.Poll(interval, timeout, func() (bool, error) {
-		cluster := &fedv1a1.KubefedCluster{}
+		cluster := &fedv1b1.KubefedCluster{}
 		err := client.Get(context.TODO(), cluster, namespace, clusterName)
 		if err != nil {
 			return false, err

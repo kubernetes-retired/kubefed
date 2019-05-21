@@ -39,7 +39,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/dispatch"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
@@ -150,12 +150,12 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1a1.KubefedCluster) {
+			ClusterAvailable: func(cluster *fedv1b1.KubefedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1a1.KubefedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1b1.KubefedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},

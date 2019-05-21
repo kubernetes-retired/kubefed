@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,22 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+package apis
 
 import (
-	"context"
-
-	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	client "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
 
-func GetTypeConfig(genericClient client.Client, name, namespace string) (typeconfig.Interface, error) {
-	typeConfig := &fedv1b1.FederatedTypeConfig{}
-	err := genericClient.Get(context.Background(), typeConfig, namespace, name)
-	if err != nil {
-		return nil, err
-	}
-
-	return typeConfig, nil
+func init() {
+	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
+	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
 }

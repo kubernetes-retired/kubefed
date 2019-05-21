@@ -303,7 +303,7 @@ clusters, propagation status will be written to the resource as per
 the following example:
 
 ```yaml
-apiVersion: types.kubefed.k8s.io/v1alpha1
+apiVersion: types.kubefed.k8s.io/v1beta1
 kind: FederatedNamespace
 metadata:
   name: myns
@@ -359,7 +359,7 @@ example, namespace `myns` has been verified to exist in `cluster1`.
 The namespace should not exist in `cluster2`, but deletion has failed.
 
 ```yaml
-apiVersion: types.kubefed.k8s.io/v1alpha1
+apiVersion: types.kubefed.k8s.io/v1beta1
 kind: FederatedNamespace
 metadata:
   name: myns
@@ -475,7 +475,7 @@ kubectl apply -R -f example/sample1
 ```
  **NOTE:** If you get the following error while creating a test resource
 ```
-unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.kubefed.k8s.io/v1alpha1",
+unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.kubefed.k8s.io/v1beta1",
 
 ```
 then it indicates that a given type may need to be enabled with `kubefedctl enable <type>`

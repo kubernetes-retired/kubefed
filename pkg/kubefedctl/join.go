@@ -38,7 +38,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
@@ -281,16 +281,16 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 // createKubefedCluster creates a federated cluster resource that associates
 // the cluster and secret.
 func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
-	secretName, kubefedNamespace string, caBundle []byte, dryRun, errorOnExisting bool) (*fedv1a1.KubefedCluster, error) {
-	fedCluster := &fedv1a1.KubefedCluster{
+	secretName, kubefedNamespace string, caBundle []byte, dryRun, errorOnExisting bool) (*fedv1b1.KubefedCluster, error) {
+	fedCluster := &fedv1b1.KubefedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: kubefedNamespace,
 			Name:      joiningClusterName,
 		},
-		Spec: fedv1a1.KubefedClusterSpec{
+		Spec: fedv1b1.KubefedClusterSpec{
 			APIEndpoint: apiEndpoint,
 			CABundle:    caBundle,
-			SecretRef: fedv1a1.LocalSecretReference{
+			SecretRef: fedv1b1.LocalSecretReference{
 				Name: secretName,
 			},
 		},
@@ -300,7 +300,7 @@ func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEn
 		return fedCluster, nil
 	}
 
-	existingFedCluster := &fedv1a1.KubefedCluster{}
+	existingFedCluster := &fedv1b1.KubefedCluster{}
 	err := client.Get(context.TODO(), existingFedCluster, kubefedNamespace, joiningClusterName)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):

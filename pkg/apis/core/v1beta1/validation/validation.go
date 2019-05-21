@@ -19,10 +19,10 @@ package validation
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
 
-func ValidateFederatedTypeConfig(object *v1alpha1.FederatedTypeConfig) field.ErrorList {
+func ValidateFederatedTypeConfig(object *v1beta1.FederatedTypeConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs, ValidateAPIResource(&object.Spec.TargetType, field.NewPath("spec", "targetType"))...)
@@ -30,12 +30,12 @@ func ValidateFederatedTypeConfig(object *v1alpha1.FederatedTypeConfig) field.Err
 	return allErrs
 }
 
-func ValidateKubefedCluster(object *v1alpha1.KubefedCluster) field.ErrorList {
+func ValidateKubefedCluster(object *v1beta1.KubefedCluster) field.ErrorList {
 	allErrs := field.ErrorList{}
 	return allErrs
 }
 
-func ValidateAPIResource(object *v1alpha1.APIResource, fldPath *field.Path) field.ErrorList {
+func ValidateAPIResource(object *v1beta1.APIResource, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(object.Kind) == 0 {

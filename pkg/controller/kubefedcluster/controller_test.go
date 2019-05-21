@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
@@ -46,9 +46,9 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		clusterStatus         *fedv1a1.KubefedClusterStatus
+		clusterStatus         *fedv1b1.KubefedClusterStatus
 		storedClusterData     *ClusterData
-		expectedClusterStatus *fedv1a1.KubefedClusterStatus
+		expectedClusterStatus *fedv1b1.KubefedClusterStatus
 		expectedResultRun     int64
 	}{
 		"ClusterReadyAtBegining": {
@@ -104,9 +104,9 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 
 }
 
-func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1a1.KubefedClusterStatus {
-	return &fedv1a1.KubefedClusterStatus{
-		Conditions: []fedv1a1.ClusterCondition{{
+func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1b1.KubefedClusterStatus {
+	return &fedv1b1.KubefedClusterStatus{
+		Conditions: []fedv1b1.ClusterCondition{{
 			Type:               common.ClusterReady,
 			Status:             status,
 			LastProbeTime:      lastProbeTime,

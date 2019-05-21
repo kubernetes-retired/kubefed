@@ -30,7 +30,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/test/common"
@@ -279,7 +279,7 @@ func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
 		if err != nil {
 			tl.Fatalf("Error initializing dynamic client: %v", err)
 		}
-		typeConfig := &fedv1a1.FederatedTypeConfig{}
+		typeConfig := &fedv1b1.FederatedTypeConfig{}
 		err = client.Get(context.Background(), typeConfig, f.KubefedSystemNamespace(), util.NamespaceName)
 		if err != nil {
 			tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", util.NamespaceName, err)
