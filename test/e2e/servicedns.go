@@ -49,7 +49,7 @@ var _ = Describe("ServiceDNS", func() {
 	const Domain = "example.com"
 
 	var client genericclient.Client
-	var clusterRegionZones map[string]fedv1b1.KubefedClusterStatus
+	var clusterRegionZones map[string]fedv1b1.KubeFedClusterStatus
 	var federation string
 	var namespace string
 
@@ -63,14 +63,14 @@ var _ = Describe("ServiceDNS", func() {
 		client = f.Client(userAgent)
 		namespace = f.TestNamespaceName()
 
-		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.KubefedSystemNamespace())
+		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.KubeFedSystemNamespace())
 		if framework.TestContext.RunControllers() {
 			fixture := framework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
 		f.EnsureTestNamespacePropagation()
 		domainObj := common.NewDomainObject(federationPrefix, Domain)
-		domainObj.Namespace = f.KubefedSystemNamespace()
+		domainObj.Namespace = f.KubeFedSystemNamespace()
 		err := client.Create(context.TODO(), domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")
 		federation = domainObj.Name
@@ -78,7 +78,7 @@ var _ = Describe("ServiceDNS", func() {
 
 	AfterEach(func() {
 		domainObj := &dnsv1a1.Domain{}
-		err := client.Delete(context.TODO(), domainObj, f.KubefedSystemNamespace(), federation)
+		err := client.Delete(context.TODO(), domainObj, f.KubeFedSystemNamespace(), federation)
 		framework.ExpectNoError(err, "Error deleting Domain object")
 	})
 
@@ -170,7 +170,7 @@ var _ = Describe("ServiceDNS", func() {
 })
 
 func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, domain string,
-	clusterRegionZones map[string]fedv1b1.KubefedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
+	clusterRegionZones map[string]fedv1b1.KubeFedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
 
 	const userAgent = "test-service-dns"
 
@@ -217,12 +217,12 @@ func createClusterServiceAndEndpoints(f framework.FederationFramework, name, nam
 	return serviceDNSStatus
 }
 
-func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, clusterNamespace string) map[string]fedv1b1.KubefedClusterStatus {
-	clusters := &fedv1b1.KubefedClusterList{}
+func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client genericclient.Client, clusterNamespace string) map[string]fedv1b1.KubeFedClusterStatus {
+	clusters := &fedv1b1.KubeFedClusterList{}
 	err := client.List(context.TODO(), clusters, clusterNamespace)
 	framework.ExpectNoError(err, "Error listing federated clusters")
 
-	clusterRegionZones := make(map[string]fedv1b1.KubefedClusterStatus)
+	clusterRegionZones := make(map[string]fedv1b1.KubeFedClusterStatus)
 	for i, cluster := range clusters.Items {
 		err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 			cluster.Status.Region = fmt.Sprintf("r%d", i)
@@ -245,7 +245,7 @@ func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client generic
 		})
 		framework.ExpectNoError(err, "Error updating federated cluster status")
 
-		clusterRegionZones[cluster.Name] = fedv1b1.KubefedClusterStatus{
+		clusterRegionZones[cluster.Name] = fedv1b1.KubeFedClusterStatus{
 			Region: cluster.Status.Region,
 			Zones:  cluster.Status.Zones,
 		}

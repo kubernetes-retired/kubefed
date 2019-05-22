@@ -60,8 +60,8 @@ func SetUpUnmanagedFederation() {
 	Expect(err).NotTo(HaveOccurred())
 
 	clusterControllerFixture = NewClusterControllerFixture(NewE2ELogger(), &util.ControllerConfig{
-		KubefedNamespaces: util.KubefedNamespaces{
-			KubefedNamespace: TestContext.KubefedSystemNamespace,
+		KubeFedNamespaces: util.KubeFedNamespaces{
+			KubeFedNamespace: TestContext.KubeFedSystemNamespace,
 		},
 		KubeConfig: config,
 	})
@@ -161,8 +161,8 @@ func (f *UnmanagedFramework) AfterEach() {
 
 func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
 	return &util.ControllerConfig{
-		KubefedNamespaces: util.KubefedNamespaces{
-			KubefedNamespace: TestContext.KubefedSystemNamespace,
+		KubeFedNamespaces: util.KubeFedNamespaces{
+			KubeFedNamespace: TestContext.KubeFedSystemNamespace,
 			TargetNamespace:  f.inMemoryTargetNamespace(),
 		},
 		KubeConfig:      f.Config,
@@ -191,8 +191,8 @@ func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
 	var clusters []string
 	client := f.Client(userAgent)
-	clusterList := &fedv1b1.KubefedClusterList{}
-	err := client.List(context.TODO(), clusterList, TestContext.KubefedSystemNamespace)
+	clusterList := &fedv1b1.KubeFedClusterList{}
+	err := client.List(context.TODO(), clusterList, TestContext.KubeFedSystemNamespace)
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
 	for _, cluster := range clusterList.Items {
@@ -239,14 +239,14 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 
 	By("Obtaining a list of federated clusters")
 	client := f.Client(userAgent)
-	clusterList := ListKubefedClusters(NewE2ELogger(), client, TestContext.KubefedSystemNamespace)
+	clusterList := ListKubeFedClusters(NewE2ELogger(), client, TestContext.KubeFedSystemNamespace)
 
 	// Assume host cluster name is the same as the current context name.
 	hostClusterName := f.Kubeconfig.CurrentContext
 
 	clusterConfigs := make(map[string]common.TestClusterConfig)
 	for _, cluster := range clusterList.Items {
-		config, err := util.BuildClusterConfig(&cluster, client, TestContext.KubefedSystemNamespace)
+		config, err := util.BuildClusterConfig(&cluster, client, TestContext.KubeFedSystemNamespace)
 		Expect(err).NotTo(HaveOccurred())
 		restclient.AddUserAgent(config, userAgent)
 		clusterConfigs[cluster.Name] = common.TestClusterConfig{
@@ -258,14 +258,14 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 	return clusterConfigs
 }
 
-func (f *UnmanagedFramework) KubefedSystemNamespace() string {
-	return TestContext.KubefedSystemNamespace
+func (f *UnmanagedFramework) KubeFedSystemNamespace() string {
+	return TestContext.KubeFedSystemNamespace
 }
 
 func (f *UnmanagedFramework) TestNamespaceName() string {
 	if f.testNamespaceName == "" {
 		if TestContext.LimitedScope {
-			f.testNamespaceName = TestContext.KubefedSystemNamespace
+			f.testNamespaceName = TestContext.KubeFedSystemNamespace
 		} else {
 			client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
 			f.testNamespaceName = createTestNamespace(client, f.BaseName)
@@ -401,5 +401,5 @@ func WaitForUnmanagedClusterReadiness() {
 	Expect(err).NotTo(HaveOccurred())
 	restclient.AddUserAgent(config, "readiness-check")
 	client := genericclient.NewForConfigOrDie(config)
-	WaitForClusterReadiness(NewE2ELogger(), client, TestContext.KubefedSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
+	WaitForClusterReadiness(NewE2ELogger(), client, TestContext.KubeFedSystemNamespace, PollInterval, TestContext.SingleCallTimeout)
 }

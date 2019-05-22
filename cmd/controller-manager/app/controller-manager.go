@@ -64,11 +64,11 @@ func NewControllerManagerCommand(stopChan <-chan struct{}) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use: "controller-manager",
-		Long: `The Kubefed controller manager runs a bunch of controllers
+		Long: `The KubeFed controller manager runs a bunch of controllers
 which watches federation CRD's and the corresponding resources in federation
 member clusters and does the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "Kubefed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
+			fmt.Fprintf(os.Stdout, "KubeFed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
 			if verFlag {
 				os.Exit(0)
 			}
@@ -107,15 +107,15 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 		panic(err)
 	}
 
-	setOptionsByKubefedConfig(opts)
+	setOptionsByKubeFedConfig(opts)
 
 	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
 		klog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
 	if opts.Scope == apiextv1b1.NamespaceScoped {
-		opts.Config.TargetNamespace = opts.Config.KubefedNamespace
-		klog.Infof("Federation will be limited to the %q namespace", opts.Config.KubefedNamespace)
+		opts.Config.TargetNamespace = opts.Config.KubeFedNamespace
+		klog.Infof("Federation will be limited to the %q namespace", opts.Config.KubeFedNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
 		klog.Info("Federation will target all namespaces")
@@ -181,14 +181,14 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 }
 
-func getKubefedConfig(opts *options.Options) *corev1b1.KubefedConfig {
-	fedConfig := &corev1b1.KubefedConfig{}
+func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
+	fedConfig := &corev1b1.KubeFedConfig{}
 	if kubefedConfig == "" {
-		// there is no --kubefed-config specified, get `kubefed` KubefedConfig from the cluster
+		// there is no --kubefed-config specified, get `kubefed` KubeFedConfig from the cluster
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "kubefedconfig")
 
-		name := util.KubefedConfigName
-		namespace := opts.Config.KubefedNamespace
+		name := util.KubeFedConfigName
+		namespace := opts.Config.KubeFedNamespace
 		qualifiedName := util.QualifiedName{
 			Namespace: namespace,
 			Name:      name,
@@ -196,14 +196,14 @@ func getKubefedConfig(opts *options.Options) *corev1b1.KubefedConfig {
 
 		err := client.Get(context.Background(), fedConfig, namespace, name)
 		if apierrors.IsNotFound(err) {
-			klog.Infof("Cannot retrieve KubefedConfig %q: %v. Default options are used.", qualifiedName.String(), err)
+			klog.Infof("Cannot retrieve KubeFedConfig %q: %v. Default options are used.", qualifiedName.String(), err)
 			return nil
 		}
 		if err != nil {
-			klog.Fatalf("Error retrieving KubefedConfig %q: %v.", qualifiedName.String(), err)
+			klog.Fatalf("Error retrieving KubeFedConfig %q: %v.", qualifiedName.String(), err)
 		}
 
-		klog.Infof("Setting Options with KubefedConfig %q", qualifiedName.String())
+		klog.Infof("Setting Options with KubeFedConfig %q", qualifiedName.String())
 		return fedConfig
 	}
 
@@ -217,12 +217,12 @@ func getKubefedConfig(opts *options.Options) *corev1b1.KubefedConfig {
 	decoder := yaml.NewYAMLToJSONDecoder(file)
 	err = decoder.Decode(fedConfig)
 	if err != nil {
-		klog.Fatalf("Cannot decode KubefedConfig from file %q: %v", kubefedConfig, err)
+		klog.Fatalf("Cannot decode KubeFedConfig from file %q: %v", kubefedConfig, err)
 	}
 
-	// set to current namespace to make sure `KubefedConfig` is updated in correct namespace
-	fedConfig.Namespace = opts.Config.KubefedNamespace
-	klog.Infof("Setting Options with KubefedConfig from file %q: %v", kubefedConfig, fedConfig.Spec)
+	// set to current namespace to make sure `KubeFedConfig` is updated in correct namespace
+	fedConfig.Namespace = opts.Config.KubeFedNamespace
+	klog.Infof("Setting Options with KubeFedConfig from file %q: %v", kubefedConfig, fedConfig.Spec)
 	return fedConfig
 }
 
@@ -238,7 +238,7 @@ func setInt64(target *int64, defaultValue int64) {
 	}
 }
 
-func setDefaultKubefedConfig(fedConfig *corev1b1.KubefedConfig) {
+func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 	spec := &fedConfig.Spec
 
 	if len(spec.Scope) == 0 {
@@ -278,7 +278,7 @@ func setDefaultKubefedConfig(fedConfig *corev1b1.KubefedConfig) {
 	}
 }
 
-func updateKubefedConfig(config *rest.Config, fedConfig *corev1b1.KubefedConfig) {
+func updateKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig) {
 	name := fedConfig.Name
 	namespace := fedConfig.Namespace
 	qualifiedName := util.QualifiedName{
@@ -286,39 +286,39 @@ func updateKubefedConfig(config *rest.Config, fedConfig *corev1b1.KubefedConfig)
 		Name:      name,
 	}
 
-	configResource := &corev1b1.KubefedConfig{}
+	configResource := &corev1b1.KubeFedConfig{}
 	client := genericclient.NewForConfigOrDieWithUserAgent(config, "kubefedconfig")
 	err := client.Get(context.Background(), configResource, namespace, name)
 	if err != nil && !apierrors.IsNotFound(err) {
-		klog.Fatalf("Error retrieving KubefedConfig %q: %v", qualifiedName, err)
+		klog.Fatalf("Error retrieving KubeFedConfig %q: %v", qualifiedName, err)
 	}
 	if apierrors.IsNotFound(err) {
-		// if `--kubefed-config` is specifed but there is not KubefedConfig resource accordingly
+		// if `--kubefed-config` is specifed but there is not KubeFedConfig resource accordingly
 		err = client.Create(context.Background(), fedConfig)
 		if err != nil {
-			klog.Fatalf("Error creating KubefedConfig %q: %v", qualifiedName, err)
+			klog.Fatalf("Error creating KubeFedConfig %q: %v", qualifiedName, err)
 		}
 	} else {
 		configResource.Spec = fedConfig.Spec
 		err = client.Update(context.Background(), configResource)
 		if err != nil {
-			klog.Fatalf("Error updating KubefedConfig %q: %v", qualifiedName, err)
+			klog.Fatalf("Error updating KubeFedConfig %q: %v", qualifiedName, err)
 		}
 	}
 }
 
-func setOptionsByKubefedConfig(opts *options.Options) {
-	fedConfig := getKubefedConfig(opts)
+func setOptionsByKubeFedConfig(opts *options.Options) {
+	fedConfig := getKubeFedConfig(opts)
 	if fedConfig == nil {
-		// KubefedConfig could not be sourced from --kubefed-config or from the API.
+		// KubeFedConfig could not be sourced from --kubefed-config or from the API.
 		qualifiedName := util.QualifiedName{
-			Namespace: opts.Config.KubefedNamespace,
-			Name:      util.KubefedConfigName,
+			Namespace: opts.Config.KubeFedNamespace,
+			Name:      util.KubeFedConfigName,
 		}
 
-		klog.Infof("Creating KubefedConfig %q with default values", qualifiedName)
+		klog.Infof("Creating KubeFedConfig %q with default values", qualifiedName)
 
-		fedConfig = &corev1b1.KubefedConfig{
+		fedConfig = &corev1b1.KubeFedConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      qualifiedName.Name,
 				Namespace: qualifiedName.Namespace,
@@ -326,7 +326,7 @@ func setOptionsByKubefedConfig(opts *options.Options) {
 		}
 	}
 
-	setDefaultKubefedConfig(fedConfig)
+	setDefaultKubeFedConfig(fedConfig)
 
 	spec := fedConfig.Spec
 	opts.Scope = spec.Scope
@@ -346,7 +346,7 @@ func setOptionsByKubefedConfig(opts *options.Options) {
 
 	opts.Config.SkipAdoptingResources = spec.SyncController.AdoptResources == corev1b1.AdoptResourcesDisabled
 
-	updateKubefedConfig(opts.Config.KubeConfig, fedConfig)
+	updateKubeFedConfig(opts.Config.KubeConfig, fedConfig)
 
 	var featureGates = make(map[string]bool)
 	for _, v := range fedConfig.Spec.FeatureGates {

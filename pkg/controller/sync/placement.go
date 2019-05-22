@@ -39,7 +39,7 @@ import (
 // because the single namespace by definition must exist on member
 // clusters, so namespace placement becomes a mechanism for limiting
 // rather than allowing propagation.
-func computeNamespacedPlacement(resource, namespace *unstructured.Unstructured, clusters []*fedv1b1.KubefedCluster, limitedScope bool) (selectedClusters sets.String, err error) {
+func computeNamespacedPlacement(resource, namespace *unstructured.Unstructured, clusters []*fedv1b1.KubeFedCluster, limitedScope bool) (selectedClusters sets.String, err error) {
 	resourceClusters, err := computePlacement(resource, clusters)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func computeNamespacedPlacement(resource, namespace *unstructured.Unstructured, 
 
 // computePlacement determines the selected clusters for a federated
 // resource.
-func computePlacement(resource *unstructured.Unstructured, clusters []*fedv1b1.KubefedCluster) (selectedClusters sets.String, err error) {
+func computePlacement(resource *unstructured.Unstructured, clusters []*fedv1b1.KubeFedCluster) (selectedClusters sets.String, err error) {
 	selectedNames, err := selectedClusterNames(resource, clusters)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func computePlacement(resource *unstructured.Unstructured, clusters []*fedv1b1.K
 	return clusterNames.Intersection(selectedNames), nil
 }
 
-func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1b1.KubefedCluster) (sets.String, error) {
+func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1b1.KubeFedCluster) (sets.String, error) {
 	placement, err := util.UnmarshalGenericPlacement(resource)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1
 	return selectedNames, nil
 }
 
-func getClusterNames(clusters []*fedv1b1.KubefedCluster) sets.String {
+func getClusterNames(clusters []*fedv1b1.KubeFedCluster) sets.String {
 	clusterNames := sets.String{}
 	for _, cluster := range clusters {
 		clusterNames.Insert(cluster.Name)

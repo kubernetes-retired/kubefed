@@ -150,7 +150,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 	}
 	typeConfig := resources.TypeConfig
 
-	err = kfenable.CreateResources(nil, hostConfig, resources, f.KubefedSystemNamespace())
+	err = kfenable.CreateResources(nil, hostConfig, resources, f.KubeFedSystemNamespace())
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
@@ -160,7 +160,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// TODO(marun) Make this more resilient so that removal of all
 		// CRDs is attempted even if the removal of any one CRD fails.
 		objectMeta := typeConfig.GetObjectMeta()
-		qualifiedName := util.QualifiedName{Namespace: f.KubefedSystemNamespace(), Name: objectMeta.Name}
+		qualifiedName := util.QualifiedName{Namespace: f.KubeFedSystemNamespace(), Name: objectMeta.Name}
 		err := kubefedctl.DisableFederation(nil, hostConfig, enableTypeDirective, qualifiedName, delete, dryRun, false)
 		if err != nil {
 			tl.Fatalf("Error disabling federation of target type %q: %v", targetAPIResource.Kind, err)
@@ -178,7 +178,7 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 
 	concreteTypeConfig := typeConfig.(*fedv1b1.FederatedTypeConfig)
 	// FederateResource needs the typeconfig to carry ns within
-	concreteTypeConfig.Namespace = f.KubefedSystemNamespace()
+	concreteTypeConfig.Namespace = f.KubeFedSystemNamespace()
 	testObjectsFunc := func(namespace string, clusterNames []string) (*unstructured.Unstructured, []interface{}, error) {
 		fixtureYAML := `
 kind: fixture

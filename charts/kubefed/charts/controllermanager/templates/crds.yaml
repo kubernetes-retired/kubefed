@@ -363,7 +363,7 @@ spec:
     type: date
   group: core.kubefed.k8s.io
   names:
-    kind: KubefedCluster
+    kind: KubeFedCluster
     plural: kubefedclusters
   scope: Namespaced
   subresources:
@@ -455,8 +455,6 @@ spec:
           required:
           - conditions
           type: object
-      required:
-      - spec
   version: v1beta1
 status:
   acceptedNames:
@@ -477,7 +475,7 @@ metadata:
 spec:
   group: core.kubefed.k8s.io
   names:
-    kind: KubefedConfig
+    kind: KubeFedConfig
     plural: kubefedconfigs
   scope: Namespaced
   validation:

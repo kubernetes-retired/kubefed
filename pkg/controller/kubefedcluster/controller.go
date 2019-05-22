@@ -41,14 +41,14 @@ type ClusterData struct {
 	clusterKubeClient *ClusterClient
 
 	// clusterStatus is the cluster status as of last sampling.
-	clusterStatus *fedv1b1.KubefedClusterStatus
+	clusterStatus *fedv1b1.KubeFedClusterStatus
 
 	// How many times in a row the probe has returned the same result.
 	resultRun int64
 }
 
 // ClusterController is responsible for maintaining the health status of each
-// KubefedCluster in a particular namespace.
+// KubeFedCluster in a particular namespace.
 type ClusterController struct {
 	client genericclient.Client
 
@@ -61,11 +61,11 @@ type ClusterController struct {
 	clusterDataMap map[string]*ClusterData
 
 	// clusterController is the cache.Controller where callbacks are registered
-	// for events on KubefedClusters.
+	// for events on KubeFedClusters.
 	clusterController cache.Controller
 
 	// fedNamespace is the name of the namespace containing
-	// KubefedCluster resources and their associated secrets.
+	// KubeFedCluster resources and their associated secrets.
 	fedNamespace string
 }
 
@@ -90,13 +90,13 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		client:                   client,
 		clusterHealthCheckConfig: clusterHealthCheckConfig,
 		clusterDataMap:           make(map[string]*ClusterData),
-		fedNamespace:             config.KubefedNamespace,
+		fedNamespace:             config.KubeFedNamespace,
 	}
 	var err error
 	_, cc.clusterController, err = util.NewGenericInformerWithEventHandler(
 		config.KubeConfig,
-		config.KubefedNamespace,
-		&fedv1b1.KubefedCluster{},
+		config.KubeFedNamespace,
+		&fedv1b1.KubeFedCluster{},
 		util.NoResyncPeriod,
 		&cache.ResourceEventHandlerFuncs{
 			DeleteFunc: cc.delFromClusterSet,
@@ -110,7 +110,7 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	cluster := obj.(*fedv1b1.KubefedCluster)
+	cluster := obj.(*fedv1b1.KubeFedCluster)
 	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", cluster.Name)
 	delete(cc.clusterDataMap, cluster.Name)
 }
@@ -119,7 +119,7 @@ func (cc *ClusterController) delFromClusterSet(obj interface{}) {
 func (cc *ClusterController) addToClusterSet(obj interface{}) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	cluster := obj.(*fedv1b1.KubefedCluster)
+	cluster := obj.(*fedv1b1.KubeFedCluster)
 	clusterData := cc.clusterDataMap[cluster.Name]
 	if clusterData != nil && clusterData.clusterKubeClient != nil {
 		return
@@ -147,9 +147,9 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 	}, time.Duration(cc.clusterHealthCheckConfig.PeriodSeconds)*time.Second, stopChan)
 }
 
-// updateClusterStatus checks cluster health and updates status of all KubefedClusters
+// updateClusterStatus checks cluster health and updates status of all KubeFedClusters
 func (cc *ClusterController) updateClusterStatus() error {
-	clusters := &fedv1b1.KubefedClusterList{}
+	clusters := &fedv1b1.KubeFedClusterList{}
 	err := cc.client.List(context.TODO(), clusters, cc.fedNamespace)
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 	return nil
 }
 
-func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.KubefedCluster,
+func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.KubeFedCluster,
 	storedData *ClusterData, wg *sync.WaitGroup) {
 	clusterClient := storedData.clusterKubeClient
 
@@ -193,8 +193,8 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	wg.Done()
 }
 
-func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubefedClusterStatus, storedData *ClusterData,
-	clusterHealthCheckConfig *util.ClusterHealthCheckConfig) *fedv1b1.KubefedClusterStatus {
+func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus, storedData *ClusterData,
+	clusterHealthCheckConfig *util.ClusterHealthCheckConfig) *fedv1b1.KubeFedClusterStatus {
 
 	if storedData.clusterStatus == nil {
 		storedData.resultRun = 1
@@ -229,8 +229,8 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubefedClusterStatus,
 	return clusterStatus
 }
 
-func updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubefedClusterStatus, cluster *fedv1b1.KubefedCluster,
-	clusterClient *ClusterClient) *fedv1b1.KubefedClusterStatus {
+func updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cluster *fedv1b1.KubeFedCluster,
+	clusterClient *ClusterClient) *fedv1b1.KubeFedClusterStatus {
 
 	if !util.IsClusterReady(clusterStatus) {
 		return clusterStatus
@@ -255,17 +255,17 @@ func updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubefedClusterStatus, cl
 	return clusterStatus
 }
 
-func clusterStatusEqual(newClusterStatus, oldClusterStatus *fedv1b1.KubefedClusterStatus) bool {
+func clusterStatusEqual(newClusterStatus, oldClusterStatus *fedv1b1.KubeFedClusterStatus) bool {
 	return util.IsClusterReady(newClusterStatus) == util.IsClusterReady(oldClusterStatus)
 }
 
-func setProbeTime(clusterStatus *fedv1b1.KubefedClusterStatus, probeTime metav1.Time) {
+func setProbeTime(clusterStatus *fedv1b1.KubeFedClusterStatus, probeTime metav1.Time) {
 	for i := 0; i < len(clusterStatus.Conditions); i++ {
 		clusterStatus.Conditions[i].LastProbeTime = probeTime
 	}
 }
 
-func setTransitionTime(clusterStatus *fedv1b1.KubefedClusterStatus, transitionTime metav1.Time) {
+func setTransitionTime(clusterStatus *fedv1b1.KubeFedClusterStatus, transitionTime metav1.Time) {
 	for i := 0; i < len(clusterStatus.Conditions); i++ {
 		clusterStatus.Conditions[i].LastTransitionTime = transitionTime
 	}

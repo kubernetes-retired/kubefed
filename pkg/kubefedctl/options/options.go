@@ -34,7 +34,7 @@ import (
 // `kubefedctl`.
 type GlobalSubcommandOptions struct {
 	HostClusterContext string
-	KubefedNamespace   string
+	KubeFedNamespace   string
 	Kubeconfig         string
 	DryRun             bool
 }
@@ -43,7 +43,7 @@ type GlobalSubcommandOptions struct {
 func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
-	flags.StringVar(&o.KubefedNamespace, "kubefed-namespace", util.DefaultKubefedSystemNamespace,
+	flags.StringVar(&o.KubeFedNamespace, "kubefed-namespace", util.DefaultKubeFedSystemNamespace,
 		"Namespace in the host cluster where the federation system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
@@ -76,21 +76,21 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 	return nil
 }
 
-func GetScopeFromKubefedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
+func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get federation clientset")
 		return "", err
 	}
 
-	fedConfig := &fedv1b1.KubefedConfig{}
-	err = client.Get(context.TODO(), fedConfig, namespace, util.KubefedConfigName)
+	fedConfig := &fedv1b1.KubeFedConfig{}
+	err = client.Get(context.TODO(), fedConfig, namespace, util.KubeFedConfigName)
 	if err != nil {
 		config := util.QualifiedName{
 			Namespace: namespace,
-			Name:      util.KubefedConfigName,
+			Name:      util.KubeFedConfigName,
 		}
-		err = errors.Wrapf(err, "Error retrieving KubefedConfig %q", config)
+		err = errors.Wrapf(err, "Error retrieving KubeFedConfig %q", config)
 		return "", err
 	}
 

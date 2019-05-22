@@ -49,10 +49,10 @@ type LeaderElectionConfiguration struct {
 	ResourceLock fedv1b1.ResourceLockType
 }
 
-// KubefedNamespaces defines the namespace configuration shared by
+// KubeFedNamespaces defines the namespace configuration shared by
 // most kubefed controllers.
-type KubefedNamespaces struct {
-	KubefedNamespace string
+type KubeFedNamespaces struct {
+	KubeFedNamespace string
 	TargetNamespace  string
 }
 
@@ -67,7 +67,7 @@ type ClusterHealthCheckConfig struct {
 // ControllerConfig defines the configuration common to federation
 // controllers.
 type ControllerConfig struct {
-	KubefedNamespaces
+	KubeFedNamespaces
 	KubeConfig              *restclient.Config
 	ClusterAvailableDelay   time.Duration
 	ClusterUnavailableDelay time.Duration
@@ -76,5 +76,5 @@ type ControllerConfig struct {
 }
 
 func (c *ControllerConfig) LimitedScope() bool {
-	return c.KubefedNamespaces.TargetNamespace != metav1.NamespaceAll
+	return c.KubeFedNamespaces.TargetNamespace != metav1.NamespaceAll
 }

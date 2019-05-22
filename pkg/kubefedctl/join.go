@@ -156,7 +156,7 @@ func (j *joinFederation) Complete(args []string) error {
 	}
 
 	klog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
-		j.ClusterName, j.HostClusterContext, j.KubefedNamespace, j.Kubeconfig, j.ClusterContext,
+		j.ClusterName, j.HostClusterContext, j.KubeFedNamespace, j.Kubeconfig, j.ClusterContext,
 		j.secretName, j.DryRun)
 
 	return nil
@@ -172,7 +172,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.Scope, err = options.GetScopeFromKubefedConfig(hostConfig, j.KubefedNamespace)
+	j.Scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName = j.HostClusterName
 	}
 
-	return JoinCluster(hostConfig, clusterConfig, j.KubefedNamespace,
+	return JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
 		hostClusterName, j.ClusterName, j.secretName, j.Scope, j.DryRun, j.errorOnExisting)
 }
 
@@ -221,7 +221,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	}
 
 	klog.V(2).Infof("Creating %s namespace in joining cluster", kubefedNamespace)
-	_, err = createKubefedNamespace(clusterClientset, kubefedNamespace,
+	_, err = createKubeFedNamespace(clusterClientset, kubefedNamespace,
 		joiningClusterName, dryRun)
 	if err != nil {
 		klog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
@@ -245,7 +245,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 
 	klog.V(2).Info("Creating federated cluster resource")
 
-	_, err = createKubefedCluster(client, joiningClusterName, clusterConfig.Host,
+	_, err = createKubeFedCluster(client, joiningClusterName, clusterConfig.Host,
 		secret.Name, kubefedNamespace, caBundle, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
@@ -278,16 +278,16 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 	}
 }
 
-// createKubefedCluster creates a federated cluster resource that associates
+// createKubeFedCluster creates a federated cluster resource that associates
 // the cluster and secret.
-func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
-	secretName, kubefedNamespace string, caBundle []byte, dryRun, errorOnExisting bool) (*fedv1b1.KubefedCluster, error) {
-	fedCluster := &fedv1b1.KubefedCluster{
+func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
+	secretName, kubefedNamespace string, caBundle []byte, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
+	fedCluster := &fedv1b1.KubeFedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: kubefedNamespace,
 			Name:      joiningClusterName,
 		},
-		Spec: fedv1b1.KubefedClusterSpec{
+		Spec: fedv1b1.KubeFedClusterSpec{
 			APIEndpoint: apiEndpoint,
 			CABundle:    caBundle,
 			SecretRef: fedv1b1.LocalSecretReference{
@@ -300,7 +300,7 @@ func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEn
 		return fedCluster, nil
 	}
 
-	existingFedCluster := &fedv1b1.KubefedCluster{}
+	existingFedCluster := &fedv1b1.KubeFedCluster{}
 	err := client.Get(context.TODO(), existingFedCluster, kubefedNamespace, joiningClusterName)
 	switch {
 	case err != nil && !apierrors.IsNotFound(err):
@@ -326,9 +326,9 @@ func createKubefedCluster(client genericclient.Client, joiningClusterName, apiEn
 	}
 }
 
-// createKubefedNamespace creates the kubefed namespace in the cluster
+// createKubeFedNamespace creates the kubefed namespace in the cluster
 // associated with clusterClientset, if it doesn't already exist.
-func createKubefedNamespace(clusterClientset kubeclient.Interface, kubefedNamespace,
+func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamespace,
 	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
 	federationNS := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

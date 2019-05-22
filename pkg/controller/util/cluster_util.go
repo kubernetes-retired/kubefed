@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	DefaultKubefedSystemNamespace  = "kube-federation-system"
+	DefaultKubeFedSystemNamespace  = "kube-federation-system"
 	DefaultClusterAvailableDelay   = 20 * time.Second
 	DefaultClusterUnavailableDelay = 60 * time.Second
 
@@ -50,13 +50,13 @@ const (
 	DefaultClusterHealthCheckSuccessThreshold = 1
 	DefaultClusterHealthCheckTimeout          = 3
 
-	KubefedConfigName = "kubefed"
+	KubeFedConfigName = "kubefed"
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure
-// a client for the given KubefedCluster or an error. The client is used to
+// a client for the given KubeFedCluster or an error. The client is used to
 // access kubernetes secrets in the kubefed namespace.
-func BuildClusterConfig(fedCluster *fedv1b1.KubefedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
+func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Client, fedNamespace string) (*restclient.Config, error) {
 	clusterName := fedCluster.Name
 
 	apiEndpoint := fedCluster.Spec.APIEndpoint

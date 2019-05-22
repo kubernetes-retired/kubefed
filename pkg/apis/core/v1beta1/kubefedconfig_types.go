@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KubefedConfigSpec defines the desired state of KubefedConfig
-type KubefedConfigSpec struct {
+// KubeFedConfigSpec defines the desired state of KubeFedConfig
+type KubeFedConfigSpec struct {
 	// The scope of the kubefed control plane should be either `Namespaced` or `Cluster`.
 	// `Namespaced` indicates that the kubefed namespace will be the only target for federation.
 	Scope              apiextv1b1.ResourceScope `json:"scope"`
@@ -104,25 +104,25 @@ const (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubefedConfig
+// KubeFedConfig
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=kubefedconfigs
-type KubefedConfig struct {
+type KubeFedConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec KubefedConfigSpec `json:"spec"`
+	Spec KubeFedConfigSpec `json:"spec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubefedConfigList contains a list of KubefedConfig
-type KubefedConfigList struct {
+// KubeFedConfigList contains a list of KubeFedConfig
+type KubeFedConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KubefedConfig `json:"items"`
+	Items           []KubeFedConfig `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&KubefedConfig{}, &KubefedConfigList{})
+	SchemeBuilder.Register(&KubeFedConfig{}, &KubeFedConfigList{})
 }

@@ -96,7 +96,7 @@ func newSchedulingManager(config *util.ControllerConfig) (*SchedulingManager, er
 	var err error
 	c.store, c.controller, err = util.NewGenericInformer(
 		kubeConfig,
-		config.KubefedNamespace,
+		config.KubeFedNamespace,
 		&corev1b1.FederatedTypeConfig{},
 		util.NoResyncPeriod,
 		c.worker.EnqueueObject,

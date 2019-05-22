@@ -200,7 +200,7 @@ func getCrudTestInput(f framework.FederationFramework, tl common.TestLogger,
 	if err != nil {
 		tl.Fatalf("Error initializing dynamic client: %v", err)
 	}
-	typeConfig, err := common.GetTypeConfig(client, typeConfigName, f.KubefedSystemNamespace())
+	typeConfig, err := common.GetTypeConfig(client, typeConfigName, f.KubeFedSystemNamespace())
 	if err != nil {
 		tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 	}

@@ -30,7 +30,7 @@ func ValidateFederatedTypeConfig(object *v1beta1.FederatedTypeConfig) field.Erro
 	return allErrs
 }
 
-func ValidateKubefedCluster(object *v1beta1.KubefedCluster) field.ErrorList {
+func ValidateKubeFedCluster(object *v1beta1.KubeFedCluster) field.ErrorList {
 	allErrs := field.ErrorList{}
 	return allErrs
 }

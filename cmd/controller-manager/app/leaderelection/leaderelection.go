@@ -47,13 +47,13 @@ func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*
 
 	// Prepare event clients.
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: leaderElectionClient.CoreV1().Events(opts.Config.KubefedNamespace)})
+	broadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: leaderElectionClient.CoreV1().Events(opts.Config.KubeFedNamespace)})
 	eventRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: component})
 
 	// add a uniquifier so that two processes on the same host don't accidentally both become active
 	id := hostname + "_" + string(uuid.NewUUID())
 	rl, err := resourcelock.New(string(opts.LeaderElection.ResourceLock),
-		opts.Config.KubefedNamespace,
+		opts.Config.KubeFedNamespace,
 		component,
 		leaderElectionClient.CoreV1(),
 		resourcelock.ResourceLockConfig{

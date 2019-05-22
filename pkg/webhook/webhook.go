@@ -29,7 +29,7 @@ import (
 func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
 		&webhook.FederatedTypeConfigValidationHook{},
-		&webhook.KubefedClusterValidationHook{},
+		&webhook.KubeFedClusterValidationHook{},
 	}
 
 	cmd := server.NewCommandStartAdmissionServer(os.Stdout, os.Stderr, stopChan, admissionHooks...)

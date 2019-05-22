@@ -45,16 +45,16 @@ const (
 )
 
 // ClusterClient provides methods for determining the status and zones of a
-// particular KubefedCluster.
+// particular KubeFedCluster.
 type ClusterClient struct {
 	kubeClient  *kubeclientset.Clientset
 	clusterName string
 }
 
-// NewClusterClientSet returns a ClusterClient for the given KubefedCluster.
+// NewClusterClientSet returns a ClusterClient for the given KubeFedCluster.
 // The kubeClient is used to configure the ClusterClient's internal client
 // with information from a kubeconfig stored in a kubernetes secret.
-func NewClusterClientSet(c *fedv1b1.KubefedCluster, client generic.Client, fedNamespace string, timeout time.Duration) (*ClusterClient, error) {
+func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNamespace string, timeout time.Duration) (*ClusterClient, error) {
 	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace)
 	if err != nil {
 		return nil, err
@@ -71,8 +71,8 @@ func NewClusterClientSet(c *fedv1b1.KubefedCluster, client generic.Client, fedNa
 }
 
 // GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (self *ClusterClient) GetClusterHealthStatus() *fedv1b1.KubefedClusterStatus {
-	clusterStatus := fedv1b1.KubefedClusterStatus{}
+func (self *ClusterClient) GetClusterHealthStatus() *fedv1b1.KubeFedClusterStatus {
+	clusterStatus := fedv1b1.KubeFedClusterStatus{}
 	currentTime := metav1.Now()
 	newClusterReadyCondition := fedv1b1.ClusterCondition{
 		Type:               fedcommon.ClusterReady,

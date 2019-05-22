@@ -23,8 +23,8 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 )
 
-// KubefedClusterSpec defines the desired state of KubefedCluster
-type KubefedClusterSpec struct {
+// KubeFedClusterSpec defines the desired state of KubeFedCluster
+type KubeFedClusterSpec struct {
 	// The API endpoint of the member cluster. This can be a hostname,
 	// hostname:port, IP or IP:port.
 	APIEndpoint string `json:"apiEndpoint"`
@@ -47,9 +47,9 @@ type LocalSecretReference struct {
 	Name string `json:"name"`
 }
 
-// KubefedClusterStatus contains information about the current status of a
+// KubeFedClusterStatus contains information about the current status of a
 // cluster updated periodically by cluster controller.
-type KubefedClusterStatus struct {
+type KubeFedClusterStatus struct {
 	// Conditions is an array of current cluster conditions.
 	Conditions []ClusterCondition `json:"conditions"`
 	// Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.
@@ -63,7 +63,7 @@ type KubefedClusterStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubefedCluster configures federation to be aware of a Kubernetes
+// KubeFedCluster configures federation to be aware of a Kubernetes
 // cluster and provides a Kubeconfig for federation to use to
 // communicate with the cluster.
 //
@@ -72,13 +72,12 @@ type KubefedClusterStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
 // +kubebuilder:printcolumn:name=age,type=date,JSONPath=.metadata.creationTimestamp
-type KubefedCluster struct {
+type KubeFedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec KubefedClusterSpec `json:"spec"`
-	// +optional
-	Status KubefedClusterStatus `json:"status,omitempty"`
+	Spec   KubeFedClusterSpec   `json:"spec,omitempty"`
+	Status KubeFedClusterStatus `json:"status,omitempty"`
 }
 
 // ClusterCondition describes current state of a cluster.
@@ -102,13 +101,13 @@ type ClusterCondition struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubefedClusterList contains a list of KubefedCluster
-type KubefedClusterList struct {
+// KubeFedClusterList contains a list of KubeFedCluster
+type KubeFedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KubefedCluster `json:"items"`
+	Items           []KubeFedCluster `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&KubefedCluster{}, &KubefedClusterList{})
+	SchemeBuilder.Register(&KubeFedCluster{}, &KubeFedClusterList{})
 }

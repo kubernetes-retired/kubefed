@@ -98,7 +98,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
 		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
-		fedNamespace:            config.KubefedNamespace,
+		fedNamespace:            config.KubeFedNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -124,7 +124,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// Informer for the Domain resource
 	s.domainStore, s.domainController, err = util.NewGenericInformer(
 		config.KubeConfig,
-		config.KubefedNamespace,
+		config.KubeFedNamespace,
 		&dnsv1a1.Domain{},
 		util.NoResyncPeriod,
 		func(pkgruntime.Object) {
@@ -148,12 +148,12 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 			Namespaced:   true},
 		s.worker.EnqueueObject,
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1b1.KubefedCluster) {
+			ClusterAvailable: func(cluster *fedv1b1.KubeFedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1b1.KubefedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1b1.KubeFedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},
