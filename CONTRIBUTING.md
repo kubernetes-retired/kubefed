@@ -6,7 +6,7 @@ Kubernetes projects require that you sign a Contributor License Agreement (CLA) 
 
 ## Learn About Kubernetes Cluster Federation
 If you want to learn about KubeFed, please read through the doc:
-https://github.com/kubernetes-sigs/kubefed#kubefed
+https://github.com/kubernetes-sigs/kubefed#kubernetes-cluster-federation
 
 To learn how to use Kubernetes Cluster Federation, please read through the User Guide:
 https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md
