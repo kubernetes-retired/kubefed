@@ -276,19 +276,22 @@ you can patch role `kubefed-role` in the kubefed namespace instead.
 
 ### Disabling federation of an API type
 
-You can disable propagation of an API type using the
-`kubefedctl` command.
+You can disable propagation of an API type by editing its `FederatedTypeConfig`
+resource:
 
 ```bash
-kubefedctl disable <FederatedTypeConfig Name>
+kubectl patch --namespace <KUBEFED_SYSTEM_NAMESPACE> federatedtypeconfigs <NAME> \
+    --type=merge -p '{"spec": {"propagation": "Disabled"}}'
 ```
 
-This command sets the `propagationEnabled` field in the `FederatedTypeConfig`
-associated with this target API type to `false`, which will prompt the sync controller for the target API type to be stopped.
+This patch command sets the `propagation` field in the `FederatedTypeConfig`
+associated with this target API type to `Disabled`, which will prompt the sync
+controller for the target API type to be stopped.
 
-If you want to permanently disable federation of the target API type, pass the
-`--delete-crd` flag to remove the `FederatedTypeConfig` and federated type CRD created by
-`enable`.
+If you want to permanently disable federation of the target API type by
+removing the `FederatedTypeConfig`, and optionally delete the federated type
+CRD created by `enable` using the `--delete-crd` flag, run the following
+command:
 
 ```bash
 kubefedctl disable <FederatedTypeConfig Name> --delete-crd
