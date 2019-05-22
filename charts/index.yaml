@@ -25,4 +25,13 @@ entries:
     urls:
     - https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.8/federation-v2-0.0.8.tgz
     version: 0.0.8
-generated: 2019-05-06T15:30:47.79325228-07:00
+  kubefed:
+  - apiVersion: v1
+    created: 2019-05-22T15:59:04.160292519-07:00
+    description: KubeFed helm chart
+    digest: 4f829657ea2088c176869d8e65435926b59f5cf1f7f1ce0102fae3a81c576d5e
+    name: kubefed
+    urls:
+    - https://sigs.k8s.io/kubefed/releases/download/v0.1.0-rc1/kubefed-0.1.0-rc1.tgz
+    version: 0.1.0-rc1
+generated: 2019-05-22T15:59:04.158053632-07:00
