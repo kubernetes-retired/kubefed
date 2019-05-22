@@ -16,11 +16,10 @@ spec:
     resourceLock: configmaps
   featureGates:
   - name: PushReconciler
-    enabled: true
+    configuration: "Enabled"
   - name: SchedulerPreferences
-    enabled: true
+    configuration: "Enabled"
   - name: CrossClusterServiceDiscovery
-    enabled: true
+    configuration: "Enabled"
   - name: FederatedIngress
-    enabled: true
-
+    configuration: "Enabled"
