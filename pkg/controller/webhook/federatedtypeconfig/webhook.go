@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package webhook
+package federatedtypeconfig
 
 import (
 	"encoding/json"
@@ -31,6 +31,7 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
+	"sigs.k8s.io/kubefed/pkg/controller/webhook"
 )
 
 const (
@@ -46,7 +47,7 @@ type FederatedTypeConfigValidationHook struct {
 }
 
 func (a *FederatedTypeConfigValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
-	return newValidatingResource(resourcePluralName), strings.ToLower(resourceName)
+	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
 func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
@@ -55,7 +56,7 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not FederatedTypeConfigs
-	if allowed(admissionSpec, resourcePluralName) {
+	if webhook.Allowed(admissionSpec, resourcePluralName) {
 		status.Allowed = true
 		return status
 	}

@@ -28,7 +28,7 @@ var (
 	validationVersion = v1beta1.SchemeGroupVersion.Version
 )
 
-func newValidatingResource(resourcePluralName string) schema.GroupVersionResource {
+func NewValidatingResource(resourcePluralName string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    validationGroup,
 		Version:  validationVersion,
@@ -36,9 +36,9 @@ func newValidatingResource(resourcePluralName string) schema.GroupVersionResourc
 	}
 }
 
-// allowed returns true if the admission request for the plural name of the
+// Allowed returns true if the admission request for the plural name of the
 // resource passed in should be allowed to pass through, false otherwise.
-func allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string) bool {
+func Allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string) bool {
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not <pluralResourceName>
