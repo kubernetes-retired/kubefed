@@ -63,14 +63,14 @@ var _ = Describe("ServiceDNS", func() {
 		client = f.Client(userAgent)
 		namespace = f.TestNamespaceName()
 
-		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.KubefedSystemNamespace())
+		clusterRegionZones = ensureClustersHaveRegionZoneAttributes(tl, client, f.KubeFedSystemNamespace())
 		if framework.TestContext.RunControllers() {
 			fixture := framework.NewServiceDNSControllerFixture(tl, f.ControllerConfig())
 			f.RegisterFixture(fixture)
 		}
 		f.EnsureTestNamespacePropagation()
 		domainObj := common.NewDomainObject(federationPrefix, Domain)
-		domainObj.Namespace = f.KubefedSystemNamespace()
+		domainObj.Namespace = f.KubeFedSystemNamespace()
 		err := client.Create(context.TODO(), domainObj)
 		framework.ExpectNoError(err, "Error creating Domain object")
 		federation = domainObj.Name
@@ -78,7 +78,7 @@ var _ = Describe("ServiceDNS", func() {
 
 	AfterEach(func() {
 		domainObj := &dnsv1a1.Domain{}
-		err := client.Delete(context.TODO(), domainObj, f.KubefedSystemNamespace(), federation)
+		err := client.Delete(context.TODO(), domainObj, f.KubeFedSystemNamespace(), federation)
 		framework.ExpectNoError(err, "Error deleting Domain object")
 	})
 

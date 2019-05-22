@@ -64,11 +64,11 @@ func NewControllerManagerCommand(stopChan <-chan struct{}) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use: "controller-manager",
-		Long: `The Kubefed controller manager runs a bunch of controllers
+		Long: `The KubeFed controller manager runs a bunch of controllers
 which watches federation CRD's and the corresponding resources in federation
 member clusters and does the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "Kubefed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
+			fmt.Fprintf(os.Stdout, "KubeFed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
 			if verFlag {
 				os.Exit(0)
 			}
@@ -114,8 +114,8 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 	}
 
 	if opts.Scope == apiextv1b1.NamespaceScoped {
-		opts.Config.TargetNamespace = opts.Config.KubefedNamespace
-		klog.Infof("Federation will be limited to the %q namespace", opts.Config.KubefedNamespace)
+		opts.Config.TargetNamespace = opts.Config.KubeFedNamespace
+		klog.Infof("Federation will be limited to the %q namespace", opts.Config.KubeFedNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
 		klog.Info("Federation will target all namespaces")
@@ -188,7 +188,7 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "kubefedconfig")
 
 		name := util.KubeFedConfigName
-		namespace := opts.Config.KubefedNamespace
+		namespace := opts.Config.KubeFedNamespace
 		qualifiedName := util.QualifiedName{
 			Namespace: namespace,
 			Name:      name,
@@ -221,7 +221,7 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 	}
 
 	// set to current namespace to make sure `KubeFedConfig` is updated in correct namespace
-	fedConfig.Namespace = opts.Config.KubefedNamespace
+	fedConfig.Namespace = opts.Config.KubeFedNamespace
 	klog.Infof("Setting Options with KubeFedConfig from file %q: %v", kubefedConfig, fedConfig.Spec)
 	return fedConfig
 }
@@ -312,7 +312,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	if fedConfig == nil {
 		// KubeFedConfig could not be sourced from --kubefed-config or from the API.
 		qualifiedName := util.QualifiedName{
-			Namespace: opts.Config.KubefedNamespace,
+			Namespace: opts.Config.KubeFedNamespace,
 			Name:      util.KubeFedConfigName,
 		}
 

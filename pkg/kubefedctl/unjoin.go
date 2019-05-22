@@ -124,7 +124,7 @@ func (j *unjoinFederation) Complete(args []string) error {
 	}
 
 	klog.V(2).Infof("Args and flags: name %s, host-cluster-context: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, dry-run: %v",
-		j.ClusterName, j.HostClusterContext, j.KubefedNamespace, j.Kubeconfig, j.ClusterContext, j.DryRun)
+		j.ClusterName, j.HostClusterContext, j.KubeFedNamespace, j.Kubeconfig, j.ClusterContext, j.DryRun)
 
 	return nil
 }
@@ -156,7 +156,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName = j.HostClusterName
 	}
 
-	return UnjoinCluster(hostConfig, clusterConfig, j.KubefedNamespace,
+	return UnjoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
 		hostClusterName, j.HostClusterContext, j.ClusterContext, j.ClusterName, j.forceDeletion, j.DryRun)
 }
 

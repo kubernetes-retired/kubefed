@@ -115,7 +115,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 		typeConfig:              typeConfig,
 		client:                  client,
 		statusClient:            statusClient,
-		fedNamespace:            controllerConfig.KubefedNamespace,
+		fedNamespace:            controllerConfig.KubeFedNamespace,
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{

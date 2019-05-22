@@ -164,7 +164,7 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	typeConfigName := ctlutil.QualifiedName{
-		Namespace: j.KubefedNamespace,
+		Namespace: j.KubeFedNamespace,
 		Name:      name,
 	}
 	j.enableTypeDirective.Name = typeConfigName.Name

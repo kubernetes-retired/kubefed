@@ -74,7 +74,7 @@ var _ = Describe("Federate ", func() {
 		fixture := typeConfigFixtures[testKey]
 		It(fmt.Sprintf("resource %q, should create an equivalant federated resource in federation", typeConfigName), func() {
 			typeConfig := &fedv1b1.FederatedTypeConfig{}
-			err := client.Get(context.Background(), typeConfig, f.KubefedSystemNamespace(), typeConfigName)
+			err := client.Get(context.Background(), typeConfig, f.KubeFedSystemNamespace(), typeConfigName)
 			if err != nil {
 				tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 			}
@@ -126,7 +126,7 @@ var _ = Describe("Federate ", func() {
 			framework.Skipf("Federate namespace with content is not tested when control plane is namespace scoped")
 		}
 
-		systemNamespace := f.KubefedSystemNamespace()
+		systemNamespace := f.KubeFedSystemNamespace()
 		testNamespace := f.TestNamespaceName()
 		// Set of arbitrary contained resources in a namespace
 		containedTypeNames := []string{"configmaps", "secrets", "replicasets.apps"}
@@ -186,7 +186,7 @@ var _ = Describe("Federate ", func() {
 			os.Remove(tmpFile.Name())
 		}()
 
-		systemNamespace := f.KubefedSystemNamespace()
+		systemNamespace := f.KubeFedSystemNamespace()
 		testNamespace := f.TestNamespaceName()
 		// Set of arbitrary  resources representing both namespaced and non namespaced types
 		testTypeNames := []string{"clusterroles.rbac.authorization.k8s.io", "configmaps", "replicasets.apps"}

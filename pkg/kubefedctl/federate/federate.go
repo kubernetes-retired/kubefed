@@ -189,7 +189,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Namespace: j.resourceNamespace,
 		Name:      j.resourceName,
 	}
-	artifacts, err := GetFederateArtifacts(hostConfig, j.typeName, j.KubefedNamespace, qualifiedResourceName, j.enableType, j.outputYAML)
+	artifacts, err := GetFederateArtifacts(hostConfig, j.typeName, j.KubeFedNamespace, qualifiedResourceName, j.enableType, j.outputYAML)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	if kind == ctlutil.NamespaceKind && j.federateContents {
-		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.KubefedNamespace, j.skipAPIResourceNames, j.enableType, j.outputYAML)
+		containedArtifactsList, err := GetContainedArtifactsList(hostConfig, j.resourceName, j.KubeFedNamespace, j.skipAPIResourceNames, j.enableType, j.outputYAML)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	return CreateResources(cmdOut, hostConfig, artifactsList, j.KubefedNamespace, j.enableType, j.DryRun)
+	return CreateResources(cmdOut, hostConfig, artifactsList, j.KubeFedNamespace, j.enableType, j.DryRun)
 }
 
 func FederateResources(resources []*unstructured.Unstructured) ([]*unstructured.Unstructured, error) {

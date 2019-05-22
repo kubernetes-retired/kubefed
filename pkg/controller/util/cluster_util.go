@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	DefaultKubefedSystemNamespace  = "kube-federation-system"
+	DefaultKubeFedSystemNamespace  = "kube-federation-system"
 	DefaultClusterAvailableDelay   = 20 * time.Second
 	DefaultClusterUnavailableDelay = 60 * time.Second
 

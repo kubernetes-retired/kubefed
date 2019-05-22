@@ -75,7 +75,7 @@ var _ = Describe("Scheduling", func() {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
 			}
 			for targetTypeName := range schedulingTypes {
-				typeConfig, err := common.GetTypeConfig(client, targetTypeName, f.KubefedSystemNamespace())
+				typeConfig, err := common.GetTypeConfig(client, targetTypeName, f.KubeFedSystemNamespace())
 				if err != nil {
 					tl.Fatalf("Error retrieving federatedtypeconfig for %q: %v", targetTypeName, err)
 				}
@@ -112,7 +112,7 @@ var _ = Describe("Scheduling", func() {
 
 				By("Deleting federatedtypeconfig resources for scheduler/plugin controllers")
 				for targetTypeName := range schedulingTypes {
-					deleteTypeConfigResource(targetTypeName, f.KubefedSystemNamespace(), kubeConfig, tl)
+					deleteTypeConfigResource(targetTypeName, f.KubeFedSystemNamespace(), kubeConfig, tl)
 				}
 
 				By("Waiting for scheduler/plugin controllers are destroyed in scheduling manager")
@@ -120,7 +120,7 @@ var _ = Describe("Scheduling", func() {
 
 				By("Enabling federatedtypeconfig resources again for scheduler/plugin controllers")
 				for targetTypeName := range schedulingTypes {
-					enableTypeConfigResource(targetTypeName, f.KubefedSystemNamespace(), kubeConfig, tl)
+					enableTypeConfigResource(targetTypeName, f.KubeFedSystemNamespace(), kubeConfig, tl)
 				}
 
 				By("Waiting for the scheduler/plugin controllers are started in scheduling manager")

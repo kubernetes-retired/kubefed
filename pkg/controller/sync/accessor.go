@@ -82,7 +82,7 @@ func NewFederatedResourceAccessor(
 		limitedScope:            controllerConfig.LimitedScope(),
 		typeConfig:              typeConfig,
 		targetIsNamespace:       typeConfig.GetTargetType().Kind == util.NamespaceKind,
-		fedNamespace:            controllerConfig.KubefedNamespace,
+		fedNamespace:            controllerConfig.KubeFedNamespace,
 		fedNamespaceAPIResource: fedNamespaceAPIResource,
 		eventRecorder:           eventRecorder,
 	}
