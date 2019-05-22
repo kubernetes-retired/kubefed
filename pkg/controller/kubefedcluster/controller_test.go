@@ -46,9 +46,9 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		clusterStatus         *fedv1b1.KubefedClusterStatus
+		clusterStatus         *fedv1b1.KubeFedClusterStatus
 		storedClusterData     *ClusterData
-		expectedClusterStatus *fedv1b1.KubefedClusterStatus
+		expectedClusterStatus *fedv1b1.KubeFedClusterStatus
 		expectedResultRun     int64
 	}{
 		"ClusterReadyAtBegining": {
@@ -104,8 +104,8 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 
 }
 
-func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1b1.KubefedClusterStatus {
-	return &fedv1b1.KubefedClusterStatus{
+func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1b1.KubeFedClusterStatus {
+	return &fedv1b1.KubeFedClusterStatus{
 		Conditions: []fedv1b1.ClusterCondition{{
 			Type:               common.ClusterReady,
 			Status:             status,

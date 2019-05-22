@@ -150,12 +150,12 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
 		&util.ClusterLifecycleHandlerFuncs{
-			ClusterAvailable: func(cluster *fedv1b1.KubefedCluster) {
+			ClusterAvailable: func(cluster *fedv1b1.KubeFedCluster) {
 				// When new cluster becomes available process all the target resources again.
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 			},
 			// When a cluster becomes unavailable process all the target resources again.
-			ClusterUnavailable: func(cluster *fedv1b1.KubefedCluster, _ []interface{}) {
+			ClusterUnavailable: func(cluster *fedv1b1.KubeFedCluster, _ []interface{}) {
 				s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterUnavailableDelay))
 			},
 		},

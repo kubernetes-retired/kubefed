@@ -32,14 +32,14 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
 )
 
-type KubefedClusterValidationHook struct {
+type KubeFedClusterValidationHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-func (a *KubefedClusterValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+func (a *KubeFedClusterValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
 			Group:    "admission.core.kubefed.k8s.io",
 			Version:  "v1beta1",
@@ -48,7 +48,7 @@ func (a *KubefedClusterValidationHook) ValidatingResource() (plural schema.Group
 		"kubefedcluster"
 }
 
-func (a *KubefedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *KubeFedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
 	// We want to let through:
@@ -64,7 +64,7 @@ func (a *KubefedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.
 
 	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
-	admittingObject := &v1beta1.KubefedCluster{}
+	admittingObject := &v1beta1.KubeFedCluster{}
 	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
 	if err != nil {
 		status.Allowed = false
@@ -86,7 +86,7 @@ func (a *KubefedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.
 		return status
 	}
 
-	errs := validation.ValidateKubefedCluster(admittingObject)
+	errs := validation.ValidateKubeFedCluster(admittingObject)
 	if len(errs) != 0 {
 		status.Allowed = false
 		status.Result = &metav1.Status{
@@ -100,7 +100,7 @@ func (a *KubefedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.
 	return status
 }
 
-func (a *KubefedClusterValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (a *KubeFedClusterValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -119,7 +119,7 @@ func (a *KubefedClusterValidationHook) Initialize(kubeClientConfig *rest.Config,
 	a.client = dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    "core.kubefed.k8s.io",
 		Version:  "v1beta1",
-		Resource: "KubefedCluster",
+		Resource: "KubeFedCluster",
 	})
 
 	return nil

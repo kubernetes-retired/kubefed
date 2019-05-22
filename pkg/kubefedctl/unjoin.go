@@ -210,7 +210,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hos
 	return deleteFederatedClusterAndSecret(hostClientset, client, kubefedNamespace, unjoiningClusterName, forceDeletion, dryRun)
 }
 
-// deleteKubefedClusterAndSecret deletes a federated cluster resource that associates
+// deleteKubeFedClusterAndSecret deletes a federated cluster resource that associates
 // the cluster and secret.
 func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client genericclient.Client,
 	kubefedNamespace, unjoiningClusterName string, forceDeletion, dryRun bool) error {
@@ -221,7 +221,7 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 	klog.V(2).Infof("Deleting kubefed cluster resource from namespace %q for unjoin cluster %q",
 		kubefedNamespace, unjoiningClusterName)
 
-	fedCluster := &fedv1b1.KubefedCluster{}
+	fedCluster := &fedv1b1.KubeFedCluster{}
 	err := client.Get(context.TODO(), fedCluster, kubefedNamespace, unjoiningClusterName)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to get kubefed cluster \"%s/%s\"", kubefedNamespace, unjoiningClusterName)
