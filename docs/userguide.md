@@ -16,6 +16,7 @@
     - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
     - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
+    - [Disabling propagation of an API type](#disabling-propagation-of-an-api-type)
     - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Propagation status](#propagation-status)
     - [Troubleshooting condition status](#troubleshooting-condition-status)
@@ -274,7 +275,7 @@ kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": 
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
 you can patch role `kubefed-role` in the kubefed namespace instead.
 
-### Disabling federation of an API type
+### Disabling propagation of an API type
 
 You can disable propagation of an API type by editing its `FederatedTypeConfig`
 resource:
@@ -288,16 +289,17 @@ This patch command sets the `propagation` field in the `FederatedTypeConfig`
 associated with this target API type to `Disabled`, which will prompt the sync
 controller for the target API type to be stopped.
 
-If you want to permanently disable federation of the target API type by
-removing the `FederatedTypeConfig`, and optionally delete the federated type
-CRD created by `enable` using the `--delete-crd` flag, run the following
-command:
+### Disabling federation of an API type
+
+If you want to permanently disable federation of the target API type, use:
 
 ```bash
-kubefedctl disable <FederatedTypeConfig Name> --delete-crd
+kubefedctl disable <FederatedTypeConfig Name>
 ```
 
-**WARNING:** Using this command will remove all custom resources for the specified API type.
+This will remove the `FederatedTypeConfig` that configures federation of the
+type. If supplied with the optional `--delete-crd` flag, the command will also
+remove the federated type CRD if none of its instances exist.
 
 ## Propagation status
 
