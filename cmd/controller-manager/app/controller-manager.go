@@ -65,7 +65,7 @@ func NewControllerManagerCommand(stopChan <-chan struct{}) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "controller-manager",
 		Long: `The KubeFed controller manager runs a bunch of controllers
-which watches federation CRD's and the corresponding resources in federation
+which watches KubeFed CRD's and the corresponding resources in
 member clusters and does the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(os.Stdout, "KubeFed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
@@ -115,10 +115,10 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 
 	if opts.Scope == apiextv1b1.NamespaceScoped {
 		opts.Config.TargetNamespace = opts.Config.KubeFedNamespace
-		klog.Infof("Federation will be limited to the %q namespace", opts.Config.KubeFedNamespace)
+		klog.Infof("KubeFed will be limited to the %q namespace", opts.Config.KubeFedNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
-		klog.Info("Federation will target all namespaces")
+		klog.Info("KubeFed will target all namespaces")
 	}
 
 	elector, err := leaderelection.NewFederationLeaderElector(opts, startControllers)

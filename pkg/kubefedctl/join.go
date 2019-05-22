@@ -58,7 +58,7 @@ var (
 		--host-cluster-context flag otherwise.`
 	join_example = `
 		# Join a cluster to a federation by specifying the
-		# cluster name and the context name of the federation
+		# cluster name and the context name of the kubefed
 		# control plane's host cluster. Cluster name must be
 		# a valid RFC 1123 subdomain name. Cluster context
 		# must be specified if the cluster name is different
@@ -162,7 +162,7 @@ func (j *joinFederation) Complete(args []string) error {
 	return nil
 }
 
-// Run is the implementation of the `join federation` command.
+// Run is the implementation of the `join` command.
 func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
@@ -210,7 +210,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
-		klog.V(2).Infof("Failed to get federation clientset: %v", err)
+		klog.V(2).Infof("Failed to get kubefed clientset: %v", err)
 		return err
 	}
 
@@ -330,14 +330,14 @@ func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEn
 // associated with clusterClientset, if it doesn't already exist.
 func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamespace,
 	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
-	federationNS := &corev1.Namespace{
+	fedNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: kubefedNamespace,
 		},
 	}
 
 	if dryRun {
-		return federationNS, nil
+		return fedNamespace, nil
 	}
 
 	_, err := clusterClientset.CoreV1().Namespaces().Get(kubefedNamespace, metav1.GetOptions{})
@@ -348,16 +348,16 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 
 	if err == nil {
 		klog.V(2).Infof("Already existing %s namespace", kubefedNamespace)
-		return federationNS, nil
+		return fedNamespace, nil
 	}
 
 	// Not found, so create.
-	_, err = clusterClientset.CoreV1().Namespaces().Create(federationNS)
+	_, err = clusterClientset.CoreV1().Namespaces().Create(fedNamespace)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		klog.V(2).Infof("Could not create %s namespace: %v", kubefedNamespace, err)
 		return nil, err
 	}
-	return federationNS, nil
+	return fedNamespace, nil
 }
 
 // createRBACSecret creates a secret in the joining cluster using a service

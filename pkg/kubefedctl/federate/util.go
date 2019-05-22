@@ -162,7 +162,7 @@ func apiResourceMatchesSkipName(apiResource metav1.APIResource, skipAPIResourceN
 }
 
 func isFederatedAPIResource(kind, group string) bool {
-	return strings.HasPrefix(kind, federationKindPrefix) && group == options.DefaultFederationGroup
+	return strings.HasPrefix(kind, federatedKindPrefix) && group == options.DefaultFederatedGroup
 }
 
 // resources stores a list of resources for an api type

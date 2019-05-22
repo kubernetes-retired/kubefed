@@ -44,8 +44,8 @@ import (
 )
 
 const (
-	federationGroupUsage = "The name of the API group to use for deleting the federated CRD type when the federated type config does not exist. Only used with --delete-crd."
-	targetVersionUsage   = "The API version of the target type to use for deletion of the federated CRD type when the federated type config does not exist. Only used with --delete-crd."
+	federatedGroupUsage = "The name of the API group to use for deleting the federated CRD type when the federated type config does not exist. Only used with --delete-crd."
+	targetVersionUsage  = "The API version of the target type to use for deletion of the federated CRD type when the federated type config does not exist. Only used with --delete-crd."
 )
 
 var (
@@ -111,7 +111,7 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 	flags := cmd.Flags()
 	opts.GlobalSubcommandBind(flags)
-	opts.CommonSubcommandBind(flags, federationGroupUsage, targetVersionUsage)
+	opts.CommonSubcommandBind(flags, federatedGroupUsage, targetVersionUsage)
 	opts.Bind(flags)
 
 	return cmd
@@ -129,16 +129,16 @@ func (j *disableType) Complete(args []string) error {
 	if !j.deleteCRD {
 		if len(j.TargetVersion) > 0 {
 			return errors.New("--version flag valid only with --delete-crd")
-		} else if j.FederationGroup != options.DefaultFederationGroup {
-			return errors.New("--federation-group flag valid only with --delete-crd")
+		} else if j.FederatedGroup != options.DefaultFederatedGroup {
+			return errors.New("--kubefed-group flag valid only with --delete-crd")
 		}
 	}
 
 	if len(j.TargetVersion) > 0 {
 		directive.Spec.TargetVersion = j.TargetVersion
 	}
-	if len(j.FederationGroup) > 0 {
-		directive.Spec.FederationGroup = j.FederationGroup
+	if len(j.FederatedGroup) > 0 {
+		directive.Spec.FederatedGroup = j.FederatedGroup
 	}
 
 	return nil
@@ -175,7 +175,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 	typeConfigName ctlutil.QualifiedName, deleteCRD, dryRun, verifyStopped bool) error {
 	client, err := genericclient.New(config)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get federation clientset")
+		return errors.Wrap(err, "Failed to get kubefed clientset")
 	}
 
 	write := func(data string) {

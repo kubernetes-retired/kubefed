@@ -43,8 +43,8 @@ import (
 )
 
 const (
-	federationGroupUsage = "The name of the API group to use for the generated federation type."
-	targetVersionUsage   = "Optional, the API version of the target type."
+	federatedGroupUsage = "The name of the API group to use for the generated federated type."
+	targetVersionUsage  = "Optional, the API version of the target type."
 )
 
 var (
@@ -74,7 +74,7 @@ type enableType struct {
 }
 
 type enableTypeOptions struct {
-	federationVersion   string
+	federatedVersion    string
 	output              string
 	outputYAML          bool
 	filename            string
@@ -84,7 +84,7 @@ type enableTypeOptions struct {
 // Bind adds the join specific arguments to the flagset passed in as an
 // argument.
 func (o *enableTypeOptions) Bind(flags *pflag.FlagSet) {
-	flags.StringVar(&o.federationVersion, "federation-version", options.DefaultFederationVersion, "The API version to use for the generated federation type.")
+	flags.StringVar(&o.federatedVersion, "federated-version", options.DefaultFederatedVersion, "The API version to use for the generated federated type.")
 	flags.StringVarP(&o.output, "output", "o", "", "If provided, the resources that would be created in the API by the command are instead output to stdout in the provided format.  Valid values are ['yaml'].")
 	flags.StringVarP(&o.filename, "filename", "f", "", "If provided, the command will be configured from the provided yaml file.  Only --output will be accepted from the command line")
 }
@@ -114,7 +114,7 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 	flags := cmd.Flags()
 	opts.GlobalSubcommandBind(flags)
-	opts.CommonSubcommandBind(flags, federationGroupUsage, targetVersionUsage)
+	opts.CommonSubcommandBind(flags, federatedGroupUsage, targetVersionUsage)
 	opts.Bind(flags)
 
 	return cmd
@@ -148,11 +148,11 @@ func (j *enableType) Complete(args []string) error {
 	if len(j.TargetVersion) > 0 {
 		fd.Spec.TargetVersion = j.TargetVersion
 	}
-	if len(j.FederationGroup) > 0 {
-		fd.Spec.FederationGroup = j.FederationGroup
+	if len(j.FederatedGroup) > 0 {
+		fd.Spec.FederatedGroup = j.FederatedGroup
 	}
-	if len(j.federationVersion) > 0 {
-		fd.Spec.FederationVersion = j.federationVersion
+	if len(j.federatedVersion) > 0 {
+		fd.Spec.FederatedVersion = j.federatedVersion
 	}
 
 	return nil
@@ -222,7 +222,7 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 }
 
 // TODO(marun) Allow updates to the configuration for a type that has
-// already been enabled for federation.  This would likely involve
+// already been enabled for kubefed.  This would likely involve
 // updating the version of the target type and the validation of the schema.
 func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string) error {
 	write := func(data string) {
@@ -239,14 +239,14 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	}
 	_, err = hostClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "Federation system namespace %q does not exist", namespace)
+		return errors.Wrapf(err, "KubeFed system namespace %q does not exist", namespace)
 	} else if err != nil {
-		return errors.Wrapf(err, "Error attempting to determine whether federation system namespace %q exists", namespace)
+		return errors.Wrapf(err, "Error attempting to determine whether KubeFed system namespace %q exists", namespace)
 	}
 
 	client, err := genericclient.New(config)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get federation clientset")
+		return errors.Wrap(err, "Failed to get kubefed clientset")
 	}
 
 	concreteTypeConfig := resources.TypeConfig.(*fedv1b1.FederatedTypeConfig)
@@ -336,8 +336,8 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 			},
 			Propagation: fedv1b1.PropagationEnabled,
 			FederatedType: fedv1b1.APIResource{
-				Group:      spec.FederationGroup,
-				Version:    spec.FederationVersion,
+				Group:      spec.FederatedGroup,
+				Version:    spec.FederatedVersion,
 				Kind:       fmt.Sprintf("Federated%s", kind),
 				PluralName: fmt.Sprintf("federated%s", pluralName),
 				Scope:      federatedNamespacedToScope(apiResource),

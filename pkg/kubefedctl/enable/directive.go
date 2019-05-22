@@ -29,17 +29,17 @@ type EnableTypeDirectiveSpec struct {
 	// +optional
 	TargetVersion string `json:"targetVersion,omitempty"`
 
-	// Which field of the target type determines whether federation
+	// Which field of the target type determines whether kubefed
 	// considers two resources to be equal.
 	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 
-	// The name of the API group to use for generated federation types.
+	// The name of the API group to use for generated federated types.
 	// +optional
-	FederationGroup string `json:"federationGroup,omitempty"`
+	FederatedGroup string `json:"federatedGroup,omitempty"`
 
-	// The API version to use for generated federation types.
+	// The API version to use for generated federated types.
 	// +optional
-	FederationVersion string `json:"federationVersion,omitempty"`
+	FederatedVersion string `json:"federatedVersion,omitempty"`
 }
 
 // TODO(marun) This should become a proper API type and drive enabling
@@ -53,8 +53,8 @@ type EnableTypeDirective struct {
 }
 
 func (ft *EnableTypeDirective) SetDefaults() {
-	ft.Spec.FederationGroup = options.DefaultFederationGroup
-	ft.Spec.FederationVersion = options.DefaultFederationVersion
+	ft.Spec.FederatedGroup = options.DefaultFederatedGroup
+	ft.Spec.FederatedVersion = options.DefaultFederatedVersion
 }
 
 func NewEnableTypeDirective() *EnableTypeDirective {

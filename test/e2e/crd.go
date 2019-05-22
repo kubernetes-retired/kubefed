@@ -85,8 +85,8 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 		// Need to reuse a group and version for which the helm chart
 		// is granted rbac permissions for.  The default group and
 		// version used by `kubefedctl enable` meets this criteria.
-		Group:   kfenableopts.DefaultFederationGroup,
-		Version: kfenableopts.DefaultFederationVersion,
+		Group:   kfenableopts.DefaultFederatedGroup,
+		Version: kfenableopts.DefaultFederatedVersion,
 
 		Kind:       targetCrdKind,
 		Name:       fedv1b1.PluralName(targetCrdKind),
@@ -137,10 +137,10 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 			Name: targetAPIResource.Name,
 		},
 		Spec: kfenable.EnableTypeDirectiveSpec{
-			TargetVersion:     targetAPIResource.Version,
-			FederationGroup:   targetAPIResource.Group,
-			FederationVersion: targetAPIResource.Version,
-			ComparisonField:   apicommon.ResourceVersionField,
+			TargetVersion:    targetAPIResource.Version,
+			FederatedGroup:   targetAPIResource.Group,
+			FederatedVersion: targetAPIResource.Version,
+			ComparisonField:  apicommon.ResourceVersionField,
 		},
 	}
 
