@@ -1,4 +1,6 @@
 # Unreleased
+
+# v0.1.0-rc1
 -  [#887](https://github.com/kubernetes-sigs/kubefed/pull/887) Updates
    KubefedConfig API based on Kubernetes API conventions.
 -  [#885](https://github.com/kubernetes-sigs/kubefed/pull/885) Updates
