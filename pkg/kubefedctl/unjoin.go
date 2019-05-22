@@ -47,7 +47,7 @@ var (
 		--host-cluster-context flag otherwise.`
 	unjoin_example = `
 		# Unjoin a cluster from a federation by specifying the
-		# cluster name and the context name of the federation
+		# cluster name and the context name of the kubefed
 		# control plane's host cluster. Cluster name must be
 		# a valid RFC 1123 subdomain name. Cluster context
 		# must be specified if the cluster name is different
@@ -129,7 +129,7 @@ func (j *unjoinFederation) Complete(args []string) error {
 	return nil
 }
 
-// Run is the implementation of the `unjoin federation` command.
+// Run is the implementation of the `unjoin` command.
 func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
@@ -184,7 +184,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hos
 
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
-		klog.V(2).Infof("Failed to get federation clientset: %v", err)
+		klog.V(2).Infof("Failed to get kubefed clientset: %v", err)
 		return err
 	}
 

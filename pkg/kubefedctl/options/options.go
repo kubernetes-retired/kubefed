@@ -44,7 +44,7 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
 	flags.StringVar(&o.KubeFedNamespace, "kubefed-namespace", util.DefaultKubeFedSystemNamespace,
-		"Namespace in the host cluster where the federation system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
+		"Namespace in the host cluster where the kubefed system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
@@ -79,7 +79,7 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to get federation clientset")
+		err = errors.Wrap(err, "Failed to get kubefed clientset")
 		return "", err
 	}
 
@@ -100,21 +100,21 @@ func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiex
 // CommonEnableOptions holds the common configuration required by the enable
 // and disable subcommands of `kubefedctl`.
 type CommonEnableOptions struct {
-	TargetName      string
-	FederationGroup string
-	TargetVersion   string
+	TargetName     string
+	FederatedGroup string
+	TargetVersion  string
 }
 
 // Default value for shared Federation group across enable and
 // disable subcommands of `kubefedctl`.
 const (
-	DefaultFederationGroup   = "types.kubefed.k8s.io"
-	DefaultFederationVersion = "v1beta1"
+	DefaultFederatedGroup   = "types.kubefed.k8s.io"
+	DefaultFederatedVersion = "v1beta1"
 )
 
 // CommonSubcommandBind adds the common subcommand flags to the flagset passed in.
-func (o *CommonEnableOptions) CommonSubcommandBind(flags *pflag.FlagSet, federationGroupUsage, targetVersionUsage string) {
-	flags.StringVar(&o.FederationGroup, "federation-group", DefaultFederationGroup, federationGroupUsage)
+func (o *CommonEnableOptions) CommonSubcommandBind(flags *pflag.FlagSet, federatedGroupUsage, targetVersionUsage string) {
+	flags.StringVar(&o.FederatedGroup, "federated-group", DefaultFederatedGroup, federatedGroupUsage)
 	flags.StringVar(&o.TargetVersion, "version", "", targetVersionUsage)
 }
 

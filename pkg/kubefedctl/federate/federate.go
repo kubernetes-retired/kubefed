@@ -45,7 +45,7 @@ import (
 const (
 	createResourceRetryTimeout  = 10 * time.Second
 	createResourceRetryInterval = 1 * time.Second
-	federationKindPrefix        = "Federated"
+	federatedKindPrefix         = "Federated"
 )
 
 var (
@@ -59,12 +59,12 @@ var (
 
 	federate_long = `
 		Federate creates a federated resource from a kubernetes resource.
-		The target resource must exist in the cluster hosting the federation
+		The target resource must exist in the cluster hosting the kubefed
 		control plane. If the federated resource needs to be created in the
 		API, the control plane must have a FederatedTypeConfig for the type
 		of the kubernetes resource. If using with flag '-o yaml', it is not
 		necessary for the FederatedTypeConfig to exist (or even for the
-		federation API to be installed in the cluster).
+		kubefed API to be installed in the cluster).
 
 		Current context is assumed to be a Kubernetes cluster hosting
 		the kubefed control plane. Please use the --host-cluster-context
