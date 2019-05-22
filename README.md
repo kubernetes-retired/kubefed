@@ -2,12 +2,12 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/kubefed)](https://goreportcard.com/report/github.com/kubernetes-sigs/kubefed)
 [![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/kubefed/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/kubefed)
 [![LICENSE](https://img.shields.io/badge/license-apache2.0-green.svg)](https://github.com/kubernetes-sigs/kubefed/blob/master/LICENSE)
-[![Releases](https://img.shields.io/badge/version-v0.0.10-orange.svg)](https://github.com/kubernetes-sigs/kubefed/releases "Kubefed latest release")
+[![Releases](https://img.shields.io/badge/version-v0.0.10-orange.svg)](https://github.com/kubernetes-sigs/kubefed/releases "KubeFed latest release")
 
 # Kubernetes Cluster Federation
 
 This repo contains an in-progress prototype of some of the
-foundational aspects of V2 of Kubernetes Federation.  The prototype
+foundational aspects of Kubernetes Cluster Federation. The prototype
 builds on the sync controller (a.k.a. push reconciler) from
 [Federation v1](https://github.com/kubernetes/federation/) to iterate
 on the API concepts laid down in the [brainstorming
@@ -22,10 +22,10 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
 <p align="center"><img src="docs/images/concepts.png" width="711"></p>
 
-Kubefed is configured with two types of information:
+KubeFed is configured with two types of information:
 
-- **Type configuration** declares which API types Kubefed should handle
-- **Cluster configuration** declares which clusters Kubefed should target
+- **Type configuration** declares which API types KubeFed should handle
+- **Cluster configuration** declares which clusters KubeFed should target
 
 **Propagation** refers to the mechanism that distributes resources to federated
 clusters.
@@ -45,7 +45,7 @@ dynamic scheduling.
 These fundamental concepts provide building blocks that can be used by
 higher-level APIs:
 
-- **Status** collects the status of resources distributed by Kubefed across all federated clusters
+- **Status** collects the status of resources distributed by KubeFed across all federated clusters
 - **Policy** determines which subset of clusters a resource is allowed to be distributed to
 - **Scheduling** refers to a decision-making capability that can decide how 
   workloads should be spread across different clusters similar to how a human
@@ -57,7 +57,7 @@ higher-level APIs:
 |---------|----------|--------------|---------|
 | [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#example) | Alpha | PushReconciler | true |
 | [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#operations) | Alpha | | |
-| [Generate Federation APIs without writing code](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha | | |
+| [Generate KubeFed APIs without writing code](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha | | |
 | [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md) | Alpha | CrossClusterServiceDiscovery | true |
 | [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) | Alpha | FederatedIngress | true |
 | [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha | SchedulerPreferences | true |
@@ -67,7 +67,7 @@ higher-level APIs:
 ### User Guide
 
 Take a look at our [user guide](docs/userguide.md) if you are interested in
-using Kubefed.
+using KubeFed.
 
 ### Development Guide
 

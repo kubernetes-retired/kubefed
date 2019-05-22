@@ -10,7 +10,7 @@
     - [docker](#docker)
   - [Adding a new API type](#adding-a-new-api-type)
   - [Running E2E Tests](#running-e2e-tests)
-    - [Setup Clusters and Deploy the Kubefed Control Plane](#setup-clusters-and-deploy-the-kubefed-control-plane)
+    - [Setup Clusters and Deploy the KubeFed Control Plane](#setup-clusters-and-deploy-the-kubefed-control-plane)
     - [Running Tests](#running-tests)
     - [Running Tests With In-Memory Controllers](#running-tests-with-in-memory-controllers)
     - [Cleanup](#cleanup)
@@ -24,14 +24,14 @@
 
 # Development Guide
 
-If you would like to contribute to the kubefed project, this guide will
+If you would like to contribute to the KubeFed project, this guide will
 help you get started.
 
 ## Prerequisites
 
 ### Binaries
 
-The Kubefed deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
+The KubeFed deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
 `kube-apiserver` >= v1.13 being installed in the path. The `kubebuilder`
 ([v1.0.8](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.8)
 as of this writing) release packages all of these dependencies together.
@@ -46,7 +46,7 @@ export PATH=$(pwd)/bin:${PATH}
 
 ### kubernetes
 
-The kubefed deployment requires kubernetes version >= 1.13. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
+The KubeFed deployment requires kubernetes version >= 1.13. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
 
 ## Prerequisites
 
@@ -60,7 +60,7 @@ Set up your [Docker environment](https://docs.docker.com/install/).
 
 As per the
 [docs](http://book.kubebuilder.io/quick_start.html)
-for kubebuilder, bootstrapping a new kubefed API type can be
+for kubebuilder, bootstrapping a new KubeFed API type can be
 accomplished as follows:
 
 ```bash
@@ -85,8 +85,8 @@ non-generated code in the commit history.
 
 ## Running E2E Tests
 
-The kubefed E2E tests must be executed against a deployed
-federation of one or more clusters.  Optionally, the federation
+The KubeFed E2E tests must be executed against a deployed
+federation of one or more clusters.  Optionally, the KubeFed
 controllers can be run in-memory to enable debugging.
 
 Many of the tests validate CRUD operations for each of the federated
@@ -100,15 +100,15 @@ types enabled by default:
 
 The read operation is implicit.
 
-### Setup Clusters and Deploy the Kubefed Control Plane
+### Setup Clusters and Deploy the KubeFed Control Plane
 
 In order to run E2E tests, you first need to:
 
 1. Create clusters
    - See the [user guide for a way to deploy clusters](userguide.md#create-clusters)
-     for testing kubefed.
-1. Deploy the kubefed control plane
-   - To deploy the latest version of the kubefed control plane, follow
+     for testing KubeFed.
+1. Deploy the KubeFed control plane
+   - To deploy the latest version of the KubeFed control plane, follow
      the [Helm chart deployment in the user guide](../charts/kubefed/README.md#installing-the-chart).
    - To deploy your own changes, follow the [Test Your Changes](#test-your-changes)
      section of this guide.
@@ -146,13 +146,13 @@ dlv test -- -kubeconfig=/path/to/kubeconfig -test.v \
 
 ### Running Tests With In-Memory Controllers
 
-Running the kubefed controllers in-memory for a test run allows the
+Running the KubeFed controllers in-memory for a test run allows the
 controllers to be targeted by a debugger (e.g. delve) or the golang
 race detector.  The prerequisite for this mode is scaling down the
-kubefed controller manager:
+KubeFed controller manager:
 
 1. Reduce the `kubefed-controller-manager` deployment replicas to 0. This way
-   we can launch the necessary kubefed controllers ourselves via the test
+   we can launch the necessary KubeFed controllers ourselves via the test
    binary.
 
    ```bash
@@ -193,7 +193,7 @@ Follow the [cleanup instructions in the user guide](../charts/kubefed/README.md#
 In order to test your changes on your kubernetes cluster, you'll need
 to build an image and a deployment config.
 
-**NOTE:** When federation CRDs are changed, you need to run:
+**NOTE:** When KubeFed CRDs are changed, you need to run:
 ```bash
 make generate
 ```

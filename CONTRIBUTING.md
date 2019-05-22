@@ -1,17 +1,17 @@
 ## Contributing Guidelines
-This repo contains an alpha release of some of the foundational aspects of V2 of Kubernetes Federation. All the contribution is done via GitHub. Please also read the contributors guide: https://github.com/kubernetes/community/blob/master/contributors/guide/README.md
+This repo contains an alpha release of some of the foundational aspects of Kubernetes Cluster Federation. All the contribution is done via GitHub. Please also read the contributors guide: https://github.com/kubernetes/community/blob/master/contributors/guide/README.md
 
 ## Sign the CLA
 Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests. Please see https://github.com/kubernetes/community/blob/master/CLA.md for more information
 
 ## Learn About Kubernetes Cluster Federation
-If you want to learn about Kubernetes Cluster Federation, please read through the doc:
-https://github.com/kubernetes-sigs/kubefed#kubernetes-cluster-federation
+If you want to learn about KubeFed, please read through the doc:
+https://github.com/kubernetes-sigs/kubefed#kubefed
 
 To learn how to use Kubernetes Cluster Federation, please read through the User Guide:
 https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md
 
-If you are interested in contributing to Kubernetes Cluster Federation project, please read through the Development Guide:
+If you are interested in contributing to Kubernetes Cluster Federation, please read through the Development Guide:
 https://github.com/kubernetes-sigs/kubefed/blob/master/docs/development.md
 
 

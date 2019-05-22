@@ -22,7 +22,7 @@ external DNS records of Ingress resources in supported DNS providers.
 
 The above diagram illustrates MCIDNS. A typical MCIDNS workflow consists of:
 
-1. Creating `FederatedDeployment`, `FederatedService`, and `FederatedIngress` resources. The Federation sync
+1. Creating `FederatedDeployment`, `FederatedService`, and `FederatedIngress` resources. The KubeFed sync
    controller propagates the corresponding `Deployment`, `Service`, and `Ingress` resources to target clusters.
 2. Creating an `IngressDNSRecord` resource that identifies the intended domain name(s) and optional DNS resource
    record parameters.
@@ -40,7 +40,7 @@ MCIDNS is comprised of multiple types and controllers:
 
 Setting-up MCIDNS can be accomplished by referencing the following documentation:
 
-- The Kubefed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the Federation
+- The KubeFed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the KubeFed
   control-plane. If running in GKE, the cluster hosting the ExternalDNS controller must have scope
   `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with
@@ -49,10 +49,10 @@ Setting-up MCIDNS can be accomplished by referencing the following documentation
   controller. You must ensure the following `args` are provided in the external-dns Deployment manifest:
   `--source=crd --crd-source-apiversion=multiclusterdns.kubefed.k8s.io/v1alpha1 --crd-source-kind=DNSEndpoint --registry=txt --txt-prefix=cname`
   **Note**: If you do not deploy the external-dns controller to the same namespace and use the default service account
-  of the kubefed control-plane, you must setup RBAC permissions allowing the controller access to necessary
+  of the KubeFed control-plane, you must setup RBAC permissions allowing the controller access to necessary
   resources.
 
-After the cluster, kubefed control-plane, and external-dns controller are running, use the
+After the cluster, KubeFed control-plane, and external-dns controller are running, use the
 [sample](../example/sample1) federated deployment, service, and ingress to test MCIDNS. Check the status of all the
 resources in each cluster by running:
 

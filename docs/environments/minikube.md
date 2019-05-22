@@ -9,7 +9,7 @@
 # Minikube
 
 [Minikube](https://kubernetes.io/docs/getting-started-guides/minikube/)
-provides one of the quickest way to set-up clusters for use with the kubefed.
+provides one of the quickest way to set-up clusters for use with KubeFed.
 
 **NOTE:** You will need to use a minikube version that supports
 deploying a kubernetes cluster >= 1.13. [Recently
@@ -32,4 +32,4 @@ kubectl get all --all-namespaces
 ```
 
 After all pods reach a Running status, you can return to the [User Guide](../userguide.md) to deploy the cluster
-registry and Kubefed control plane.
+registry and KubeFed control plane.

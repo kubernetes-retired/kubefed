@@ -57,17 +57,17 @@
 
 # User Guide
 
-Please refer to [Kubefed Concepts](./concepts.md) first before you go through this user guide.
+Please refer to [KubeFed Concepts](./concepts.md) first before you go through this user guide.
 
 This user guide contains concepts and procedures to help you get started with Kubefed.
 
-For information about installing Kubefed, see the [installation documentation](./installation.md).
+For information about installing KubeFed, see the [installation documentation](./installation.md).
 
 ## Joining and unjoining clusters
 
 ### Joining clusters
 
-`kubefedctl` is the Kubefed command line utility. You can download
+`kubefedctl` is the KubeFed command line utility. You can download
 the latest binary from the [release page](https://github.com/kubernetes-sigs/kubefed/releases).
 ```bash
 VERSION=<latest-version>
@@ -82,15 +82,15 @@ sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
 ### Deployment Image
 
 If you follow this user guide without any changes you will be using the latest
-stable released version of the kubefed image tagged as `latest`.
+stable released version of the KubeFed image tagged as `latest`.
 Alternatively, we support the ability to deploy the [latest master image tagged
 as `canary`](development.md#test-latest-master-changes-canary) or [your own
 custom image](development.md#test-your-changes).
 
 ### Create Clusters
 
-The kubefed control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
-Kubernetes environments that have been tested and are supported by the Kubefed community:
+The KubeFed control plane can run on any v1.13 or greater Kubernetes clusters. The following is a list of
+Kubernetes environments that have been tested and are supported by the KubeFed community:
 
 - [kind](./environments/kind.md)
 
@@ -100,7 +100,7 @@ Kubernetes environments that have been tested and are supported by the Kubefed c
 
 - [IBM Cloud Private](./environments/icp.md)
 
-After completing the steps in one of the above guides, return here to continue the Kubefed deployment.
+After completing the steps in one of the above guides, return here to continue the KubeFed deployment.
 
 **NOTE:** You must set the correct context using the command below as this guide depends on it.
 
@@ -111,13 +111,13 @@ kubectl config use-context cluster1
 ## Helm Chart Deployment
 
 You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md)
-to install and uninstall a kubefed control plane.
+to install and uninstall a KubeFed control plane.
 
 ## Operations
 
 ### Join Clusters
 
-You can use the `kubefed2` tool to join clusters as follows.
+You can use the `kubefedctl` tool to join clusters as follows.
 
 ```bash
 kubefedctl join cluster1 --cluster-context cluster1 \
@@ -145,7 +145,7 @@ cluster2   True    1m
 ```
 ### Unjoining clusters
 
-You can unjoin clusters using `kubefed2` tool as follows.
+You can unjoin clusters using `kubefedctl` tool as follows.
 
 ```bash
 kubefedctl unjoin cluster2 --cluster-context cluster2 --host-cluster-context cluster1 --v=2
@@ -248,7 +248,7 @@ and **deployments**.apps) match, the crd name of the generated federated type wo
 
 `kubefedctl enable --federation-group string` specifies the name of the API group to use for the
 generated federation type. It is `types.kubefed.k8s.io` by default. If a new federation group is
-enabled, the RBAC permissions for the kubefed controller manager will need to be updated to include
+enabled, the RBAC permissions for the KubeFed controller manager will need to be updated to include
 permissions for the new group.
 
 For example, after federation deployment, `deployments.apps` is enabled by default. To enable
@@ -272,7 +272,7 @@ kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": 
 }]'
 ```
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
-you can patch role `kubefed-role` in the kubefed namespace instead.
+you can patch role `kubefed-role` in the KubeFed namespace instead.
 
 ### Disabling federation of an API type
 
@@ -572,7 +572,7 @@ done
 ```
 
 If you were able to verify the resources removed and added back then you have
-successfully verified a working kubefed deployment.
+successfully verified a working KubeFed deployment.
 
 #### Cleaning up
 
@@ -590,10 +590,10 @@ to via the `spec.placement.clusters` field of a federated resource, it is possib
 use the `spec.placement.clusterSelector` field to provide a label selector that determines
 a list of clusters at runtime.
 
-If the goal is to select a subset of member clusters, make sure that the `KubefedCluster` binaries from pre-reqs [now covered by Helm installation]
+If the goal is to select a subset of member clusters, make sure that the `KubeFedCluster` binaries from pre-reqs [now covered by Helm installation]
 resources that are intended to be selected have the appropriate labels applied.
 
-The following command is an example to label a `KubefedCluster`:
+The following command is an example to label a `KubeFedCluster`:
 
 ```bash
 kubectl label kubefedclusters -n kube-federation-system cluster1 foo=bar
@@ -673,7 +673,7 @@ An example for CRD of `federatedserviceaccounts` is as follows:
 kubectl describe federatedserviceaccounts test-serviceaccount -n test-namespace
 ```
 
-It may also be useful to inspect the kubefed controller log as follows:
+It may also be useful to inspect the KubeFed controller log as follows:
 
 ```bash
 kubectl logs deployment/kubefed-controller-manager -n kube-federation-system
@@ -702,11 +702,11 @@ On successful completion of the script, both `cluster1` and
 ## Namespaced Federation
 
 All prior instructions referred to the deployment and use of a
-cluster-scoped kubefed control plane. It is also possible to
+cluster-scoped KubeFed control plane. It is also possible to
 deploy a namespace-scoped control plane. In this mode of operation,
-kubefed controllers will target resources in a single namespace on
+KubeFed controllers will target resources in a single namespace on
 both host and member clusters. This may be desirable when
-experimenting with kubefed on a production cluster.
+experimenting with KubeFed on a production cluster.
 
 ### Helm Configuration
 
@@ -733,7 +733,7 @@ kubefedctl join mycluster --cluster-context mycluster \
 
 ## Local Value Retention
 
-In most cases, the kubefed sync controller will overwrite any
+In most cases, the KubeFed sync controller will overwrite any
 changes made to resources it manages in member clusters.  The
 exceptions appear in the following table.  Where retention is
 conditional, an explanation will be provided in a subsequent section.
@@ -763,7 +763,7 @@ federated resource for each retention strategy (i.e. one with
 ### ServiceAccount
 
 A populated `secrets` field of a `ServiceAccount` resource managed by
-kubefed will be retained if the managing federated resource does
+KubeFed will be retained if the managing federated resource does
 not specify a value for the field.  This avoids the possibility of the
 sync controller attempting to repeatedly clear the field while a local
 serviceaccounts controller attempts to repeatedly set it to a
@@ -771,10 +771,10 @@ generated value.
 
 ## Higher order behaviour
 
-The architecture of kubefed API allows higher level APIs to be constructed using the
+The architecture of KubeFed API allows higher level APIs to be constructed using the
 mechanics provided by the standard form of the federated API types (containing fields for
 `template`, `placement` and `override`) and associated controllers for a given resource.
-Further sections describe few of higher level APIs implemented as part of Kubefed.
+Further sections describe few of higher level APIs implemented as part of KubeFed.
 
 ### Multi-Cluster Ingress DNS
 
@@ -960,7 +960,7 @@ Replica layout: C=20
 
 ## Controller-Manager Leader Election
 
-The kubefed controller manager is always deployed with leader election feature
+The KubeFed controller manager is always deployed with leader election feature
 to ensure high availability of the control plane. Leader election module ensures
 there is always a leader elected among multiple instances which takes care of
 running the controllers. In case the active instance goes down, one of the standby instances
