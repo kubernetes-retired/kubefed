@@ -172,7 +172,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.Scope, err = options.GetScopeFromKubefedConfig(hostConfig, j.KubefedNamespace)
+	j.Scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubefedNamespace)
 	if err != nil {
 		return err
 	}

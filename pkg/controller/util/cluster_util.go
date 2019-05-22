@@ -50,7 +50,7 @@ const (
 	DefaultClusterHealthCheckSuccessThreshold = 1
 	DefaultClusterHealthCheckTimeout          = 3
 
-	KubefedConfigName = "kubefed"
+	KubeFedConfigName = "kubefed"
 )
 
 // BuildClusterConfig returns a restclient.Config that can be used to configure

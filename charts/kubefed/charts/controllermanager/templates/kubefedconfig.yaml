@@ -1,5 +1,5 @@
 apiVersion: core.kubefed.k8s.io/v1beta1
-kind: KubefedConfig
+kind: KubeFedConfig
 metadata:
   name: kubefed
   namespace: {{ .Release.Namespace }}
