@@ -1,4 +1,6 @@
 # Unreleased
+-  [#909](https://github.com/kubernetes-sigs/kubefed/issues/909) Adds
+   admission webhook validations for FederatedTypeConfig API.
 
 # v0.1.0-rc1
 -  [#887](https://github.com/kubernetes-sigs/kubefed/pull/887) Updates
