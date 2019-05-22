@@ -1,4 +1,8 @@
 # Unreleased
+-  [#887](https://github.com/kubernetes-sigs/kubefed/pull/887) Updates
+   KubefedConfig API based on Kubernetes API conventions.
+-  [#885](https://github.com/kubernetes-sigs/kubefed/pull/885) Updates
+   FederatedTypeConfig API based on Kubernetes API conventions.
 -  [#886](https://sigs.k8s.io/kubefed/issues/886)
    The ca bundle for a member cluster is now stored as an optional
    field of KubefedCluster since a ca bundle may not be required for
