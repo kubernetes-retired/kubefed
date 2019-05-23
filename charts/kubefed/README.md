@@ -77,7 +77,7 @@ $ helm search kubefed
 Install the chart and specify the version to install with the
 `--version` argument. Replace `<x.x.x>` with your desired version.
 ```bash
-$ helm install kubefed-charts/federation-v2 --name kubefed --version=<x.x.x> --namespace kube-federation-system
+$ helm install kubefed-charts/kubefed --name kubefed --version=<x.x.x> --namespace kube-federation-system
 ```
 
 ## Uninstalling the Chart
@@ -144,5 +144,5 @@ Alternatively, a YAML file that specifies the values for the parameters can be
 provided while installing the chart. For example:
 
 ```bash
-$ helm install kubefed-charts/federation-v2 --name kubefed --namespace kube-federation-system --values values.yaml
+$ helm install kubefed-charts/kubefed --name kubefed --namespace kube-federation-system --values values.yaml
 ```
