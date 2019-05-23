@@ -13,7 +13,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/admission.core.kubefed.k8s.io/v1alpha1/federatedtypeconfigs
+      path: /apis/admission.core.kubefed.k8s.io/v1beta1/federatedtypeconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -22,7 +22,7 @@ webhooks:
     apiGroups:
     - "core.kubefed.k8s.io"
     apiVersions:
-    - "v1alpha1"
+    - "v1beta1"
     resources:
     - "federatedtypeconfigs"
   failurePolicy: Fail
@@ -37,7 +37,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/admission.core.kubefed.k8s.io/v1alpha1/kubefedclusters
+      path: /apis/admission.core.kubefed.k8s.io/v1beta1/kubefedclusters
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -46,7 +46,7 @@ webhooks:
     apiGroups:
     - "core.kubefed.k8s.io"
     apiVersions:
-    - "v1alpha1"
+    - "v1beta1"
     resources:
     - "kubefedclusters"
   failurePolicy: Fail
