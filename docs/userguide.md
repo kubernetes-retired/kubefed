@@ -16,6 +16,7 @@
     - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
     - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
+    - [Disabling propagation of an API type](#disabling-propagation-of-an-api-type)
     - [Disabling federation of an API type](#disabling-federation-of-an-api-type)
   - [Federating a target resource](#federating-a-target-resource)
     - [Federate a namespace with contents](#federate-a-namespace-with-contents)
@@ -278,27 +279,31 @@ kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": 
 This example is for cluster scoped federation deployment. For namespaced federation deployment,
 you can patch role `kubefed-role` in the KubeFed namespace instead.
 
+### Disabling propagation of an API type
+
+You can disable propagation of an API type by editing its `FederatedTypeConfig`
+resource:
+
+```bash
+kubectl patch --namespace <KUBEFED_SYSTEM_NAMESPACE> federatedtypeconfigs <NAME> \
+    --type=merge -p '{"spec": {"propagation": "Disabled"}}'
+```
+
+This patch command sets the `propagation` field in the `FederatedTypeConfig`
+associated with this target API type to `Disabled`, which will prompt the sync
+controller for the target API type to be stopped.
+
 ### Disabling federation of an API type
 
-You can disable propagation of an API type using the
-`kubefedctl` command.
+If you want to permanently disable federation of the target API type, use:
 
 ```bash
 kubefedctl disable <FederatedTypeConfig Name>
 ```
 
-This command sets the `propagationEnabled` field in the `FederatedTypeConfig`
-associated with this target API type to `false`, which will prompt the sync controller for the target API type to be stopped.
-
-If you want to permanently disable federation of the target API type, pass the
-`--delete-crd` flag to remove the `FederatedTypeConfig` and federated type CRD created by
-`enable`.
-
-```bash
-kubefedctl disable <FederatedTypeConfig Name> --delete-crd
-```
-
-**WARNING:** Using this command will remove all custom resources for the specified API type.
+This will remove the `FederatedTypeConfig` that configures federation of the
+type. If supplied with the optional `--delete-crd` flag, the command will also
+remove the federated type CRD if none of its instances exist.
 
 ## Federating a target resource
 Apart from `enabling` and `disabling` a `type` for `propagation` as specified in the previous 
