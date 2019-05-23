@@ -58,7 +58,7 @@ pushd "${ROOT_DIR}"
     helm package kubefed
 
     # Update the repo index (will need to be committed)
-    helm repo index . --merge index.yaml --url="https://sigs.k8s.io/kubefed/releases/download/${RELEASE_TAG}"
+    helm repo index . --merge index.yaml --url="https://github.com/kubernetes-sigs/kubefed/releases/download/${RELEASE_TAG}"
 
     sha256sum "kubefed-${RELEASE_VERSION}.tgz" > "kubefed-${RELEASE_VERSION}.tgz.sha"
     mv kubefed-${RELEASE_VERSION}.tgz* "${ROOT_DIR}/"
