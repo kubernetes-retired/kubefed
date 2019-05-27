@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   federation-v2:
   - apiVersion: v1
-    created: 2019-05-06T15:30:47.795749649-07:00
+    created: "2019-05-06T15:30:47.795749649-07:00"
     description: Kubernetes Federation V2 helm chart
     digest: 9b248eed6f021951653ee98cb255d2d3564748ac04c2484c941f619c39c5dd79
     name: federation-v2
@@ -10,7 +10,7 @@ entries:
     - https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.10/federation-v2-0.0.10.tgz
     version: 0.0.10
   - apiVersion: v1
-    created: 2019-04-29T22:11:58.917695043-07:00
+    created: "2019-04-29T22:11:58.917695043-07:00"
     description: Kubernetes Federation V2 helm chart
     digest: b0dc5f35ef7b5fcc8604881d97a033af2cbdb5ea221b4702ca098bc4ef1c7dc5
     name: federation-v2
@@ -18,7 +18,7 @@ entries:
     - https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.9/federation-v2-0.0.9.tgz
     version: 0.0.9
   - apiVersion: v1
-    created: 2019-04-10T22:19:18.130342567-07:00
+    created: "2019-04-10T22:19:18.130342567-07:00"
     description: Kubernetes Federation V2 helm chart
     digest: 99e3236f43ac81dbdf04e9ad47914e5782dbb6a97a5bb2bf9d2d6ec3d73d9afc
     name: federation-v2
@@ -27,11 +27,19 @@ entries:
     version: 0.0.8
   kubefed:
   - apiVersion: v1
-    created: 2019-05-22T15:59:04.160292519-07:00
+    created: "2019-05-27T07:35:43.256767346-07:00"
+    description: KubeFed helm chart
+    digest: aa3a543f363c97a8774d970dde615f55afda6a28d168a2d33844fb52687d7cb7
+    name: kubefed
+    urls:
+    - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.1.0-rc2/kubefed-0.1.0-rc2.tgz
+    version: 0.1.0-rc2
+  - apiVersion: v1
+    created: "2019-05-22T15:59:04.160292519-07:00"
     description: KubeFed helm chart
     digest: 4f829657ea2088c176869d8e65435926b59f5cf1f7f1ce0102fae3a81c576d5e
     name: kubefed
     urls:
     - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.1.0-rc1/kubefed-0.1.0-rc1.tgz
     version: 0.1.0-rc1
-generated: 2019-05-22T15:59:04.158053632-07:00
+generated: "2019-05-27T07:35:43.254629706-07:00"
