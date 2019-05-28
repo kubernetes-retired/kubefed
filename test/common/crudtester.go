@@ -174,8 +174,8 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 
 	key := "metadata.labels"
 	value := map[string]interface{}{
-		"crudtester-operation":           "update",
-		util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+		"crudtester-operation":        "update",
+		util.ManagedByKubeFedLabelKey: util.ManagedByKubeFedLabelValue,
 	}
 
 	c.tl.Logf("Updating %s %q", kind, qualifiedName)
@@ -558,7 +558,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			// labeling also ensures that the federated informer will be able
 			// to cache the resource.
 			if !util.HasManagedLabel(clusterObj) {
-				c.tl.Errorf("Expected resource to be labeled with %q", fmt.Sprintf("%s: %s", util.ManagedByFederationLabelKey, util.ManagedByFederationLabelValue))
+				c.tl.Errorf("Expected resource to be labeled with %q", fmt.Sprintf("%s: %s", util.ManagedByKubeFedLabelKey, util.ManagedByKubeFedLabelValue))
 				return false, nil
 			}
 

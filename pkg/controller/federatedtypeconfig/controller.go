@@ -41,7 +41,9 @@ import (
 
 const finalizer string = "core.kubefed.k8s.io/federated-type-config"
 
-// Controller manages the FederatedTypeConfig objects in federation.
+// The FederatedTypeConfig controller configures sync and status
+// controllers in response to FederatedTypeConfig resources in the
+// KubeFed system namespace.
 type Controller struct {
 	// Arguments to use when starting new controllers
 	controllerConfig *util.ControllerConfig
@@ -89,7 +91,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
 
-	// Only watch the kubefed namespace to ensure
+	// Only watch the KubeFed namespace to ensure
 	// restrictive authz can be applied to a namespaced
 	// control plane.
 	c.store, c.controller, err = util.NewGenericInformer(
@@ -161,7 +163,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 			c.lock.Lock()
 			c.stopChannels[typeConfig.Name] = holderChan
 			c.lock.Unlock()
-			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced kubefed control plane.", typeConfig.GetFederatedType().Kind)
+			klog.Infof("Skipping start of sync & status controller for cluster-scoped resource %q. It is not required for a namespaced KubeFed control plane.", typeConfig.GetFederatedType().Kind)
 		}
 
 		typeConfig.Status.ObservedGeneration = typeConfig.Generation
@@ -299,7 +301,7 @@ func (c *Controller) getStopChannel(name string) (chan struct{}, bool) {
 func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error {
 	// TODO(marun) Consider using a shared informer for federated
 	// namespace that can be shared between all controllers of a
-	// cluster-scoped kubefed control plane.  A namespace-scoped
+	// cluster-scoped KubeFed control plane.  A namespace-scoped
 	// control plane would still have to use a non-shared informer due
 	// to it not being possible to limit its scope.
 	kind := tc.Spec.FederatedType.Kind
@@ -308,7 +310,7 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 		return errors.Wrapf(err, "Unable to start sync controller for %q due to missing FederatedTypeConfig for namespaces", kind)
 	}
 	stopChan := make(chan struct{})
-	err = synccontroller.StartFederationSyncController(c.controllerConfig, stopChan, tc, fedNamespaceAPIResource)
+	err = synccontroller.StartKubeFedSyncController(c.controllerConfig, stopChan, tc, fedNamespaceAPIResource)
 	if err != nil {
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting sync controller for %q", kind)
@@ -323,7 +325,7 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 func (c *Controller) startStatusController(statusKey string, tc *corev1b1.FederatedTypeConfig) error {
 	kind := tc.Spec.FederatedType.Kind
 	stopChan := make(chan struct{})
-	err := statuscontroller.StartFederationStatusController(c.controllerConfig, stopChan, tc)
+	err := statuscontroller.StartKubeFedStatusController(c.controllerConfig, stopChan, tc)
 	if err != nil {
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting status controller for %q", kind)

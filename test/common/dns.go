@@ -65,7 +65,7 @@ func NewServiceObject(name, namespace string) *apiv1.Service {
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+				util.ManagedByKubeFedLabelKey: util.ManagedByKubeFedLabelValue,
 			},
 		},
 		Spec: apiv1.ServiceSpec{
@@ -84,7 +84,7 @@ func NewEndpointObject(name, namespace string) *apiv1.Endpoints {
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+				util.ManagedByKubeFedLabelKey: util.ManagedByKubeFedLabelValue,
 			},
 		},
 		Subsets: []apiv1.EndpointSubset{{
@@ -100,7 +100,7 @@ func NewIngressObject(name, namespace string) *extv1b1.Ingress {
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				util.ManagedByFederationLabelKey: util.ManagedByFederationLabelValue,
+				util.ManagedByKubeFedLabelKey: util.ManagedByKubeFedLabelValue,
 			},
 		},
 		Spec: extv1b1.IngressSpec{

@@ -73,8 +73,9 @@ type FederatedReadOnlyStore interface {
 	ClustersSynced(clusters []*fedv1b1.KubeFedCluster) bool
 }
 
-// An interface to access federation members and clients.
-type FederationView interface {
+// An interface to retrieve both KubeFedCluster resources and clients
+// to access the clusters they represent.
+type RegisteredClustersView interface {
 	// GetClientForCluster returns a client for the cluster, if present.
 	GetClientForCluster(clusterName string) (ResourceClient, error)
 
@@ -94,13 +95,17 @@ type FederationView interface {
 	ClustersSynced() bool
 }
 
-// A structure that combines an informer running against federated api server and listening for cluster updates
-// with multiple Kubernetes API informers (called target informers) running against federation members. Whenever a new
-// cluster is added to the federation an informer is created for it using TargetInformerFactory. Informers are stopped
-// when a cluster is either put offline of deleted. It is assumed that some controller keeps an eye on the cluster list
-// and thus the clusters in ETCD are up to date.
+// FederatedInformer provides access to clusters registered with a
+// KubeFed control plane and watches a given resource type in
+// registered clusters.
+//
+// Whenever a new cluster is registered with KubeFed, an informer is
+// created for it using TargetInformerFactory. Informers are stopped
+// when a cluster is either put offline of deleted. It is assumed that
+// some controller keeps an eye on the cluster list and thus the
+// clusters in ETCD are up to date.
 type FederatedInformer interface {
-	FederationView
+	RegisteredClustersView
 
 	// Returns a store created over all stores from target informers.
 	GetTargetStore() FederatedReadOnlyStore
@@ -135,7 +140,7 @@ type ClusterLifecycleHandlerFuncs struct {
 	ClusterUnavailable func(*fedv1b1.KubeFedCluster, []interface{})
 }
 
-// Builds a FederatedInformer for the given federation client and factory.
+// Builds a FederatedInformer for the given configuration.
 func NewFederatedInformer(
 	config *ControllerConfig,
 	client generic.Client,

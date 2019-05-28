@@ -53,8 +53,8 @@ type asyncWorker struct {
 
 	// For triggering reconciliation of a single resource. This is
 	// used when there is an add/update/delete operation on a resource
-	// in either the federation api or in some member of the
-	// federation.
+	// in either the API of the cluster hosting KubeFed or in the API
+	// of a member cluster.
 	deliverer *DelayingDeliverer
 
 	// Work queue allowing parallel processing of resources

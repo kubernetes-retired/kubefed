@@ -197,7 +197,7 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctluti
 
 	err = plugin.(*Plugin).Reconcile(qualifiedName, result)
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to reconcile Federation Targets for RSP named %q", key))
+		runtime.HandleError(errors.Wrapf(err, "Failed to reconcile federated targets for RSP named %q", key))
 		return ctlutil.StatusError
 	}
 

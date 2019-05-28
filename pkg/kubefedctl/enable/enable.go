@@ -50,9 +50,9 @@ const (
 var (
 	enable_long = `
 		Enables a Kubernetes API type (including a CRD) to be propagated
-		to members of a federation.  A CRD for the federated type will be
-		generated and a FederatedTypeConfig will be created to configure
-		a sync controller.
+		to clusters registered with a KubeFed control plane.  A CRD for
+		the federated type will be generated and a FederatedTypeConfig will
+		be created to configure a sync controller.
 
 		Current context is assumed to be a Kubernetes cluster hosting
 		the kubefed control plane. Please use the

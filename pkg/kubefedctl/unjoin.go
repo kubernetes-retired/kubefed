@@ -41,15 +41,17 @@ import (
 
 var (
 	unjoin_long = `
-		Unjoin removes a cluster from a federation.
-		Current context is assumed to be a Kubernetes cluster
-		hosting the kubefed control plane. Please use the
-		--host-cluster-context flag otherwise.`
+		Unjoin removes the registration of a Kubernetes cluster
+		from a KubeFed control plane. Current context is assumed
+		to be a Kubernetes cluster hosting a KubeFed control
+		plane. Please use the --host-cluster-context flag
+		otherwise.`
 	unjoin_example = `
-		# Unjoin a cluster from a federation by specifying the
-		# cluster name and the context name of the kubefed
-		# control plane's host cluster. Cluster name must be
-		# a valid RFC 1123 subdomain name. Cluster context
+		# Remove the registration of a Kubernetes cluster
+		# from a KubeFed control plane by specifying the
+		# cluster name and the context name of the control
+		# plane's host cluster. Cluster name must be a
+		# valid RFC 1123 subdomain name. Cluster context
 		# must be specified if the cluster name is different
 		# than the cluster's context in the local kubeconfig.
 		kubefedctl unjoin foo --host-cluster-context=bar`
@@ -72,14 +74,14 @@ func (o *unjoinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Delete federated cluster and secret resources even if resources in the cluster targeted for unjoin are not removed successfully.")
 }
 
-// NewCmdUnjoin defines the `unjoin` command that unjoins a cluster from a
-// federation.
+// NewCmdUnjoin defines the `unjoin` command that removes the
+// registration of a cluster from a KubeFed control plane.
 func NewCmdUnjoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &unjoinFederation{}
 
 	cmd := &cobra.Command{
 		Use:     "unjoin CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
-		Short:   "Unjoin a cluster from a federation",
+		Short:   "Remove the registration of a cluster from a KubeFed control plane",
 		Long:    unjoin_long,
 		Example: unjoin_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -160,8 +162,9 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName, j.HostClusterContext, j.ClusterContext, j.ClusterName, j.forceDeletion, j.DryRun)
 }
 
-// UnjoinCluster performs all the necessary steps to unjoin a cluster from the
-// federation provided the required set of parameters are passed in.
+// UnjoinCluster performs all the necessary steps to remove the
+// registration of a cluster from a KubeFed control plane provided the
+// required set of parameters are passed in.
 func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName, hostClusterContext,
 	unjoiningClusterContext, unjoiningClusterName string, forceDeletion, dryRun bool) error {
 

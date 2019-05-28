@@ -51,16 +51,17 @@ const (
 
 var (
 	join_long = `
-		Join adds a cluster to a federation.
+		Join registers a Kubernetes cluster with a KubeFed control
+		plane.
 
 		Current context is assumed to be a Kubernetes cluster
-		hosting the kubefed control plane. Please use the
+		hosting a KubeFed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 	join_example = `
-		# Join a cluster to a federation by specifying the
-		# cluster name and the context name of the kubefed
-		# control plane's host cluster. Cluster name must be
-		# a valid RFC 1123 subdomain name. Cluster context
+		# Register a cluster with a KubeFed control plane by
+		# specifying the cluster name and the context name of
+		# the control plane's host cluster. Cluster name must
+		# be a valid RFC 1123 subdomain name. Cluster context
 		# must be specified if the cluster name is different
 		# than the cluster's context in the local kubeconfig.
 		kubefedctl join foo --host-cluster-context=bar`
@@ -104,14 +105,14 @@ func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 		"Whether the join operation will throw an error if it encounters existing artifacts with the same name as those it's trying to create. If false, the join operation will update existing artifacts to match its own specification.")
 }
 
-// NewCmdJoin defines the `join` command that joins a cluster to a
-// federation.
+// NewCmdJoin defines the `join` command that registers a cluster with
+// a KubeFed control plane.
 func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &joinFederation{}
 
 	cmd := &cobra.Command{
 		Use:     "join CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
-		Short:   "Join a cluster to a federation",
+		Short:   "Register a cluster with a KubeFed control plane",
 		Long:    join_long,
 		Example: join_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -192,8 +193,9 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName, j.ClusterName, j.secretName, j.Scope, j.DryRun, j.errorOnExisting)
 }
 
-// JoinCluster performs all the necessary steps to join a cluster to the
-// federation provided the required set of parameters are passed in.
+// JoinCluster performs all the necessary steps to register a cluster
+// with a KubeFed control plane provided the required set of
+// parameters are passed in.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	hostClusterName, joiningClusterName, secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)

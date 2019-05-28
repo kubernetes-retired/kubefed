@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	ManagedByFederationLabelKey   = "kubefed.k8s.io/managed"
-	ManagedByFederationLabelValue = "true"
+	ManagedByKubeFedLabelKey   = "kubefed.k8s.io/managed"
+	ManagedByKubeFedLabelValue = "true"
 )
 
 // HasManagedLabel indicates whether the given object has the managed
@@ -32,7 +32,7 @@ func HasManagedLabel(obj *unstructured.Unstructured) bool {
 	if labels == nil {
 		return false
 	}
-	return labels[ManagedByFederationLabelKey] == ManagedByFederationLabelValue
+	return labels[ManagedByKubeFedLabelKey] == ManagedByKubeFedLabelValue
 }
 
 // AddManagedLabel ensures that the given object has the managed
@@ -42,7 +42,7 @@ func AddManagedLabel(obj *unstructured.Unstructured) {
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[ManagedByFederationLabelKey] = ManagedByFederationLabelValue
+	labels[ManagedByKubeFedLabelKey] = ManagedByKubeFedLabelValue
 	obj.SetLabels(labels)
 }
 
@@ -50,9 +50,9 @@ func AddManagedLabel(obj *unstructured.Unstructured) {
 // managed label.
 func RemoveManagedLabel(obj *unstructured.Unstructured) {
 	labels := obj.GetLabels()
-	if labels == nil || labels[ManagedByFederationLabelKey] != ManagedByFederationLabelValue {
+	if labels == nil || labels[ManagedByKubeFedLabelKey] != ManagedByKubeFedLabelValue {
 		return
 	}
-	delete(labels, ManagedByFederationLabelKey)
+	delete(labels, ManagedByKubeFedLabelKey)
 	obj.SetLabels(labels)
 }

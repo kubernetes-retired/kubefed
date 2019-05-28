@@ -54,7 +54,7 @@ import (
 )
 
 var (
-	kubeconfig, kubefedConfig, masterURL string
+	kubeconfig, kubeFedConfig, masterURL string
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -86,7 +86,7 @@ member clusters and does the necessary reconciliation`,
 
 	opts.AddFlags(cmd.Flags())
 	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
-	cmd.Flags().StringVar(&kubefedConfig, "kubefed-config", "", "Path to a kubefed config yaml file. Test only.")
+	cmd.Flags().StringVar(&kubeFedConfig, "kubefed-config", "", "Path to a KubeFedConfig yaml file. Test only.")
 	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
@@ -183,7 +183,7 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 
 func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 	fedConfig := &corev1b1.KubeFedConfig{}
-	if kubefedConfig == "" {
+	if kubeFedConfig == "" {
 		// there is no --kubefed-config specified, get `kubefed` KubeFedConfig from the cluster
 		client := genericclient.NewForConfigOrDieWithUserAgent(opts.Config.KubeConfig, "kubefedconfig")
 
@@ -207,22 +207,21 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 		return fedConfig
 	}
 
-	file, err := os.Open(kubefedConfig)
+	file, err := os.Open(kubeFedConfig)
 	if err != nil {
-		// when kubefed config file is specified, it should be fatal error if the file does not valid
-		klog.Fatalf("Cannot open kubefed config file %q: %v", kubefedConfig, err)
+		klog.Fatalf("Cannot open KubeFedConfig from file %q: %v", kubeFedConfig, err)
 	}
 	defer file.Close()
 
 	decoder := yaml.NewYAMLToJSONDecoder(file)
 	err = decoder.Decode(fedConfig)
 	if err != nil {
-		klog.Fatalf("Cannot decode KubeFedConfig from file %q: %v", kubefedConfig, err)
+		klog.Fatalf("Cannot decode KubeFedConfig from file %q: %v", kubeFedConfig, err)
 	}
 
 	// set to current namespace to make sure `KubeFedConfig` is updated in correct namespace
 	fedConfig.Namespace = opts.Config.KubeFedNamespace
-	klog.Infof("Setting Options with KubeFedConfig from file %q: %v", kubefedConfig, fedConfig.Spec)
+	klog.Infof("Setting Options with KubeFedConfig from file %q: %v", kubeFedConfig, fedConfig.Spec)
 	return fedConfig
 }
 

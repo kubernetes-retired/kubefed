@@ -44,7 +44,7 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
 	flags.StringVar(&o.KubeFedNamespace, "kubefed-namespace", util.DefaultKubeFedSystemNamespace,
-		"Namespace in the host cluster where the kubefed system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
+		"Namespace in the host cluster where the KubeFed system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
 }
@@ -105,8 +105,8 @@ type CommonEnableOptions struct {
 	TargetVersion  string
 }
 
-// Default value for shared Federation group across enable and
-// disable subcommands of `kubefedctl`.
+// Default values for the federated group and version used by
+// the enable and disable subcommands of `kubefedctl`.
 const (
 	DefaultFederatedGroup   = "types.kubefed.k8s.io"
 	DefaultFederatedVersion = "v1beta1"

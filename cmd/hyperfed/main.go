@@ -92,8 +92,8 @@ func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 
 	makeSymlinksFlag := false
 	cmd := &cobra.Command{
-		Use:   "hyperfed",
-		Short: "Combined binary for kubefed",
+		Use:   "hyperfed COMMAND",
+		Short: "Combined binary for KubeFed",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 0 || !makeSymlinksFlag {
 				if err := cmd.Help(); err != nil {

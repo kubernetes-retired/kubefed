@@ -45,8 +45,8 @@ const (
 // SchedulingPreferenceController synchronises the template, override
 // and placement for a target template with its spec (user preference).
 type SchedulingPreferenceController struct {
-	// For triggering reconciliation of all resources (only in
-	// federation). This is used when a new cluster becomes available.
+	// For triggering reconciliation of all scheduling resources. This
+	// is used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
 
 	// scheduler holds all the information and functionality
@@ -110,7 +110,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 	})
 
 	eventHandlers := schedulingtypes.SchedulerEventHandlers{
-		FederationEventHandler: s.worker.EnqueueObject,
+		KubeFedEventHandler: s.worker.EnqueueObject,
 		ClusterEventHandler: func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
 			s.worker.EnqueueForRetry(qualifiedName)
