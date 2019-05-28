@@ -3,6 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Releasing KubeFed](#releasing-kubefed)
+- [How image is automatically published](#how-image-is-automatically-published)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -58,3 +59,13 @@ Creating a KubeFed release involves the following steps:
    1. Move the contents of the `Unreleased` section of `CHANGELOG.md` to `v<x.x.x>`
    2. Propose a PR that includes changes to `charts/index.yaml`
       (updated by the build script) and `CHANGELOG.md`
+
+### How Image is Automatically Published
+
+Our Travis CI system handles automatically building, tagging, and pushing the
+`quay.io/kubernetes-multicluster/kubefed:<tag>` container image to our
+repository whenever Travis detects that it's running on a commit from `master`
+(uses `canary` image tag) or a git tag (uses `<tag>` and `latest` image tags).
+This step is handled in the last phase of the Travis build within the
+[`after_success` section of the Travis configuration
+file](https://github.com/kubernetes-sigs/kubefed/blob/3e9223df55bfbf801bdd51da9a7ca79183fdff6d/.travis.yml#L28-L42).
