@@ -26,15 +26,6 @@ const (
 	ClusterOffline ClusterConditionType = "Offline"
 )
 
-type VersionComparisonField string
-
-const (
-	// ResourceVersionComparison indicates comparison via the ResourceVersion field
-	ResourceVersionField VersionComparisonField = "ResourceVersion"
-	// GenerationComparison indicates comparison via the Generation field
-	GenerationField = "Generation"
-)
-
 const (
 	NamespaceName = "namespaces"
 )
