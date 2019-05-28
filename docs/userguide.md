@@ -304,7 +304,7 @@ remove the federated type CRD if none of its instances exist.
 ## Federating a target resource
 Apart from `enabling` and `disabling` a `type` for `propagation` as specified in the previous
 section, `kubefedctl` can also be used to `federate` a target resource of an API type.
-We define the term `federate` [here](concepts.md#federation-v2-concepts) and use the command keyword
+We define the term `federate` [here](concepts.md#kubefed-concepts) and use the command keyword
 `federate` in `kudefedctl` with similar meaning.
 
 `kubefedctl federate` creates a federated resource from a kubernetes resource. The federated
