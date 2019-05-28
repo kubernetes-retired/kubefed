@@ -2,7 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Installing Kubefed](#installing-kubefed)
+- [Installing KubeFed](#installing-kubefed)
   - [Prerequisites](#prerequisites)
     - [Required binaries](#required-binaries)
     - [Creating Clusters](#creating-clusters)
@@ -11,14 +11,14 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Installing Kubefed
+# Installing KubeFed
 
 ## Prerequisites
 
-Kubefed requires Kubernetes v1.13 or newer.
+KubeFed requires Kubernetes v1.13 or newer.
 
 ### Required binaries
-The following binaries are required to install and use Kubefed.
+The following binaries are required to install and use KubeFed.
 - [`kubebuilder`](https://book.kubebuilder.io/getting_started/installation_and_setup.html) v1.13 or newer.
 - [`etcd`](https://github.com/etcd-io/etcd/blob/master/Documentation/dl_build.md) v1.13 or newer.
 - `kube-apiserver` v1.13 or newer.
@@ -31,7 +31,7 @@ All of the binaries listed can be installed by the `download-binaries.sh` script
 
 ### Creating Clusters
 
-The following is a list of Kubernetes environments that have been tested and are supported by the Kubefed community.
+The following is a list of Kubernetes environments that have been tested and are supported by the KubeFed community.
 
 - [kind](./environments/kind.md)
 - [Minikube](./environments/minikube.md)
@@ -51,4 +51,4 @@ If you follow this user guide without any changes you will be using the latest m
 
 ## Helm Chart Deployment
 
-You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md) for instructions on installing Kubefed.
+You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md) for instructions on installing KubeFed.

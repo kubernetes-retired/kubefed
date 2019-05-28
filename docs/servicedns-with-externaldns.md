@@ -24,7 +24,7 @@ The above diagram illustrates MCSDNS. A typical MCSDNS workflow consists of:
 
 1. Creating `FederatedDeployment` and `FederatedService` objects. The KubeFed sync
    controller propagates the corresponding objects to target clusters.
-2. Creating a `Domain` object that associates a DNS zone and authoritative name server for the federation.
+2. Creating a `Domain` object that associates a DNS zone and authoritative name server for the KubeFed control plane.
 3. Creating a `ServiceDNSRecord` object that identifies the intended domain name and other optional resource
    record details of a `Service` object that exists in one or more target clusters.
 4. A `DNSEndpoint` object created by the DNS Endpoint Controller that corresponds to the `ServiceDNSRecord`. The
