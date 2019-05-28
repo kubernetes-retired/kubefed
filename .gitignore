@@ -3,6 +3,6 @@
 /default.etcd
 /kubeconfig
 /config/crds/
+# Ignore binaries built by the makefile to avoid accidentally committing them
 /images/kubefed/hyperfed
-# temporarily added below file to ignore list to avoid someone pushing this file in a pr by accident.
 /images/kubefed/controller-manager
