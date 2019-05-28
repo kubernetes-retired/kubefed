@@ -430,9 +430,9 @@ For reasons other than `CheckClusters`, an event will be logged with
 the same reason and can be examined for more detail:
 
 ```bash
-kubectl describe kubefednamespace myns -n myns | grep ComputePlacementFailed
+kubectl describe federatednamespace myns -n myns | grep ComputePlacementFailed
 
-Warning  ComputePlacementFailed  5m   kubefednamespace-controller  Invalid selector <nil>
+Warning  ComputePlacementFailed  5m   federatednamespace-controller  Invalid selector <nil>
 ```
 
 #### Troubleshooting CheckClusters
