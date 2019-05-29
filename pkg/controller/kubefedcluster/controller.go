@@ -101,6 +101,10 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		&cache.ResourceEventHandlerFuncs{
 			DeleteFunc: cc.delFromClusterSet,
 			AddFunc:    cc.addToClusterSet,
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				cc.delFromClusterSet(oldObj)
+				cc.addToClusterSet(newObj)
+			},
 		},
 	)
 	return cc, err
