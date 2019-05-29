@@ -46,13 +46,15 @@ type ClusterObjectVersion struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PropagatedVersion holds version information about the state propagated from
-// federation APIs configured by FederatedTypeConfig to target clusters. The
-// name of a PropagatedVersion encodes the kind and name of the resource it
-// stores information for. The type of version information stored in
-// PropagatedVersion will be the metadata.resourceVersion or metadata.Generation
-// of the resource depending on the value of spec.comparisonField in the
-// FederatedTypeConfig associated with the resource.
+// PropagatedVersion holds version information about the state
+// propagated from KubeFed APIs (configured by FederatedTypeConfig
+// resources) to member clusters. The name of a PropagatedVersion
+// encodes the kind and name of the resource it stores information for
+// (i.e. <lower-case kind>-<resource name>). If a target resource has
+// a populated metadata.Generation field, the generation will be
+// stored with a prefix of `gen:` as the version for the cluster.  If
+// metadata.Generation is not available, metadata.ResourceVersion will
+// be stored with a prefix of `rv:` as the version for the cluster.
 //
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=propagatedversions

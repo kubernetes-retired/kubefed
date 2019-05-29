@@ -19,7 +19,6 @@ package enable
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 )
 
@@ -28,10 +27,6 @@ type EnableTypeDirectiveSpec struct {
 	// The API version of the target type.
 	// +optional
 	TargetVersion string `json:"targetVersion,omitempty"`
-
-	// Which field of the target type determines whether kubefed
-	// considers two resources to be equal.
-	ComparisonField common.VersionComparisonField `json:"comparisonField"`
 
 	// The name of the API group to use for generated federated types.
 	// +optional

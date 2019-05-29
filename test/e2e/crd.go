@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
-	apicommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
@@ -140,7 +139,6 @@ func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, name
 			TargetVersion:    targetAPIResource.Version,
 			FederatedGroup:   targetAPIResource.Group,
 			FederatedVersion: targetAPIResource.Version,
-			ComparisonField:  apicommon.ResourceVersionField,
 		},
 	}
 
