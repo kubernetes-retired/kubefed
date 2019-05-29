@@ -4,20 +4,17 @@ metadata:
   name: kubefed-controller-manager
   namespace: {{ .Release.Namespace }}
   labels:
-    control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
+    kubefed-control-plane: controller-manager
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      control-plane: controller-manager
-      controller-tools.k8s.io: "1.0"
+      kubefed-control-plane: controller-manager
   strategy: {}
   template:
     metadata:
       labels:
-        control-plane: controller-manager
-        controller-tools.k8s.io: "1.0"
+        kubefed-control-plane: controller-manager
     spec:
       serviceAccountName: kubefed-controller
       containers:
