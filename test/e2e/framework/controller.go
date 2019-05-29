@@ -42,12 +42,12 @@ func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.Contr
 	f := &ControllerFixture{
 		stopChan: make(chan struct{}),
 	}
-	err := sync.StartFederationSyncController(controllerConfig, f.stopChan, typeConfig, namespacePlacement)
+	err := sync.StartKubeFedSyncController(controllerConfig, f.stopChan, typeConfig, namespacePlacement)
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
 	if typeConfig.GetStatusEnabled() {
-		err := status.StartFederationStatusController(controllerConfig, f.stopChan, typeConfig)
+		err := status.StartKubeFedStatusController(controllerConfig, f.stopChan, typeConfig)
 		if err != nil {
 			tl.Fatalf("Error starting status controller: %v", err)
 		}

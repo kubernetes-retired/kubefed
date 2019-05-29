@@ -43,14 +43,14 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// FederationStatusController collects the status of a federated type
-// from clusters that are members of the federation.
-type FederationStatusController struct {
+// KubeFedStatusController collects the status of resources in member
+// clusters.
+type KubeFedStatusController struct {
 	// For triggering reconciliation of all target resources. This is
 	// used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
 
-	// Contains resources present in members of federation.
+	// Informer for resources in member clusters
 	informer util.FederatedInformer
 
 	// Store for the federated type
@@ -77,9 +77,9 @@ type FederationStatusController struct {
 	fedNamespace string
 }
 
-// StartFederationStatusController starts a new status controller for a type config
-func StartFederationStatusController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface) error {
-	controller, err := newFederationStatusController(controllerConfig, typeConfig)
+// StartKubeFedStatusController starts a new status controller for a type config
+func StartKubeFedStatusController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface) error {
+	controller, err := newKubeFedStatusController(controllerConfig, typeConfig)
 	if err != nil {
 		return err
 	}
@@ -91,8 +91,8 @@ func StartFederationStatusController(controllerConfig *util.ControllerConfig, st
 	return nil
 }
 
-// newFederationStatusController returns a new status controller for the federated type
-func newFederationStatusController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*FederationStatusController, error) {
+// newKubeFedStatusController returns a new status controller for the federated type
+func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*KubeFedStatusController, error) {
 	federatedAPIResource := typeConfig.GetFederatedType()
 	statusAPIResource := typeConfig.GetStatusType()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
@@ -108,7 +108,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 		return nil, err
 	}
 
-	s := &FederationStatusController{
+	s := &KubeFedStatusController{
 		clusterAvailableDelay:   controllerConfig.ClusterAvailableDelay,
 		clusterUnavailableDelay: controllerConfig.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
@@ -135,7 +135,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 
 	targetAPIResource := typeConfig.GetTargetType()
 
-	// Federated informer on the resource type in members of federation.
+	// Federated informer for resources in member clusters
 	s.informer, err = util.NewFederatedInformer(
 		controllerConfig,
 		client,
@@ -163,7 +163,7 @@ func newFederationStatusController(controllerConfig *util.ControllerConfig, type
 }
 
 // minimizeLatency reduces delays and timeouts to make the controller more responsive (useful for testing).
-func (s *FederationStatusController) minimizeLatency() {
+func (s *KubeFedStatusController) minimizeLatency() {
 	s.clusterAvailableDelay = time.Second
 	s.clusterUnavailableDelay = time.Second
 	s.smallDelay = 20 * time.Millisecond
@@ -171,7 +171,7 @@ func (s *FederationStatusController) minimizeLatency() {
 }
 
 // Run runs the status controller
-func (s *FederationStatusController) Run(stopChan <-chan struct{}) {
+func (s *KubeFedStatusController) Run(stopChan <-chan struct{}) {
 	go s.federatedController.Run(stopChan)
 	go s.statusController.Run(stopChan)
 	s.informer.Start()
@@ -191,7 +191,7 @@ func (s *FederationStatusController) Run(stopChan <-chan struct{}) {
 
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
-func (s *FederationStatusController) isSynced() bool {
+func (s *KubeFedStatusController) isSynced() bool {
 	if !s.informer.ClustersSynced() {
 		klog.V(2).Infof("Cluster list not synced")
 		return false
@@ -217,7 +217,7 @@ func (s *FederationStatusController) isSynced() bool {
 }
 
 // The function triggers reconciliation of all target federated resources.
-func (s *FederationStatusController) reconcileOnClusterChange() {
+func (s *KubeFedStatusController) reconcileOnClusterChange() {
 	if !s.isSynced() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
@@ -227,7 +227,7 @@ func (s *FederationStatusController) reconcileOnClusterChange() {
 	}
 }
 
-func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}
@@ -315,7 +315,7 @@ func (s *FederationStatusController) reconcile(qualifiedName util.QualifiedName)
 	return util.StatusAllOK
 }
 
-func (s *FederationStatusController) rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
+func (s *KubeFedStatusController) rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "Failed to query %s store for %q", kind, key)
@@ -328,7 +328,7 @@ func (s *FederationStatusController) rawObjFromCache(store cache.Store, kind, ke
 	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
 }
 
-func (s *FederationStatusController) objFromCache(store cache.Store, kind, key string) (*unstructured.Unstructured, error) {
+func (s *KubeFedStatusController) objFromCache(store cache.Store, kind, key string) (*unstructured.Unstructured, error) {
 	obj, err := s.rawObjFromCache(store, kind, key)
 	if err != nil {
 		return nil, err
@@ -339,7 +339,7 @@ func (s *FederationStatusController) objFromCache(store cache.Store, kind, key s
 	return obj.(*unstructured.Unstructured), nil
 }
 
-func (s *FederationStatusController) clusterNames() ([]string, error) {
+func (s *KubeFedStatusController) clusterNames() ([]string, error) {
 	clusters, err := s.informer.GetReadyClusters()
 	if err != nil {
 		return nil, err
@@ -353,7 +353,7 @@ func (s *FederationStatusController) clusterNames() ([]string, error) {
 }
 
 // clusterStatuses returns the resource status in member cluster.
-func (s *FederationStatusController) clusterStatuses(clusterNames []string, key string) ([]util.ResourceClusterStatus, error) {
+func (s *KubeFedStatusController) clusterStatuses(clusterNames []string, key string) ([]util.ResourceClusterStatus, error) {
 	clusterStatus := []util.ResourceClusterStatus{}
 
 	targetKind := s.typeConfig.GetTargetType().Kind

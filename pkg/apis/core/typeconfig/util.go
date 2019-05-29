@@ -42,7 +42,7 @@ func CheckTypeConfigName(typeConfig Interface) error {
 //   '<target plural name>[.<target group name>]'
 //
 // This is the naming scheme for FederatedTypeConfig resources.  The
-// scheme ensures that, for a given kubefed control plane,
+// scheme ensures that, for a given KubeFed control plane,
 // federation of a target type will be configured by at most one
 // FederatedTypeConfig.
 func GroupQualifiedName(apiResource metav1.APIResource) string {

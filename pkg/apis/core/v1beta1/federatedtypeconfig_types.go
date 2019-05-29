@@ -109,7 +109,7 @@ type FederatedTypeConfigStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FederatedTypeConfig programs federation to know about a single API type - the
+// FederatedTypeConfig programs KubeFed to know about a single API type - the
 // "target type" - that a user wants to federate. For each target type, there is
 // a corresponding FederatedType that has the following fields:
 //

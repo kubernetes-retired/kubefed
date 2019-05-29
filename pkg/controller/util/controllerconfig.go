@@ -64,7 +64,7 @@ type ClusterHealthCheckConfig struct {
 	TimeoutSeconds   int64
 }
 
-// ControllerConfig defines the configuration common to federation
+// ControllerConfig defines the configuration common to KubeFed
 // controllers.
 type ControllerConfig struct {
 	KubeFedNamespaces

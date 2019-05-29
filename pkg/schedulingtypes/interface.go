@@ -37,7 +37,7 @@ type Scheduler interface {
 }
 
 type SchedulerEventHandlers struct {
-	FederationEventHandler   func(pkgruntime.Object)
+	KubeFedEventHandler      func(pkgruntime.Object)
 	ClusterEventHandler      func(pkgruntime.Object)
 	ClusterLifecycleHandlers *ClusterLifecycleHandlerFuncs
 }

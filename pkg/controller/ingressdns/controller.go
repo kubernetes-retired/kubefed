@@ -44,7 +44,7 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// Controller manages the IngressDNSRecord objects in federation.
+// Controller manages the IngressDNSRecord objects in the host cluster.
 type Controller struct {
 	client genericclient.Client
 
@@ -52,7 +52,7 @@ type Controller struct {
 	// used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
 
-	// informer for ingress object from members of federation.
+	// informer for ingress resources in member clusters
 	ingressFederatedInformer util.FederatedInformer
 
 	// Store for the IngressDNSRecord objects
@@ -98,7 +98,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	// Informer for the IngressDNSRecord resource in federation.
+	// Informer for the IngressDNSRecord resources in the host cluster
 	var err error
 	s.ingressDNSStore, s.ingressDNSController, err = util.NewGenericInformer(
 		config.KubeConfig,
@@ -111,7 +111,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 		return nil, err
 	}
 
-	// Federated informer for the ingress resource in members of federation.
+	// Federated informer for ingress resources in members clusters
 	s.ingressFederatedInformer, err = util.NewFederatedInformer(
 		config,
 		client,

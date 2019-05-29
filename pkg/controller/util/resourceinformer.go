@@ -34,9 +34,9 @@ func NewResourceInformer(client ResourceClient, namespace string, triggerFunc fu
 }
 
 // NewManagedResourceInformer returns an informer limited to resources
-// managed by federation as indicated by labeling.
+// managed by KubeFed as indicated by labeling.
 func NewManagedResourceInformer(client ResourceClient, namespace string, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
-	labelSelector := labels.Set(map[string]string{ManagedByFederationLabelKey: ManagedByFederationLabelValue}).AsSelector().String()
+	labelSelector := labels.Set(map[string]string{ManagedByKubeFedLabelKey: ManagedByKubeFedLabelValue}).AsSelector().String()
 	return newResourceInformer(client, namespace, triggerFunc, labelSelector)
 }
 

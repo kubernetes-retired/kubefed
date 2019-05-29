@@ -62,9 +62,9 @@ const (
 	OrphanManagedResources = "kubefed.k8s.io/orphan"
 )
 
-// FederationSyncController synchronizes the state of a federated type
-// to clusters that are members of the federation.
-type FederationSyncController struct {
+// KubeFedSyncController synchronizes the state of federated resources
+// in the host cluster with resources in member clusters.
+type KubeFedSyncController struct {
 	// TODO(marun) add comment
 	worker util.ReconcileWorker
 
@@ -72,7 +72,7 @@ type FederationSyncController struct {
 	// used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
 
-	// Contains resources present in members of federation.
+	// Informer for resources in member clusters
 	informer util.FederatedInformer
 
 	// For events
@@ -92,9 +92,9 @@ type FederationSyncController struct {
 	skipAdoptingResources bool
 }
 
-// StartFederationSyncController starts a new sync controller for a type config
-func StartFederationSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface, fedNamespaceAPIResource *metav1.APIResource) error {
-	controller, err := newFederationSyncController(controllerConfig, typeConfig, fedNamespaceAPIResource)
+// StartKubeFedSyncController starts a new sync controller for a type config
+func StartKubeFedSyncController(controllerConfig *util.ControllerConfig, stopChan <-chan struct{}, typeConfig typeconfig.Interface, fedNamespaceAPIResource *metav1.APIResource) error {
+	controller, err := newKubeFedSyncController(controllerConfig, typeConfig, fedNamespaceAPIResource)
 	if err != nil {
 		return err
 	}
@@ -106,8 +106,8 @@ func StartFederationSyncController(controllerConfig *util.ControllerConfig, stop
 	return nil
 }
 
-// newFederationSyncController returns a new sync controller for the configuration
-func newFederationSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface, fedNamespaceAPIResource *metav1.APIResource) (*FederationSyncController, error) {
+// newKubeFedSyncController returns a new sync controller for the configuration
+func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface, fedNamespaceAPIResource *metav1.APIResource) (*KubeFedSyncController, error) {
 	federatedTypeAPIResource := typeConfig.GetFederatedType()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(federatedTypeAPIResource.Kind))
 
@@ -119,7 +119,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: userAgent})
 
-	s := &FederationSyncController{
+	s := &KubeFedSyncController{
 		clusterAvailableDelay:   controllerConfig.ClusterAvailableDelay,
 		clusterUnavailableDelay: controllerConfig.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
@@ -139,7 +139,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 
 	targetAPIResource := typeConfig.GetTargetType()
 
-	// Federated informer on the resource type in members of federation.
+	// Federated informer for resources in member clusters
 	var err error
 	s.informer, err = util.NewFederatedInformer(
 		controllerConfig,
@@ -175,7 +175,7 @@ func newFederationSyncController(controllerConfig *util.ControllerConfig, typeCo
 }
 
 // minimizeLatency reduces delays and timeouts to make the controller more responsive (useful for testing).
-func (s *FederationSyncController) minimizeLatency() {
+func (s *KubeFedSyncController) minimizeLatency() {
 	s.clusterAvailableDelay = time.Second
 	s.clusterUnavailableDelay = time.Second
 	s.smallDelay = 20 * time.Millisecond
@@ -183,7 +183,7 @@ func (s *FederationSyncController) minimizeLatency() {
 	s.worker.SetDelay(50*time.Millisecond, s.clusterAvailableDelay)
 }
 
-func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
+func (s *KubeFedSyncController) Run(stopChan <-chan struct{}) {
 	s.fedAccessor.Run(stopChan)
 	s.informer.Start()
 	s.clusterDeliverer.StartWithHandler(func(_ *util.DelayingDelivererItem) {
@@ -202,7 +202,7 @@ func (s *FederationSyncController) Run(stopChan <-chan struct{}) {
 
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
-func (s *FederationSyncController) isSynced() bool {
+func (s *KubeFedSyncController) isSynced() bool {
 	if !s.informer.ClustersSynced() {
 		klog.V(2).Infof("Cluster list not synced")
 		return false
@@ -226,7 +226,7 @@ func (s *FederationSyncController) isSynced() bool {
 }
 
 // The function triggers reconciliation of all target federated resources.
-func (s *FederationSyncController) reconcileOnClusterChange() {
+func (s *KubeFedSyncController) reconcileOnClusterChange() {
 	if !s.isSynced() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
@@ -236,7 +236,7 @@ func (s *FederationSyncController) reconcileOnClusterChange() {
 	})
 }
 
-func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}
@@ -250,10 +250,10 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 	}
 	if possibleOrphan {
 		targetKind := s.typeConfig.GetTargetType().Kind
-		klog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+		klog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByKubeFedLabelKey, targetKind, qualifiedName)
 		err = s.removeManagedLabel(targetKind, qualifiedName)
 		if err != nil {
-			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByFederationLabelKey, targetKind, qualifiedName)
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByKubeFedLabelKey, targetKind, qualifiedName)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
@@ -286,7 +286,7 @@ func (s *FederationSyncController) reconcile(qualifiedName util.QualifiedName) u
 
 // syncToClusters ensures that the state of the given object is
 // synchronized to member clusters.
-func (s *FederationSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
+func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
 		fedResource.RecordError(string(status.ClusterRetrievalFailed), errors.Wrap(err, "Failed to retrieve list of clusters"))
@@ -383,7 +383,7 @@ func (s *FederationSyncController) syncToClusters(fedResource FederatedResource)
 	return s.setPropagationStatus(fedResource, status.AggregateSuccess, statusMap)
 }
 
-func (s *FederationSyncController) setPropagationStatus(fedResource FederatedResource,
+func (s *KubeFedSyncController) setPropagationStatus(fedResource FederatedResource,
 	reason status.AggregateReason, statusMap status.PropagationStatusMap) util.ReconciliationStatus {
 
 	kind := fedResource.FederatedKind()
@@ -419,7 +419,7 @@ func (s *FederationSyncController) setPropagationStatus(fedResource FederatedRes
 	return util.StatusAllOK
 }
 
-func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource) util.ReconciliationStatus {
+func (s *KubeFedSyncController) ensureDeletion(fedResource FederatedResource) util.ReconciliationStatus {
 	fedResource.DeleteVersions()
 
 	key := fedResource.FederatedName().String()
@@ -445,10 +445,10 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
-		klog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByFederationLabelKey, kind, key)
+		klog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByKubeFedLabelKey, kind, key)
 		err = s.removeManagedLabel(fedResource.TargetKind(), fedResource.TargetName())
 		if err != nil {
-			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByFederationLabelKey, kind, key)
+			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByKubeFedLabelKey, kind, key)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
@@ -470,7 +470,7 @@ func (s *FederationSyncController) ensureDeletion(fedResource FederatedResource)
 
 // removeManagedLabel attempts to remove the managed label from
 // resources with the given name in member clusters.
-func (s *FederationSyncController) removeManagedLabel(kind string, qualifiedName util.QualifiedName) error {
+func (s *KubeFedSyncController) removeManagedLabel(kind string, qualifiedName util.QualifiedName) error {
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
 		if clusterObj.GetDeletionTimestamp() != nil {
 			return
@@ -487,7 +487,7 @@ func (s *FederationSyncController) removeManagedLabel(kind string, qualifiedName
 	return nil
 }
 
-func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResource) (bool, error) {
+func (s *KubeFedSyncController) deleteFromClusters(fedResource FederatedResource) (bool, error) {
 	kind := fedResource.TargetKind()
 	qualifiedName := fedResource.TargetName()
 
@@ -495,8 +495,8 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 	ok, err := s.handleDeletionInClusters(kind, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
 		// If the containing namespace of a FederatedNamespace is
 		// marked for deletion, it is impossible to require the
-		// removal of the namespace in advance of removal of the
-		// federation finalizer.  Return immediately and avoid
+		// removal of the namespace in advance of removal of the sync
+		// controller finalizer.  Return immediately and avoid
 		// including the cluster in the list of remaining clusters.
 		if fedResource.IsNamespaceInHostCluster(clusterObj) && clusterObj.GetDeletionTimestamp() != nil {
 			return
@@ -544,7 +544,7 @@ func (s *FederationSyncController) deleteFromClusters(fedResource FederatedResou
 // present or labeled as managed.  The checks are performed without
 // the informer to cover the possibility that the resources have not
 // yet been cached.
-func (s *FederationSyncController) ensureRemovedOrUnmanaged(fedResource FederatedResource) error {
+func (s *KubeFedSyncController) ensureRemovedOrUnmanaged(fedResource FederatedResource) error {
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
 		return errors.Wrap(err, "failed to get a list of clusters")
@@ -574,7 +574,7 @@ func (s *FederationSyncController) ensureRemovedOrUnmanaged(fedResource Federate
 
 // handleDeletionInClusters invokes the provided deletion handler for
 // each managed resource in member clusters.
-func (s *FederationSyncController) handleDeletionInClusters(kind string, qualifiedName util.QualifiedName,
+func (s *KubeFedSyncController) handleDeletionInClusters(kind string, qualifiedName util.QualifiedName,
 	deletionFunc func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured)) (bool, error) {
 
 	clusters, err := s.informer.GetClusters()
@@ -620,7 +620,7 @@ func (s *FederationSyncController) handleDeletionInClusters(kind string, qualifi
 	return ok, nil
 }
 
-func (s *FederationSyncController) ensureFinalizer(fedResource FederatedResource) error {
+func (s *KubeFedSyncController) ensureFinalizer(fedResource FederatedResource) error {
 	obj := fedResource.Object()
 	isUpdated, err := finalizersutil.AddFinalizers(obj, sets.NewString(FinalizerSyncController))
 	if err != nil || !isUpdated {
@@ -630,7 +630,7 @@ func (s *FederationSyncController) ensureFinalizer(fedResource FederatedResource
 	return s.hostClusterClient.Update(context.TODO(), obj)
 }
 
-func (s *FederationSyncController) removeFinalizer(fedResource FederatedResource) error {
+func (s *KubeFedSyncController) removeFinalizer(fedResource FederatedResource) error {
 	obj := fedResource.Object()
 	isUpdated, err := finalizersutil.RemoveFinalizers(obj, sets.NewString(FinalizerSyncController))
 	if err != nil || !isUpdated {

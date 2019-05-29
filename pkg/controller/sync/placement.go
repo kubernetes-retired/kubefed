@@ -28,11 +28,11 @@ import (
 // computeNamespacedPlacement determines placement for namespaced
 // federated resources (e.g. FederatedConfigMap).
 //
-// If federation is deployed cluster-wide, placement is the
-// intersection of the placement for the federated resource and the
-// placement of the federated namespace containing the resource.
+// If KubeFed is deployed cluster-wide, placement is the intersection
+// of the placement for the federated resource and the placement of
+// the federated namespace containing the resource.
 //
-// If federation is limited to a single namespace, placement is
+// If KubeFed is limited to a single namespace, placement is
 // determined as the intersection of resource and namespace placement
 // if namespace placement exists.  If namespace placement does not
 // exist, resource placement will be used verbatim.  This is possible
@@ -48,7 +48,7 @@ func computeNamespacedPlacement(resource, namespace *unstructured.Unstructured, 
 	if namespace == nil {
 		if limitedScope {
 			// Use the resource placement verbatim if no federated
-			// namespace is present and federation is targeting a
+			// namespace is present and KubeFed is targeting a
 			// single namespace.
 			return resourceClusters, nil
 		}

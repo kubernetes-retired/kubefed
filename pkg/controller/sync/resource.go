@@ -40,7 +40,7 @@ import (
 
 // FederatedResource encapsulates the behavior of a logical federated
 // resource which may be implemented by one or more kubernetes
-// resources in the cluster hosting the kubefed control plane.
+// resources in the cluster hosting the KubeFed control plane.
 type FederatedResource interface {
 	dispatch.FederatedResourceForDispatch
 
@@ -135,7 +135,7 @@ func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Objec
 	// relevant).
 	//
 	// `Namespace` is the only Kubernetes type that can contain other
-	// types, and adding a federation-specific container type would be
+	// types, and adding a KubeFed-specific container type would be
 	// difficult or impossible. This requires that namespaced
 	// federated resources exist in regular namespaces.
 	//
@@ -148,7 +148,7 @@ func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Objec
 	//
 	// Deletion of a federated namespace should also not result in
 	// deletion of its containing namespace, since that could result
-	// in the deletion of a namespaced kubefed control plane.
+	// in the deletion of a namespaced KubeFed control plane.
 	return r.targetIsNamespace && util.IsPrimaryCluster(r.namespace, clusterObj)
 }
 
@@ -166,7 +166,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	obj := &unstructured.Unstructured{Object: templateBody}
 
 	// Avoid having to duplicate these details in the template or have
-	// the name/namespace vary between the federation api and member
+	// the name/namespace vary between the KubeFed api and member
 	// clusters.
 	//
 	// TODO(marun) this should be documented
@@ -191,9 +191,9 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 		}
 	}
 
-	// Ensure that resources managed by federation always have the
+	// Ensure that resources managed by KubeFed always have the
 	// managed label.  The label is intended to be targeted by all the
-	// kubefed controllers.
+	// KubeFed controllers.
 	util.AddManagedLabel(obj)
 
 	return obj, nil

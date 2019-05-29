@@ -43,7 +43,7 @@ const (
 	allClustersKey = "ALL_CLUSTERS"
 )
 
-// Controller manages the ServiceDNSRecord objects in federation.
+// Controller manages ServiceDNSRecord resources in the host cluster.
 type Controller struct {
 	client genericclient.Client
 
@@ -51,10 +51,10 @@ type Controller struct {
 	// used when a new cluster becomes available.
 	clusterDeliverer *util.DelayingDeliverer
 
-	// informer for service object from members of federation.
+	// informer for service resources in member clusters
 	serviceInformer util.FederatedInformer
 
-	// informer for endpoint object from members of federation.
+	// informer for endpoint resources in member clusters
 	endpointInformer util.FederatedInformer
 
 	// Store for the ServiceDNSRecord objects
@@ -108,7 +108,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 	// Build deliverer for triggering cluster reconciliations.
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
-	// Informer for the ServiceDNSRecord resource in federation.
+	// Informer for ServiceDNSRecord resources in the host cluster
 	var err error
 	s.serviceDNSStore, s.serviceDNSController, err = util.NewGenericInformer(
 		config.KubeConfig,
@@ -135,7 +135,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 		return nil, err
 	}
 
-	// Federated serviceInformer for the service resource in members of federation.
+	// Federated informer for service resources in member clusters
 	s.serviceInformer, err = util.NewFederatedInformer(
 		config,
 		client,

@@ -31,7 +31,7 @@ const (
 	// owner: @marun
 	// alpha: v0.1
 	//
-	// PushReconciler is a propogation model where in objects are pushed to member clusters from federation.
+	// PushReconciler ensures that managed resources in member clusters represent the state declared in federated resources.
 	PushReconciler utilfeature.Feature = "PushReconciler"
 
 	// owner: @irfanurrehman
@@ -55,15 +55,15 @@ const (
 )
 
 func init() {
-	if err := utilfeature.DefaultFeatureGate.Add(defaultFederationFeatureGates); err != nil {
+	if err := utilfeature.DefaultFeatureGate.Add(defaultKubeFedFeatureGates); err != nil {
 		klog.Fatalf("Unexpected error: %v", err)
 	}
 }
 
-// defaultFederationFeatureGates consists of all known Federation-specific feature keys.
-// To add a new feature, define a key for it above and add it here. The features will be
-// available throughout Federation binaries.
-var defaultFederationFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
+// defaultKubeFedFeatureGates consists of all known KubeFed-specific
+// feature keys.  To add a new feature, define a key for it above and
+// add it here.
+var defaultKubeFedFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
 	SchedulerPreferences:         {Default: true, PreRelease: utilfeature.Alpha},
 	PushReconciler:               {Default: true, PreRelease: utilfeature.Alpha},
 	CrossClusterServiceDiscovery: {Default: true, PreRelease: utilfeature.Alpha},
