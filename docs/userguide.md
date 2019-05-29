@@ -14,7 +14,7 @@
   - [Federated API types](#federated-api-types)
     - [Enabling federation of an API type](#enabling-federation-of-an-api-type)
     - [Verifying API type is installed on all member clusters](#verifying-api-type-is-installed-on-all-member-clusters)
-    - [Enabling an API type in a new federation group](#enabling-an-api-type-in-a-new-federation-group)
+    - [Enabling an API type with a non-default API group](#enabling-an-api-type-with-a-non-default-api-group)
     - [Disabling propagation of an API type](#disabling-propagation-of-an-api-type)
   - [Federating a target resource](#federating-a-target-resource)
     - [Federate a namespace with contents](#federate-a-namespace-with-contents)
@@ -177,7 +177,7 @@ for the intended target API type.
 
 The `kubefedctl` command will create
  - a CRD for the federated type named `Federated<Kind>`
- - a `FederatedTypeConfig` in the federation system namespace with the group-qualified plural name of the target type.
+ - a `FederatedTypeConfig` in the KubeFed system namespace with the group-qualified plural name of the target type.
 
 A `FederatedTypeConfig` associates the federated type CRD with the target
 kubernetes type, enabling propagation of federated resources of the given type to the member clusters.
@@ -242,24 +242,27 @@ NAME   SHORTNAMES   APIGROUP   NAMESPACED   KIND
 Verifying the API type exists on all member clusters will ensure successful
 propagation to that cluster.
 
-### Enabling an API type in a new federation group
+### Enabling an API type with a non-default API group
 
 When `kubefedctl enable` is used to enable types whose plural names (e.g. **deployments**.example.com
 and **deployments**.apps) match, the crd name of the generated federated type would also match (e.g.
 **deployments**.types.kubefed.k8s.io).
 
-`kubefedctl enable --federation-group string` specifies the name of the API group to use for the
-generated federation type. It is `types.kubefed.k8s.io` by default. If a new federation group is
-enabled, the RBAC permissions for the KubeFed controller manager will need to be updated to include
-permissions for the new group.
+`kubefedctl enable --federated-group string` specifies the name of the API
+group to use for the generated federated type. It is `types.kubefed.k8s.io` by
+default. If a non-default group is used to enable federation of a type, the
+RBAC permissions for the KubeFed controller manager will need to be updated to
+include permissions for the new group.
 
-For example, after federation deployment, `deployments.apps` is enabled by default. To enable
-`deployments.example.com`, you should:
+For example, as part of deployment of a KubeFed control plane,
+`deployments.apps` is enabled by default. To enable `deployments.example.com`,
+you should:
+
 ```bash
-kubefedctl enable deployments.example.com --federation-group federation.example.com
+kubefedctl enable deployments.example.com --federated-group kubefed.example.com
 kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
             "apiGroups": [
-                "federation.example.com"
+                "kubefed.example.com"
             ],
             "resources": [
                 "*"
@@ -274,8 +277,9 @@ kubectl patch clusterrole kubefed-role --type='json' -p='[{"op": "add", "path": 
 }]'
 ```
 
-This example is for cluster scoped federation deployment. For namespaced federation deployment,
-you can patch role `kubefed-role` in the KubeFed namespace instead.
+This example is for a cluster-scoped KubeFed control plane. For a namespaced
+KubeFed control plane, patch role `kubefed-role` in the KubeFed system namespace
+instead.
 
 ### Disabling propagation of an API type
 
@@ -490,8 +494,8 @@ The following table enumerates the possible values for cluster status:
 | DeletionFailed         | Deletion of the target resource failed. |
 | DeletionTimedOut       | Deletion of the target resource timed out. |
 | FieldRetentionFailed   | An error occurred while attempting to retain the value of one or more fields in the target resource (e.g. `clusterIP` for a service) |
-| LabelRemovalFailed     | Removal of the federation label from the target resource failed. |
-| LabelRemovalTimedOut   | Removal of the federation label from the target resource timed out. |
+| LabelRemovalFailed     | Removal of the KubeFed label from the target resource failed. |
+| LabelRemovalTimedOut   | Removal of the KubeFed label from the target resource timed out. |
 | RetrievalFailed        | Retrievel of the target resource from the cluster failed. |
 | UpdateFailed           | Update of the target resource failed. |
 | UpdateTimedOut         | Update of the target resource timed out. |
@@ -521,11 +525,11 @@ kubectl patch <federated type> <name> \
     --type=merge -p '{"metadata": {"annotations": {"kubefed.k8s.io/orphan": "true"}}}'
 ```
 
-If the sync controller for a given federated type is not
-able to reconcile a federated resource slated for deletion, a federated resource that still has the federation
-finalizer will linger rather than being garbage collected. If
-necessary, the federation finalizer can be manually removed to ensure
-garbage collection.
+If the sync controller for a given federated type is not able to reconcile a
+federated resource slated for deletion, a federated resource that still has the
+KubeFed finalizer will linger rather than being garbage collected. If
+necessary, the KubeFed finalizer can be manually removed to ensure garbage
+collection.
 
 ## Verify your deployment is working
 
@@ -805,8 +809,8 @@ instructions](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kube
 Joining additional clusters to a namespaced control plane requires
 providing additional arguments to `kubefedctl join`:
 
-- `--kubefed-namespace=<namespace>` to ensure the cluster is joined
-  to the federation running in the specified namespace
+- `--kubefed-namespace=<namespace>` to ensure the cluster has been registered
+  with the KubeFed control plane running in the specified namespace
 
 To join `mycluster` when `KUBEFED_NAMESPACE=test-namespace` was used for deployment:
 

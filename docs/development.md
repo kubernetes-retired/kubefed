@@ -85,8 +85,8 @@ non-generated code in the commit history.
 
 ## Running E2E Tests
 
-The KubeFed E2E tests must be executed against a deployed
-federation of one or more clusters.  Optionally, the KubeFed
+The KubeFed E2E tests must be executed against a KubeFed control plane
+with one or more registered clusters.  Optionally, the KubeFed
 controllers can be run in-memory to enable debugging.
 
 Many of the tests validate CRUD operations for each of the federated
@@ -117,7 +117,7 @@ Once completed, return here for instructions on running the e2e tests.
 
 ### Running Tests
 
-Follow the below instructions to run E2E tests against a test federation.
+Follow the below instructions to run E2E tests against a KubeFed control plane.
 
 To run E2E tests for all types:
 

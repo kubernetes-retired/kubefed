@@ -51,8 +51,8 @@ This is due to how GKE verifies permissions. From
 > attempting to create additional Role or ClusterRole permissions.
 > This is a known issue in the Beta release of Role-Based Access Control in Kubernetes and Container Engine version 1.6.
 
-To workaround this issue, you must grant your current Google Cloud Identity the `cluster-admin` role for each cluster in
-the federation:
+To workaround this issue, you must grant your current Google Cloud Identity the `cluster-admin` role for each cluster
+registered with KubeFed:
 
 ```bash
 kubectl create clusterrolebinding myname-cluster-admin-binding --clusterrole=cluster-admin \
