@@ -18,6 +18,5 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# Call the deploy script with the name of the latest image to use
-# committed install yaml and a prebuilt image.
-"$(dirname "${BASH_SOURCE}")"/deploy-federation.sh quay.io/kubernetes-multicluster/kubefed:latest "${@}"
+# Call the deploy script with the name of the latest image.
+"$(dirname "${BASH_SOURCE}")"/deploy-kubefed.sh quay.io/kubernetes-multicluster/kubefed:latest "${@}"

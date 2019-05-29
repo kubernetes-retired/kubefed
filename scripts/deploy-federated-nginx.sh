@@ -25,7 +25,7 @@ source "$(dirname "${BASH_SOURCE}")/util.sh"
 TEST_NS="test-namespace"
 
 # Prerequisite:
-# - a cluster scoped federation deployment with `cluster1` and
+# - a cluster scoped KubeFed control plane with `cluster1` and
 #   `cluster2` joined as member clusters
 # - kubectl config use-context cluster1
 #

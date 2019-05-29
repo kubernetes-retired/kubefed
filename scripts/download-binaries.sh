@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This script automates the download of binaries used by deployment
-# and testing of federation.
+# and testing of KubeFed.
 
 set -o errexit
 set -o nounset

@@ -27,7 +27,7 @@ GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
 GIT_HASH ?= $(shell git rev-parse HEAD)
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-# Note: this is allowed to be overridden for scripts/deploy-federation.sh
+# Note: this is allowed to be overridden for scripts/deploy-kubefed.sh
 IMAGE_NAME = $(REGISTRY)/$(TARGET):$(GIT_VERSION)
 
 GIT_TREESTATE = "clean"

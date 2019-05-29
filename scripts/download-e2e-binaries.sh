@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This script automates the download of e2e binaries used in testing of
-# federation.
+# KubeFed.
 
 set -o errexit
 set -o nounset

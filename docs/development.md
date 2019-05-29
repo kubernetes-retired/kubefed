@@ -208,7 +208,7 @@ above](#setup-clusters-and-deploy-the-kubefed-control-plane) to
 set up two `kind` or `minikube` clusters (`cluster1` and `cluster2`):
 
 ```bash
-./scripts/deploy-federation.sh <containerregistry>/<username>/kubefed:test cluster2
+./scripts/deploy-kubefed.sh <containerregistry>/<username>/kubefed:test cluster2
 ```
 
 **NOTE:** You can list multiple joining cluster names in the above command.
@@ -226,7 +226,7 @@ image and generated CRDs. To do that, run the following command:
 
 ```bash
 make generate
-./scripts/deploy-federation.sh <containerregistry>/<username>/kubefed:canary cluster2
+./scripts/deploy-kubefed.sh <containerregistry>/<username>/kubefed:canary cluster2
 ```
 
 ## Test Latest Stable Version (`latest`)

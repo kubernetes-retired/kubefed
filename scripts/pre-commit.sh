@@ -128,7 +128,7 @@ check-make-generate-output
 echo "Checking that fixture is available for all federate directives"
 ./scripts/check-directive-fixtures.sh
 
-echo "Building federation binaries"
+echo "Building KubeFed binaries"
 build-binaries
 
 echo "Running unit tests"
@@ -144,7 +144,7 @@ CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY=y OVERWRITE_KUBECONFIG=y 
 join-cluster-list > /dev/null
 
 echo "Deploying cluster-scoped kubefed"
-./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
+./scripts/deploy-kubefed.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
 
 echo "Running e2e tests against cluster-scoped kubefed"
 run-e2e-tests
@@ -160,19 +160,19 @@ echo "Running e2e tests with race detector against cluster-scoped kubefed with i
 run-e2e-tests-with-in-memory-controllers
 
 # FederatedTypeConfig controller is needed to remove finalizers from
-# FederatedTypeConfigs in order to successfully delete federation in the next
-# step.
+# FederatedTypeConfigs in order to successfully delete the KubeFed
+# control plane in the next step.
 echo "Scaling back up cluster-scoped controller manager prior to deletion"
 kubectl scale deployments kubefed-controller-manager -n kube-federation-system --replicas=1
 
 echo "Deleting cluster-scoped kubefed"
-./scripts/delete-federation.sh
+./scripts/delete-kubefed.sh
 
 echo "Deploying namespace-scoped kubefed"
-KUBEFED_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-federation.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
+KUBEFED_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-kubefed.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
 
 echo "Running go e2e tests with namespace-scoped kubefed"
 run-namespaced-e2e-tests
 
 echo "Deleting namespace-scoped kubefed"
-KUBEFED_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-federation.sh
+KUBEFED_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-kubefed.sh

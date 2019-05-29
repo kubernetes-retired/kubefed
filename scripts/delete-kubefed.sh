@@ -24,7 +24,7 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function delete-helm-deployment() {
-  # Clean federation resources
+  # Clean kubefed resources
   ${KCD} -n "${NS}" FederatedTypeConfig --all
   if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
     ${KCD} crd $(kubectl get crd | grep -E 'kubefed.k8s.io' | awk '{print $1}')
@@ -59,7 +59,7 @@ for c in ${JOINED_CLUSTERS}; do
   ./bin/kubefedctl unjoin "${c}" --host-cluster-context "${HOST_CLUSTER}" --v=2 ${KF_NS_ARG}
 done
 
-# Deploy federation resources
+# Deploy kubefed resources
 delete-helm-deployment
 
 ${KCD} ns "${NS}"

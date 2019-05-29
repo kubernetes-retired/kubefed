@@ -14,33 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script automates deployment of a federation - as documented in
-# the README - to the current kubectl context.  It also joins the
-# hosting cluster as a member of the federation.
+# This script automates deployment of a KubeFed control plane to the
+# current kubectl context.  It also registers the hosting cluster with
+# the control plane.
 #
-# WARNING: The service account for the kubefed namespace will be
-# granted the cluster-admin role.  Until more restrictive permissions
-# are used, access to the kubefed namespace should be restricted to
-# trusted users.
-#
-# If using minikube, a cluster must be started prior to invoking this
-# script:
-#
-#   $ minikube start
-#
-# This script depends on kubectl and kubebuilder being installed in
-# the path.  If you want to install Federation via helm chart, you may
-# also need to install helm in the path. These and other test binaries
-# can be installed via the download-binaries.sh script, which downloads
-# to ./bin:
+# This script depends on kubectl, kubebuilder and helm being installed
+# in the path.  These and other test binaries can be installed via the
+# download-binaries.sh script, which downloads to ./bin:
 #
 #   $ ./scripts/download-binaries.sh
 #   $ export PATH=$(pwd)/bin:${PATH}
 #
-# To redeploy federation from scratch, prefix the deploy invocation with the deletion script:
+# To redeploy KubeFed from scratch, prefix the deploy invocation with the deletion script:
 #
-#   # WARNING: The deletion script will remove federation data
-#   $ ./scripts/delete-federation.sh [join-cluster]... && ./scripts/deploy-federation.sh <image> [join-cluster]...
+#   # WARNING: The deletion script will remove KubeFed data
+#   $ ./scripts/delete-kubefed.sh [join-cluster]... && ./scripts/deploy-kubefed.sh <image> [join-cluster]...
 #
 
 set -o errexit
@@ -137,7 +125,7 @@ if [[ -z "${IMAGE_NAME}" ]]; then
 Example: docker.io/<username>/kubefed:test
 
 If intending to use the docker hub as the container registry to push
-the federation image to, make sure to login to the local docker daemon
+the KubeFed image to, make sure to login to the local docker daemon
 to ensure credentials are available for push:
 
   $ docker login --username <username>
@@ -153,7 +141,7 @@ shift
 # Allow for no specific JOIN_CLUSTERS: they probably want to kubefedctl themselves.
 JOIN_CLUSTERS="${*-}"
 
-# Use DOCKER_PUSH= ./scripts/deploy-federation.sh <image> to skip docker
+# Use DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to skip docker
 # push on container image when not using latest image.
 DOCKER_PUSH="${DOCKER_PUSH:-y}"
 DOCKER_PUSH_CMD="docker push ${IMAGE_NAME}"
@@ -161,7 +149,7 @@ if [[ ! "${DOCKER_PUSH}" ]]; then
     DOCKER_PUSH_CMD=
 fi
 
-# Build federation binaries and image
+# Build KubeFed binaries and image
 if [[ ! "${USE_LATEST}" ]]; then
   cd "$(dirname "$0")/.."
   make container IMAGE_NAME=${IMAGE_NAME}
@@ -176,7 +164,7 @@ if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
   kubectl create ns "${NS}"
 fi
 
-# Deploy federation resources
+# Deploy KubeFed resources
 deploy-with-helm
 
 # Wait for admission webhook server to be ready

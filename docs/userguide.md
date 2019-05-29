@@ -780,7 +780,7 @@ Run the following command to perform a cleanup of the cluster registry and
 KubeFed deployments:
 
 ```bash
-./scripts/delete-federation.sh
+./scripts/delete-kubefed.sh
 ```
 
 The above script unjoins the all of the clusters from the KubeFed control plane it deploys,
