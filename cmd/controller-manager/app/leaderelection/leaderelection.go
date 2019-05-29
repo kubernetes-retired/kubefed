@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/options"
 )
 
-func NewFederationLeaderElector(opts *options.Options, fnStartControllers func(*options.Options, <-chan struct{})) (*leaderelection.LeaderElector, error) {
+func NewKubeFedLeaderElector(opts *options.Options, fnStartControllers func(*options.Options, <-chan struct{})) (*leaderelection.LeaderElector, error) {
 	const component = "kubefed-controller-manager"
 	restclient.AddUserAgent(opts.Config.KubeConfig, "kubefed-leader-election")
 	leaderElectionClient := kubeclient.NewForConfigOrDie(opts.Config.KubeConfig)
