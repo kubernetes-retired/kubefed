@@ -580,7 +580,7 @@ spec:
               type: object
             scope:
               description: The scope of the KubeFed control plane should be either
-                `Namespaced` or `Cluster`.  `Namespaced` indicates that the KubeFed
+                `Namespaced` or `Cluster`. `Namespaced` indicates that the KubeFed
                 namespace will be the only target of the control plane.
               type: string
             syncController:
