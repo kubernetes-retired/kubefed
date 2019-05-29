@@ -41,6 +41,8 @@ controllermanager:
 ## Configuration global values for all charts
 ##
 global:
-  ## Whether the kubefed namespace will be the only target for federation.
-  ## If unset, will default to `Cluster`. Supported options are `Cluster` and `Namespaced`
+  ## The scope of the the kubefed control plane.  Supported options
+  ## are `Cluster` (watch cluster-scoped resources and resources in
+  ## all namespaces) and `Namespaced` (only watch resources in the
+  ## kubefed system namespace). If unset, will default to `Cluster`.
   scope: ""

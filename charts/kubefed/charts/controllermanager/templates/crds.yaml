@@ -42,7 +42,7 @@ spec:
                     description: The name of the cluster the version is for.
                     type: string
                   version:
-                    description: The last version produced for the resource by a federation
+                    description: The last version produced for the resource by a KubeFed
                       operation.
                     type: string
                 required:
@@ -160,7 +160,7 @@ spec:
                     description: The name of the cluster the version is for.
                     type: string
                   version:
-                    description: The last version produced for the resource by a federation
+                    description: The last version produced for the resource by a KubeFed
                       operation.
                     type: string
                 required:
@@ -579,9 +579,9 @@ spec:
               - resourceLock
               type: object
             scope:
-              description: The scope of the kubefed control plane should be either
-                `Namespaced` or `Cluster`. `Namespaced` indicates that the kubefed
-                namespace will be the only target for federation.
+              description: The scope of the KubeFed control plane should be either
+                `Namespaced` or `Cluster`.  `Namespaced` indicates that the KubeFed
+                namespace will be the only target of the control plane.
               type: string
             syncController:
               properties:
@@ -709,7 +709,8 @@ spec:
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         domain:
-          description: Domain is the DNS zone associated with the federation
+          description: Domain is the DNS zone associated with the KubeFed control
+            plane
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
@@ -719,7 +720,7 @@ spec:
         metadata:
           type: object
         nameServer:
-          description: NameServer is the authoritative DNS name server for the federation
+          description: NameServer is the authoritative DNS name server for the KubeFed
             domain
           type: string
       required:
@@ -840,7 +841,7 @@ spec:
               type: boolean
             dnsPrefix:
               description: DNSPrefix when specified, an additional DNS record would
-                be created with <DNSPrefix>.<FederationDomain>
+                be created with <DNSPrefix>.<KubeFedDomain>
               type: string
             domainRef:
               description: DomainRef is the name of the domain object to which the
@@ -880,8 +881,8 @@ spec:
                 type: object
               type: array
             domain:
-              description: Domain is the DNS domain of the federation as in Domain
-                API
+              description: Domain is the DNS domain of the KubeFed control plane as
+                in Domain API
               type: string
           type: object
   version: v1alpha1

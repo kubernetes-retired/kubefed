@@ -23,8 +23,9 @@ import (
 
 // KubeFedConfigSpec defines the desired state of KubeFedConfig
 type KubeFedConfigSpec struct {
-	// The scope of the kubefed control plane should be either `Namespaced` or `Cluster`.
-	// `Namespaced` indicates that the kubefed namespace will be the only target for federation.
+	// The scope of the KubeFed control plane should be either
+	// `Namespaced` or `Cluster`.  `Namespaced` indicates that the
+	// KubeFed namespace will be the only target of the control plane.
 	Scope              apiextv1b1.ResourceScope `json:"scope"`
 	ControllerDuration DurationConfig           `json:"controllerDuration"`
 	LeaderElect        LeaderElectConfig        `json:"leaderElect"`

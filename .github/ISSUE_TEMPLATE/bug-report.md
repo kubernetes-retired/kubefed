@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug encountered while operating Federation v2
+about: Report a bug encountered while operating KubeFed
 
 ---
 
@@ -17,9 +17,8 @@ about: Report a bug encountered while operating Federation v2
 
 **Environment**:
 - Kubernetes version (use `kubectl version`)
-- Federation version
-- Install method (helm vs script)
-- Install configuration (namespaced vs cluster-scoped)
+- KubeFed version
+- Scope of installation (namespaced or cluster)
 - Others
 
 <!-- DO NOT EDIT BELOW THIS LINE -->

@@ -1,10 +1,10 @@
 ---
 name: Failing Test
-about: Report test failures in Federation v2 CI jobs
+about: Report test failures in KubeFed CI jobs
 
 ---
 
-<!-- Please only use this template for submitting reports about failing tests in Federation v2 CI jobs -->
+<!-- Please only use this template for submitting reports about failing tests in KubeFed CI jobs -->
 
 **Which test(s) are failing**:
 

@@ -27,7 +27,7 @@ type ServiceDNSRecordSpec struct {
 	DomainRef string `json:"domainRef"`
 	// RecordTTL is the TTL in seconds for DNS records created for this Service, if omitted a default would be used
 	RecordTTL TTL `json:"recordTTL,omitempty"`
-	// DNSPrefix when specified, an additional DNS record would be created with <DNSPrefix>.<FederationDomain>
+	// DNSPrefix when specified, an additional DNS record would be created with <DNSPrefix>.<KubeFedDomain>
 	DNSPrefix string `json:"dnsPrefix,omitempty"`
 	// ExternalName when specified, replaces the service name portion of a resource record
 	// with the value of ExternalName.
@@ -38,7 +38,7 @@ type ServiceDNSRecordSpec struct {
 
 // ServiceDNSRecordStatus defines the observed state of ServiceDNSRecord.
 type ServiceDNSRecordStatus struct {
-	// Domain is the DNS domain of the federation as in Domain API
+	// Domain is the DNS domain of the KubeFed control plane as in Domain API
 	Domain string       `json:"domain,omitempty"`
 	DNS    []ClusterDNS `json:"dns,omitempty"`
 }

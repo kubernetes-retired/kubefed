@@ -30,9 +30,9 @@ type Domain struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Domain is the DNS zone associated with the federation
+	// Domain is the DNS zone associated with the KubeFed control plane
 	Domain string `json:"domain"`
-	// NameServer is the authoritative DNS name server for the federation domain
+	// NameServer is the authoritative DNS name server for the KubeFed domain
 	NameServer string `json:"nameServer,omitempty"`
 }
 

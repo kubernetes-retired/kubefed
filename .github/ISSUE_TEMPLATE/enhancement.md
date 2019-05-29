@@ -1,6 +1,6 @@
 ---
 name: Enhancement Request
-about: Suggest an enhancement to the Federation v2 project
+about: Suggest an enhancement to the KubeFed project
 
 ---
 <!-- Please only use this template for submitting enhancement requests -->

@@ -63,9 +63,9 @@ type KubeFedClusterStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeFedCluster configures federation to be aware of a Kubernetes
-// cluster and provides a Kubeconfig for federation to use to
-// communicate with the cluster.
+// KubeFedCluster configures KubeFed to be aware of a Kubernetes
+// cluster and encapsulates the details necessary to communicate with
+// the cluster.
 //
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=kubefedclusters
