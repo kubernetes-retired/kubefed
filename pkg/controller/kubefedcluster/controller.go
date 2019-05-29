@@ -101,6 +101,10 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		&cache.ResourceEventHandlerFuncs{
 			DeleteFunc: cc.delFromClusterSet,
 			AddFunc:    cc.addToClusterSet,
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				cc.delFromClusterSet(oldObj)
+				cc.addToClusterSet(newObj)
+			},
 		},
 	)
 	return cc, err
@@ -162,8 +166,13 @@ func (cc *ClusterController) updateClusterStatus() error {
 		clusterData := cc.clusterDataMap[cluster.Name]
 		cc.mu.RUnlock()
 		if clusterData == nil {
-			klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
-			continue
+			// Retry adding cluster client
+			cc.addToClusterSet(cluster)
+			clusterData = cc.clusterDataMap[cluster.Name]
+			if clusterData == nil {
+				klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
+				continue
+			}
 		}
 
 		wg.Add(1)
