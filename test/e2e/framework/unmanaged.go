@@ -51,7 +51,7 @@ var (
 	deletedNamespaces []string
 )
 
-func SetUpUnmanagedFederation() {
+func SetUpControlPlane() {
 	if clusterControllerFixture != nil {
 		return
 	}
@@ -67,7 +67,7 @@ func SetUpUnmanagedFederation() {
 	})
 }
 
-func TearDownUnmanagedFederation() {
+func TearDownControlPlane() {
 	if TestContext.InMemoryControllers {
 		if clusterControllerFixture != nil {
 			clusterControllerFixture.TearDown(NewE2ELogger())
@@ -99,7 +99,7 @@ type UnmanagedFramework struct {
 	logger common.TestLogger
 }
 
-func NewUnmanagedFramework(baseName string) FederationFrameworkImpl {
+func NewUnmanagedFramework(baseName string) KubeFedFrameworkImpl {
 	f := &UnmanagedFramework{
 		BaseName: baseName,
 		logger:   NewE2ELogger(),
@@ -107,7 +107,7 @@ func NewUnmanagedFramework(baseName string) FederationFrameworkImpl {
 	return f
 }
 
-// BeforeEach checks for federation apiserver is ready and makes a namespace.
+// BeforeEach reads the cluster configuration if it has not yet been read.
 func (f *UnmanagedFramework) BeforeEach() {
 	// The fact that we need this feels like a bug in ginkgo.
 	// https://github.com/onsi/ginkgo/issues/222
@@ -142,8 +142,8 @@ func (f *UnmanagedFramework) AfterEach() {
 		namespaceName := f.testNamespaceName
 		f.testNamespaceName = ""
 
-		// Running namespaced implies the test namespace is the
-		// federation system namespace, which should not be removed.
+		// Running namespaced implies that the test namespace is the
+		// KubeFed system namespace and should not be removed.
 		if !TestContext.LimitedScope {
 			client := f.KubeClient(userAgent)
 			deleteNamespace(client, namespaceName)

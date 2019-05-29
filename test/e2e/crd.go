@@ -43,7 +43,7 @@ import (
 )
 
 var _ = Describe("Federated CRD resources", func() {
-	f := framework.NewFederationFramework("crd-resources")
+	f := framework.NewKubeFedFramework("crd-resources")
 
 	namespaceScoped := []bool{
 		true,
@@ -54,13 +54,13 @@ var _ = Describe("Federated CRD resources", func() {
 		Describe(fmt.Sprintf("with namespaced=%v", namespaced), func() {
 			It("should be created, read, updated and deleted successfully", func() {
 				if framework.TestContext.LimitedScope {
-					// The service account of member clusters for
-					// namespaced federation won't have sufficient
-					// permissions to create crds.
+					// The service account of clusters registered with
+					// a namespaced control plane won't have
+					// sufficient permissions to create crds.
 					//
 					// TODO(marun) Revisit this if federation of crds (nee
 					// cr/instances of crds) ever becomes a thing.
-					framework.Skipf("Validation of cr federation is not supported for namespaced federation.")
+					framework.Skipf("Validation of cr federation is not supported for a namespaced control plane.")
 				}
 
 				// Ensure the name the target is unique to avoid
@@ -77,7 +77,7 @@ var _ = Describe("Federated CRD resources", func() {
 
 })
 
-func validateCrdCrud(f framework.FederationFramework, targetCrdKind string, namespaced bool) {
+func validateCrdCrud(f framework.KubeFedFramework, targetCrdKind string, namespaced bool) {
 	tl := framework.NewE2ELogger()
 
 	targetAPIResource := metav1.APIResource{

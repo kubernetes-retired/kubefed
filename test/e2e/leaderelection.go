@@ -32,12 +32,12 @@ import (
 )
 
 var _ = Describe("Leader Elector", func() {
-	f := framework.NewFederationFramework("leaderelection")
+	f := framework.NewKubeFedFramework("leaderelection")
 	tl := framework.NewE2ELogger()
 
 	It("should chose secondary instance, primary goes down", func() {
 		if framework.TestContext.LimitedScope {
-			framework.Skipf("Testing of leader election requires an isolated test namespace which is only possible with cluster-scoped federation")
+			framework.Skipf("Testing of leader election requires an isolated test namespace which is only possible with a cluster-scoped control plane")
 		}
 
 		const leaderIdentifier = "promoted as leader"

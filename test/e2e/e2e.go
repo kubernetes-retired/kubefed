@@ -35,7 +35,7 @@ import (
 func RunE2ETests(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgowrapper.Fail)
 	klog.Infof("Starting e2e run %q on Ginkgo node %d", framework.RunId, config.GinkgoConfig.ParallelNode)
-	ginkgo.RunSpecs(t, "Federation e2e suite")
+	ginkgo.RunSpecs(t, "KubeFed e2e suite")
 }
 
 // There are certain operations we only want to run once per overall test invocation
@@ -53,14 +53,10 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		// Start the cluster controller to ensure clusters will be
 		// reported as healthy when running the control plane
 		// in-memory.
-		//
-		// TODO(marun) Rename the function to reflect its purpose as
-		// part of refactoring the unmanaged framework into the sole
-		// available framework.
-		framework.SetUpUnmanagedFederation()
+		framework.SetUpControlPlane()
 	}
 	// Wait for readiness of registered clusters to ensure tests
-	// run against a healthy federation.
+	// run against a healthy control plane.
 	framework.WaitForUnmanagedClusterReadiness()
 
 	return nil
@@ -79,5 +75,5 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 }, func() {
 	// Run only Ginkgo on node 1
 	framework.Logf("Running AfterSuite actions on node 1")
-	framework.TearDownUnmanagedFederation()
+	framework.TearDownControlPlane()
 })

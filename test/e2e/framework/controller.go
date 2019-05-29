@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 )
 
-// ControllerFixture manages a kubefed controller for testing.
+// ControllerFixture manages a KubeFed controller for testing.
 type ControllerFixture struct {
 	stopChan chan struct{}
 }

@@ -42,7 +42,7 @@ import (
 )
 
 var _ = Describe("Scheduling", func() {
-	f := framework.NewFederationFramework("scheduling")
+	f := framework.NewKubeFedFramework("scheduling")
 	tl := framework.NewE2ELogger()
 
 	userAgent := "rsp-test"
@@ -198,7 +198,7 @@ var _ = Describe("Scheduling", func() {
 
 						name, err := createTestObjs(tl, genericClient, typeConfig, kubeConfig, rspSpec, namespace)
 						if err != nil {
-							tl.Fatalf("Creation of test objects failed in federation: %v", err)
+							tl.Fatalf("Creation of test objects in the host cluster failed: %v", err)
 						}
 
 						err = waitForMatchingFederatedObject(tl, typeConfig, kubeConfig, name, namespace, expected)
@@ -208,7 +208,7 @@ var _ = Describe("Scheduling", func() {
 
 						err = deleteTestObj(typeConfig, kubeConfig, name, namespace)
 						if err != nil {
-							tl.Fatalf("Deletion of test object failed in fedeartion: %v", err)
+							tl.Fatalf("Deletion of a test object from the host cluster failed: %v", err)
 						}
 					})
 				}
