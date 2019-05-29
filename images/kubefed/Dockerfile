@@ -15,11 +15,16 @@
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
+RUN adduser -D hyperfed
 
-WORKDIR /root/
+RUN mkdir -p /hyperfed && \
+    chown -R hyperfed:hyperfed /hyperfed
+     
+WORKDIR /hyperfed/
 COPY /hyperfed .
 RUN ln -s hyperfed controller-manager \
  && ln -s hyperfed kubefedctl \
  && ln -s hyperfed webhook
 
+USER hyperfed
 ENTRYPOINT ["./controller-manager"]

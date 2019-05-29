@@ -24,7 +24,7 @@ spec:
       - args:
         - --kubefed-namespace=$(KUBEFED_NAMESPACE)
         command:
-        - /root/controller-manager
+        - /hyperfed/controller-manager
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
         imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         name: controller-manager
@@ -69,7 +69,7 @@ spec:
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
         imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         command:
-        - "/root/webhook"
+        - "/hyperfed/webhook"
         - "--secure-port=8443"
         - "--audit-log-path=-"
         - "--tls-cert-file=/var/serving-cert/tls.crt"
