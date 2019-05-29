@@ -166,8 +166,13 @@ func (cc *ClusterController) updateClusterStatus() error {
 		clusterData := cc.clusterDataMap[cluster.Name]
 		cc.mu.RUnlock()
 		if clusterData == nil {
-			klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
-			continue
+			// Retry adding cluster client
+			cc.addToClusterSet(cluster)
+			clusterData = cc.clusterDataMap[cluster.Name]
+			if clusterData == nil {
+				klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
+				continue
+			}
 		}
 
 		wg.Add(1)
