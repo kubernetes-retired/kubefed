@@ -36,20 +36,20 @@ import (
 )
 
 var _ = Describe("Placement", func() {
-	f := framework.NewFederationFramework("placement")
+	f := framework.NewKubeFedFramework("placement")
 
 	tl := framework.NewE2ELogger()
 
 	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 
-	// TODO(marun) Since this test only targets namespaced federation,
-	// concurrent test isolation against unmanaged fixture is
+	// TODO(marun) Since this test only targets a namespaced control
+	// plane, concurrent test isolation against unmanaged fixture is
 	// effectively impossible.  The namespace placement would be
-	// picked up by other controllers targeting the federation
+	// picked up by other controllers targeting the KubeFed system
 	// namespace.
-	It("should be computed from namespace and resource placement for namespaced federation", func() {
+	It("should be computed from namespace and resource placement for a namespaced control plane", func() {
 		if !framework.TestContext.LimitedScope {
-			framework.Skipf("Considering namespace placement when determining resource placement is not supported for cluster-scoped federation.")
+			framework.Skipf("Considering namespace placement when determining resource placement is not supported for a cluster-scoped control plane.")
 		}
 
 		client, err := genericclient.New(f.KubeConfig())

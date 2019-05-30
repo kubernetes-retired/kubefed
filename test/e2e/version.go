@@ -165,7 +165,7 @@ func newTestVersionAdapter(client genericclient.Client, kubeClient kubeclientset
 var _ = Describe("VersionManager", func() {
 	userAgent := "test-version-manager"
 
-	f := framework.NewFederationFramework(userAgent)
+	f := framework.NewKubeFedFramework(userAgent)
 
 	tl := framework.NewE2ELogger()
 
@@ -501,7 +501,7 @@ func inSupportedScopeIt(description string, namespaced bool, f interface{}) {
 	// function performs doesn't provide a good indication of which
 	// tests are skipped and why.
 	if !namespaced && framework.TestContext.LimitedScope {
-		// Validation of cluster-scoped versioning is not supported for namespaced federation
+		// Validation of cluster-scoped versioning is not supported for a namespaced control plane
 		PIt(description, f)
 	} else {
 		It(description, f)

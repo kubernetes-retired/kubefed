@@ -49,7 +49,7 @@ type testResources struct {
 }
 
 var _ = Describe("Federate ", func() {
-	f := framework.NewFederationFramework("federate-resource")
+	f := framework.NewKubeFedFramework("federate-resource")
 	tl := framework.NewE2ELogger()
 	typeConfigFixtures := common.TypeConfigFixturesOrDie(tl)
 
@@ -72,7 +72,7 @@ var _ = Describe("Federate ", func() {
 	for _, testKey := range toTest {
 		typeConfigName := testKey
 		fixture := typeConfigFixtures[testKey]
-		It(fmt.Sprintf("resource %q, should create an equivalant federated resource in federation", typeConfigName), func() {
+		It(fmt.Sprintf("resource %q, should create an equivalant federated resource in the host cluster", typeConfigName), func() {
 			typeConfig := &fedv1b1.FederatedTypeConfig{}
 			err := client.Get(context.Background(), typeConfig, f.KubeFedSystemNamespace(), typeConfigName)
 			if err != nil {
@@ -275,7 +275,7 @@ func validateTemplateEquality(tl common.TestLogger, fedResource, targetResource 
 	}
 }
 
-func deleteResources(f framework.FederationFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testResourceName util.QualifiedName) {
+func deleteResources(f framework.KubeFedFramework, tl common.TestLogger, typeConfig typeconfig.Interface, testResourceName util.QualifiedName) {
 	client := getFedClient(tl, typeConfig, f.KubeConfig())
 	deleteResource(tl, client, testResourceName, typeConfig.GetFederatedType().Kind)
 

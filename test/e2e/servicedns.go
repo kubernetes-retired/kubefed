@@ -40,7 +40,7 @@ import (
 )
 
 var _ = Describe("ServiceDNS", func() {
-	f := framework.NewFederationFramework("multicluster-service-dns")
+	f := framework.NewKubeFedFramework("multicluster-service-dns")
 	tl := framework.NewE2ELogger()
 
 	const userAgent = "test-service-dns"
@@ -169,7 +169,7 @@ var _ = Describe("ServiceDNS", func() {
 	})
 })
 
-func createClusterServiceAndEndpoints(f framework.FederationFramework, name, namespace string, domain string,
+func createClusterServiceAndEndpoints(f framework.KubeFedFramework, name, namespace string, domain string,
 	clusterRegionZones map[string]fedv1b1.KubeFedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
 
 	const userAgent = "test-service-dns"

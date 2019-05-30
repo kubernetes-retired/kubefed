@@ -42,7 +42,7 @@ import (
 // TODO(marun) Replace the framework with the unmanaged
 // implementation.
 
-type FederationFrameworkImpl interface {
+type KubeFedFrameworkImpl interface {
 	BeforeEach()
 	AfterEach()
 
@@ -70,10 +70,10 @@ type FederationFrameworkImpl interface {
 	setUpSyncControllerFixture(typeConfig typeconfig.Interface, namespacePlacement *metav1.APIResource) TestFixture
 }
 
-// FederationFramework provides an interface to a test federation so
+// KubeFedFramework provides an interface to a test control plane so
 // that the implementation can vary without affecting tests.
-type FederationFramework interface {
-	FederationFrameworkImpl
+type KubeFedFramework interface {
+	KubeFedFrameworkImpl
 
 	// Registering a fixture ensures it will be torn down after the
 	// current test has executed.
@@ -99,7 +99,7 @@ type FederationFramework interface {
 // The workaround is using a wrapper that performs late-binding on the
 // framework flavor.
 type frameworkWrapper struct {
-	impl                FederationFrameworkImpl
+	impl                KubeFedFrameworkImpl
 	baseName            string
 	namespaceTypeConfig typeconfig.Interface
 
@@ -107,7 +107,7 @@ type frameworkWrapper struct {
 	fixtures []TestFixture
 }
 
-func NewFederationFramework(baseName string) FederationFramework {
+func NewKubeFedFramework(baseName string) KubeFedFramework {
 	f := &frameworkWrapper{
 		baseName: baseName,
 		fixtures: []TestFixture{},
@@ -117,7 +117,7 @@ func NewFederationFramework(baseName string) FederationFramework {
 	return f
 }
 
-func (f *frameworkWrapper) framework() FederationFrameworkImpl {
+func (f *frameworkWrapper) framework() KubeFedFrameworkImpl {
 	if f.impl == nil {
 		f.impl = NewUnmanagedFramework(f.baseName)
 	}

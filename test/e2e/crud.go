@@ -40,7 +40,7 @@ import (
 type testObjectsAccessor func(namespace string, clusterNames []string) (targetObject *unstructured.Unstructured, overrides []interface{}, err error)
 
 var _ = Describe("Federated", func() {
-	f := framework.NewFederationFramework("federated-types")
+	f := framework.NewKubeFedFramework("federated-types")
 
 	tl := framework.NewE2ELogger()
 
@@ -191,7 +191,7 @@ var _ = Describe("Federated", func() {
 	}
 })
 
-func getCrudTestInput(f framework.FederationFramework, tl common.TestLogger,
+func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 	typeConfigName string, fixture *unstructured.Unstructured) (
 	typeconfig.Interface, testObjectsAccessor) {
 
@@ -228,7 +228,7 @@ func getCrudTestInput(f framework.FederationFramework, tl common.TestLogger,
 	return typeConfig, testObjectsFunc
 }
 
-func initCrudTest(f framework.FederationFramework, tl common.TestLogger,
+func initCrudTest(f framework.KubeFedFramework, tl common.TestLogger,
 	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) (
 	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
 

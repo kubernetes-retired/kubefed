@@ -44,10 +44,10 @@ import (
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
 )
 
-// FederatedTypeCrudTester exercises Create/Read/Update/Delete operations for
-// federated types via the Federation API and validates that the
-// results of those operations are propagated to clusters that are
-// members of a federation.
+// FederatedTypeCrudTester exercises Create/Read/Update/Delete
+// operations for federated types via the KubeFed API and validates
+// that the results of those operations are propagated to clusters
+// registered with the KubeFed control plane.
 type FederatedTypeCrudTester struct {
 	tl                TestLogger
 	typeConfig        typeconfig.Interface
@@ -56,7 +56,7 @@ type FederatedTypeCrudTester struct {
 	kubeConfig        *rest.Config
 	testClusters      map[string]TestCluster
 	waitInterval      time.Duration
-	// Federation operations will use wait.ForeverTestTimeout.  Any
+	// KubeFed operations will use wait.ForeverTestTimeout.  Any
 	// operation that involves member clusters may take longer due to
 	// propagation latency.
 	clusterWaitTimeout time.Duration
@@ -304,11 +304,11 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 
 	waitTimeout := wait.ForeverTestTimeout
 	if deletingInCluster {
-		// May need extra time to delete both federation and cluster resources
+		// May need extra time to delete both federated and cluster resources
 		waitTimeout = c.clusterWaitTimeout
 	}
 
-	// Wait for deletion.  The federation resource will only be removed once managed resources have
+	// Wait for deletion.  The federated resource will only be removed once managed resources have
 	// been deleted or orphaned.
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 		_, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
@@ -625,7 +625,7 @@ func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, o
 
 		_, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		if apierrors.IsConflict(err) {
-			// The resource was updated by the kubefed controller.
+			// The resource was updated by the KubeFed controller.
 			// Get the latest version and retry.
 			obj, err = client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
 			return false, err

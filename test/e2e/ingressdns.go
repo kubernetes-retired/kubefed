@@ -36,7 +36,7 @@ import (
 )
 
 var _ = Describe("IngressDNS", func() {
-	f := framework.NewFederationFramework("multicluster-ingress-dns")
+	f := framework.NewKubeFedFramework("multicluster-ingress-dns")
 	tl := framework.NewE2ELogger()
 
 	const userAgent = "test-ingress-dns"
@@ -139,7 +139,7 @@ var _ = Describe("IngressDNS", func() {
 	})
 })
 
-func createClusterIngress(f framework.FederationFramework, name, namespace string, ingressDNSStatus *dnsv1a1.IngressDNSRecordStatus) *dnsv1a1.IngressDNSRecordStatus {
+func createClusterIngress(f framework.KubeFedFramework, name, namespace string, ingressDNSStatus *dnsv1a1.IngressDNSRecordStatus) *dnsv1a1.IngressDNSRecordStatus {
 	const userAgent = "test-ingress-dns"
 
 	ingress := common.NewIngressObject(name, namespace)
