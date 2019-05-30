@@ -1,4 +1,8 @@
 # Unreleased
+-  [#951](https://github.com/kubernetes-sigs/kubefed/issues/951)
+   Propagation status for a namespaced federated resource whose
+   containing namespace is not federated now indicates an unhealthy
+   state.
 -  [#1053](https://github.com/kubernetes-sigs/kubefed/pull/1053) API group
    changed from kubefed.k8s.io to kubefed.io.
 
@@ -16,13 +20,13 @@
    for defaulting KubeFedConfigs using mutating admission webhook.
 -  [#1038](https://github.com/kubernetes-sigs/kubefed/pull/1038) Removed template validation schema from Federated API's to facilitate upgrade scenarios.
 -  [#690](https://github.com/kubernetes-sigs/kubefed/issues/690) Extends `kubefedctl`
-   by adding the `orphaning-deletion` command, which allows to `enable` or `disable`  
-   leaving managed resources, when their relevant federated resource is deleted. 
-   In addition, the command allows to check current `status` of the orphaning deletion 
+   by adding the `orphaning-deletion` command, which allows to `enable` or `disable`
+   leaving managed resources, when their relevant federated resource is deleted.
+   In addition, the command allows to check current `status` of the orphaning deletion
    mode.
--  [#1044](https://github.com/kubernetes-sigs/kubefed/issues/1044) If a target namespace  
+-  [#1044](https://github.com/kubernetes-sigs/kubefed/issues/1044) If a target namespace
    of `federate` and all `orphaning-deletion` commands is not specified, use the namespace from
-   the client kubeconfig context. 
+   the client kubeconfig context.
 
 # v0.1.0-rc3
 -  [#520](https://github.com/kubernetes-sigs/kubefed/issues/520) Adds support

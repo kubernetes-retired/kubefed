@@ -66,6 +66,7 @@ const (
 	ClusterRetrievalFailed AggregateReason = "ClusterRetrievalFailed"
 	ComputePlacementFailed AggregateReason = "ComputePlacementFailed"
 	CheckClusters          AggregateReason = "CheckClusters"
+	NamespaceNotFederated  AggregateReason = "NamespaceNotFederated"
 
 	PropagationConditionType ConditionType = "Propagation"
 )

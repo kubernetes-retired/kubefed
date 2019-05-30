@@ -49,6 +49,7 @@ type FederatedResource interface {
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
 	ComputePlacement(clusters []*fedv1b1.KubeFedCluster) (selectedClusters sets.String, err error)
+	NamespaceNotFederated() bool
 }
 
 type federatedResource struct {
@@ -126,6 +127,10 @@ func (r *federatedResource) ComputePlacement(clusters []*fedv1b1.KubeFedCluster)
 		return computeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope)
 	}
 	return computePlacement(r.federatedResource, clusters)
+}
+
+func (r *federatedResource) NamespaceNotFederated() bool {
+	return r.typeConfig.GetNamespaced() && r.fedNamespace == nil
 }
 
 func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool {

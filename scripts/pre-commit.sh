@@ -30,7 +30,10 @@ CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 COMMON_TEST_CMD="go test -v"
 COMMON_TEST_ARGS="./test/e2e -args  -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
 E2E_TEST_CMD="${COMMON_TEST_CMD} ${COMMON_TEST_ARGS}"
-IN_MEMORY_E2E_TEST_CMD="${COMMON_TEST_CMD} -race ${COMMON_TEST_ARGS} -in-memory-controllers=true"
+# Disable limited scope in-memory controllers to ensure the controllers in the
+# race detection test behave consistently with deployed controllers for a
+# given control plane scope.
+IN_MEMORY_E2E_TEST_CMD="${COMMON_TEST_CMD} -race ${COMMON_TEST_ARGS} -in-memory-controllers=true -limited-scope-in-memory-controllers=false"
 
 function build-binaries() {
   ${MAKE_CMD} hyperfed
