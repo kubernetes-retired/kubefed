@@ -40,27 +40,35 @@ func TestValidateFederatedTypeConfig(t *testing.T) {
 	}
 }
 
-func TestValidateFederatedTypeConfigSpec(t *testing.T) {
-	apiResource := &metav1.APIResource{
-		Group:      "",
-		Version:    "v1",
-		Kind:       "Service",
-		Name:       "services",
-		Namespaced: true,
-	}
-	apiResourceWithGroup := &metav1.APIResource{
-		Group:      "apps",
-		Version:    "v1",
-		Kind:       "Deployment",
-		Name:       "deployments",
-		Namespaced: true,
+func TestValidateFederatedTypeConfigName(t *testing.T) {
+	for _, successCase := range successCases() {
+		if errs := ValidateFederatedTypeConfigName(successCase); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
 	}
 
-	successCases := []*v1beta1.FederatedTypeConfig{
-		federatedTypeConfig(apiResource),
-		federatedTypeConfig(apiResourceWithGroup),
+	errorCases := map[string]*v1beta1.FederatedTypeConfig{}
+
+	validDeploymentFedTypeConfig := federatedTypeConfig(apiResourceWithNonEmptyGroup())
+	validDeploymentFedTypeConfig.Name = "deployments"
+	errorCases[federatedTypeConfigNameErrorMsg] = validDeploymentFedTypeConfig
+
+	validServicesFedTypeConfig := federatedTypeConfig(apiResourceWithEmptyGroup())
+	validServicesFedTypeConfig.Name = "service"
+	errorCases["name must be 'TARGET_PLURAL_NAME"] = validServicesFedTypeConfig
+
+	for k, v := range errorCases {
+		errs := ValidateFederatedTypeConfigName(v)
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", k)
+		} else if !strings.Contains(errs[0].Error(), k) {
+			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), k)
+		}
 	}
-	for _, successCase := range successCases {
+}
+
+func TestValidateFederatedTypeConfigSpec(t *testing.T) {
+	for _, successCase := range successCases() {
 		if errs := ValidateFederatedTypeConfigSpec(&successCase.Spec, field.NewPath("spec")); len(errs) != 0 {
 			t.Errorf("expected success: %v", errs)
 		}
@@ -207,15 +215,35 @@ func TestValidateFederatedTypeConfigStatus(t *testing.T) {
 
 }
 
-func validFederatedTypeConfig() *v1beta1.FederatedTypeConfig {
-	apiResourceWithGroup := &metav1.APIResource{
+func successCases() []*v1beta1.FederatedTypeConfig {
+	return []*v1beta1.FederatedTypeConfig{
+		federatedTypeConfig(apiResourceWithEmptyGroup()),
+		federatedTypeConfig(apiResourceWithNonEmptyGroup()),
+	}
+}
+
+func apiResourceWithEmptyGroup() *metav1.APIResource {
+	return &metav1.APIResource{
+		Group:      "",
+		Version:    "v1",
+		Kind:       "Service",
+		Name:       "services",
+		Namespaced: true,
+	}
+}
+
+func apiResourceWithNonEmptyGroup() *metav1.APIResource {
+	return &metav1.APIResource{
 		Group:      "apps",
 		Version:    "v1",
 		Kind:       "Deployment",
 		Name:       "deployments",
 		Namespaced: true,
 	}
-	return federatedTypeConfig(apiResourceWithGroup)
+}
+
+func validFederatedTypeConfig() *v1beta1.FederatedTypeConfig {
+	return federatedTypeConfig(apiResourceWithNonEmptyGroup())
 }
 
 func federatedTypeConfig(apiResource *metav1.APIResource) *v1beta1.FederatedTypeConfig {
