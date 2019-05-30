@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingpreference"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -173,13 +172,6 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 
 	// set name and group for the type config target
 	corev1b1.SetFederatedTypeConfigDefaults(typeConfig)
-
-	// TODO(marun) Replace with validation webhook
-	err = typeconfig.CheckTypeConfigName(typeConfig)
-	if err != nil {
-		runtime.HandleError(err)
-		return util.StatusError
-	}
 
 	// Scheduling preference controller is started on demand
 	abstractScheduler, ok := c.schedulers.Get(schedulingKind)

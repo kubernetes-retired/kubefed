@@ -24,11 +24,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/kubefed/pkg/controller/webhook"
+	"sigs.k8s.io/kubefed/pkg/controller/webhook/federatedtypeconfig"
 )
 
 func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
-		&webhook.FederatedTypeConfigValidationHook{},
+		&federatedtypeconfig.FederatedTypeConfigValidationHook{},
 		&webhook.KubeFedClusterValidationHook{},
 	}
 

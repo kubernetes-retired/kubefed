@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package webhook
+package federatedtypeconfig
 
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -30,6 +31,12 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
+	"sigs.k8s.io/kubefed/pkg/controller/webhook"
+)
+
+const (
+	resourceName       = "FederatedTypeConfig"
+	resourcePluralName = "federatedtypeconfigs"
 )
 
 type FederatedTypeConfigValidationHook struct {
@@ -40,12 +47,7 @@ type FederatedTypeConfigValidationHook struct {
 }
 
 func (a *FederatedTypeConfigValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
-	return schema.GroupVersionResource{
-			Group:    "admission.core.kubefed.k8s.io",
-			Version:  "v1beta1",
-			Resource: "federatedtypeconfigs",
-		},
-		"federatedtypeconfig"
+	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
 func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
@@ -53,11 +55,8 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 
 	// We want to let through:
 	// - Requests that are not for create, update
-	// - Requests for subresources
 	// - Requests for things that are not FederatedTypeConfigs
-	if (admissionSpec.Operation != admissionv1beta1.Create && admissionSpec.Operation != admissionv1beta1.Update) ||
-		len(admissionSpec.SubResource) != 0 ||
-		(admissionSpec.Resource.Group != "core.kubefed.k8s.io" && admissionSpec.Resource.Resource != "federatedtypeconfigs") {
+	if webhook.Allowed(admissionSpec, resourcePluralName) {
 		status.Allowed = true
 		return status
 	}
@@ -86,7 +85,8 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 		return status
 	}
 
-	errs := validation.ValidateFederatedTypeConfig(admittingObject)
+	isStatusSubResource := len(admissionSpec.SubResource) != 0
+	errs := validation.ValidateFederatedTypeConfig(admittingObject, isStatusSubResource)
 	if len(errs) != 0 {
 		status.Allowed = false
 		status.Result = &metav1.Status{
@@ -108,8 +108,8 @@ func (a *FederatedTypeConfigValidationHook) Initialize(kubeClientConfig *rest.Co
 
 	shallowClientConfigCopy := *kubeClientConfig
 	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
-		Group:   "core.kubefed.k8s.io",
-		Version: "v1beta1",
+		Group:   v1beta1.SchemeGroupVersion.Group,
+		Version: v1beta1.SchemeGroupVersion.Version,
 	}
 	shallowClientConfigCopy.APIPath = "/apis"
 	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
@@ -117,9 +117,9 @@ func (a *FederatedTypeConfigValidationHook) Initialize(kubeClientConfig *rest.Co
 		return err
 	}
 	a.client = dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "core.kubefed.k8s.io",
-		Version:  "v1beta1",
-		Resource: "federatedtypeconfig",
+		Group:    v1beta1.SchemeGroupVersion.Group,
+		Version:  v1beta1.SchemeGroupVersion.Version,
+		Resource: resourceName,
 	})
 
 	return nil

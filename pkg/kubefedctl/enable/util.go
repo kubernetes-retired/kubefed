@@ -154,14 +154,14 @@ func GetServerPreferredResources(config *rest.Config) ([]*metav1.APIResourceList
 	return resourceLists, nil
 }
 
-func namespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
+func NamespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
 	if apiResource.Namespaced {
 		return apiextv1b1.NamespaceScoped
 	}
 	return apiextv1b1.ClusterScoped
 }
 
-func federatedNamespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
+func FederatedNamespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
 	// Special-case the scope of federated namespace since it will
 	// hopefully be the only instance of the scope of a federated
 	// type differing from the scope of its target.
@@ -170,7 +170,7 @@ func federatedNamespacedToScope(apiResource metav1.APIResource) apiextv1b1.Resou
 		// with only namespace-scoped permissions e.g. to determine placement.
 		return apiextv1b1.NamespaceScoped
 	}
-	return namespacedToScope(apiResource)
+	return NamespacedToScope(apiResource)
 }
 
 func resourceKey(apiResource metav1.APIResource) string {
