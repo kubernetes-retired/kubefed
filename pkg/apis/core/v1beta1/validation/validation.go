@@ -24,17 +24,29 @@ import (
 	valutil "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
 
 func ValidateFederatedTypeConfig(obj *v1beta1.FederatedTypeConfig, statusSubResource bool) field.ErrorList {
 	var allErrs field.ErrorList
 	if !statusSubResource {
-		allErrs = ValidateFederatedTypeConfigSpec(&obj.Spec, field.NewPath("spec"))
+		allErrs = ValidateFederatedTypeConfigName(obj)
+		allErrs = append(allErrs, ValidateFederatedTypeConfigSpec(&obj.Spec, field.NewPath("spec"))...)
 	} else {
 		allErrs = ValidateFederatedTypeConfigStatus(&obj.Status, field.NewPath("status"))
 	}
 	return allErrs
+}
+
+const federatedTypeConfigNameErrorMsg string = "name must be 'TARGET_PLURAL_NAME(.TARGET_GROUP_NAME)'"
+
+func ValidateFederatedTypeConfigName(obj *v1beta1.FederatedTypeConfig) field.ErrorList {
+	expectedName := typeconfig.GroupQualifiedName(obj.GetTargetType())
+	if expectedName != obj.Name {
+		return field.ErrorList{field.Invalid(field.NewPath("name"), obj.Name, federatedTypeConfigNameErrorMsg)}
+	}
+	return field.ErrorList{}
 }
 
 func ValidateFederatedTypeConfigSpec(spec *v1beta1.FederatedTypeConfigSpec, fldPath *field.Path) field.ErrorList {

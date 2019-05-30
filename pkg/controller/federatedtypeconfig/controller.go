@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
-	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	statuscontroller "sigs.k8s.io/kubefed/pkg/controller/status"
@@ -144,13 +143,6 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	// TODO(marun) Perform this defaulting in a webhook
 	corev1b1.SetFederatedTypeConfigDefaults(typeConfig)
-
-	// TODO(marun) Replace with validation webhook
-	err = typeconfig.CheckTypeConfigName(typeConfig)
-	if err != nil {
-		runtime.HandleError(err)
-		return util.StatusError
-	}
 
 	syncEnabled := typeConfig.GetPropagationEnabled()
 	statusEnabled := typeConfig.GetStatusEnabled()
