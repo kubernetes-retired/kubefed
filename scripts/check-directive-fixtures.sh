@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script ensures that federate directives are not merged to the
-# tree without corresponding fixture to ensure federation of the
+# This script ensures that enable type directives are not merged to
+# the tree without corresponding fixture to ensure federation of the
 # target type will be tested.
 
 set -o errexit

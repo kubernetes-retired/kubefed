@@ -25,7 +25,7 @@ WORKDIR=$(mktemp -d)
 NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/kubefed/charts/controllermanager/templates}"
 CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/kubefed/templates}"
-TEMP_CRDS_YAML="/tmp/federation-crds.yaml"
+TEMP_CRDS_YAML="/tmp/kubefed-crds.yaml"
 
 # Check for existence of kube-apiserver and etcd binaries in bin directory
 if [[ ! -f ${ROOT_DIR}/bin/etcd || ! -f ${ROOT_DIR}/bin/kube-apiserver ]];
@@ -70,7 +70,7 @@ contexts:
 - context:
     cluster: development
     user: ""
-  name: federation
+  name: kubefed
 current-context: ""
 kind: Config
 preferences: {}
@@ -82,7 +82,7 @@ ${ROOT_DIR}/bin/etcd --data-dir ${WORKDIR} &
 util::wait-for-condition 'ok' "curl http://127.0.0.1:2379/version &> /dev/null" 30
 
 ${ROOT_DIR}/bin/kube-apiserver --etcd-servers=http://127.0.0.1:2379 --service-cluster-ip-range=10.0.0.0/16 --cert-dir ${WORKDIR} &
-util::wait-for-condition 'ok' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --context federation get --raw=/healthz &> /dev/null" 60
+util::wait-for-condition 'ok' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --context kubefed get --raw=/healthz &> /dev/null" 60
 
 # Generate YAML templates to enable resource propagation for helm chart.
 echo -n > ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
@@ -90,7 +90,7 @@ echo -n > ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 for filename in ./config/enabletypedirectives/*.yaml; do
   full_name=${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
 
-  ./bin/kubefedctl --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --kubefed-namespace="${NS}" --host-cluster-context federation -o yaml > ${full_name}
+  ./bin/kubefedctl --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --kubefed-namespace="${NS}" --host-cluster-context kubefed -o yaml > ${full_name}
   sed -n '/^---/,/^---/p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
   sed -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
 
