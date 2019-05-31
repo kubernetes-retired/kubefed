@@ -4,7 +4,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    api: federation
+    api: kubefed
     kubebuilder.k8s.io: 1.0.0
   name: kubefed-role
 rules:

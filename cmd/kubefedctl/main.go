@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// kubefedctl is a tool for managing clusters in a federation.
+// kubefedctl is a tool for managing a KubeFed control plane.
 package main
 
 import (

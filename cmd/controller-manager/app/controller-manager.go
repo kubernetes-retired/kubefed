@@ -121,7 +121,7 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 		klog.Info("KubeFed will target all namespaces")
 	}
 
-	elector, err := leaderelection.NewFederationLeaderElector(opts, startControllers)
+	elector, err := leaderelection.NewKubeFedLeaderElector(opts, startControllers)
 	if err != nil {
 		panic(err)
 	}
@@ -244,7 +244,7 @@ func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 		// TODO(sohankunkerkar) Remove when no longer necessary.
 		// This Environment variable is a temporary addition to support Red Hat's downstream testing efforts.
 		// Its continued existence should not be relied upon.
-		const defaultScopeEnv = "DEFAULT_FEDERATION_SCOPE"
+		const defaultScopeEnv = "DEFAULT_KUBEFED_SCOPE"
 		defaultScope := os.Getenv(defaultScopeEnv)
 		if len(defaultScope) != 0 {
 			if defaultScope != string(apiextv1b1.ClusterScoped) && defaultScope != string(apiextv1b1.NamespaceScoped) {
