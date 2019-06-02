@@ -52,9 +52,9 @@ kubefedctl federate ns ${TEST_NS} --contents --skip-api-resources 'pods,secrets,
 echo
 echo "Checking status of federated resources."
 util::wait-for-condition 'federated deployment status updated in cluster1' \
-    "(kubectl get federateddeployment nginx -n ${TEST_NS} -o jsonpath='{.status.clusters[*].name}' | grep '^cluster1') &> /dev/null" 120
+    "(kubectl get federateddeployment nginx -n ${TEST_NS} -o jsonpath='{.status.clusters[*].name}' | grep '\<cluster1\>') &> /dev/null" 120
 util::wait-for-condition 'federated deployment status updated in cluster2' \
-    "(kubectl get federateddeployment nginx -n ${TEST_NS} -o jsonpath='{.status.clusters[*].name}' | grep '^cluster2') &> /dev/null" 120
+    "(kubectl get federateddeployment nginx -n ${TEST_NS} -o jsonpath='{.status.clusters[*].name}' | grep '\<cluster2\>') &> /dev/null" 120
 
 echo
 echo "Querying web server of deployment nginx application from member clusters."
