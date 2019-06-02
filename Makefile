@@ -40,7 +40,9 @@ ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
 endif
 BUILDMNT = /go/src/$(GOTARGET)
-BUILD_IMAGE ?= golang:1.11.2
+# The version here should match the version of go configured in
+# .travis.yml
+BUILD_IMAGE ?= golang:1.12.5
 
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager

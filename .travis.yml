@@ -1,5 +1,7 @@
 language: go
 
+# The version used here should match the BUILD_IMAGE variable in the
+# Makefile.
 go:
   - "1.12.5"
 
