@@ -30,6 +30,7 @@ OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
 KIND_TAG="${KIND_TAG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
 kubeconfig="${HOME}/.kube/config"
+OS=`uname`
 
 function create-insecure-registry() {
   # Run insecure registry as container
@@ -130,20 +131,23 @@ function fixup-cluster() {
   # TODO(font): Need to set container IP address in order for clusters to reach
   # kube API servers in other clusters until
   # https://github.com/kubernetes-sigs/kind/issues/111 is resolved.
-  local container_ip_addr=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cluster${i}-control-plane)
-  # Using the container ip allows the use of port 6443 instead of the
-  # random port intended to be exposed on localhost.
-  sed -i "s/localhost.*$/${container_ip_addr}:6443/" ${kubeconfig_path}
+  if [ "$OS" != "Darwin" ];then
+      local container_ip_addr=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cluster${i}-control-plane)
+      # Using the container ip allows the use of port 6443 instead of the
+      # random port intended to be exposed on localhost.
+      sed -i.bak "s/localhost.*$/${container_ip_addr}:6443/" ${kubeconfig_path}&& rm -rf ${kubeconfig_path}.bak
+  fi
 
   # TODO(font): Need to rename auth user name to avoid conflicts when using
   # multiple cluster kubeconfigs. Remove once
   # https://github.com/kubernetes-sigs/kind/issues/112 is resolved.
-  sed -i "s/kubernetes-admin/kubernetes-cluster${i}-admin/" ${kubeconfig_path}
+  sed -i.bak "s/kubernetes-admin/kubernetes-cluster${i}-admin/" ${kubeconfig_path} && rm -rf ${kubeconfig_path}.bak
 }
 
 function check-clusters-ready() {
   for i in $(seq ${1}); do
-    util::wait-for-condition 'ok' "kubectl --context cluster${i} get --raw=/healthz &> /dev/null" 120
+    local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
+    util::wait-for-condition 'ok' "kubectl --kubeconfig ${kubeconfig_path} --context cluster${i} get --raw=/healthz &> /dev/null" 120
   done
 }
 
