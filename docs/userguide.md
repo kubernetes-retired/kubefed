@@ -9,6 +9,7 @@
   - [Helm Chart Deployment](#helm-chart-deployment)
   - [Operations](#operations)
     - [Join Clusters](#join-clusters)
+      - [Joining kind clusters on MacOS](#joining-kind-clusters-on-macos)
     - [Checking status of joined clusters](#checking-status-of-joined-clusters)
     - [Unjoining clusters](#unjoining-clusters)
   - [Federated API types](#federated-api-types)
@@ -114,12 +115,6 @@ kubectl config use-context cluster1
 You can refer to [helm chart installation guide](https://github.com/kubernetes-sigs/kubefed/blob/master/charts/kubefed/README.md)
 to install and uninstall a KubeFed control plane.
 
-### Fix Cluster Registry meta (Optional)
-Cluster registry meta-data address need to be fixed if you are running hyperkit docker under `Darwin`. Run following script to fix this.
-Specify the clusters you need to be fixed, Comma seperated.
-```bash
-./scripts/fix-joined-kind-clusters.sh cluster1,cluster2
-``` 
 
 ## Operations
 
@@ -138,6 +133,21 @@ Repeat this step to join any additional clusters.
 
 **NOTE:** `cluster-context` will default to use the joining cluster name if not
 specified.
+
+#### Joining kind clusters on MacOS
+
+A Kubernetes cluster deployed with [kind](https://sigs.k8s.io/kind) on Docker
+for MacOS will have an API endpoint of `https://localhost:<random-port>` in its
+kubeconfig context. Such an endpoint will be compatible with local invocations
+of cli tools like `kubectl`. The same endpoint will not be reachable from a
+KubeFed control plane, and the endpoints of kind clusters joined to a KubeFed
+control plane will need to be updated to `https://<kind pod ip>:6443`. This can
+be accomplished by executing the following script after a cluster is registered
+to the control plane with `kubefedctl join`.
+
+```bash
+./scripts/fix-joined-kind-clusters.sh
+```
 
 ### Checking status of joined clusters
 
