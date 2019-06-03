@@ -122,6 +122,9 @@ golangci-lint run
 echo "Checking that correct Error Package is used."
 ./hack/verify-errpkg.sh
 
+echo "Checking that correct Logging Package is used."
+./hack/verify-klog.sh
+
 echo "Checking that 'make generate' is up-to-date"
 check-make-generate-output
 
