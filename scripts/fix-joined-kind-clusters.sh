@@ -18,8 +18,17 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# This script updates APIEndpoints of KubeFedClusters for Docker
-# running in a VM on MacOS.
+# This script updates APIEndpoints of KubeFedCluster resources for
+# Docker on MacOS.
+#
+# By default, `https://<kind-pod-ip>:6443` is used to ensure
+# compatibility with control plane components running in a kind
+# cluster.
+#
+# If LOCAL_TESTING is set, the api endpoint defined in the local
+# kubeconfig is used to ensure compatibility with control plane
+# components run in-memory by local e2e tests.
+LOCAL_TESTING="${LOCAL_TESTING:-}"
 
 if [ "`uname`" != 'Darwin' ]; then
   >&2 echo "This script is only intended for use on MacOS"
@@ -33,7 +42,12 @@ INSPECT_PATH='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
 CLUSTERS="$(kubectl get kubefedclusters -n "${NS}" -o jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
 for cluster in ${CLUSTERS};
 do
-  IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "${cluster}-control-plane")"
+  if [[ "${LOCAL_TESTING}" ]]; then
+    ENDPOINT="$(kubectl config view -o jsonpath='{.clusters[?(@.name == "'"${cluster}"'")].cluster.server}')"
+  else
+    IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "${cluster}-control-plane")"
+    ENDPOINT="https://${IP_ADDR}:6443"
+  fi
   kubectl patch kubefedclusters -n "${NS}" "${cluster}" --type merge \
-          --patch "{\"spec\":{\"apiEndpoint\":\"https://${IP_ADDR}:6443\"}}"
+          --patch "{\"spec\":{\"apiEndpoint\":\"${ENDPOINT}\"}}"
 done
