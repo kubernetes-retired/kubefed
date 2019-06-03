@@ -150,6 +150,8 @@ func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList
 
 	spec := kubeFedConfig.Spec
 	specPath := field.NewPath("spec")
+	allErrs = append(allErrs, validateEnumStrings(specPath.Child("scope"), string(spec.Scope),
+		[]string{string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped)})...)
 
 	duration := spec.ControllerDuration
 	durationPath := specPath.Child("controllerDuration")

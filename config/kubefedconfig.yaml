@@ -4,6 +4,7 @@ metadata:
   name: kubefed
   namespace: kube-federation-system
 spec:
+  scope: Cluster
   leaderElect:
     leaseDuration: 1500ms
     renewDeadline: 1000ms

@@ -237,7 +237,7 @@ func setInt64(target *int64, defaultValue int64) {
 	}
 }
 
-func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
+func SetDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 	spec := &fedConfig.Spec
 
 	if len(spec.Scope) == 0 {
@@ -325,7 +325,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 		}
 	}
 
-	setDefaultKubeFedConfig(fedConfig)
+	SetDefaultKubeFedConfig(fedConfig)
 
 	spec := fedConfig.Spec
 	opts.Scope = spec.Scope
