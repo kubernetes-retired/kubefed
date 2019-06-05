@@ -19,6 +19,7 @@ package features
 import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog"
+	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
 
 const (
@@ -68,4 +69,18 @@ var defaultKubeFedFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec
 	PushReconciler:               {Default: true, PreRelease: utilfeature.Alpha},
 	CrossClusterServiceDiscovery: {Default: true, PreRelease: utilfeature.Alpha},
 	FederatedIngress:             {Default: true, PreRelease: utilfeature.Alpha},
+}
+
+// PopulateKubeFed features will append kubefed features to the featuregatesconfig slice
+// to add a new feature, add it to this function as well with the proposed default
+func PopulateKubeFedFeatures(fgc []corev1b1.FeatureGatesConfig) error {
+	fgc = append(fgc, corev1b1.FeatureGatesConfig{
+		"SchedulerPreferences", corev1b1.ConfigurationEnabled})
+	fgc = append(fgc, corev1b1.FeatureGatesConfig{
+		"PushReconciler", corev1b1.ConfigurationEnabled})
+	fgc = append(fgc, corev1b1.FeatureGatesConfig{
+		"CrossClusterServiceDiscovery", corev1b1.ConfigurationEnabled})
+	fgc = append(fgc, corev1b1.FeatureGatesConfig{
+		"FederatedIngress", corev1b1.ConfigurationEnabled})
+	return nil
 }

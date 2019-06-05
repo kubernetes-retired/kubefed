@@ -258,6 +258,13 @@ func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 	setDuration(&duration.AvailableDelay, util.DefaultClusterAvailableDelay)
 	setDuration(&duration.UnavailableDelay, util.DefaultClusterUnavailableDelay)
 
+	if len(spec.FeatureGates) == 0 {
+		spec.FeatureGates = make([]corev1b1.FeatureGatesConfig, 0)
+		if err := features.PopulateKubeFedFeatures(spec.FeatureGates); err != nil {
+			klog.Fatalf("Unexpected error: %v", err)
+		}
+	}
+
 	election := &spec.LeaderElect
 	if len(election.ResourceLock) == 0 {
 		election.ResourceLock = util.DefaultLeaderElectionResourceLock
