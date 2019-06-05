@@ -23,7 +23,8 @@ set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 CREATE_INSECURE_REGISTRY="${CREATE_INSECURE_REGISTRY:-}"
-CONFIGURE_INSECURE_REGISTRY="${CONFIGURE_INSECURE_REGISTRY:-}"
+CONFIGURE_INSECURE_REGISTRY_HOST="${CONFIGURE_INSECURE_REGISTRY_HOST:-}"
+CONFIGURE_INSECURE_REGISTRY_CLUSTER="${CONFIGURE_INSECURE_REGISTRY_CLUSTER:-y}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
@@ -50,7 +51,7 @@ EOF
       err=true
     fi
   elif pgrep -a dockerd | grep -q 'insecure-registry'; then
-    echo <<EOF "Error: CONFIGURE_INSECURE_REGISTRY=${CONFIGURE_INSECURE_REGISTRY} \
+    echo <<EOF "Error: CONFIGURE_INSECURE_REGISTRY_HOST=${CONFIGURE_INSECURE_REGISTRY_HOST} \
 and about to write ${docker_daemon_config}, but dockerd is already configured with \
 an 'insecure-registry' command line option. Please make the necessary changes or disable \
 the command line option and try again."
@@ -113,10 +114,12 @@ function create-clusters() {
     unset KUBECONFIG
   fi
 
-  # TODO(font): Configure insecure registry on kind host cluster. Remove once
-  # https://github.com/kubernetes-sigs/kind/issues/110 is resolved.
-  echo "Configuring insecure container registry on kind host cluster"
-  configure-insecure-registry-on-cluster 1
+  if [[ "${CONFIGURE_INSECURE_REGISTRY_CLUSTER}" ]]; then
+    # TODO(font): Configure insecure registry on kind host cluster. Remove once
+    # https://github.com/kubernetes-sigs/kind/issues/110 is resolved.
+    echo "Configuring insecure container registry on kind host cluster"
+    configure-insecure-registry-on-cluster 1
+  fi
 }
 
 function fixup-cluster() {
@@ -160,7 +163,7 @@ if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
   create-insecure-registry
 fi
 
-if [[ "${CONFIGURE_INSECURE_REGISTRY}" ]]; then
+if [[ "${CONFIGURE_INSECURE_REGISTRY_HOST}" ]]; then
   echo "Configuring container registry on host"
   configure-insecure-registry
 fi

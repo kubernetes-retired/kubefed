@@ -15,23 +15,39 @@
 # limitations under the License.
 
 set -o errexit
+set -o nounset
+set -o pipefail
 
-if [ "$1" == "" ];then
-    echo "kubernetes cluster context list need to be provided. eg. cluster1,cluster2,cluster3"; exit 1
+# This script updates APIEndpoints of KubeFedCluster resources for
+# Docker on MacOS.
+#
+# By default, `https://<kind-pod-ip>:6443` is used to ensure
+# compatibility with control plane components running in a kind
+# cluster.
+#
+# If LOCAL_TESTING is set, the api endpoint defined in the local
+# kubeconfig is used to ensure compatibility with control plane
+# components run in-memory by local e2e tests.
+LOCAL_TESTING="${LOCAL_TESTING:-}"
+
+if [ "`uname`" != 'Darwin' ]; then
+  >&2 echo "This script is only intended for use on MacOS"
+  exit 1
 fi
-CLUSTER_CONTEXT=${1//,/ }
 
-if [ "`uname`" == 'Darwin' ];then
+NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 
-    # We need to fix cluster ip addr in cluster-registry for mac os.
-    # Assume all context was contained in current kubeconfig.
-    for c in ${CLUSTER_CONTEXT};
-    do
-        ip_addr=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${c}-control-plane)
+INSPECT_PATH='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
 
-        kubectl patch clusters -n kube-multicluster-public ${c} --type merge \
-            --patch "{\"spec\":{\"kubernetesApiEndpoints\":{\"serverEndpoints\":[{\"clientCIDR\":\"0.0.0.0/0\", \"serverAddress\":\"https://${ip_addr}:6443\"}]}}}"
-    done
-fi
-
-echo "cluster $1 address patched successfully."
+CLUSTERS="$(kubectl get kubefedclusters -n "${NS}" -o jsonpath='{range .items[*]}{.metadata.name}{" "}{end}')"
+for cluster in ${CLUSTERS};
+do
+  if [[ "${LOCAL_TESTING}" ]]; then
+    ENDPOINT="$(kubectl config view -o jsonpath='{.clusters[?(@.name == "'"${cluster}"'")].cluster.server}')"
+  else
+    IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "${cluster}-control-plane")"
+    ENDPOINT="https://${IP_ADDR}:6443"
+  fi
+  kubectl patch kubefedclusters -n "${NS}" "${cluster}" --type merge \
+          --patch "{\"spec\":{\"apiEndpoint\":\"${ENDPOINT}\"}}"
+done

@@ -76,14 +76,14 @@ enabling TLS. **This only needs to be done once for a particular host**.
 See the [docker docs](https://docs.docker.com/registry) for more details.
 
 In order to configure an insecure container registry, you can pass the
-`CONFIGURE_INSECURE_REGISTRY` flag to `create-clusters.sh` as shown below. The
+`CONFIGURE_INSECURE_REGISTRY_HOST` flag to `create-clusters.sh` as shown below. The
 default container registry host is `172.17.0.1:5000` and needs to match
 the IP address of the default docker bridge on your host, typically
 `172.17.0.1`. If you would like to change this then set the
 `CONTAINER_REGISTRY_HOST="<host>:<port>"` flag.
 
 ```bash
-CONFIGURE_INSECURE_REGISTRY=y ./scripts/create-clusters.sh
+CONFIGURE_INSECURE_REGISTRY_HOST=y ./scripts/create-clusters.sh
 ```
 
 This will automatically create the necessary dockerd daemon config and reload
