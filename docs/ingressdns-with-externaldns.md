@@ -30,7 +30,7 @@ The above diagram illustrates MCIDNS. A typical MCIDNS workflow consists of:
 MCIDNS is comprised of multiple types and controllers:
 
 - The Ingress DNS Controller watches for `IngressDNSRecord` resources and updates the status of the resource with the IP
-  address of matching target `Ingress` resource(s).
+  address of matching (matching here means the resource with the same name and namespace) target `Ingress` resource(s).
 - The DNS Endpoint Controller watches for `IngressDNSRecord` resources and creates an associated `DNSEndpoint`
   resource. `DNSEndpoint` contains the necessary information to create an external DNS record. An external DNS system
   (i.e. [ExternalDNS](https://github.com/kubernetes-incubator/external-dns)) is responsible for watching `DNSEndpoint`
