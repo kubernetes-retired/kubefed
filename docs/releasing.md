@@ -3,7 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Releasing KubeFed](#releasing-kubefed)
-- [How image is automatically published](#how-image-is-automatically-published)
+- [How Image is Automatically Published](#how-image-is-automatically-published)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
