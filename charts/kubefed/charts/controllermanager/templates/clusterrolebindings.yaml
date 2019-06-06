@@ -17,7 +17,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: auth-delegator-kubefed-admission-webhook
+  name: kubefed-admission-webhook:auth-delegator
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
@@ -32,7 +32,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: anonymous-kubefed-admission-webhook-auth
+  name: kubefed-admission-webhook:anonymous-auth
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
