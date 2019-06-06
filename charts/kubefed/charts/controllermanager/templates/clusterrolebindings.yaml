@@ -27,6 +27,8 @@ subjects:
   name: kubefed-admission-webhook
   namespace: {{ .Release.Namespace }}
 ---
+# This clusterrolebinding grants permissions for the admission webhook to create
+# admission reviews on behalf of the system:anonymous user.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:

@@ -82,6 +82,8 @@ rules:
   verbs:
   - get
 ---
+# Only need access to these core namespaced resources in the KubeFed system
+# namespace regardless of kubefed deployment scope.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
