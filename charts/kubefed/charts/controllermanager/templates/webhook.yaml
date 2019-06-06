@@ -6,7 +6,7 @@
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: "federatedtypeconfigs.core.kubefed.k8s.io"
+  name: federatedtypeconfigs.core.kubefed.k8s.io
 webhooks:
 - name: federatedtypeconfigs.core.kubefed.k8s.io
   clientConfig:
@@ -17,15 +17,15 @@ webhooks:
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
-    - "CREATE"
-    - "UPDATE"
+    - CREATE
+    - UPDATE
     apiGroups:
-    - "core.kubefed.k8s.io"
+    - core.kubefed.k8s.io
     apiVersions:
-    - "v1beta1"
+    - v1beta1
     resources:
-    - "federatedtypeconfigs"
-    - "federatedtypeconfigs/status"
+    - federatedtypeconfigs
+    - federatedtypeconfigs/status
   failurePolicy: Fail
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -42,20 +42,20 @@ webhooks:
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
-    - "CREATE"
-    - "UPDATE"
+    - CREATE
+    - UPDATE
     apiGroups:
-    - "core.kubefed.k8s.io"
+    - core.kubefed.k8s.io
     apiVersions:
-    - "v1beta1"
+    - v1beta1
     resources:
-    - "kubefedclusters"
+    - kubefedclusters
   failurePolicy: Fail
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: "kubefedconfigs.core.kubefed.k8s.io"
+  name: kubefedconfigs.core.kubefed.k8s.io
 webhooks:
 - name: kubefedconfigs.core.kubefed.k8s.io
   clientConfig:
@@ -66,14 +66,14 @@ webhooks:
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
-    - "CREATE"
-    - "UPDATE"
+    - CREATE
+    - UPDATE
     apiGroups:
-    - "core.kubefed.k8s.io"
+    - core.kubefed.k8s.io
     apiVersions:
-    - "v1beta1"
+    - v1beta1
     resources:
-    - "kubefedconfigs"
+    - kubefedconfigs
   failurePolicy: Fail
 ---
 apiVersion: v1
