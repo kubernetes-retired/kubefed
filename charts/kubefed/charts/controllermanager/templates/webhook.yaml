@@ -6,7 +6,13 @@
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: federatedtypeconfigs.core.kubefed.k8s.io
+# For namespace scoped deployments, create a unique cluster-scoped resource
+# using the namespace.
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: validations.admission.core.kubefed.k8s.io-{{ .Release.Namespace }}
+{{ else }}
+  name: validations.admission.core.kubefed.k8s.io
+{{ end }}
 webhooks:
 - name: federatedtypeconfigs.core.kubefed.k8s.io
   clientConfig:
@@ -27,6 +33,17 @@ webhooks:
     - federatedtypeconfigs
     - federatedtypeconfigs/status
   failurePolicy: Fail
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+# For namespace scoped deployments: filter admission webhook requests for
+# resources whose namespace matches the default namespace label applied by helm
+# upon creating the namespace. User must set this label manually if namespace
+# is created prior to installing chart with helm.
+# TODO(font): Use custom namespace label once helm adds support for it. See
+# https://github.com/helm/helm/issues/4178 for more details.
+  namespaceSelector:
+    matchLabels:
+      name: {{ .Release.Namespace }}
+{{ end }}
 - name: kubefedclusters.core.kubefed.k8s.io
   clientConfig:
     service:
@@ -45,12 +62,15 @@ webhooks:
     resources:
     - kubefedclusters
   failurePolicy: Fail
----
-apiVersion: admissionregistration.k8s.io/v1beta1
-kind: ValidatingWebhookConfiguration
-metadata:
-  name: kubefedconfigs.core.kubefed.k8s.io
-webhooks:
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+# For namespace scoped deployments: filter admission webhook requests for
+# resources whose namespace matches the default namespace label applied by helm
+# upon creating the namespace. User must set this label manually if namespace
+# is created prior to installing chart with helm.
+  namespaceSelector:
+    matchLabels:
+      name: {{ .Release.Namespace }}
+{{ end }}
 - name: kubefedconfigs.core.kubefed.k8s.io
   clientConfig:
     service:
@@ -69,6 +89,15 @@ webhooks:
     resources:
     - kubefedconfigs
   failurePolicy: Fail
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+# For namespace scoped deployments: filter admission webhook requests for
+# resources whose namespace matches the default namespace label applied by helm
+# upon creating the namespace. User must set this label manually if namespace
+# is created prior to installing chart with helm.
+  namespaceSelector:
+    matchLabels:
+      name: {{ .Release.Namespace }}
+{{ end }}
 ---
 apiVersion: v1
 kind: Secret

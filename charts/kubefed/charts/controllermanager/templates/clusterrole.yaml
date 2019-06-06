@@ -70,7 +70,16 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+# TODO(font) For namespace scoped deployments, create a unique cluster-scoped
+# resource name using the namespace. This is needed because helm does not
+# currently support the ability to share resources across multiple
+# installations of the same chart. Additionally, admission-webhooks do not
+# currently support the ability to have namespace-scoped RBAC permissions only.
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: system:kubefed:{{ .Release.Namespace }}:admission-requester
+{{ else }}
   name: system:kubefed:admission-requester
+{{ end }}
 rules:
 - apiGroups:
   - admission.core.kubefed.k8s.io
