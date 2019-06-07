@@ -4,7 +4,7 @@
 
 - [Joining Clusters](#joining-clusters)
 - [Checking status of joined clusters](#checking-status-of-joined-clusters)
-      - [Joining kind clusters on MacOS](#joining-kind-clusters-on-macos)
+- [Joining kind clusters on MacOS](#joining-kind-clusters-on-macos)
 - [Unjoining clusters](#unjoining-clusters)
 - [Joining additional clusters in a namespace scoped deployment](#joining-additional-clusters-in-a-namespace-scoped-deployment)
 
@@ -39,7 +39,7 @@ cluster2   True    1m
 
 ```
 
-#### Joining kind clusters on MacOS
+# Joining kind clusters on MacOS
 
 A Kubernetes cluster deployed with [kind](https://sigs.k8s.io/kind) on Docker
 for MacOS will have an API endpoint of `https://localhost:<random-port>` in its
@@ -68,10 +68,10 @@ Repeat this step to unjoin any additional clusters.
 Joining additional clusters to a namespaced control plane requires
 providing additional arguments to `kubefedctl join`:
 
-- `--kubefed-namespace=<namespace>` to ensure the cluster has been registered
+- `--kubefed-namespace=<namespace>` to ensure the cluster has been joined
   with the KubeFed control plane running in the specified namespace
 
-To join `mycluster` when `KUBEFED_NAMESPACE=test-namespace` was used for deployment:
+You can join `mycluster` to a control plane deployed in namespace `test-namespace` as follows.
 
 ```bash
 kubefedctl join mycluster --cluster-context mycluster \
