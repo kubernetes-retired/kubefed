@@ -21,11 +21,15 @@ import (
 	"strings"
 	"testing"
 
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 )
@@ -287,4 +291,119 @@ func federatedTypeConfig(apiResource *metav1.APIResource) *v1beta1.FederatedType
 		},
 	}
 	return ftc
+}
+
+func TestValidateKubeFedConfig(t *testing.T) {
+	errs := ValidateKubeFedConfig(validKubeFedConfig())
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := map[string]*v1beta1.KubeFedConfig{}
+
+	validScope := validKubeFedConfig()
+	validScope.Spec.Scope = "NeitherClusterOrNamespaceScoped"
+	errorCases["spec.scope: Unsupported value"] = validScope
+
+	validAvailableDelayGreaterThan0 := validKubeFedConfig()
+	validAvailableDelayGreaterThan0.Spec.ControllerDuration.AvailableDelay.Duration = 0
+	errorCases["spec.controllerDuration.availableDelay: Invalid value"] = validAvailableDelayGreaterThan0
+
+	validUnavailableDelayGreaterThan0 := validKubeFedConfig()
+	validUnavailableDelayGreaterThan0.Spec.ControllerDuration.UnavailableDelay.Duration = 0
+	errorCases["spec.controllerDuration.unavailableDelay: Invalid value"] = validUnavailableDelayGreaterThan0
+
+	validLeaseDurationGreaterThan0 := validKubeFedConfig()
+	validLeaseDurationGreaterThan0.Spec.LeaderElect.LeaseDuration.Duration = 0
+	errorCases["spec.leaderElect.leaseDuration: Invalid value"] = validLeaseDurationGreaterThan0
+
+	validRenewDeadlineGreaterThan0 := validKubeFedConfig()
+	validRenewDeadlineGreaterThan0.Spec.LeaderElect.RenewDeadline.Duration = 0
+	errorCases["spec.leaderElect.renewDeadline: Invalid value"] = validRenewDeadlineGreaterThan0
+
+	// spec.leaderElect.leaderDuration must be greater than renewDeadline
+	validElectorLeaseDurationGreater := validKubeFedConfig()
+	validElectorLeaseDurationGreater.Spec.LeaderElect.LeaseDuration.Duration = 1
+	validElectorLeaseDurationGreater.Spec.LeaderElect.RenewDeadline.Duration = 2
+	errorCases["spec.leaderElect.leaseDuration: Invalid value"] = validElectorLeaseDurationGreater
+
+	validRetryPeriodGreaterThan0 := validKubeFedConfig()
+	validRetryPeriodGreaterThan0.Spec.LeaderElect.RetryPeriod.Duration = 0
+	errorCases["spec.leaderElect.retryPeriod: Invalid value"] = validRetryPeriodGreaterThan0
+
+	// spec.leaderElect.renewDeadline must be greater than retryPeriod*JitterFactor(1.2)
+	validElectorDuration := validKubeFedConfig()
+	validElectorDuration.Spec.LeaderElect.RenewDeadline.Duration = 12
+	validElectorDuration.Spec.LeaderElect.RetryPeriod.Duration = 10
+	errorCases["spec.leaderElect.renewDeadline: Invalid value"] = validElectorDuration
+
+	validElectorResourceLock := validKubeFedConfig()
+	validElectorResourceLock.Spec.LeaderElect.ResourceLock = "NeitherConfigmapsOrEndpoints"
+	errorCases["spec.leaderElect.resourceLock: Unsupported value"] = validElectorResourceLock
+
+	validFeatureGateName := validKubeFedConfig()
+	validFeatureGateName.Spec.FeatureGates[0].Name = "BadFeatureName"
+	errorCases["spec.featureGates.name: Unsupported value"] = validFeatureGateName
+
+	validDupFeatureGates := validKubeFedConfig()
+	dupFeature := v1beta1.FeatureGatesConfig{
+		Name:          string(features.PushReconciler),
+		Configuration: v1beta1.ConfigurationEnabled,
+	}
+	validDupFeatureGates.Spec.FeatureGates = append(validDupFeatureGates.Spec.FeatureGates, dupFeature)
+	errorCases["spec.featureGates.name: Duplicate value"] = validDupFeatureGates
+
+	validFeatureGateConf := validKubeFedConfig()
+	validFeatureGateConf.Spec.FeatureGates[0].Configuration = "NeitherEnableOrDisable"
+	errorCases["spec.featureGates.configuration: Unsupported value"] = validFeatureGateConf
+
+	validPeriodSecondsGreaterThan0 := validKubeFedConfig()
+	validPeriodSecondsGreaterThan0.Spec.ClusterHealthCheck.PeriodSeconds = 0
+	errorCases["spec.clusterHealthCheck.periodSeconds: Invalid value"] = validPeriodSecondsGreaterThan0
+
+	validFailureThresholdGreaterThan0 := validKubeFedConfig()
+	validFailureThresholdGreaterThan0.Spec.ClusterHealthCheck.FailureThreshold = 0
+	errorCases["spec.clusterHealthCheck.failureThreshold: Invalid value"] = validFailureThresholdGreaterThan0
+
+	validSuccessThresholdGreaterThan0 := validKubeFedConfig()
+	validSuccessThresholdGreaterThan0.Spec.ClusterHealthCheck.SuccessThreshold = 0
+	errorCases["spec.clusterHealthCheck.successThreshold: Invalid value"] = validSuccessThresholdGreaterThan0
+
+	validTimeoutSecondsGreaterThan0 := validKubeFedConfig()
+	validTimeoutSecondsGreaterThan0.Spec.ClusterHealthCheck.TimeoutSeconds = 0
+	errorCases["spec.clusterHealthCheck.timeoutSeconds: Invalid value"] = validTimeoutSecondsGreaterThan0
+
+	validAdoptResources := validKubeFedConfig()
+	validAdoptResources.Spec.SyncController.AdoptResources = "NeitherEnableOrDisable"
+	errorCases["spec.syncController.adoptResources: Unsupported value"] = validAdoptResources
+
+	for k, v := range errorCases {
+		errs := ValidateKubeFedConfig(v)
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", k)
+		} else if !strings.Contains(errs[0].Error(), k) {
+			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), k)
+		}
+	}
+}
+
+func validKubeFedConfig() *v1beta1.KubeFedConfig {
+	kfc := &v1beta1.KubeFedConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: util.DefaultKubeFedSystemNamespace,
+			Name:      util.KubeFedConfigName,
+		},
+		Spec: v1beta1.KubeFedConfigSpec{
+			Scope: apiextv1b1.ClusterScoped,
+		},
+	}
+
+	app.SetDefaultKubeFedConfig(kfc)
+
+	for _, name := range features.FeatureNames {
+		feature := v1beta1.FeatureGatesConfig{Name: string(name), Configuration: v1beta1.ConfigurationEnabled}
+		kfc.Spec.FeatureGates = append(kfc.Spec.FeatureGates, feature)
+	}
+
+	return kfc
 }
