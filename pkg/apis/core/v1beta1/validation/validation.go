@@ -171,7 +171,7 @@ func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList
 		allErrs = append(allErrs, field.Invalid(electPath.Child("renewDeadline"), elect.RenewDeadline,
 			"renewDeadline must be greater than retryPeriod*JitterFactor"))
 	}
-	allErrs = append(allErrs, validateEnumStrings(electPath.Child("resourceLock"), string(elect.ResourceLock),
+	allErrs = append(allErrs, validateEnumStrings(electPath.Child("resourceLock"), string(*elect.ResourceLock),
 		[]string{string(v1beta1.ConfigMapsResourceLock), string(v1beta1.EndpointsResourceLock)})...)
 
 	gates := spec.FeatureGates
@@ -195,14 +195,14 @@ func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList
 
 	health := spec.ClusterHealthCheck
 	healthPath := specPath.Child("clusterHealthCheck")
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("periodSeconds"), health.PeriodSeconds)...)
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("failureThreshold"), health.FailureThreshold)...)
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("successThreshold"), health.SuccessThreshold)...)
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("timeoutSeconds"), health.TimeoutSeconds)...)
+	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("periodSeconds"), *health.PeriodSeconds)...)
+	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("failureThreshold"), *health.FailureThreshold)...)
+	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("successThreshold"), *health.SuccessThreshold)...)
+	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("timeoutSeconds"), *health.TimeoutSeconds)...)
 
 	sync := spec.SyncController
 	syncPath := specPath.Child("syncController")
-	allErrs = append(allErrs, validateEnumStrings(syncPath.Child("adoptResources"), string(sync.AdoptResources),
+	allErrs = append(allErrs, validateEnumStrings(syncPath.Child("adoptResources"), string(*sync.AdoptResources),
 		[]string{string(v1beta1.AdoptResourcesEnabled), string(v1beta1.AdoptResourcesDisabled)})...)
 
 	return allErrs

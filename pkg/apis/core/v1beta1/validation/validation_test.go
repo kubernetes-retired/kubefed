@@ -338,7 +338,8 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	errorCases["spec.leaderElect.renewDeadline: Invalid value"] = validElectorDuration
 
 	validElectorResourceLock := validKubeFedConfig()
-	validElectorResourceLock.Spec.LeaderElect.ResourceLock = "NeitherConfigmapsOrEndpoints"
+	invalidElectorResourceLock := v1beta1.ResourceLockType("NeitherConfigmapsOrEndpoints")
+	validElectorResourceLock.Spec.LeaderElect.ResourceLock = &invalidElectorResourceLock
 	errorCases["spec.leaderElect.resourceLock: Unsupported value"] = validElectorResourceLock
 
 	validFeatureGateName := validKubeFedConfig()
@@ -354,27 +355,31 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	errorCases["spec.featureGates.name: Duplicate value"] = validDupFeatureGates
 
 	validFeatureGateConf := validKubeFedConfig()
-	validFeatureGateConf.Spec.FeatureGates[0].Configuration = "NeitherEnableOrDisable"
+	validFeatureGateConf.Spec.FeatureGates[0].Configuration = v1beta1.ConfigurationMode("NeitherEnableOrDisable")
 	errorCases["spec.featureGates.configuration: Unsupported value"] = validFeatureGateConf
 
+	zeroInt := int64(0)
+	zeroIntPtr := &zeroInt
+
 	validPeriodSecondsGreaterThan0 := validKubeFedConfig()
-	validPeriodSecondsGreaterThan0.Spec.ClusterHealthCheck.PeriodSeconds = 0
+	validPeriodSecondsGreaterThan0.Spec.ClusterHealthCheck.PeriodSeconds = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.periodSeconds: Invalid value"] = validPeriodSecondsGreaterThan0
 
 	validFailureThresholdGreaterThan0 := validKubeFedConfig()
-	validFailureThresholdGreaterThan0.Spec.ClusterHealthCheck.FailureThreshold = 0
+	validFailureThresholdGreaterThan0.Spec.ClusterHealthCheck.FailureThreshold = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.failureThreshold: Invalid value"] = validFailureThresholdGreaterThan0
 
 	validSuccessThresholdGreaterThan0 := validKubeFedConfig()
-	validSuccessThresholdGreaterThan0.Spec.ClusterHealthCheck.SuccessThreshold = 0
+	validSuccessThresholdGreaterThan0.Spec.ClusterHealthCheck.SuccessThreshold = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.successThreshold: Invalid value"] = validSuccessThresholdGreaterThan0
 
 	validTimeoutSecondsGreaterThan0 := validKubeFedConfig()
-	validTimeoutSecondsGreaterThan0.Spec.ClusterHealthCheck.TimeoutSeconds = 0
+	validTimeoutSecondsGreaterThan0.Spec.ClusterHealthCheck.TimeoutSeconds = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.timeoutSeconds: Invalid value"] = validTimeoutSecondsGreaterThan0
 
 	validAdoptResources := validKubeFedConfig()
-	validAdoptResources.Spec.SyncController.AdoptResources = "NeitherEnableOrDisable"
+	invalidAdoptResourcesValue := v1beta1.ResourceAdoption("NeitherEnableOrDisable")
+	validAdoptResources.Spec.SyncController.AdoptResources = &invalidAdoptResourcesValue
 	errorCases["spec.syncController.adoptResources: Unsupported value"] = validAdoptResources
 
 	for k, v := range errorCases {
