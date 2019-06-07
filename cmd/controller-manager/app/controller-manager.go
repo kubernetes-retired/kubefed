@@ -225,19 +225,21 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 	return fedConfig
 }
 
-func setDuration(target *metav1.Duration, defaultValue time.Duration) {
-	if target.Duration == 0 {
-		target.Duration = defaultValue
+func setDuration(target **metav1.Duration, defaultValue time.Duration) {
+	if *target == nil {
+		*target = &metav1.Duration{}
+		(*target).Duration = defaultValue
 	}
 }
 
-func setInt64(target *int64, defaultValue int64) {
-	if *target == 0 {
-		*target = defaultValue
+func setInt64(target **int64, defaultValue int64) {
+	if *target == nil {
+		*target = new(int64)
+		**target = defaultValue
 	}
 }
 
-func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
+func SetDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 	spec := &fedConfig.Spec
 
 	if len(spec.Scope) == 0 {
@@ -254,7 +256,10 @@ func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 		}
 	}
 
-	duration := &spec.ControllerDuration
+	if spec.ControllerDuration == nil {
+		spec.ControllerDuration = &corev1b1.DurationConfig{}
+	}
+	duration := spec.ControllerDuration
 	setDuration(&duration.AvailableDelay, util.DefaultClusterAvailableDelay)
 	setDuration(&duration.UnavailableDelay, util.DefaultClusterUnavailableDelay)
 
@@ -265,22 +270,35 @@ func setDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 		}
 	}
 
-	election := &spec.LeaderElect
-	if len(election.ResourceLock) == 0 {
-		election.ResourceLock = util.DefaultLeaderElectionResourceLock
+	if spec.LeaderElect == nil {
+		spec.LeaderElect = &corev1b1.LeaderElectConfig{}
 	}
+
+	election := spec.LeaderElect
+	if election.ResourceLock == nil {
+		election.ResourceLock = new(corev1b1.ResourceLockType)
+		*election.ResourceLock = util.DefaultLeaderElectionResourceLock
+	}
+
 	setDuration(&election.RetryPeriod, util.DefaultLeaderElectionRetryPeriod)
 	setDuration(&election.RenewDeadline, util.DefaultLeaderElectionRenewDeadline)
 	setDuration(&election.LeaseDuration, util.DefaultLeaderElectionLeaseDuration)
 
-	healthCheck := &spec.ClusterHealthCheck
+	if spec.ClusterHealthCheck == nil {
+		spec.ClusterHealthCheck = &corev1b1.ClusterHealthCheckConfig{}
+	}
+	healthCheck := spec.ClusterHealthCheck
 	setInt64(&healthCheck.PeriodSeconds, util.DefaultClusterHealthCheckPeriod)
 	setInt64(&healthCheck.TimeoutSeconds, util.DefaultClusterHealthCheckTimeout)
 	setInt64(&healthCheck.FailureThreshold, util.DefaultClusterHealthCheckFailureThreshold)
 	setInt64(&healthCheck.SuccessThreshold, util.DefaultClusterHealthCheckSuccessThreshold)
 
-	if len(spec.SyncController.AdoptResources) == 0 {
-		spec.SyncController.AdoptResources = corev1b1.AdoptResourcesEnabled
+	if spec.SyncController == nil {
+		spec.SyncController = &corev1b1.SyncControllerConfig{}
+	}
+	if spec.SyncController.AdoptResources == nil {
+		spec.SyncController.AdoptResources = new(corev1b1.ResourceAdoption)
+		*spec.SyncController.AdoptResources = corev1b1.AdoptResourcesEnabled
 	}
 }
 
@@ -332,7 +350,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 		}
 	}
 
-	setDefaultKubeFedConfig(fedConfig)
+	SetDefaultKubeFedConfig(fedConfig)
 
 	spec := fedConfig.Spec
 	opts.Scope = spec.Scope
@@ -340,17 +358,17 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	opts.Config.ClusterAvailableDelay = spec.ControllerDuration.AvailableDelay.Duration
 	opts.Config.ClusterUnavailableDelay = spec.ControllerDuration.UnavailableDelay.Duration
 
-	opts.LeaderElection.ResourceLock = spec.LeaderElect.ResourceLock
+	opts.LeaderElection.ResourceLock = *spec.LeaderElect.ResourceLock
 	opts.LeaderElection.RetryPeriod = spec.LeaderElect.RetryPeriod.Duration
 	opts.LeaderElection.RenewDeadline = spec.LeaderElect.RenewDeadline.Duration
 	opts.LeaderElection.LeaseDuration = spec.LeaderElect.LeaseDuration.Duration
 
-	opts.ClusterHealthCheckConfig.PeriodSeconds = spec.ClusterHealthCheck.PeriodSeconds
-	opts.ClusterHealthCheckConfig.TimeoutSeconds = spec.ClusterHealthCheck.TimeoutSeconds
-	opts.ClusterHealthCheckConfig.FailureThreshold = spec.ClusterHealthCheck.FailureThreshold
-	opts.ClusterHealthCheckConfig.SuccessThreshold = spec.ClusterHealthCheck.SuccessThreshold
+	opts.ClusterHealthCheckConfig.PeriodSeconds = *spec.ClusterHealthCheck.PeriodSeconds
+	opts.ClusterHealthCheckConfig.TimeoutSeconds = *spec.ClusterHealthCheck.TimeoutSeconds
+	opts.ClusterHealthCheckConfig.FailureThreshold = *spec.ClusterHealthCheck.FailureThreshold
+	opts.ClusterHealthCheckConfig.SuccessThreshold = *spec.ClusterHealthCheck.SuccessThreshold
 
-	opts.Config.SkipAdoptingResources = spec.SyncController.AdoptResources == corev1b1.AdoptResourcesDisabled
+	opts.Config.SkipAdoptingResources = *spec.SyncController.AdoptResources == corev1b1.AdoptResourcesDisabled
 
 	updateKubeFedConfig(opts.Config.KubeConfig, fedConfig)
 

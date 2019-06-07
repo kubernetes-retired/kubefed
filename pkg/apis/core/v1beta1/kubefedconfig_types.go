@@ -26,19 +26,26 @@ type KubeFedConfigSpec struct {
 	// The scope of the KubeFed control plane should be either
 	// `Namespaced` or `Cluster`. `Namespaced` indicates that the
 	// KubeFed namespace will be the only target of the control plane.
-	Scope              apiextv1b1.ResourceScope `json:"scope"`
-	ControllerDuration DurationConfig           `json:"controllerDuration"`
-	LeaderElect        LeaderElectConfig        `json:"leaderElect"`
-	FeatureGates       []FeatureGatesConfig     `json:"featureGates"`
-	ClusterHealthCheck ClusterHealthCheckConfig `json:"clusterHealthCheck"`
-	SyncController     SyncControllerConfig     `json:"syncController"`
+	Scope apiextv1b1.ResourceScope `json:"scope"`
+	// +optional
+	ControllerDuration *DurationConfig `json:"controllerDuration,omitempty"`
+	// +optional
+	LeaderElect *LeaderElectConfig `json:"leaderElect,omitempty"`
+	// +optional
+	FeatureGates []FeatureGatesConfig `json:"featureGates,omitempty"`
+	// +optional
+	ClusterHealthCheck *ClusterHealthCheckConfig `json:"clusterHealthCheck,omitempty"`
+	// +optional
+	SyncController *SyncControllerConfig `json:"syncController,omitempty"`
 }
 
 type DurationConfig struct {
 	// Time to wait before reconciling on a healthy cluster.
-	AvailableDelay metav1.Duration `json:"availableDelay"`
+	// +optional
+	AvailableDelay *metav1.Duration `json:"availableDelay,omitempty"`
 	// Time to wait before giving up on an unhealthy cluster.
-	UnavailableDelay metav1.Duration `json:"unavailableDelay"`
+	// +optional
+	UnavailableDelay *metav1.Duration `json:"unavailableDelay,omitempty"`
 }
 type LeaderElectConfig struct {
 	// The duration that non-leader candidates will wait after observing a leadership
@@ -46,17 +53,21 @@ type LeaderElectConfig struct {
 	// slot. This is effectively the maximum duration that a leader can be stopped
 	// before it is replaced by another candidate. This is only applicable if leader
 	// election is enabled.
-	LeaseDuration metav1.Duration `json:"leaseDuration"`
+	// +optional
+	LeaseDuration *metav1.Duration `json:"leaseDuration,omitempty"`
 	// The interval between attempts by the acting master to renew a leadership slot
 	// before it stops leading. This must be less than or equal to the lease duration.
 	// This is only applicable if leader election is enabled.
-	RenewDeadline metav1.Duration `json:"renewDeadline"`
+	// +optional
+	RenewDeadline *metav1.Duration `json:"renewDeadline,omitempty"`
 	// The duration the clients should wait between attempting acquisition and renewal
 	// of a leadership. This is only applicable if leader election is enabled.
-	RetryPeriod metav1.Duration `json:"retryPeriod"`
+	// +optional
+	RetryPeriod *metav1.Duration `json:"retryPeriod,omitempty"`
 	// The type of resource object that is used for locking during
 	// leader election. Supported options are `configmaps` (default) and `endpoints`.
-	ResourceLock ResourceLockType `json:"resourceLock"`
+	// +optional
+	ResourceLock *ResourceLockType `json:"resourceLock,omitempty"`
 }
 
 type ResourceLockType string
@@ -80,19 +91,24 @@ const (
 
 type ClusterHealthCheckConfig struct {
 	// How often to monitor the cluster health (in seconds).
-	PeriodSeconds int64 `json:"periodSeconds"`
+	// +optional
+	PeriodSeconds *int64 `json:"periodSeconds,omitempty"`
 	// Minimum consecutive failures for the cluster health to be considered failed after having succeeded.
-	FailureThreshold int64 `json:"failureThreshold"`
+	// +optional
+	FailureThreshold *int64 `json:"failureThreshold,omitempty"`
 	// Minimum consecutive successes for the cluster health to be considered successful after having failed.
-	SuccessThreshold int64 `json:"successThreshold"`
+	// +optional
+	SuccessThreshold *int64 `json:"successThreshold,omitempty"`
 	// Number of seconds after which the cluster health check times out.
-	TimeoutSeconds int64 `json:"timeoutSeconds"`
+	// +optional
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
 }
 
 type SyncControllerConfig struct {
 	// Whether to adopt pre-existing resources in member clusters. Defaults to
 	// "Enabled".
-	AdoptResources ResourceAdoption `json:"adoptResources"`
+	// +optional
+	AdoptResources *ResourceAdoption `json:"adoptResources,omitempty"`
 }
 
 type ResourceAdoption string

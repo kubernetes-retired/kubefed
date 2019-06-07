@@ -55,6 +55,13 @@ const (
 	FederatedIngress utilfeature.Feature = "FederatedIngress"
 )
 
+var FeatureNames = []utilfeature.Feature{
+	PushReconciler,
+	SchedulerPreferences,
+	CrossClusterServiceDiscovery,
+	FederatedIngress,
+}
+
 func init() {
 	if err := utilfeature.DefaultFeatureGate.Add(defaultKubeFedFeatureGates); err != nil {
 		klog.Fatalf("Unexpected error: %v", err)

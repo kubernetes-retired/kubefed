@@ -516,11 +516,6 @@ spec:
                     times out.
                   format: int64
                   type: integer
-              required:
-              - periodSeconds
-              - failureThreshold
-              - successThreshold
-              - timeoutSeconds
               type: object
             controllerDuration:
               properties:
@@ -530,9 +525,6 @@ spec:
                 unavailableDelay:
                   description: Time to wait before giving up on an unhealthy cluster.
                   type: string
-              required:
-              - availableDelay
-              - unavailableDelay
               type: object
             featureGates:
               items:
@@ -572,11 +564,6 @@ spec:
                     acquisition and renewal of a leadership. This is only applicable
                     if leader election is enabled.
                   type: string
-              required:
-              - leaseDuration
-              - renewDeadline
-              - retryPeriod
-              - resourceLock
               type: object
             scope:
               description: The scope of the KubeFed control plane should be either
@@ -589,16 +576,9 @@ spec:
                   description: Whether to adopt pre-existing resources in member clusters.
                     Defaults to "Enabled".
                   type: string
-              required:
-              - adoptResources
               type: object
           required:
           - scope
-          - controllerDuration
-          - leaderElect
-          - featureGates
-          - clusterHealthCheck
-          - syncController
           type: object
       required:
       - spec
