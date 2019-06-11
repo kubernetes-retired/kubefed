@@ -63,10 +63,7 @@ webhooks:
     - kubefedclusters
   failurePolicy: Fail
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
-# For namespace scoped deployments: filter admission webhook requests for
-# resources whose namespace matches the default namespace label applied by helm
-# upon creating the namespace. User must set this label manually if namespace
-# is created prior to installing chart with helm.
+# See comment above.
   namespaceSelector:
     matchLabels:
       name: {{ .Release.Namespace }}
@@ -90,10 +87,41 @@ webhooks:
     - kubefedconfigs
   failurePolicy: Fail
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
-# For namespace scoped deployments: filter admission webhook requests for
-# resources whose namespace matches the default namespace label applied by helm
-# upon creating the namespace. User must set this label manually if namespace
-# is created prior to installing chart with helm.
+# See comment above.
+  namespaceSelector:
+    matchLabels:
+      name: {{ .Release.Namespace }}
+{{ end }}
+---
+# The same comments for ValidatingWebhookConfiguration apply here to
+# MutatingWebhookConfiguration.
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: mutation.core.kubefed.k8s.io-{{ .Release.Namespace }}
+{{ else }}
+  name: mutation.core.kubefed.k8s.io
+{{ end }}
+webhooks:
+- name: kubefedconfigs.core.kubefed.k8s.io
+  clientConfig:
+    service:
+      namespace: {{ .Release.Namespace | quote }}
+      name: kubefed-admission-webhook
+      path: /apis/mutation.core.kubefed.k8s.io/v1beta1/kubefedconfigs
+    caBundle: {{ b64enc $ca.Cert | quote }}
+  rules:
+  - operations:
+    - CREATE
+    apiGroups:
+    - core.kubefed.k8s.io
+    apiVersions:
+    - v1beta1
+    resources:
+    - kubefedconfigs
+  failurePolicy: Fail
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
   namespaceSelector:
     matchLabels:
       name: {{ .Release.Namespace }}

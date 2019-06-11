@@ -89,3 +89,9 @@ rules:
   - kubefedconfigs
   verbs:
   - create
+- apiGroups:
+  - mutation.core.kubefed.k8s.io
+  resources:
+  - kubefedconfigs
+  verbs:
+  - create
