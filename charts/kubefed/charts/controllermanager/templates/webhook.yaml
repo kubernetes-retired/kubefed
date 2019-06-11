@@ -9,9 +9,9 @@ metadata:
 # For namespace scoped deployments, create a unique cluster-scoped resource
 # using the namespace.
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
-  name: validations.admission.core.kubefed.k8s.io-{{ .Release.Namespace }}
+  name: validations.core.kubefed.k8s.io-{{ .Release.Namespace }}
 {{ else }}
-  name: validations.admission.core.kubefed.k8s.io
+  name: validations.core.kubefed.k8s.io
 {{ end }}
 webhooks:
 - name: federatedtypeconfigs.core.kubefed.k8s.io
@@ -19,7 +19,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/admission.core.kubefed.k8s.io/v1beta1/federatedtypeconfigs
+      path: /apis/validation.core.kubefed.k8s.io/v1beta1/federatedtypeconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -49,7 +49,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/admission.core.kubefed.k8s.io/v1beta1/kubefedclusters
+      path: /apis/validation.core.kubefed.k8s.io/v1beta1/kubefedclusters
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -76,7 +76,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/admission.core.kubefed.k8s.io/v1beta1/kubefedconfigs
+      path: /apis/validation.core.kubefed.k8s.io/v1beta1/kubefedconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:

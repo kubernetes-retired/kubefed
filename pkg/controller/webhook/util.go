@@ -24,14 +24,14 @@ import (
 )
 
 var (
-	validationGroup   = "admission." + v1beta1.SchemeGroupVersion.Group
-	validationVersion = v1beta1.SchemeGroupVersion.Version
+	validationGroup  = "validation." + v1beta1.SchemeGroupVersion.Group
+	admissionVersion = v1beta1.SchemeGroupVersion.Version
 )
 
 func NewValidatingResource(resourcePluralName string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    validationGroup,
-		Version:  validationVersion,
+		Version:  admissionVersion,
 		Resource: resourcePluralName,
 	}
 }

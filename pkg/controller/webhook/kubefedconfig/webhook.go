@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,18 +40,20 @@ const (
 	resourcePluralName = "kubefedconfigs"
 )
 
-type KubeFedConfigValidationHook struct {
+type KubeFedConfigAdmissionHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-func (a *KubeFedConfigValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+var _ apiserver.ValidatingAdmissionHook = &KubeFedConfigAdmissionHook{}
+
+func (a *KubeFedConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
-func (a *KubeFedConfigValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
 	if webhook.Allowed(admissionSpec, resourcePluralName) {
@@ -96,7 +99,7 @@ func (a *KubeFedConfigValidationHook) Validate(admissionSpec *admissionv1beta1.A
 	return status
 }
 
-func (a *KubeFedConfigValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (a *KubeFedConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 

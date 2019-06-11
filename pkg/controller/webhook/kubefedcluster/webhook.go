@@ -19,8 +19,10 @@ package kubefedcluster
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 
+	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,25 +32,28 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
+	"sigs.k8s.io/kubefed/pkg/controller/webhook"
 )
 
-type KubeFedClusterValidationHook struct {
+const (
+	resourceName       = "KubeFedCluster"
+	resourcePluralName = "kubefedclusters"
+)
+
+type KubeFedClusterAdmissionHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-func (a *KubeFedClusterValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
-	return schema.GroupVersionResource{
-			Group:    "admission.core.kubefed.k8s.io",
-			Version:  "v1beta1",
-			Resource: "kubefedclusters",
-		},
-		"kubefedcluster"
+var _ apiserver.ValidatingAdmissionHook = &KubeFedClusterAdmissionHook{}
+
+func (a *KubeFedClusterAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
-func (a *KubeFedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
 	// We want to let through:
@@ -100,7 +105,7 @@ func (a *KubeFedClusterValidationHook) Validate(admissionSpec *admissionv1beta1.
 	return status
 }
 
-func (a *KubeFedClusterValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (a *KubeFedClusterAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -108,18 +113,19 @@ func (a *KubeFedClusterValidationHook) Initialize(kubeClientConfig *rest.Config,
 
 	shallowClientConfigCopy := *kubeClientConfig
 	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
-		Group:   "core.kubefed.k8s.io",
-		Version: "v1beta1",
+		Group:   v1beta1.SchemeGroupVersion.Group,
+		Version: v1beta1.SchemeGroupVersion.Version,
 	}
+
 	shallowClientConfigCopy.APIPath = "/apis"
 	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
 	if err != nil {
 		return err
 	}
 	a.client = dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "core.kubefed.k8s.io",
-		Version:  "v1beta1",
-		Resource: "KubeFedCluster",
+		Group:    v1beta1.SchemeGroupVersion.Group,
+		Version:  v1beta1.SchemeGroupVersion.Version,
+		Resource: resourceName,
 	})
 
 	return nil

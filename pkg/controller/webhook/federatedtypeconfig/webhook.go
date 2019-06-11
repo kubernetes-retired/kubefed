@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,18 +40,20 @@ const (
 	resourcePluralName = "federatedtypeconfigs"
 )
 
-type FederatedTypeConfigValidationHook struct {
+type FederatedTypeConfigAdmissionHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-func (a *FederatedTypeConfigValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+var _ apiserver.ValidatingAdmissionHook = &FederatedTypeConfigAdmissionHook{}
+
+func (a *FederatedTypeConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
-func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
 	// We want to let through:
@@ -100,7 +103,7 @@ func (a *FederatedTypeConfigValidationHook) Validate(admissionSpec *admissionv1b
 	return status
 }
 
-func (a *FederatedTypeConfigValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (a *FederatedTypeConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
