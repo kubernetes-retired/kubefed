@@ -26,6 +26,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
@@ -97,6 +100,34 @@ func Validate(status *admissionv1beta1.AdmissionResponse, validateFn func() fiel
 	} else {
 		status.Allowed = true
 	}
+}
+
+func Initialize(kubeClientConfig *rest.Config, client *dynamic.ResourceInterface, lock *sync.RWMutex, initialized *bool, resourceName string) error {
+	lock.Lock()
+	defer lock.Unlock()
+
+	*initialized = true
+
+	shallowClientConfigCopy := *kubeClientConfig
+	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
+		Group:   v1beta1.SchemeGroupVersion.Group,
+		Version: v1beta1.SchemeGroupVersion.Version,
+	}
+
+	shallowClientConfigCopy.APIPath = "/apis"
+	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
+	if err != nil {
+		return err
+	}
+
+	*client = dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    v1beta1.SchemeGroupVersion.Group,
+		Version:  v1beta1.SchemeGroupVersion.Version,
+		Resource: resourceName,
+	})
+
+	klog.Infof("Initialized admission webhook for %q", resourceName)
+	return nil
 }
 
 func AdmissionRequestDebugString(a *admissionv1beta1.AdmissionRequest) string {

@@ -84,29 +84,5 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 }
 
 func (a *KubeFedClusterAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-
-	a.initialized = true
-
-	shallowClientConfigCopy := *kubeClientConfig
-	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
-		Group:   v1beta1.SchemeGroupVersion.Group,
-		Version: v1beta1.SchemeGroupVersion.Version,
-	}
-
-	shallowClientConfigCopy.APIPath = "/apis"
-	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
-	if err != nil {
-		return err
-	}
-	a.client = dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    v1beta1.SchemeGroupVersion.Group,
-		Version:  v1beta1.SchemeGroupVersion.Version,
-		Resource: resourceName,
-	})
-
-	klog.Infof("Initialized admission webhook for %q", resourceName)
-
-	return nil
+	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, resourceName)
 }
