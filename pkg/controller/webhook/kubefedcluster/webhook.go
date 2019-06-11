@@ -17,15 +17,13 @@ limitations under the License.
 package kubefedcluster
 
 import (
-	"encoding/json"
-	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -61,50 +59,27 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 
 	// We want to let through:
 	// - Requests that are not for create, update
-	// - Requests for subresources
-	// - Requests for things that are not kubefedclusters
-	if (admissionSpec.Operation != admissionv1beta1.Create && admissionSpec.Operation != admissionv1beta1.Update) ||
-		len(admissionSpec.SubResource) != 0 ||
-		(admissionSpec.Resource.Group != "core.kubefed.k8s.io" && admissionSpec.Resource.Resource != "kubefedclusters") {
-		status.Allowed = true
+	// - Requests for things that are not FederatedTypeConfigs
+	if webhook.Allowed(admissionSpec, resourcePluralName, status) {
 		return status
 	}
 
 	admittingObject := &v1beta1.KubeFedCluster{}
-	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
+	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
-		}
 		return status
 	}
 
-	a.lock.RLock()
-	defer a.lock.RUnlock()
-	if !a.initialized {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusInternalServerError, Reason: metav1.StatusReasonInternalError,
-			Message: "not initialized",
-		}
+	if !webhook.Initialized(&a.initialized, &a.lock, status) {
 		return status
 	}
 
 	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
 
-	errs := validation.ValidateKubeFedCluster(admittingObject)
-	if len(errs) != 0 {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
-			Message: errs.ToAggregate().Error(),
-		}
-		return status
-	}
+	webhook.Validate(status, func() field.ErrorList {
+		return validation.ValidateKubeFedCluster(admittingObject)
+	})
 
-	status.Allowed = true
 	return status
 }
 
