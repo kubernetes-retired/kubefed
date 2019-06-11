@@ -80,6 +80,19 @@ Install the chart and specify the version to install with the
 $ helm install kubefed-charts/kubefed --name kubefed --version=<x.x.x> --namespace kube-federation-system
 ```
 
+**NOTE:** For **namespace-scoped deployments** (configured with the `--set
+global.scope=Namespaced` option in the `helm install` command): if you created
+your namespace prior to installing the chart, make sure to **add a `name:
+<namespace>` label to the namespace** using the following command:
+
+```bash
+kubectl label namespaces <namespace> name=<namespace>
+```
+
+This label is necessary to get proper validation for KubeFed core APIs. If the
+namespace does not already exist, the `helm install` command will create the
+namespace with this label by default.
+
 ## Uninstalling the Chart
 
 Due to this helm [issue](https://github.com/helm/helm/issues/4440), the CRDs cannot be deleted

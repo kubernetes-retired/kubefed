@@ -17,7 +17,14 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: auth-delegator-kubefed-admission-webhook
+# For namespace scoped deployments, create a unique cluster-scoped resource
+# name using the namespace. This is needed because admission-webhooks do not
+# currently support the ability to have namespace-scoped RBAC permissions only.
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: kubefed-admission-webhook:{{ .Release.Namespace }}:auth-delegator
+{{ else }}
+  name: kubefed-admission-webhook:auth-delegator
+{{ end }}
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
@@ -27,14 +34,29 @@ subjects:
   name: kubefed-admission-webhook
   namespace: {{ .Release.Namespace }}
 ---
+# This clusterrolebinding grants permissions for the admission webhook to create
+# admission reviews on behalf of the system:anonymous user.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: anonymous-kubefed-admission-webhook-auth
+# TODO(font) For namespace scoped deployments, create a unique cluster-scoped
+# resource name using the namespace. This is needed because helm does not
+# currently support the ability to share resources across multiple
+# installations of the same chart. Additionally, admission-webhooks do not
+# currently support the ability to have namespace-scoped RBAC permissions only.
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: kubefed-admission-webhook:{{ .Release.Namespace }}:anonymous-auth
+{{ else }}
+  name: kubefed-admission-webhook:anonymous-auth
+{{ end }}
 roleRef:
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: system:kubefed:{{ .Release.Namespace }}:admission-requester
+{{ else }}
   name: system:kubefed:admission-requester
+{{ end }}
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: User

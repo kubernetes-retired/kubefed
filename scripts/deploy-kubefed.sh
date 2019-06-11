@@ -160,10 +160,6 @@ cd "$(dirname "$0")/.."
 make kubefedctl
 cd -
 
-if ! kubectl get ns "${NS}" > /dev/null 2>&1; then
-  kubectl create ns "${NS}"
-fi
-
 # Deploy KubeFed resources
 deploy-with-helm
 

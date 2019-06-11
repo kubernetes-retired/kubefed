@@ -28,6 +28,8 @@ subjects:
   name: kubefed-controller
   namespace: {{ .Release.Namespace }}
 ---
+# Grant admission webhook access to core.kubefed.k8s.io in the KubeFed system
+# namespace only, regardless of kubefed deployment scope.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -42,10 +44,20 @@ subjects:
   name: kubefed-admission-webhook
   namespace: {{ .Release.Namespace }}
 ---
+# Allow the admission webhook to read the config for terminating
+# authentication.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: kubefed-admission-webhook-apiextension-viewer
+# TODO(font) For namespace scoped deployments, create a unique resource name in
+# the kube-system namespace using the namespace. This is needed because
+# admission-webhooks do not currently support the ability to have
+# namespace-scoped RBAC permissions only.
+{{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
+  name: kubefed-admission-webhook:{{ .Release.Namespace }}:apiextension-viewer
+{{ else }}
+  name: kubefed-admission-webhook:apiextension-viewer
+{{ end }}
   namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
