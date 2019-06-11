@@ -25,7 +25,6 @@ import (
 	valutil "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/leaderelection"
-	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -144,8 +143,6 @@ func ValidateFederatedTypeConfigStatus(status *v1beta1.FederatedTypeConfigStatus
 }
 
 func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList {
-	klog.V(2).Infof("Validating KubeFedConfig %q", kubeFedConfig.Name)
-
 	allErrs := field.ErrorList{}
 
 	spec := kubeFedConfig.Spec

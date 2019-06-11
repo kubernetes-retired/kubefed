@@ -50,18 +50,19 @@ type KubeFedConfigAdmissionHook struct {
 var _ apiserver.ValidatingAdmissionHook = &KubeFedConfigAdmissionHook{}
 
 func (a *KubeFedConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+	klog.Infof("New ValidatingResource for %q", resourceName)
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
 func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
+	klog.V(4).Infof("Validating %q AdmissionRequest = %s", resourceName, webhook.AdmissionRequestDebugString(admissionSpec))
+
 	if webhook.Allowed(admissionSpec, resourcePluralName) {
 		status.Allowed = true
 		return status
 	}
-
-	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
 	admittingObject := &v1beta1.KubeFedConfig{}
 	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
@@ -85,6 +86,8 @@ func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.Ad
 		return status
 	}
 
+	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
+
 	errs := validation.ValidateKubeFedConfig(admittingObject)
 	if len(errs) != 0 {
 		status.Allowed = false
@@ -105,8 +108,6 @@ func (a *KubeFedConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, s
 
 	a.initialized = true
 
-	klog.V(2).Infof("KubeFedConfig validation webhook is initialized")
-
 	shallowClientConfigCopy := *kubeClientConfig
 	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
 		Group:   v1beta1.SchemeGroupVersion.Group,
@@ -123,5 +124,6 @@ func (a *KubeFedConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, s
 		Resource: resourceName,
 	})
 
+	klog.Infof("Initialized admission webhook for %q", resourceName)
 	return nil
 }

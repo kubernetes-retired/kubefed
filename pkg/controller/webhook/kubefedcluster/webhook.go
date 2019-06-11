@@ -50,11 +50,14 @@ type KubeFedClusterAdmissionHook struct {
 var _ apiserver.ValidatingAdmissionHook = &KubeFedClusterAdmissionHook{}
 
 func (a *KubeFedClusterAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+	klog.Infof("New ValidatingResource for %q", resourceName)
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
 func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
+
+	klog.V(4).Infof("Validating %q AdmissionRequest = %s", resourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	// We want to let through:
 	// - Requests that are not for create, update
@@ -66,8 +69,6 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 		status.Allowed = true
 		return status
 	}
-
-	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
 	admittingObject := &v1beta1.KubeFedCluster{}
 	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
@@ -90,6 +91,8 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 		}
 		return status
 	}
+
+	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
 
 	errs := validation.ValidateKubeFedCluster(admittingObject)
 	if len(errs) != 0 {
@@ -127,6 +130,8 @@ func (a *KubeFedClusterAdmissionHook) Initialize(kubeClientConfig *rest.Config, 
 		Version:  v1beta1.SchemeGroupVersion.Version,
 		Resource: resourceName,
 	})
+
+	klog.Infof("Initialized admission webhook for %q", resourceName)
 
 	return nil
 }

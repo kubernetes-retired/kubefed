@@ -17,6 +17,8 @@ limitations under the License.
 package webhook
 
 import (
+	"fmt"
+
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -45,4 +47,9 @@ func Allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string) bo
 	createOrUpdate := a.Operation == admissionv1beta1.Create || a.Operation == admissionv1beta1.Update
 	isMyGroupAndResource := a.Resource.Group == v1beta1.SchemeGroupVersion.Group && a.Resource.Resource == pluralResourceName
 	return !createOrUpdate || !isMyGroupAndResource
+}
+
+func AdmissionRequestDebugString(a *admissionv1beta1.AdmissionRequest) string {
+	return fmt.Sprintf("UID=%v Kind={%v} Resource=%+v SubResource=%v Name=%v Namespace=%v Operation=%v UserInfo=%+v DryRun=%v",
+		a.UID, a.Kind, a.Resource, a.SubResource, a.Name, a.Namespace, a.Operation, a.UserInfo, *a.DryRun)
 }

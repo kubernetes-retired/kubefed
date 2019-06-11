@@ -50,11 +50,14 @@ type FederatedTypeConfigAdmissionHook struct {
 var _ apiserver.ValidatingAdmissionHook = &FederatedTypeConfigAdmissionHook{}
 
 func (a *FederatedTypeConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+	klog.Infof("New ValidatingResource for %q", resourceName)
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
 func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
+
+	klog.V(4).Infof("Validating %q AdmissionRequest = %s", resourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	// We want to let through:
 	// - Requests that are not for create, update
@@ -63,8 +66,6 @@ func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1be
 		status.Allowed = true
 		return status
 	}
-
-	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
 	admittingObject := &v1beta1.FederatedTypeConfig{}
 	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
@@ -87,6 +88,8 @@ func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1be
 		}
 		return status
 	}
+
+	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
 
 	isStatusSubResource := len(admissionSpec.SubResource) != 0
 	errs := validation.ValidateFederatedTypeConfig(admittingObject, isStatusSubResource)
@@ -125,5 +128,6 @@ func (a *FederatedTypeConfigAdmissionHook) Initialize(kubeClientConfig *rest.Con
 		Resource: resourceName,
 	})
 
+	klog.Infof("Initialized admission webhook for %q", resourceName)
 	return nil
 }
