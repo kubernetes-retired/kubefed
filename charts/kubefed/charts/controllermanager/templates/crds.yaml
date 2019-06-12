@@ -502,20 +502,18 @@ spec:
                     to be considered failed after having succeeded.
                   format: int64
                   type: integer
-                periodSeconds:
-                  description: How often to monitor the cluster health (in seconds).
-                  format: int64
-                  type: integer
+                period:
+                  description: How often to monitor the cluster health.
+                  type: string
                 successThreshold:
                   description: Minimum consecutive successes for the cluster health
                     to be considered successful after having failed.
                   format: int64
                   type: integer
-                timeoutSeconds:
-                  description: Number of seconds after which the cluster health check
-                    times out.
-                  format: int64
-                  type: integer
+                timeout:
+                  description: Duration after which the cluster health check times
+                    out.
+                  type: string
               type: object
             controllerDuration:
               properties:
