@@ -14,10 +14,10 @@ spec:
     retryPeriod: {{ .Values.leaderElectRetryPeriod | default "5s" | quote }}
     resourceLock: {{ .Values.leaderElectResourceLock | default "configmaps" | quote }}
   clusterHealthCheck:
-    periodSeconds: {{ .Values.clusterHealthCheckPeriodSeconds | default 10 }}
+    period: {{ .Values.clusterHealthCheckPeriod | default "10s" | quote }}
     failureThreshold: {{ .Values.clusterHealthCheckFailureThreshold | default 3 }}
     successThreshold: {{ .Values.clusterHealthCheckSuccessThreshold | default 1 }}
-    timeoutSeconds: {{ .Values.clusterHealthCheckTimeoutSeconds | default 3 }}
+    timeout: {{ .Values.clusterHealthCheckTimeout | default "3s" | quote }}
   syncController:
     adoptResources: {{ .Values.syncController.adoptResources | default "Enabled" | quote }}
   featureGates:
