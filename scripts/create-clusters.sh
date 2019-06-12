@@ -30,6 +30,7 @@ NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
 KIND_TAG="${KIND_TAG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
+containerd_config="/etc/containerd/config.toml"
 kubeconfig="${HOME}/.kube/config"
 OS=`uname`
 
@@ -74,7 +75,7 @@ function configure-insecure-registry-and-reload() {
   local cmd_context="${1}" # context to run command e.g. sudo, docker exec
   local docker_pid="${2}"
   ${cmd_context} "$(insecure-registry-config-cmd)"
-  ${cmd_context} "$(reload-docker-daemon-cmd "${docker_pid}")"
+  ${cmd_context} "$(reload-daemon-cmd "${docker_pid}")"
 }
 
 function insecure-registry-config-cmd() {
@@ -86,7 +87,7 @@ EOF
 "
 }
 
-function reload-docker-daemon-cmd() {
+function reload-daemon-cmd() {
   echo "kill -s SIGHUP ${1}"
 }
 
@@ -155,7 +156,10 @@ function check-clusters-ready() {
 }
 
 function configure-insecure-registry-on-cluster() {
-  configure-insecure-registry-and-reload "docker exec cluster${1}-control-plane bash -c" '$(pgrep dockerd)'
+  cmd_context="docker exec cluster${1}-control-plane bash -c "
+  containerd_id=`${cmd_context} "pgrep -x containerd"`
+  ${cmd_context} "sed -i '/\[plugins.cri.registry.mirrors\]/a [plugins.cri.registry.mirrors."\"${CONTAINER_REGISTRY_HOST}\""]\nendpoint = ["\"http://${CONTAINER_REGISTRY_HOST}\""]' ${containerd_config}"
+  ${cmd_context} "$(reload-daemon-cmd "${containerd_id}")"
 }
 
 if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
