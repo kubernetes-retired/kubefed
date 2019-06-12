@@ -58,10 +58,10 @@ type KubeFedNamespaces struct {
 
 // ClusterHealthCheckConfig defines the configurable parameters for cluster health check
 type ClusterHealthCheckConfig struct {
-	PeriodSeconds    int64
+	Period           time.Duration
 	FailureThreshold int64
 	SuccessThreshold int64
-	TimeoutSeconds   int64
+	Timeout          time.Duration
 }
 
 // ControllerConfig defines the configuration common to KubeFed

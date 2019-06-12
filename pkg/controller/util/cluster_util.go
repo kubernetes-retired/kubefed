@@ -45,10 +45,10 @@ const (
 	DefaultLeaderElectionRetryPeriod   = 5 * time.Second
 	DefaultLeaderElectionResourceLock  = fedv1b1.ConfigMapsResourceLock
 
-	DefaultClusterHealthCheckPeriod           = 10
+	DefaultClusterHealthCheckPeriod           = 10 * time.Second
 	DefaultClusterHealthCheckFailureThreshold = 3
 	DefaultClusterHealthCheckSuccessThreshold = 1
-	DefaultClusterHealthCheckTimeout          = 3
+	DefaultClusterHealthCheckTimeout          = 3 * time.Second
 
 	KubeFedConfigName = "kubefed"
 )

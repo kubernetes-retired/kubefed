@@ -39,10 +39,10 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 	t5 := metav1.Time{Time: epoch.Add(5 * time.Second)}
 
 	config := &util.ClusterHealthCheckConfig{
-		PeriodSeconds:    10,
+		Period:           10 * time.Second,
 		FailureThreshold: 3,
 		SuccessThreshold: 1,
-		TimeoutSeconds:   3,
+		Timeout:          3 * time.Second,
 	}
 
 	testCases := map[string]struct {
