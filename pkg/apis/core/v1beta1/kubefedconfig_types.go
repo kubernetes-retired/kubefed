@@ -90,18 +90,18 @@ const (
 )
 
 type ClusterHealthCheckConfig struct {
-	// How often to monitor the cluster health (in seconds).
+	// How often to monitor the cluster health.
 	// +optional
-	PeriodSeconds *int64 `json:"periodSeconds,omitempty"`
+	Period *metav1.Duration `json:"period,omitempty"`
 	// Minimum consecutive failures for the cluster health to be considered failed after having succeeded.
 	// +optional
 	FailureThreshold *int64 `json:"failureThreshold,omitempty"`
 	// Minimum consecutive successes for the cluster health to be considered successful after having failed.
 	// +optional
 	SuccessThreshold *int64 `json:"successThreshold,omitempty"`
-	// Number of seconds after which the cluster health check times out.
+	// Duration after which the cluster health check times out.
 	// +optional
-	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
 type SyncControllerConfig struct {
