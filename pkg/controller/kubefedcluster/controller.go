@@ -19,7 +19,6 @@ package kubefedcluster
 import (
 	"context"
 	"sync"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -83,7 +82,7 @@ func StartClusterController(config *util.ControllerConfig, clusterHealthCheckCon
 // newClusterController returns a new cluster controller
 func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig *util.ClusterHealthCheckConfig) (*ClusterController, error) {
 	kubeConfig := restclient.CopyConfig(config.KubeConfig)
-	kubeConfig.Timeout = time.Duration(clusterHealthCheckConfig.TimeoutSeconds) * time.Second
+	kubeConfig.Timeout = clusterHealthCheckConfig.Timeout
 	client := genericclient.NewForConfigOrDieWithUserAgent(kubeConfig, "cluster-controller")
 
 	cc := &ClusterController{
@@ -130,8 +129,7 @@ func (cc *ClusterController) addToClusterSet(obj interface{}) {
 	}
 	klog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
 	// create the restclient of cluster
-	clientTimeout := time.Duration(cc.clusterHealthCheckConfig.TimeoutSeconds) * time.Second
-	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, clientTimeout)
+	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
 	if err != nil || restClient == nil {
 		klog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
@@ -148,7 +146,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 		if err := cc.updateClusterStatus(); err != nil {
 			klog.Errorf("Error monitoring cluster status: %v", err)
 		}
-	}, time.Duration(cc.clusterHealthCheckConfig.PeriodSeconds)*time.Second, stopChan)
+	}, cc.clusterHealthCheckConfig.Period, stopChan)
 }
 
 // updateClusterStatus checks cluster health and updates status of all KubeFedClusters

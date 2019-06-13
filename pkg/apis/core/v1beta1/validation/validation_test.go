@@ -401,13 +401,13 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	zeroInt := int64(0)
 	zeroIntPtr := &zeroInt
 
-	invalidPeriodSecondsNil := validKubeFedConfig()
-	invalidPeriodSecondsNil.Spec.ClusterHealthCheck.PeriodSeconds = nil
-	errorCases["spec.clusterHealthCheck.periodSeconds: Required value"] = invalidPeriodSecondsNil
+	invalidPeriodNil := validKubeFedConfig()
+	invalidPeriodNil.Spec.ClusterHealthCheck.Period = nil
+	errorCases["spec.clusterHealthCheck.period: Required value"] = invalidPeriodNil
 
-	validPeriodSecondsGreaterThan0 := validKubeFedConfig()
-	validPeriodSecondsGreaterThan0.Spec.ClusterHealthCheck.PeriodSeconds = zeroIntPtr
-	errorCases["spec.clusterHealthCheck.periodSeconds: Invalid value"] = validPeriodSecondsGreaterThan0
+	validPeriodGreaterThan0 := validKubeFedConfig()
+	validPeriodGreaterThan0.Spec.ClusterHealthCheck.Period.Duration = 0
+	errorCases["spec.clusterHealthCheck.period: Invalid value"] = validPeriodGreaterThan0
 
 	invalidFailureThresholdNil := validKubeFedConfig()
 	invalidFailureThresholdNil.Spec.ClusterHealthCheck.FailureThreshold = nil
@@ -425,13 +425,13 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	validSuccessThresholdGreaterThan0.Spec.ClusterHealthCheck.SuccessThreshold = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.successThreshold: Invalid value"] = validSuccessThresholdGreaterThan0
 
-	validTimeoutSecondsNil := validKubeFedConfig()
-	validTimeoutSecondsNil.Spec.ClusterHealthCheck.TimeoutSeconds = nil
-	errorCases["spec.clusterHealthCheck.timeoutSeconds: Required value"] = validTimeoutSecondsNil
+	validTimeoutNil := validKubeFedConfig()
+	validTimeoutNil.Spec.ClusterHealthCheck.Timeout = nil
+	errorCases["spec.clusterHealthCheck.timeout: Required value"] = validTimeoutNil
 
-	validTimeoutSecondsGreaterThan0 := validKubeFedConfig()
-	validTimeoutSecondsGreaterThan0.Spec.ClusterHealthCheck.TimeoutSeconds = zeroIntPtr
-	errorCases["spec.clusterHealthCheck.timeoutSeconds: Invalid value"] = validTimeoutSecondsGreaterThan0
+	validTimeoutGreaterThan0 := validKubeFedConfig()
+	validTimeoutGreaterThan0.Spec.ClusterHealthCheck.Timeout.Duration = 0
+	errorCases["spec.clusterHealthCheck.timeout: Invalid value"] = validTimeoutGreaterThan0
 
 	invalidSyncControllerNil := validKubeFedConfig()
 	invalidSyncControllerNil.Spec.SyncController = nil

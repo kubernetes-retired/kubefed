@@ -221,10 +221,10 @@ func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList
 	if health == nil {
 		allErrs = append(allErrs, field.Required(healthPath, ""))
 	} else {
-		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("periodSeconds"), health.PeriodSeconds)...)
+		allErrs = append(allErrs, validateDurationGreaterThan0(healthPath.Child("period"), health.Period)...)
 		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("failureThreshold"), health.FailureThreshold)...)
 		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("successThreshold"), health.SuccessThreshold)...)
-		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("timeoutSeconds"), health.TimeoutSeconds)...)
+		allErrs = append(allErrs, validateDurationGreaterThan0(healthPath.Child("timeout"), health.Timeout)...)
 	}
 
 	sync := spec.SyncController

@@ -23,10 +23,10 @@ controllermanager:
   leaderElectLeaseDuration:
   leaderElectRenewDeadline:
   leaderElectRetryPeriod:
-  clusterHealthCheckPeriodSeconds:
+  clusterHealthCheckPeriod:
   clusterHealthCheckFailureThreshold:
   clusterHealthCheckSuccessThreshold:
-  clusterHealthCheckTimeoutSeconds:
+  clusterHealthCheckTimeout:
   ## Supported options are `configmaps` and `endpoints`
   leaderElectResourceLock:
   syncController:

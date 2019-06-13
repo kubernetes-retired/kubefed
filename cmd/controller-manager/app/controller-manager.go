@@ -279,8 +279,8 @@ func SetDefaultKubeFedConfig(fedConfig *corev1b1.KubeFedConfig) {
 		spec.ClusterHealthCheck = &corev1b1.ClusterHealthCheckConfig{}
 	}
 	healthCheck := spec.ClusterHealthCheck
-	setInt64(&healthCheck.PeriodSeconds, util.DefaultClusterHealthCheckPeriod)
-	setInt64(&healthCheck.TimeoutSeconds, util.DefaultClusterHealthCheckTimeout)
+	setDuration(&healthCheck.Period, util.DefaultClusterHealthCheckPeriod)
+	setDuration(&healthCheck.Timeout, util.DefaultClusterHealthCheckTimeout)
 	setInt64(&healthCheck.FailureThreshold, util.DefaultClusterHealthCheckFailureThreshold)
 	setInt64(&healthCheck.SuccessThreshold, util.DefaultClusterHealthCheckSuccessThreshold)
 
@@ -354,8 +354,8 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	opts.LeaderElection.RenewDeadline = spec.LeaderElect.RenewDeadline.Duration
 	opts.LeaderElection.LeaseDuration = spec.LeaderElect.LeaseDuration.Duration
 
-	opts.ClusterHealthCheckConfig.PeriodSeconds = *spec.ClusterHealthCheck.PeriodSeconds
-	opts.ClusterHealthCheckConfig.TimeoutSeconds = *spec.ClusterHealthCheck.TimeoutSeconds
+	opts.ClusterHealthCheckConfig.Period = spec.ClusterHealthCheck.Period.Duration
+	opts.ClusterHealthCheckConfig.Timeout = spec.ClusterHealthCheck.Timeout.Duration
 	opts.ClusterHealthCheckConfig.FailureThreshold = *spec.ClusterHealthCheck.FailureThreshold
 	opts.ClusterHealthCheckConfig.SuccessThreshold = *spec.ClusterHealthCheck.SuccessThreshold
 
