@@ -17,11 +17,13 @@ limitations under the License.
 package validation
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apimachineryval "k8s.io/apimachinery/pkg/api/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	valutil "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/leaderelection"
@@ -155,57 +157,109 @@ func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList
 
 	duration := spec.ControllerDuration
 	durationPath := specPath.Child("controllerDuration")
-	allErrs = append(allErrs, validateGreaterThan0(durationPath.Child("availableDelay"), int64(duration.AvailableDelay.Duration))...)
-	allErrs = append(allErrs, validateGreaterThan0(durationPath.Child("unavailableDelay"), int64(duration.UnavailableDelay.Duration))...)
+	if duration == nil {
+		allErrs = append(allErrs, field.Required(durationPath, ""))
+	} else {
+		allErrs = append(allErrs, validateDurationGreaterThan0(durationPath.Child("availableDelay"), duration.AvailableDelay)...)
+		allErrs = append(allErrs, validateDurationGreaterThan0(durationPath.Child("unavailableDelay"), duration.UnavailableDelay)...)
+	}
 
 	elect := spec.LeaderElect
 	electPath := specPath.Child("leaderElect")
-	allErrs = append(allErrs, validateGreaterThan0(electPath.Child("leaseDuration"), int64(elect.LeaseDuration.Duration))...)
-	allErrs = append(allErrs, validateGreaterThan0(electPath.Child("renewDeadline"), int64(elect.RenewDeadline.Duration))...)
-	allErrs = append(allErrs, validateGreaterThan0(electPath.Child("retryPeriod"), int64(elect.RetryPeriod.Duration))...)
-	if elect.LeaseDuration.Duration <= elect.RenewDeadline.Duration {
-		allErrs = append(allErrs, field.Invalid(electPath.Child("leaseDuration"), elect.LeaseDuration,
-			"leaseDuration must be greater than renewDeadline"))
+	if elect == nil {
+		allErrs = append(allErrs, field.Required(electPath, ""))
+	} else {
+		allErrs = append(allErrs, validateDurationGreaterThan0(electPath.Child("leaseDuration"), elect.LeaseDuration)...)
+		allErrs = append(allErrs, validateDurationGreaterThan0(electPath.Child("renewDeadline"), elect.RenewDeadline)...)
+		allErrs = append(allErrs, validateDurationGreaterThan0(electPath.Child("retryPeriod"), elect.RetryPeriod)...)
+		if elect.LeaseDuration != nil && elect.RenewDeadline != nil &&
+			elect.LeaseDuration.Duration <= elect.RenewDeadline.Duration {
+
+			allErrs = append(allErrs, field.Invalid(electPath.Child("leaseDuration"), elect.LeaseDuration,
+				"leaseDuration must be greater than renewDeadline"))
+		}
+		if elect.RenewDeadline != nil && elect.RetryPeriod != nil &&
+			elect.RenewDeadline.Duration <= time.Duration(float64(elect.RetryPeriod.Duration)*leaderelection.JitterFactor) {
+
+			allErrs = append(allErrs, field.Invalid(electPath.Child("renewDeadline"), elect.RenewDeadline,
+				fmt.Sprintf("renewDeadline must be greater than retryPeriod*JitterFactor(%.1f)", leaderelection.JitterFactor)))
+		}
+		resourceLockPath := electPath.Child("resourceLock")
+		if elect.ResourceLock == nil {
+			allErrs = append(allErrs, field.Required(resourceLockPath, ""))
+		} else {
+			allErrs = append(allErrs, validateEnumStrings(resourceLockPath, string(*elect.ResourceLock),
+				[]string{string(v1beta1.ConfigMapsResourceLock), string(v1beta1.EndpointsResourceLock)})...)
+		}
 	}
-	if elect.RenewDeadline.Duration <= time.Duration(float64(elect.RetryPeriod.Duration)*leaderelection.JitterFactor) {
-		allErrs = append(allErrs, field.Invalid(electPath.Child("renewDeadline"), elect.RenewDeadline,
-			"renewDeadline must be greater than retryPeriod*JitterFactor"))
-	}
-	allErrs = append(allErrs, validateEnumStrings(electPath.Child("resourceLock"), string(*elect.ResourceLock),
-		[]string{string(v1beta1.ConfigMapsResourceLock), string(v1beta1.EndpointsResourceLock)})...)
 
 	gates := spec.FeatureGates
 	gatesPath := specPath.Child("featureGates")
-	existingNames := make(map[string]bool)
-	for _, gate := range gates {
-		_, ok := existingNames[gate.Name]
-		if ok {
-			allErrs = append(allErrs, field.Duplicate(gatesPath.Child("name"), gate.Name))
-			continue
+	if gates == nil {
+		allErrs = append(allErrs, field.Required(gatesPath, ""))
+	} else {
+		existingNames := make(map[string]bool)
+		for _, gate := range gates {
+			_, ok := existingNames[gate.Name]
+			if ok {
+				allErrs = append(allErrs, field.Duplicate(gatesPath.Child("name"), gate.Name))
+				continue
+			}
+			existingNames[gate.Name] = true
+
+			allErrs = append(allErrs, validateEnumStrings(gatesPath.Child("name"), string(gate.Name),
+				[]string{string(features.PushReconciler), string(features.SchedulerPreferences),
+					string(features.CrossClusterServiceDiscovery), string(features.FederatedIngress)})...)
+
+			allErrs = append(allErrs, validateEnumStrings(gatesPath.Child("configuration"), string(gate.Configuration),
+				[]string{string(v1beta1.ConfigurationEnabled), string(v1beta1.ConfigurationDisabled)})...)
 		}
-		existingNames[gate.Name] = true
-
-		allErrs = append(allErrs, validateEnumStrings(gatesPath.Child("name"), string(gate.Name),
-			[]string{string(features.PushReconciler), string(features.SchedulerPreferences),
-				string(features.CrossClusterServiceDiscovery), string(features.FederatedIngress)})...)
-
-		allErrs = append(allErrs, validateEnumStrings(gatesPath.Child("configuration"), string(gate.Configuration),
-			[]string{string(v1beta1.ConfigurationEnabled), string(v1beta1.ConfigurationDisabled)})...)
 	}
 
 	health := spec.ClusterHealthCheck
 	healthPath := specPath.Child("clusterHealthCheck")
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("periodSeconds"), *health.PeriodSeconds)...)
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("failureThreshold"), *health.FailureThreshold)...)
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("successThreshold"), *health.SuccessThreshold)...)
-	allErrs = append(allErrs, validateGreaterThan0(healthPath.Child("timeoutSeconds"), *health.TimeoutSeconds)...)
+	if health == nil {
+		allErrs = append(allErrs, field.Required(healthPath, ""))
+	} else {
+		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("periodSeconds"), health.PeriodSeconds)...)
+		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("failureThreshold"), health.FailureThreshold)...)
+		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("successThreshold"), health.SuccessThreshold)...)
+		allErrs = append(allErrs, validateIntPtrGreaterThan0(healthPath.Child("timeoutSeconds"), health.TimeoutSeconds)...)
+	}
 
 	sync := spec.SyncController
 	syncPath := specPath.Child("syncController")
-	allErrs = append(allErrs, validateEnumStrings(syncPath.Child("adoptResources"), string(*sync.AdoptResources),
-		[]string{string(v1beta1.AdoptResourcesEnabled), string(v1beta1.AdoptResourcesDisabled)})...)
+	adoptPath := syncPath.Child("adoptResources")
+	if sync == nil {
+		allErrs = append(allErrs, field.Required(syncPath, ""))
+	} else if sync.AdoptResources == nil {
+		allErrs = append(allErrs, field.Required(adoptPath, ""))
+	} else {
+		allErrs = append(allErrs, validateEnumStrings(adoptPath, string(*sync.AdoptResources),
+			[]string{string(v1beta1.AdoptResourcesEnabled), string(v1beta1.AdoptResourcesDisabled)})...)
+	}
 
 	return allErrs
+}
+
+func validateDurationGreaterThan0(path *field.Path, duration *metav1.Duration) field.ErrorList {
+	errs := field.ErrorList{}
+	if duration == nil {
+		errs = append(errs, field.Required(path, ""))
+	} else {
+		errs = validateGreaterThan0(path, int64(duration.Duration))
+	}
+	return errs
+}
+
+func validateIntPtrGreaterThan0(path *field.Path, value *int64) field.ErrorList {
+	errs := field.ErrorList{}
+	if value == nil {
+		errs = append(errs, field.Required(path, ""))
+	} else {
+		errs = validateGreaterThan0(path, *value)
+	}
+	return errs
 }
 
 func validateGreaterThan0(path *field.Path, value int64) field.ErrorList {
