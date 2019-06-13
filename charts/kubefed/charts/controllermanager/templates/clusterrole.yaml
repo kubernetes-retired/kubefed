@@ -82,7 +82,7 @@ metadata:
 {{ end }}
 rules:
 - apiGroups:
-  - admission.core.kubefed.k8s.io
+  - validation.core.kubefed.k8s.io
   resources:
   - federatedtypeconfigs
   - kubefedclusters

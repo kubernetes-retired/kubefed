@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package federatedtypeconfig
+package kubefedcluster
 
 import (
 	"strings"
@@ -34,25 +34,25 @@ import (
 )
 
 const (
-	resourceName       = "FederatedTypeConfig"
-	resourcePluralName = "federatedtypeconfigs"
+	resourceName       = "KubeFedCluster"
+	resourcePluralName = "kubefedclusters"
 )
 
-type FederatedTypeConfigAdmissionHook struct {
+type KubeFedClusterAdmissionHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-var _ apiserver.ValidatingAdmissionHook = &FederatedTypeConfigAdmissionHook{}
+var _ apiserver.ValidatingAdmissionHook = &KubeFedClusterAdmissionHook{}
 
-func (a *FederatedTypeConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+func (a *KubeFedClusterAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
 	klog.Infof("New ValidatingResource for %q", resourceName)
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
-func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
 	klog.V(4).Infof("Validating %q AdmissionRequest = %s", resourceName, webhook.AdmissionRequestDebugString(admissionSpec))
@@ -64,7 +64,7 @@ func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1be
 		return status
 	}
 
-	admittingObject := &v1beta1.FederatedTypeConfig{}
+	admittingObject := &v1beta1.KubeFedCluster{}
 	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
 	if err != nil {
 		return status
@@ -76,14 +76,13 @@ func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1be
 
 	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
 
-	isStatusSubResource := len(admissionSpec.SubResource) != 0
 	webhook.Validate(status, func() field.ErrorList {
-		return validation.ValidateFederatedTypeConfig(admittingObject, isStatusSubResource)
+		return validation.ValidateKubeFedCluster(admittingObject)
 	})
 
 	return status
 }
 
-func (a *FederatedTypeConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (a *KubeFedClusterAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, resourceName)
 }

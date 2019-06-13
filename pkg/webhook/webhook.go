@@ -23,16 +23,16 @@ import (
 	"github.com/openshift/generic-admission-server/pkg/cmd/server"
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/kubefed/pkg/controller/webhook"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/federatedtypeconfig"
+	"sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedconfig"
 )
 
 func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	admissionHooks := []apiserver.AdmissionHook{
-		&federatedtypeconfig.FederatedTypeConfigValidationHook{},
-		&webhook.KubeFedClusterValidationHook{},
-		&kubefedconfig.KubeFedConfigValidationHook{},
+		&federatedtypeconfig.FederatedTypeConfigAdmissionHook{},
+		&kubefedcluster.KubeFedClusterAdmissionHook{},
+		&kubefedconfig.KubeFedConfigAdmissionHook{},
 	}
 
 	cmd := server.NewCommandStartAdmissionServer(os.Stdout, os.Stderr, stopChan, admissionHooks...)

@@ -17,14 +17,13 @@ limitations under the License.
 package kubefedconfig
 
 import (
-	"encoding/json"
-	"net/http"
 	"strings"
 	"sync"
 
+	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -39,86 +38,48 @@ const (
 	resourcePluralName = "kubefedconfigs"
 )
 
-type KubeFedConfigValidationHook struct {
+type KubeFedConfigAdmissionHook struct {
 	client dynamic.ResourceInterface
 
 	lock        sync.RWMutex
 	initialized bool
 }
 
-func (a *KubeFedConfigValidationHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+var _ apiserver.ValidatingAdmissionHook = &KubeFedConfigAdmissionHook{}
+
+func (a *KubeFedConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
+	klog.Infof("New ValidatingResource for %q", resourceName)
 	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
 }
 
-func (a *KubeFedConfigValidationHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
-	if webhook.Allowed(admissionSpec, resourcePluralName) {
-		status.Allowed = true
+	klog.V(4).Infof("Validating %q AdmissionRequest = %s", resourceName, webhook.AdmissionRequestDebugString(admissionSpec))
+
+	if webhook.Allowed(admissionSpec, resourcePluralName, status) {
 		return status
 	}
-
-	klog.V(4).Infof("Validating AdmissionRequest = %v", admissionSpec)
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject)
+	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
-		}
 		return status
 	}
 
-	a.lock.RLock()
-	defer a.lock.RUnlock()
-	if !a.initialized {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusInternalServerError, Reason: metav1.StatusReasonInternalError,
-			Message: "not initialized",
-		}
+	if !webhook.Initialized(&a.initialized, &a.lock, status) {
 		return status
 	}
 
-	errs := validation.ValidateKubeFedConfig(admittingObject)
-	if len(errs) != 0 {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
-			Message: errs.ToAggregate().Error(),
-		}
-		return status
-	}
+	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
 
-	status.Allowed = true
+	webhook.Validate(status, func() field.ErrorList {
+		return validation.ValidateKubeFedConfig(admittingObject)
+	})
+
 	return status
 }
 
-func (a *KubeFedConfigValidationHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-
-	a.initialized = true
-
-	klog.V(2).Infof("KubeFedConfig validation webhook is initialized")
-
-	shallowClientConfigCopy := *kubeClientConfig
-	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
-		Group:   v1beta1.SchemeGroupVersion.Group,
-		Version: v1beta1.SchemeGroupVersion.Version,
-	}
-	shallowClientConfigCopy.APIPath = "/apis"
-	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
-	if err != nil {
-		return err
-	}
-	a.client = dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    v1beta1.SchemeGroupVersion.Group,
-		Version:  v1beta1.SchemeGroupVersion.Version,
-		Resource: resourceName,
-	})
-
-	return nil
+func (a *KubeFedConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, resourceName)
 }
