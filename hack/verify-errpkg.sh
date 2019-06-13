@@ -25,7 +25,6 @@ find_files() {
       \( \
         -wholename '*/vendor/*' \
         -o -wholename '*/pkg/client/*' \
-        -o -wholename '*/*kubebuilder.go' \
         -o -wholename '*/*deepcopy.go' \
         -o -wholename '*/doc.go' \
       \) -prune \

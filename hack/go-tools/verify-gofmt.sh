@@ -23,7 +23,6 @@ find_files() {
   find . -not \( \
       \( \
         -wholename '*/vendor/*' \
-        -o -wholename '*/*kubebuilder.go' \
         -o -wholename '*/*deepcopy.go' \
         -o -wholename '*/doc.go' \
       \) -prune \
