@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
-	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
@@ -251,44 +250,26 @@ func validFederatedTypeConfig() *v1beta1.FederatedTypeConfig {
 }
 
 func federatedTypeConfig(apiResource *metav1.APIResource) *v1beta1.FederatedTypeConfig {
+	enableTypeDirective := enable.NewEnableTypeDirective()
+	typeConfig := enable.GenerateTypeConfigForTarget(*apiResource, enableTypeDirective)
+	ftc := typeConfig.(*v1beta1.FederatedTypeConfig)
+
 	kind := apiResource.Kind
 	pluralName := apiResource.Name
 	statusCollection := v1beta1.StatusCollectionEnabled
 	statusController := v1beta1.ControllerStatusNotRunning
-	ftc := &v1beta1.FederatedTypeConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: typeconfig.GroupQualifiedName(*apiResource),
-		},
-		Spec: v1beta1.FederatedTypeConfigSpec{
-			TargetType: v1beta1.APIResource{
-				Group:      apiResource.Group,
-				Version:    apiResource.Version,
-				Kind:       kind,
-				PluralName: pluralName,
-				Scope:      enable.NamespacedToScope(*apiResource),
-			},
-			Propagation: v1beta1.PropagationEnabled,
-			FederatedType: v1beta1.APIResource{
-				Group:      options.DefaultFederatedGroup,
-				Version:    options.DefaultFederatedVersion,
-				Kind:       fmt.Sprintf("Federated%s", kind),
-				PluralName: fmt.Sprintf("federated%s", pluralName),
-				Scope:      enable.FederatedNamespacedToScope(*apiResource),
-			},
-			StatusType: &v1beta1.APIResource{
-				Group:      options.DefaultFederatedGroup,
-				Version:    options.DefaultFederatedVersion,
-				Kind:       fmt.Sprintf("Federated%sStatus", kind),
-				PluralName: fmt.Sprintf("federated%sstatus", pluralName),
-				Scope:      enable.FederatedNamespacedToScope(*apiResource),
-			},
-			StatusCollection: &statusCollection,
-		},
-		Status: v1beta1.FederatedTypeConfigStatus{
-			ObservedGeneration:    1,
-			PropagationController: v1beta1.ControllerStatusRunning,
-			StatusController:      &statusController,
-		},
+	ftc.Spec.StatusType = &v1beta1.APIResource{
+		Group:      options.DefaultFederatedGroup,
+		Version:    options.DefaultFederatedVersion,
+		Kind:       fmt.Sprintf("Federated%sStatus", kind),
+		PluralName: fmt.Sprintf("federated%sstatus", pluralName),
+		Scope:      enable.FederatedNamespacedToScope(*apiResource),
+	}
+	ftc.Spec.StatusCollection = &statusCollection
+	ftc.Status = v1beta1.FederatedTypeConfigStatus{
+		ObservedGeneration:    1,
+		PropagationController: v1beta1.ControllerStatusRunning,
+		StatusController:      &statusController,
 	}
 	return ftc
 }
