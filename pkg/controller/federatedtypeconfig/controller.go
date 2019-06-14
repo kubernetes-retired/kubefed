@@ -302,7 +302,8 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 		return errors.Wrapf(err, "Unable to start sync controller for %q due to missing FederatedTypeConfig for namespaces", kind)
 	}
 	stopChan := make(chan struct{})
-	err = synccontroller.StartKubeFedSyncController(c.controllerConfig, stopChan, tc, fedNamespaceAPIResource)
+	ftc := tc.DeepCopyObject().(*corev1b1.FederatedTypeConfig)
+	err = synccontroller.StartKubeFedSyncController(c.controllerConfig, stopChan, ftc, fedNamespaceAPIResource)
 	if err != nil {
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting sync controller for %q", kind)
@@ -317,7 +318,8 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 func (c *Controller) startStatusController(statusKey string, tc *corev1b1.FederatedTypeConfig) error {
 	kind := tc.Spec.FederatedType.Kind
 	stopChan := make(chan struct{})
-	err := statuscontroller.StartKubeFedStatusController(c.controllerConfig, stopChan, tc)
+	ftc := tc.DeepCopyObject().(*corev1b1.FederatedTypeConfig)
+	err := statuscontroller.StartKubeFedStatusController(c.controllerConfig, stopChan, ftc)
 	if err != nil {
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting status controller for %q", kind)

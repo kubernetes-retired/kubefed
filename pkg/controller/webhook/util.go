@@ -35,8 +35,17 @@ import (
 
 var (
 	validationGroup  = "validation." + v1beta1.SchemeGroupVersion.Group
+	mutationGroup    = "mutation." + v1beta1.SchemeGroupVersion.Group
 	admissionVersion = v1beta1.SchemeGroupVersion.Version
 )
+
+func NewMutatingResource(resourcePluralName string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    mutationGroup,
+		Version:  admissionVersion,
+		Resource: resourcePluralName,
+	}
+}
 
 func NewValidatingResource(resourcePluralName string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
