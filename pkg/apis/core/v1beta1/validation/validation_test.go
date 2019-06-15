@@ -44,7 +44,7 @@ func TestValidateFederatedTypeConfig(t *testing.T) {
 }
 
 func TestValidateFederatedTypeConfigName(t *testing.T) {
-	for _, successCase := range successCases() {
+	for _, successCase := range successCasesForFederatedTypeConfig() {
 		if errs := ValidateFederatedTypeConfigName(successCase); len(errs) != 0 {
 			t.Errorf("expected success: %v", errs)
 		}
@@ -71,7 +71,7 @@ func TestValidateFederatedTypeConfigName(t *testing.T) {
 }
 
 func TestValidateFederatedTypeConfigSpec(t *testing.T) {
-	for _, successCase := range successCases() {
+	for _, successCase := range successCasesForFederatedTypeConfig() {
 		if errs := ValidateFederatedTypeConfigSpec(&successCase.Spec, field.NewPath("spec")); len(errs) != 0 {
 			t.Errorf("expected success: %v", errs)
 		}
@@ -80,54 +80,34 @@ func TestValidateFederatedTypeConfigSpec(t *testing.T) {
 	errorCases := map[string]*v1beta1.FederatedTypeConfig{}
 
 	// Validate required fields
+
 	fedGroupRequired := validFederatedTypeConfig()
 	fedGroupRequired.Spec.FederatedType.Group = ""
 	errorCases["federatedType.group: Required value"] = fedGroupRequired
 
-	versionRequired := validFederatedTypeConfig()
-	versionRequired.Spec.TargetType.Version = ""
-	errorCases["targetType.version: Required value"] = versionRequired
-
-	kindRequired := validFederatedTypeConfig()
-	kindRequired.Spec.TargetType.Kind = ""
-	errorCases["targetType.kind: Required value"] = kindRequired
-
-	pluralName := validFederatedTypeConfig()
-	pluralName.Spec.TargetType.PluralName = ""
-	errorCases["targetType.pluralName: Required value"] = pluralName
-
-	scope := validFederatedTypeConfig()
-	scope.Spec.TargetType.Scope = ""
-	errorCases["targetType.scope: Required value"] = scope
+	statusGroupRequired := validFederatedTypeConfig()
+	statusGroupRequired.Spec.StatusType.Group = ""
+	errorCases["statusType.group: Required value"] = statusGroupRequired
 
 	propagation := validFederatedTypeConfig()
 	propagation.Spec.Propagation = ""
 	errorCases["spec.propagation: Required value"] = propagation
 
 	// Validate field values
+
+	// Test only single error condition for each <Target|Federated|Status>Type
+	// field.
 	invalidFedGroup := validFederatedTypeConfig()
 	invalidFedGroup.Spec.FederatedType.Group = "nodomain"
 	errorCases[domainWithAtLeastOneDot] = invalidFedGroup
-
-	invalidTargetGroup := validFederatedTypeConfig()
-	invalidTargetGroup.Spec.TargetType.Group = "invalid#group"
-	errorCases["consist of lower case alphanumeric characters, '-' or '.'"] = invalidTargetGroup
 
 	invalidVersion := validFederatedTypeConfig()
 	invalidVersion.Spec.TargetType.Version = "Alpha"
 	errorCases["must consist of lower case alphanumeric characters"] = invalidVersion
 
-	invalidKind := validFederatedTypeConfig()
-	invalidKind.Spec.TargetType.Kind = "Invalid.Kind"
-	errorCases["alphanumeric characters or '-'"] = invalidKind
-
 	invalidPluralName := validFederatedTypeConfig()
-	invalidPluralName.Spec.TargetType.PluralName = "2InvalidKind"
+	invalidPluralName.Spec.StatusType.PluralName = "2InvalidKind"
 	errorCases["start with an alphabetic character"] = invalidPluralName
-
-	invalidScope := validFederatedTypeConfig()
-	invalidScope.Spec.TargetType.Scope = "NeitherClusterOrNamespaceScoped"
-	errorCases["targetType.scope: Unsupported value"] = invalidScope
 
 	invalidPropagation := validFederatedTypeConfig()
 	invalidPropagation.Spec.Propagation = "InvalidPropagationMode"
@@ -140,6 +120,63 @@ func TestValidateFederatedTypeConfigSpec(t *testing.T) {
 
 	for k, v := range errorCases {
 		errs := ValidateFederatedTypeConfigSpec(&v.Spec, field.NewPath("spec"))
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", k)
+		} else if !strings.Contains(errs[0].Error(), k) {
+			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), k)
+		}
+	}
+}
+
+func TestValidateAPIResource(t *testing.T) {
+	for _, successCase := range successCasesForAPIResource() {
+		if errs := ValidateAPIResource(successCase, field.NewPath(".")); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
+	}
+
+	errorCases := map[string]*v1beta1.APIResource{}
+
+	// Validate required fields
+	versionRequired := validAPIResource()
+	versionRequired.Version = ""
+	errorCases["version: Required value"] = versionRequired
+
+	kindRequired := validAPIResource()
+	kindRequired.Kind = ""
+	errorCases["kind: Required value"] = kindRequired
+
+	pluralNameRequired := validAPIResource()
+	pluralNameRequired.PluralName = ""
+	errorCases["pluralName: Required value"] = pluralNameRequired
+
+	scopeRequired := validAPIResource()
+	scopeRequired.Scope = ""
+	errorCases["scope: Required value"] = scopeRequired
+
+	// Validate field values
+	invalidGroup := validAPIResource()
+	invalidGroup.Group = "invalid#group"
+	errorCases["consist of lower case alphanumeric characters, '-' or '.'"] = invalidGroup
+
+	invalidVersion := validAPIResource()
+	invalidVersion.Version = "Alpha"
+	errorCases["must consist of lower case alphanumeric characters"] = invalidVersion
+
+	invalidKind := validAPIResource()
+	invalidKind.Kind = "Invalid.Kind"
+	errorCases["alphanumeric characters or '-'"] = invalidKind
+
+	invalidPluralName := validAPIResource()
+	invalidPluralName.PluralName = "2InvalidKind"
+	errorCases["start with an alphabetic character"] = invalidPluralName
+
+	invalidScope := validAPIResource()
+	invalidScope.Scope = "NeitherClusterOrNamespaceScoped"
+	errorCases["scope: Unsupported value"] = invalidScope
+
+	for k, v := range errorCases {
+		errs := ValidateAPIResource(v, field.NewPath("."))
 		if len(errs) == 0 {
 			t.Errorf("[%s] expected failure", k)
 		} else if !strings.Contains(errs[0].Error(), k) {
@@ -218,10 +255,17 @@ func TestValidateFederatedTypeConfigStatus(t *testing.T) {
 
 }
 
-func successCases() []*v1beta1.FederatedTypeConfig {
+func successCasesForFederatedTypeConfig() []*v1beta1.FederatedTypeConfig {
 	return []*v1beta1.FederatedTypeConfig{
 		federatedTypeConfig(apiResourceWithEmptyGroup()),
 		federatedTypeConfig(apiResourceWithNonEmptyGroup()),
+	}
+}
+
+func successCasesForAPIResource() []*v1beta1.APIResource {
+	return []*v1beta1.APIResource{
+		apiResource(apiResourceWithEmptyGroup()),
+		apiResource(apiResourceWithNonEmptyGroup()),
 	}
 }
 
@@ -272,6 +316,20 @@ func federatedTypeConfig(apiResource *metav1.APIResource) *v1beta1.FederatedType
 		StatusController:      &statusController,
 	}
 	return ftc
+}
+
+func validAPIResource() *v1beta1.APIResource {
+	return apiResource(apiResourceWithNonEmptyGroup())
+}
+
+func apiResource(apiResource *metav1.APIResource) *v1beta1.APIResource {
+	return &v1beta1.APIResource{
+		Group:      options.DefaultFederatedGroup,
+		Version:    options.DefaultFederatedVersion,
+		Kind:       fmt.Sprintf("Federated%s", apiResource.Kind),
+		PluralName: fmt.Sprintf("federated%s", apiResource.Name),
+		Scope:      enable.FederatedNamespacedToScope(*apiResource),
+	}
 }
 
 func TestValidateKubeFedConfig(t *testing.T) {
