@@ -56,6 +56,7 @@ type KubeFedFrameworkImpl interface {
 	Client(userAgent string) genericclient.Client
 
 	ClusterConfigs(userAgent string) map[string]common.TestClusterConfig
+	HostConfig(userAgent string) *restclient.Config
 	ClusterDynamicClients(apiResource *metav1.APIResource, userAgent string) map[string]common.TestCluster
 	ClusterKubeClients(userAgent string) map[string]kubeclientset.Interface
 	ClusterNames(userAgent string) []string
@@ -167,6 +168,10 @@ func (f *frameworkWrapper) Client(userAgent string) genericclient.Client {
 
 func (f *frameworkWrapper) ClusterConfigs(userAgent string) map[string]common.TestClusterConfig {
 	return f.framework().ClusterConfigs(userAgent)
+}
+
+func (f *frameworkWrapper) HostConfig(userAgent string) *restclient.Config {
+	return f.framework().HostConfig(userAgent)
 }
 
 func (f *frameworkWrapper) ClusterNames(userAgent string) []string {
@@ -289,7 +294,7 @@ func (f *frameworkWrapper) namespaceTypeConfigOrDie() typeconfig.Interface {
 	return f.namespaceTypeConfig
 }
 
-func createTestNamespace(client kubeclientset.Interface, baseName string) string {
+func CreateTestNamespace(client kubeclientset.Interface, baseName string) string {
 	By("Creating a namespace to execute the test in")
 	namespaceName, err := createNamespace(client, baseName)
 	Expect(err).NotTo(HaveOccurred())
