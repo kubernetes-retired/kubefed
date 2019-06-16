@@ -4,7 +4,7 @@
 
 - [IBM Cloud Private Deployment Guide](#ibm-cloud-private-deployment-guide)
   - [Install IBM Cloud Private](#install-ibm-cloud-private)
-  - [Post Install Configuration](#post-install-configuration)
+  - [Pre KubeFed Install Configuration](#pre-kubefed-install-configuration)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -36,7 +36,7 @@ For the second cluster, set the following value in `cluster/config.yaml` as foll
 cluster_name: cluster2
 ```
 
-## Pre Install Configuration
+## Pre KubeFed Install Configuration
 
 As IBM Cloud Private is [enforcing container image security](https://www.ibm.com/support/knowledgecenter/SSBS6K_3.1.1/manage_images/image_security.html)
 policy by default, and the default image security policy does not allow pulling the KubeFed
