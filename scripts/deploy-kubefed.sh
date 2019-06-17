@@ -143,7 +143,7 @@ JOIN_CLUSTERS="${*-}"
 
 # Use DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to skip docker
 # push on container image when not using latest image.
-DOCKER_PUSH="${DOCKER_PUSH:-y}"
+DOCKER_PUSH="${DOCKER_PUSH-y}"
 DOCKER_PUSH_CMD="docker push ${IMAGE_NAME}"
 if [[ ! "${DOCKER_PUSH}" ]]; then
     DOCKER_PUSH_CMD=
