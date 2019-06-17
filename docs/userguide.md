@@ -418,8 +418,8 @@ metadata:
   namespace: myns
 spec:
   placement:
-    clusterNames:
-    - cluster1
+    clusters:
+    - name: cluster1
 status:
   conditions:
   - type: Propagation
@@ -688,7 +688,7 @@ scheduling have priority over manual definition of a cluster selector.
 ### `spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty
 
 In this case, `spec.placement.clusterSelector` will be ignored, since
-`spec.placement.clusterNames` is provided. This ensures that the results of runtime
+`spec.placement.clusters` is provided. This ensures that the results of runtime
 scheduling have priority over manual definition of a cluster selector.
 
 ```yaml
