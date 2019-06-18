@@ -1,5 +1,0 @@
-
-# <strong>Clusterregistry</strong>
-
-------------
-
