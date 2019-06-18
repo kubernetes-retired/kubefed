@@ -86,7 +86,7 @@ The return code of the script indicates success or failure.
 
 The cluster-registry repo is monitored by the k8s-ci-robot. You can find a list
 of the commands it accepts
-[here](https://github.com/kubernetes/test-infra/blob/master/commands.md). Note
+[here](https://go.k8s.io/bot-commands). Note
 that some of the commands are not relevant for the cluster registry, namely as
 `/approve`, `/area`, `/hold`, `/release-note` and `/status`.
 
