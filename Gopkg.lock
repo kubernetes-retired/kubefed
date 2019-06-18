@@ -1274,14 +1274,6 @@
   version = "kubernetes-1.13.2"
 
 [[projects]]
-  digest = "1:d4db9b703c15bd2adc54f733ff4bf093353a5eaec4a0ba27a8cea04e819fcc90"
-  name = "k8s.io/cluster-registry"
-  packages = ["pkg/apis/clusterregistry/v1alpha1"]
-  pruneopts = "T"
-  revision = "423735c7f10cbbc83ccee14d62b266ddcf9709dd"
-  version = "v0.0.6"
-
-[[projects]]
   branch = "master"
   digest = "1:1d2e0142f5019c9ac2f1b562ea1c7a7d24f896080f7c670d04c4201ca13e2b14"
   name = "k8s.io/code-generator"
@@ -1410,16 +1402,17 @@
     "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/meta",
+    "k8s.io/apimachinery/pkg/api/validation",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
-    "k8s.io/apimachinery/pkg/util/net",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/uuid",
+    "k8s.io/apimachinery/pkg/util/validation",
     "k8s.io/apimachinery/pkg/util/validation/field",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/util/yaml",
@@ -1444,7 +1437,6 @@
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/flowcontrol",
     "k8s.io/client-go/util/workqueue",
-    "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/klog",
@@ -1454,6 +1446,7 @@
     "sigs.k8s.io/controller-runtime/pkg/client/apiutil",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     "sigs.k8s.io/controller-tools/cmd/controller-gen",
+    "sigs.k8s.io/yaml",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

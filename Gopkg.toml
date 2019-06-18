@@ -16,10 +16,6 @@ required = [
     name = "github.com/kubernetes/repo-infra"
     non-go = false
     unused-packages = false
-  [[prune.project]]
-    name = "k8s.io/cluster-registry"
-    non-go = false
-    unused-packages = false
 
 # k8s.io/kubectl wants master of apimachinery and client-go, but
 # kubebuilder is pinning to the version below.  Until kubectl comes
