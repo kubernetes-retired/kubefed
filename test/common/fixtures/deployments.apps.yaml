@@ -1,7 +1,7 @@
 kind: fixture
 template:
   spec:
-    replicas: 1
+    replicas: 2
     selector:
       matchLabels:
         foo: bar
@@ -18,4 +18,6 @@ template:
 overrides:
   - clusterOverrides:
     - path: /spec/replicas
-      value: 2
+      value: 1
+    - path: "/spec/template/spec/containers/0/image"
+      value: "busybox:1.31.0-uclibc"

@@ -19,10 +19,10 @@ package common
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
+	"github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -564,27 +564,27 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
-				// TODO: use the json patch library to patch with the overrides and then compare it with cluster object.
+				expectedClusterObject := clusterObj.DeepCopy()
 				for path, expectedValue := range expectedOverrides {
-					path = strings.TrimPrefix(path, "/")
-					pathEntries := strings.Split(path, "/")
-					value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, pathEntries...)
-					if err != nil {
-						c.tl.Fatalf("Error retrieving overridden path: %v", err)
+					// Applying overrides on copy of received cluster object should not change the cluster object if the overrides are properly applied.
+					if err := util.ApplyJsonPatch(expectedClusterObject, path, expectedValue); err != nil {
+						c.tl.Fatalf("Failed to apply json patch: %v", err)
 					}
-					if !ok {
-						c.tl.Fatalf("Missing overridden path %s", path)
-					}
-					// Because the result of deserializing an override field differs from the value
-					// retrieved by NestedFieldCopy, reflection is not able to accurately compare
-					// numeric types that should otherwise be equal. For example, an override value
-					// of 2 is deserialized as %!q(float64=2), but the same value retrieved by
-					// NestedFieldCopy would be '\x02'.  String conversion is a hacky way of working
-					// around this problem, with a fallback to reflection for non-numeric types.
-					if fmt.Sprintf("%v", expectedValue) != fmt.Sprintf("%v", value) && !reflect.DeepEqual(expectedValue, value) {
-						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedValue, value)
-						return false, nil
-					}
+				}
+
+				expectedClusterObjectJSON, err := expectedClusterObject.MarshalJSON()
+				if err != nil {
+					c.tl.Fatalf("Failed to marshal expected cluster object to json: %v", err)
+				}
+
+				clusterObjectJSON, err := clusterObj.MarshalJSON()
+				if err != nil {
+					c.tl.Fatalf("Failed to marshal cluster object to json: %v", err)
+				}
+
+				if !jsonpatch.Equal(expectedClusterObjectJSON, clusterObjectJSON) {
+					c.tl.Errorf("Cluster object is not as expected. expected: %s, actual: %s", expectedClusterObjectJSON, clusterObjectJSON)
+					return false, nil
 				}
 			}
 

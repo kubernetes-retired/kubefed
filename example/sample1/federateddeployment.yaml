@@ -28,5 +28,7 @@ spec:
   overrides:
   - clusterName: cluster2
     clusterOverrides:
-    - path: /spec/replicas
+    - path: "/spec/replicas"
       value: 5
+    - path: "/spec/template/spec/containers/0/image"
+      value: "nginx:1.17.0-alpine"
