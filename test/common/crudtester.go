@@ -172,7 +172,7 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 	kind := apiResource.Kind
 	qualifiedName := util.NewQualifiedName(fedObject)
 
-	key := "metadata.labels"
+	key := "/metadata/labels"
 	value := map[string]interface{}{
 		"crudtester-operation":        "update",
 		util.ManagedByKubeFedLabelKey: util.ManagedByKubeFedLabelValue,
@@ -564,8 +564,10 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
+				// TODO: use the json patch library to patch with the overrides and then compare it with cluster object.
 				for path, expectedValue := range expectedOverrides {
-					pathEntries := strings.Split(path, ".")
+					path = strings.TrimPrefix(path, "/")
+					pathEntries := strings.Split(path, "/")
 					value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, pathEntries...)
 					if err != nil {
 						c.tl.Fatalf("Error retrieving overridden path: %v", err)

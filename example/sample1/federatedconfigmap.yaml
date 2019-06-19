@@ -14,6 +14,6 @@ spec:
   overrides:
   - clusterName: cluster2
     clusterOverrides:
-    - path: data
+    - path: /data
       value:
         foo: bar

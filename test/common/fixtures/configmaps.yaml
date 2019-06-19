@@ -4,6 +4,6 @@ template:
     foo: bar
 overrides:
   - clusterOverrides:
-      - path: data
+      - path: /data
         value:
           foo: baz

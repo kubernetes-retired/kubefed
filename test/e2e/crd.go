@@ -187,7 +187,7 @@ template:
     - bal
 overrides:
   - clusterOverrides:
-    - path: bar
+    - path: /spec/bar
       value:
       - fiz
       - bang

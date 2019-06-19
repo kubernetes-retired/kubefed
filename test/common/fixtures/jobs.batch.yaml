@@ -19,5 +19,5 @@ template:
             command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
 overrides:
   - clusterOverrides:
-    - path: spec.parallelism
+    - path: /spec/parallelism
       value: 2

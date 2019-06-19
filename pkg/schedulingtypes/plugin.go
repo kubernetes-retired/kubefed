@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	replicasPath = "spec.replicas"
+	replicasPath = "/spec/replicas"
 )
 
 type Plugin struct {

@@ -184,8 +184,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	}
 	if overrides != nil {
 		for path, value := range overrides {
-			pathEntries := strings.Split(path, ".")
-			if err := unstructured.SetNestedField(obj.Object, value, pathEntries...); err != nil {
+			if err := util.ApplyJsonPatch(obj, path, value); err != nil {
 				return nil, err
 			}
 		}

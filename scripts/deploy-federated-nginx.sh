@@ -89,7 +89,7 @@ echo "cluster2: $(curl -s ${IP2}:${PORT2})"
 echo
 echo "Updating override of federated deployment nginx to increase 'replicas' to 2 in cluster2."
 kubectl patch federateddeployment nginx -n ${TEST_NS} --type=merge --patch \
-    '{"spec" : {"overrides": [{"clusterName" : "cluster2", "clusterOverrides": [{"path": "spec.replicas", "value" : 2}]}]}}'
+    '{"spec" : {"overrides": [{"clusterName" : "cluster2", "clusterOverrides": [{"path": "/spec/replicas", "value" : 2}]}]}}'
 echo "Checking 'replicas' of deployment nginx in cluster2."
 util::wait-for-condition 'replicas updated in cluster2' \
     "(kubectl get deployment nginx -n ${TEST_NS} --context cluster2 -o jsonpath='{.status.replicas}' | grep "^2$") &> /dev/null" 120

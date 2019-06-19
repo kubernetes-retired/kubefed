@@ -19,6 +19,7 @@ package util
 import (
 	"encoding/json"
 
+	"github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,9 +52,9 @@ type GenericOverride struct {
 // primary mechanism of association between a federated resource in
 // the host cluster and the target resources in the member clusters.
 var invalidPaths = sets.NewString(
-	"metadata.namespace",
-	"metadata.name",
-	"metadata.generateName",
+	"/metadata/namespace",
+	"/metadata/name",
+	"/metadata/generateName",
 )
 
 // Mapping of qualified path (e.g. spec.replicas) to value
@@ -153,4 +154,41 @@ func UnstructuredToInterface(rawObj *unstructured.Unstructured, obj interface{})
 		return err
 	}
 	return json.Unmarshal(content, obj)
+}
+
+// ApplyJsonPatch applies the override on to the given unstructured object.
+func ApplyJsonPatch(obj *unstructured.Unstructured, path string, value interface{}) error {
+	type jsonPatchOperation struct {
+		Op    string      `json:"op"`
+		Path  string      `json:"path"`
+		Value interface{} `json:"value"`
+	}
+
+	jsonPatch := []jsonPatchOperation{{
+		Op:    "replace",
+		Path:  path,
+		Value: value,
+	}}
+	jsonPatchBytes, err := json.Marshal(jsonPatch)
+	if err != nil {
+		return err
+	}
+
+	patch, err := jsonpatch.DecodePatch(jsonPatchBytes)
+	if err != nil {
+		return err
+	}
+
+	ObjectJSONBytes, err := obj.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	patchedObjectJSONBytes, err := patch.Apply(ObjectJSONBytes)
+	if err != nil {
+		return err
+	}
+
+	err = obj.UnmarshalJSON(patchedObjectJSONBytes)
+	return err
 }

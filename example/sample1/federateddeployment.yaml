@@ -28,5 +28,5 @@ spec:
   overrides:
   - clusterName: cluster2
     clusterOverrides:
-    - path: spec.replicas
+    - path: /spec/replicas
       value: 5

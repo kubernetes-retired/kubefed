@@ -17,5 +17,5 @@ template:
             command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
 overrides:
   - clusterOverrides:
-    - path: spec.replicas
+    - path: /spec/replicas
       value: 2
