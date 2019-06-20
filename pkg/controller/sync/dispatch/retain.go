@@ -30,6 +30,8 @@ func RetainClusterFields(targetKind string, desiredObj, clusterObj, fedObj *unst
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
+	retainAnnotations(desiredObj, clusterObj)
+
 	if targetKind == util.ServiceKind {
 		return retainServiceFields(desiredObj, clusterObj)
 	}
@@ -37,6 +39,29 @@ func RetainClusterFields(targetKind string, desiredObj, clusterObj, fedObj *unst
 		return retainServiceAccountFields(desiredObj, clusterObj)
 	}
 	return retainReplicas(desiredObj, clusterObj, fedObj)
+}
+
+var annotationKeysToRetain = map[string]string{
+	"deployment.kubernetes.io/revision": "",
+}
+
+// retainAnnotations retains annotations for known controllers to avoid thrashing.
+//
+// TODO(marun) Remove the need for retaining specific annotations by only allowing
+// jsonpatch add/remove overrides rather than setting the entire field.
+func retainAnnotations(desiredObj, clusterObj *unstructured.Unstructured) {
+	desiredAnnotations := desiredObj.GetAnnotations()
+	clusterAnnotations := clusterObj.GetAnnotations()
+	changed := false
+	for key, value := range clusterAnnotations {
+		if _, ok := annotationKeysToRetain[key]; ok {
+			desiredAnnotations[key] = value
+			changed = true
+		}
+	}
+	if changed {
+		desiredObj.SetAnnotations(desiredAnnotations)
+	}
 }
 
 func retainServiceFields(desiredObj, clusterObj *unstructured.Unstructured) error {
