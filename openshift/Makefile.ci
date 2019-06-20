@@ -11,6 +11,7 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
+<<<<<<< HEAD
 GIT_VERSION ?= $(OS_GIT_VERSION)
 GIT_HASH ?= $(OS_GIT_COMMIT)
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')

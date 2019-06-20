@@ -11,14 +11,14 @@ RUN yum install -y make git
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
-WORKDIR /go/src/sigs.k8s.io/kubefed
+COPY . /go/src/github.com/openshift/kubefed/
 
+WORKDIR /go/src/github.com/openshift/kubefed
 
-COPY Makefile Makefile
-COPY pkg pkg
-COPY cmd cmd
-COPY test test
-COPY vendor vendor
+RUN find . -name "*.go" -exec sed -i -r "s/sigs.k8s.io\/kubefed/github.com\/openshift\/kubefed/g"  {} \;
+
+RUN sed -i "s/sigs.k8s.io/github.com\/openshift/g" Makefile 
+
 
 RUN DOCKER_BUILD="/bin/sh -c " make hyperfed
 
@@ -29,7 +29,7 @@ ENV USER_ID=1001
 
 # copy in binaries
 WORKDIR /root/
-COPY --from=builder /go/src/sigs.k8s.io/kubefed/bin/hyperfed-linux /root/hyperfed
+COPY --from=builder /go/src/github.com/openshift/kubefed/bin/hyperfed-linux /root/hyperfed
 RUN ln -s hyperfed controller-manager && ln -s hyperfed kubefedctl &&  ln -s hyperfed webhook
 
 # user directive - this image does not require root
