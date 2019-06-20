@@ -1,0 +1,10 @@
+# Makefile.ci holds make directives called by the CI jobs for this repo.
+
+unit:
+	echo "OK"
+
+vet:
+	echo "OK"
+
+managed-e2e:
+        echo "OK"
