@@ -28,6 +28,7 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/orphaning"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
 
@@ -60,6 +61,7 @@ func NewKubeFedCtlCommand(out io.Writer) *cobra.Command {
 	rootCmd.AddCommand(federate.NewCmdFederateResource(out, fedConfig))
 	rootCmd.AddCommand(NewCmdJoin(out, fedConfig))
 	rootCmd.AddCommand(NewCmdUnjoin(out, fedConfig))
+	rootCmd.AddCommand(orphaning.NewCmdOrphaning(out, fedConfig))
 	rootCmd.AddCommand(NewCmdVersion(out))
 
 	return rootCmd

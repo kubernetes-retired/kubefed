@@ -45,7 +45,6 @@ import (
 const (
 	createResourceRetryTimeout  = 10 * time.Second
 	createResourceRetryInterval = 1 * time.Second
-	federatedKindPrefix         = "Federated"
 )
 
 var (
