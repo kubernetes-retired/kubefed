@@ -33,6 +33,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -340,6 +342,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -601,6 +605,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -2908,6 +2914,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -3219,6 +3227,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -5508,6 +5518,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -5767,6 +5779,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -8045,6 +8059,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -8308,6 +8324,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
@@ -8588,6 +8606,8 @@ spec:
                   clusterOverrides:
                     items:
                       properties:
+                        op:
+                          type: string
                         path:
                           type: string
                         value:
