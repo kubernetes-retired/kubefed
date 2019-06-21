@@ -183,10 +183,8 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 		return nil, err
 	}
 	if overrides != nil {
-		for path, value := range overrides {
-			if err := util.ApplyJsonPatch(obj, path, value); err != nil {
-				return nil, err
-			}
+		if err := util.ApplyJsonPatch(obj, overrides); err != nil {
+			return nil, err
 		}
 	}
 
@@ -207,7 +205,7 @@ func (r *federatedResource) RecordEvent(reason, messageFmt string, args ...inter
 	r.eventRecorder.Eventf(r.Object(), corev1.EventTypeNormal, reason, messageFmt, args...)
 }
 
-func (r *federatedResource) overridesForCluster(clusterName string) (util.ClusterOverridesMap, error) {
+func (r *federatedResource) overridesForCluster(clusterName string) (util.ClusterOverrides, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.overridesMap == nil {

@@ -185,16 +185,18 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 			c.tl.Fatalf("Error retrieving overrides for %s %q: %v", kind, qualifiedName, err)
 		}
 		for clusterName := range c.testClusters {
-			clusterOverrides, ok := overrides[clusterName]
-			if !ok {
-				clusterOverrides = make(util.ClusterOverridesMap)
-				overrides[clusterName] = clusterOverrides
+			if _, ok := overrides[clusterName]; !ok {
+				overrides[clusterName] = util.ClusterOverrides{}
 			}
-			_, ok = clusterOverrides[key]
-			if ok {
+			paths := sets.NewString()
+			for _, overrideItem := range overrides[clusterName] {
+				paths.Insert(overrideItem.Path)
+			}
+			if paths.Has(key) {
 				c.tl.Fatalf("An override for %q already exists for cluster %q", key, clusterName)
 			}
-			clusterOverrides[key] = value
+			paths.Insert(key)
+			overrides[clusterName] = append(overrides[clusterName], util.ClusterOverride{Path: key, Value: value})
 		}
 
 		if err := util.SetOverrides(obj, overrides); err != nil {
@@ -544,7 +546,7 @@ func (c *FederatedTypeCrudTester) checkHostNamespaceUnlabeled(client util.Resour
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverridesMap, expectedVersionFunc func() string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverrides, expectedVersionFunc func() string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		expectedVersion := expectedVersionFunc()
 		if len(expectedVersion) == 0 {
@@ -565,11 +567,9 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
 				expectedClusterObject := clusterObj.DeepCopy()
-				for path, expectedValue := range expectedOverrides {
-					// Applying overrides on copy of received cluster object should not change the cluster object if the overrides are properly applied.
-					if err := util.ApplyJsonPatch(expectedClusterObject, path, expectedValue); err != nil {
-						c.tl.Fatalf("Failed to apply json patch: %v", err)
-					}
+				// Applying overrides on copy of received cluster object should not change the cluster object if the overrides are properly applied.
+				if err := util.ApplyJsonPatch(expectedClusterObject, expectedOverrides); err != nil {
+					c.tl.Fatalf("Failed to apply json patch: %v", err)
 				}
 
 				expectedClusterObjectJSON, err := expectedClusterObject.MarshalJSON()
