@@ -18,7 +18,6 @@ package util
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -32,23 +31,11 @@ import (
 )
 
 const (
-	DefaultKubeFedSystemNamespace  = "kube-federation-system"
-	DefaultClusterAvailableDelay   = 20 * time.Second
-	DefaultClusterUnavailableDelay = 60 * time.Second
+	DefaultKubeFedSystemNamespace = "kube-federation-system"
 
 	KubeAPIQPS   = 20.0
 	KubeAPIBurst = 30
 	TokenKey     = "token"
-
-	DefaultLeaderElectionLeaseDuration = 15 * time.Second
-	DefaultLeaderElectionRenewDeadline = 10 * time.Second
-	DefaultLeaderElectionRetryPeriod   = 5 * time.Second
-	DefaultLeaderElectionResourceLock  = fedv1b1.ConfigMapsResourceLock
-
-	DefaultClusterHealthCheckPeriod           = 10 * time.Second
-	DefaultClusterHealthCheckFailureThreshold = 3
-	DefaultClusterHealthCheckSuccessThreshold = 1
-	DefaultClusterHealthCheckTimeout          = 3 * time.Second
 
 	KubeFedConfigName = "kubefed"
 )
