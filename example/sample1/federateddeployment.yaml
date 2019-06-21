@@ -32,3 +32,9 @@ spec:
       value: 5
     - path: "/spec/template/spec/containers/0/image"
       value: "nginx:1.17.0-alpine"
+    - path: "/metadata/annotations"
+      op: "add"
+      value:
+        foo: bar
+    - path: "/metadata/annotations/foo"
+      op: "remove"
