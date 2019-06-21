@@ -17,11 +17,16 @@ limitations under the License.
 package kubefedconfig
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 
 	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/dynamic"
@@ -29,6 +34,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook"
 )
@@ -103,12 +109,48 @@ func (a *KubeFedConfigAdmissionHook) Admit(admissionSpec *admissionv1beta1.Admis
 		return status
 	}
 
-	// TODO(font) add defaults
+	defaultedObject := admittingObject.DeepCopyObject().(*v1beta1.KubeFedConfig)
+	defaults.SetDefaultKubeFedConfig(defaultedObject)
 
+	if reflect.DeepEqual(admittingObject, defaultedObject) {
+		status.Allowed = true
+		return status
+	}
+
+	// TODO(font) Optimize by generalizing the ability to add only the fields
+	// that have been defaulted. If merge patch is ever supported use that
+	// instead.
+	patchOperations := []patchOperation{
+		{
+			"replace",
+			"/spec",
+			defaultedObject.Spec,
+		},
+	}
+
+	patchBytes, err := json.Marshal(patchOperations)
+	if err != nil {
+		status.Allowed = false
+		status.Result = &metav1.Status{
+			Status: metav1.StatusFailure, Code: http.StatusInternalServerError, Reason: metav1.StatusReasonInternalError,
+			Message: fmt.Sprintf("Error marshalling defaulted KubeFedConfig json operation = %+v, err: %v", patchOperations, err),
+		}
+		return status
+	}
+
+	status.PatchType = new(admissionv1beta1.PatchType)
+	*status.PatchType = admissionv1beta1.PatchTypeJSONPatch
+	status.Patch = patchBytes
 	status.Allowed = true
 	return status
 }
 
 func (a *KubeFedConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, resourceName)
+}
+
+type patchOperation struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
 }
