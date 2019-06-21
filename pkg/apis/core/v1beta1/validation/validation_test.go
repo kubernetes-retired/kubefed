@@ -25,8 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
@@ -506,12 +506,6 @@ func validKubeFedConfig() *v1beta1.KubeFedConfig {
 		},
 	}
 
-	app.SetDefaultKubeFedConfig(kfc)
-
-	for _, name := range features.FeatureNames {
-		feature := v1beta1.FeatureGatesConfig{Name: string(name), Configuration: v1beta1.ConfigurationEnabled}
-		kfc.Spec.FeatureGates = append(kfc.Spec.FeatureGates, feature)
-	}
-
+	defaults.SetDefaultKubeFedConfig(kfc)
 	return kfc
 }
