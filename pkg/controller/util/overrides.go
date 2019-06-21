@@ -28,8 +28,9 @@ import (
 )
 
 type ClusterOverride struct {
+	Op    string      `json:"op,omitempty"`
 	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 type GenericOverrideItem struct {

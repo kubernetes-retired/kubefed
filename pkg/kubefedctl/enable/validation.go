@@ -107,6 +107,9 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 									Schema: &v1beta1.JSONSchemaProps{
 										Type: "object",
 										Properties: map[string]v1beta1.JSONSchemaProps{
+											"op": {
+												Type: "string",
+											},
 											"path": {
 												Type: "string",
 											},
