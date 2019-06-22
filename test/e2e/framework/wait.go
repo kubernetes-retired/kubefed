@@ -67,5 +67,11 @@ func WaitUntilLogStreamContains(tl common.TestLogger, stream io.ReadCloser, subs
 		done <- false
 	}()
 
-	return <-done
+	select {
+	case result := <-done:
+		return result
+	case <-time.After(TestContext.SingleCallTimeout):
+		tl.Fatalf("Timeout waiting for stream to contain substring = %q", substr)
+	}
+	return false
 }
