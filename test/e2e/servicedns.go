@@ -19,9 +19,10 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"sort"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -103,7 +104,7 @@ var _ = Describe("ServiceDNS", func() {
 
 		serviceDNS.Status = serviceDNSStatus
 		By("Waiting for the ServiceDNS object to have correct status")
-		common.WaitForObject(tl, namespace, serviceDNS.Name, objectGetter, serviceDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+		framework.WaitForObject(tl, namespace, serviceDNS.Name, objectGetter, serviceDNS, common.Equivalent)
 	})
 
 	Context("When ServiceDNS object is created", func() {
@@ -126,7 +127,7 @@ var _ = Describe("ServiceDNS", func() {
 			serviceDNS.Status = *serviceDNSStatus
 
 			By("Waiting for the ServiceDNS object to have correct status")
-			common.WaitForObject(tl, namespace, name, objectGetter, serviceDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+			framework.WaitForObject(tl, namespace, name, objectGetter, serviceDNS, common.Equivalent)
 
 			By("Waiting for the DNSEndpoint object to be created")
 			endpointObjectGetter := func(namespace, name string) (pkgruntime.Object, error) {
@@ -164,7 +165,7 @@ var _ = Describe("ServiceDNS", func() {
 				},
 			}
 
-			common.WaitForObject(tl, namespace, "service-"+name, endpointObjectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+			framework.WaitForObject(tl, namespace, "service-"+name, endpointObjectGetter, desiredDNSEndpoint, common.Equivalent)
 		})
 	})
 })

@@ -122,26 +122,7 @@ func NewDNSEndpoint(dnsName string, targets []string, recordType string, recordT
 	return &endpoint
 }
 
-// WaitForObject waits for object to match the desired status.
-func WaitForObject(tl TestLogger, namespace, name string, objectGetter func(namespace, name string) (pkgruntime.Object, error), desired pkgruntime.Object, interval, timeout time.Duration) {
-	var actual pkgruntime.Object
-	err := wait.PollImmediate(interval, timeout, func() (exist bool, err error) {
-		actual, err = objectGetter(namespace, name)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
-		}
-
-		return equivalent(actual, desired), nil
-	})
-	if err != nil {
-		tl.Fatalf("Timedout waiting for desired state, \ndesired:%#v\nactual :%#v", desired, actual)
-	}
-}
-
-func equivalent(actual, desired pkgruntime.Object) bool {
+func Equivalent(actual, desired pkgruntime.Object) bool {
 	// Check for meta & spec equivalence
 	if !util.ObjectMetaAndSpecEquivalent(actual, desired) {
 		return false

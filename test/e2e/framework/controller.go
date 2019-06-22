@@ -17,6 +17,8 @@ limitations under the License.
 package framework
 
 import (
+	"io"
+	"os/exec"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,6 +128,20 @@ func NewSchedulingManagerFixture(tl common.TestLogger, config *util.ControllerCo
 		tl.Fatalf("Error starting scheduler controller: %v", err)
 	}
 	return f, manager
+}
+
+func StartControllerManager(args []string) (*exec.Cmd, io.ReadCloser, error) {
+	cmd := exec.Command("controller-manager", args...)
+
+	logStream, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, nil, err
+	}
+	return cmd, logStream, nil
 }
 
 func (f *ControllerFixture) TearDown(tl common.TestLogger) {

@@ -17,13 +17,11 @@ limitations under the License.
 package e2e
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
@@ -47,7 +45,7 @@ var _ = Describe("Leader Elector", func() {
 
 		primaryControllerManager, primaryLogStream, err := spawnControllerManagerProcess(tl, kubeConfigPath, systemNamespace)
 		framework.ExpectNoError(err)
-		if waitUntilLogStreamContains(tl, primaryLogStream, leaderIdentifier) {
+		if framework.WaitUntilLogStreamContains(tl, primaryLogStream, leaderIdentifier) {
 			tl.Log("Primary controller manager became leader")
 		} else {
 			_ = primaryControllerManager.Process.Kill()
@@ -58,7 +56,7 @@ var _ = Describe("Leader Elector", func() {
 		secondaryControllerManager, secondaryLogStream, err := spawnControllerManagerProcess(tl, kubeConfigPath, systemNamespace)
 		framework.ExpectNoError(err)
 		go func() {
-			if waitUntilLogStreamContains(tl, secondaryLogStream, leaderIdentifier) {
+			if framework.WaitUntilLogStreamContains(tl, secondaryLogStream, leaderIdentifier) {
 				tl.Log("Secondary controller manager became leader")
 				done <- true
 			} else {
@@ -90,33 +88,5 @@ func spawnControllerManagerProcess(tl common.TestLogger, kubeConfigPath, namespa
 		fmt.Sprintf("--kubefed-namespace=%s", namespace),
 		fmt.Sprintf("--kubefed-config=%s", confFile),
 	}
-	cmd := exec.Command("controller-manager", args...)
-
-	logStream, err := cmd.StderrPipe()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return nil, nil, err
-	}
-	return cmd, logStream, nil
-}
-
-func waitUntilLogStreamContains(tl common.TestLogger, stream io.ReadCloser, substr string) bool {
-	scanner := bufio.NewScanner(stream)
-	done := make(chan bool, 1)
-	go func() {
-		for scanner.Scan() {
-			line := scanner.Text()
-			tl.Log(line)
-			if strings.Contains(line, substr) {
-				done <- true
-				return
-			}
-		}
-		done <- false
-	}()
-
-	return <-done
+	return framework.StartControllerManager(args)
 }
