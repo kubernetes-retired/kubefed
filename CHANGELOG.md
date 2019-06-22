@@ -1,4 +1,6 @@
 # Unreleased
+-  [#1013](https://github.com/kubernetes-sigs/kubefed/issues/1013) Add support
+   for defaulting KubeFedConfigs using mutating admission webhook.
 -  [#1038](https://github.com/kubernetes-sigs/kubefed/pull/1038) Removed template validation schema from Federated API's to facilitate upgrade scenarios.
 
 # v0.1.0-rc3
