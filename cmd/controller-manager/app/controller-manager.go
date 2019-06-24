@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/leaderelection"
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/options"
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
@@ -278,6 +279,22 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 
 		setDefaultKubeFedConfigScope(fedConfig)
 		createKubeFedConfig(opts.Config.KubeConfig, fedConfig)
+	}
+
+	qualifedName := util.QualifiedName{
+		Name:      fedConfig.Name,
+		Namespace: fedConfig.Namespace,
+	}
+
+	// This covers the case of the KubeFedConfig resource provided via a YAML
+	// file or already existing before the defaulting and validation webhook
+	// was registered e.g. prior to installation, upgrading, or due to issue
+	// https://github.com/kubernetes-sigs/kubefed/issues/983.
+	errs := validation.ValidateKubeFedConfig(fedConfig)
+	if len(errs) != 0 {
+		klog.Fatalf("Error: invalid KubeFedConfig %q: %v", qualifedName, errs)
+	} else {
+		klog.Infof("Using valid KubeFedConfig %q", qualifedName)
 	}
 
 	spec := fedConfig.Spec
