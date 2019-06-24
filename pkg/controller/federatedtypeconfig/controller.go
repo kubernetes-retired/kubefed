@@ -296,14 +296,25 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 	// cluster-scoped KubeFed control plane.  A namespace-scoped
 	// control plane would still have to use a non-shared informer due
 	// to it not being possible to limit its scope.
-	kind := tc.Spec.FederatedType.Kind
-	fedNamespaceAPIResource, err := c.getFederatedNamespaceAPIResource()
-	if err != nil {
-		return errors.Wrapf(err, "Unable to start sync controller for %q due to missing FederatedTypeConfig for namespaces", kind)
-	}
-	stopChan := make(chan struct{})
+
 	ftc := tc.DeepCopyObject().(*corev1b1.FederatedTypeConfig)
-	err = synccontroller.StartKubeFedSyncController(c.controllerConfig, stopChan, ftc, fedNamespaceAPIResource)
+	kind := tc.Spec.FederatedType.Kind
+
+	// A sync controller for a namespaced resource must be supplied
+	// with the ftc for namespaces so that it can consider federated
+	// namespace placement when determining the placement for
+	// contained resources.
+	var fedNamespaceAPIResource *metav1.APIResource
+	if ftc.GetNamespaced() {
+		var err error
+		fedNamespaceAPIResource, err = c.getFederatedNamespaceAPIResource()
+		if err != nil {
+			return errors.Wrapf(err, "Unable to start sync controller for %q due to missing FederatedTypeConfig for namespaces", kind)
+		}
+	}
+
+	stopChan := make(chan struct{})
+	err := synccontroller.StartKubeFedSyncController(c.controllerConfig, stopChan, ftc, fedNamespaceAPIResource)
 	if err != nil {
 		close(stopChan)
 		return errors.Wrapf(err, "Error starting sync controller for %q", kind)
@@ -375,9 +386,6 @@ func (c *Controller) namespaceFTCExists() bool {
 }
 
 func (c *Controller) getFederatedNamespaceAPIResource() (*metav1.APIResource, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	qualifiedName := util.QualifiedName{
 		Namespace: c.controllerConfig.KubeFedNamespace,
 		Name:      util.NamespaceName,
