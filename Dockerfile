@@ -22,22 +22,22 @@ RUN sed -i "s/sigs.k8s.io/github.com\/openshift/g" Makefile
 
 RUN DOCKER_BUILD="/bin/sh -c " make hyperfed
 
-# build stage 2:
-FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
+# # build stage 2:
+# FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
 
-ENV USER_ID=1001
+# ENV USER_ID=1001
 
-# copy in binaries
-WORKDIR /root/
-COPY --from=builder /go/src/github.com/openshift/kubefed/bin/hyperfed-linux /root/hyperfed
-RUN ln -s hyperfed controller-manager && ln -s hyperfed kubefedctl &&  ln -s hyperfed webhook
+# # copy in binaries
+# WORKDIR /root/
+# COPY --from=builder /go/src/github.com/openshift/kubefed/bin/hyperfed-linux /root/hyperfed
+# RUN ln -s hyperfed controller-manager && ln -s hyperfed kubefedctl &&  ln -s hyperfed webhook
 
-# user directive - this image does not require root
-USER ${USER_ID}
+# # user directive - this image does not require root
+# USER ${USER_ID}
 
-ENTRYPOINT ["/root/controller-manager"]
+# ENTRYPOINT ["/root/controller-manager"]
 
-# apply labels to final image
-LABEL io.k8s.display-name="OpenShift KubeFed" \
-      io.k8s.description="This is a component that allows management of Kubernetes/OpenShift resources across multiple clusters" \
-maintainer="AOS Multicluster Team <aos-multicluster@redhat.com>"
+# # apply labels to final image
+# LABEL io.k8s.display-name="OpenShift KubeFed" \
+#       io.k8s.description="This is a component that allows management of Kubernetes/OpenShift resources across multiple clusters" \
+# maintainer="AOS Multicluster Team <aos-multicluster@redhat.com>"
