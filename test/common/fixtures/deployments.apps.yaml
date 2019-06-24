@@ -1,7 +1,7 @@
 kind: fixture
 template:
   spec:
-    replicas: 1
+    replicas: 2
     selector:
       matchLabels:
         foo: bar
@@ -17,5 +17,13 @@ template:
             command: ["/bin/sh", "-c", "trap : TERM INT; (while true; do sleep 1000; done) & wait"]
 overrides:
   - clusterOverrides:
-    - path: spec.replicas
-      value: 2
+    - path: /spec/replicas
+      value: 1
+    - path: "/spec/template/spec/containers/0/image"
+      value: "busybox:1.31.0-uclibc"
+    - path: "/metadata/annotations"
+      op: "add"
+      value:
+        foo: bar
+    - path: "/metadata/annotations/foo"
+      op: "remove"

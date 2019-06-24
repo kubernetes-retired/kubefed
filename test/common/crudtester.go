@@ -19,10 +19,10 @@ package common
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
+	"github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -172,7 +172,7 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 	kind := apiResource.Kind
 	qualifiedName := util.NewQualifiedName(fedObject)
 
-	key := "metadata.labels"
+	key := "/metadata/labels"
 	value := map[string]interface{}{
 		"crudtester-operation":        "update",
 		util.ManagedByKubeFedLabelKey: util.ManagedByKubeFedLabelValue,
@@ -185,16 +185,18 @@ func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructur
 			c.tl.Fatalf("Error retrieving overrides for %s %q: %v", kind, qualifiedName, err)
 		}
 		for clusterName := range c.testClusters {
-			clusterOverrides, ok := overrides[clusterName]
-			if !ok {
-				clusterOverrides = make(util.ClusterOverridesMap)
-				overrides[clusterName] = clusterOverrides
+			if _, ok := overrides[clusterName]; !ok {
+				overrides[clusterName] = util.ClusterOverrides{}
 			}
-			_, ok = clusterOverrides[key]
-			if ok {
+			paths := sets.NewString()
+			for _, overrideItem := range overrides[clusterName] {
+				paths.Insert(overrideItem.Path)
+			}
+			if paths.Has(key) {
 				c.tl.Fatalf("An override for %q already exists for cluster %q", key, clusterName)
 			}
-			clusterOverrides[key] = value
+			paths.Insert(key)
+			overrides[clusterName] = append(overrides[clusterName], util.ClusterOverride{Path: key, Value: value})
 		}
 
 		if err := util.SetOverrides(obj, overrides); err != nil {
@@ -544,7 +546,7 @@ func (c *FederatedTypeCrudTester) checkHostNamespaceUnlabeled(client util.Resour
 	}
 }
 
-func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverridesMap, expectedVersionFunc func() string) error {
+func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qualifiedName util.QualifiedName, expectedOverrides util.ClusterOverrides, expectedVersionFunc func() string) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
 		expectedVersion := expectedVersionFunc()
 		if len(expectedVersion) == 0 {
@@ -564,25 +566,25 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 
 			// Validate that the expected override was applied
 			if len(expectedOverrides) > 0 {
-				for path, expectedValue := range expectedOverrides {
-					pathEntries := strings.Split(path, ".")
-					value, ok, err := unstructured.NestedFieldCopy(clusterObj.Object, pathEntries...)
-					if err != nil {
-						c.tl.Fatalf("Error retrieving overridden path: %v", err)
-					}
-					if !ok {
-						c.tl.Fatalf("Missing overridden path %s", path)
-					}
-					// Because the result of deserializing an override field differs from the value
-					// retrieved by NestedFieldCopy, reflection is not able to accurately compare
-					// numeric types that should otherwise be equal. For example, an override value
-					// of 2 is deserialized as %!q(float64=2), but the same value retrieved by
-					// NestedFieldCopy would be '\x02'.  String conversion is a hacky way of working
-					// around this problem, with a fallback to reflection for non-numeric types.
-					if fmt.Sprintf("%v", expectedValue) != fmt.Sprintf("%v", value) && !reflect.DeepEqual(expectedValue, value) {
-						c.tl.Errorf("Expected field %s to be %q, got %q", path, expectedValue, value)
-						return false, nil
-					}
+				expectedClusterObject := clusterObj.DeepCopy()
+				// Applying overrides on copy of received cluster object should not change the cluster object if the overrides are properly applied.
+				if err := util.ApplyJsonPatch(expectedClusterObject, expectedOverrides); err != nil {
+					c.tl.Fatalf("Failed to apply json patch: %v", err)
+				}
+
+				expectedClusterObjectJSON, err := expectedClusterObject.MarshalJSON()
+				if err != nil {
+					c.tl.Fatalf("Failed to marshal expected cluster object to json: %v", err)
+				}
+
+				clusterObjectJSON, err := clusterObj.MarshalJSON()
+				if err != nil {
+					c.tl.Fatalf("Failed to marshal cluster object to json: %v", err)
+				}
+
+				if !jsonpatch.Equal(expectedClusterObjectJSON, clusterObjectJSON) {
+					c.tl.Errorf("Cluster object is not as expected. expected: %s, actual: %s", expectedClusterObjectJSON, clusterObjectJSON)
+					return false, nil
 				}
 			}
 

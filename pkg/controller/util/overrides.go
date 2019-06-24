@@ -19,6 +19,7 @@ package util
 import (
 	"encoding/json"
 
+	"github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,8 +28,9 @@ import (
 )
 
 type ClusterOverride struct {
+	Op    string      `json:"op,omitempty"`
 	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 type GenericOverrideItem struct {
@@ -51,29 +53,22 @@ type GenericOverride struct {
 // primary mechanism of association between a federated resource in
 // the host cluster and the target resources in the member clusters.
 var invalidPaths = sets.NewString(
-	"metadata.namespace",
-	"metadata.name",
-	"metadata.generateName",
+	"/metadata/namespace",
+	"/metadata/name",
+	"/metadata/generateName",
 )
 
-// Mapping of qualified path (e.g. spec.replicas) to value
-type ClusterOverridesMap map[string]interface{}
+// Slice of ClusterOverride
+type ClusterOverrides []ClusterOverride
 
 // Mapping of clusterName to overrides for the cluster
-type OverridesMap map[string]ClusterOverridesMap
+type OverridesMap map[string]ClusterOverrides
 
 // ToUnstructuredSlice converts the map of overrides to a slice of
 // interfaces that can be set in an unstructured object.
 func (m OverridesMap) ToUnstructuredSlice() []interface{} {
 	overrides := []interface{}{}
-	for clusterName, clusterOverridesMap := range m {
-		clusterOverrides := []map[string]interface{}{}
-		for path, value := range clusterOverridesMap {
-			clusterOverrides = append(clusterOverrides, map[string]interface{}{
-				PathField:  path,
-				ValueField: value,
-			})
-		}
+	for clusterName, clusterOverrides := range m {
 		overridesItem := map[string]interface{}{
 			ClusterNameField:      clusterName,
 			ClusterOverridesField: clusterOverrides,
@@ -92,37 +87,37 @@ func GetOverrides(rawObj *unstructured.Unstructured) (OverridesMap, error) {
 		return overridesMap, nil
 	}
 
-	override := GenericOverride{}
-	err := UnstructuredToInterface(rawObj, &override)
+	genericFedObject := GenericOverride{}
+	err := UnstructuredToInterface(rawObj, &genericFedObject)
 	if err != nil {
 		return nil, err
 	}
 
-	if override.Spec == nil || override.Spec.Overrides == nil {
+	if genericFedObject.Spec == nil || genericFedObject.Spec.Overrides == nil {
 		// No overrides defined for the federated type
 		return overridesMap, nil
 	}
 
-	for _, overrideItem := range override.Spec.Overrides {
+	for _, overrideItem := range genericFedObject.Spec.Overrides {
 		clusterName := overrideItem.ClusterName
 		if _, ok := overridesMap[clusterName]; ok {
 			return nil, errors.Errorf("cluster %q appears more than once", clusterName)
 		}
-		overridesMap[clusterName] = make(ClusterOverridesMap)
 
 		clusterOverrides := overrideItem.ClusterOverrides
 
+		paths := sets.NewString()
 		for i, clusterOverride := range clusterOverrides {
 			path := clusterOverride.Path
 			if invalidPaths.Has(path) {
 				return nil, errors.Errorf("override[%d] for cluster %q has an invalid path: %s", i, clusterName, path)
 			}
-			if _, ok := overridesMap[clusterName][path]; ok {
+			if paths.Has(path) {
 				return nil, errors.Errorf("path %q appears more than once for cluster %q", path, clusterName)
 			}
-
-			overridesMap[clusterName][path] = clusterOverride.Value
+			paths.Insert(path)
 		}
+		overridesMap[clusterName] = clusterOverrides
 	}
 
 	return overridesMap, nil
@@ -153,4 +148,36 @@ func UnstructuredToInterface(rawObj *unstructured.Unstructured, obj interface{})
 		return err
 	}
 	return json.Unmarshal(content, obj)
+}
+
+// ApplyJsonPatch applies the override on to the given unstructured object.
+func ApplyJsonPatch(obj *unstructured.Unstructured, overrides ClusterOverrides) error {
+	// TODO: Do the defaulting of "op" field to "replace" in API defaulting
+	for i, overrideItem := range overrides {
+		if overrideItem.Op == "" {
+			overrides[i].Op = "replace"
+		}
+	}
+	jsonPatchBytes, err := json.Marshal(overrides)
+	if err != nil {
+		return err
+	}
+
+	patch, err := jsonpatch.DecodePatch(jsonPatchBytes)
+	if err != nil {
+		return err
+	}
+
+	ObjectJSONBytes, err := obj.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	patchedObjectJSONBytes, err := patch.Apply(ObjectJSONBytes)
+	if err != nil {
+		return err
+	}
+
+	err = obj.UnmarshalJSON(patchedObjectJSONBytes)
+	return err
 }

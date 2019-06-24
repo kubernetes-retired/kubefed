@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	replicasPath = "spec.replicas"
+	replicasPath = "/spec/replicas"
 )
 
 type Plugin struct {
@@ -199,19 +199,35 @@ func setOverrides(obj *unstructured.Unstructured, overridesMap util.OverridesMap
 
 func updateOverridesMap(overridesMap util.OverridesMap, replicasMap map[string]int64) {
 	// Remove replicas override for clusters that are not scheduled
-	for clusterName, clusterOverridesMap := range overridesMap {
+	for clusterName, clusterOverrides := range overridesMap {
 		if _, ok := replicasMap[clusterName]; !ok {
-			delete(clusterOverridesMap, replicasPath)
+			for i, overrideItem := range clusterOverrides {
+				if overrideItem.Path == replicasPath {
+					clusterOverrides = append(clusterOverrides[:i], clusterOverrides[i+1:]...)
+					overridesMap[clusterName] = clusterOverrides
+					break
+				}
+			}
 		}
 	}
 	// Add/update replicas override for clusters that are scheduled
 	for clusterName, replicas := range replicasMap {
-		clusterOverridesMap, ok := overridesMap[clusterName]
-		if !ok {
-			clusterOverridesMap = make(util.ClusterOverridesMap)
-			overridesMap[clusterName] = clusterOverridesMap
+		replicasOverrideFound := false
+		for _, overrideItem := range overridesMap[clusterName] {
+			if overrideItem.Path == replicasPath {
+				overrideItem.Value = replicas
+				replicasOverrideFound = true
+				break
+			}
 		}
-		clusterOverridesMap[replicasPath] = replicas
+		if !replicasOverrideFound {
+			clusterOverrides, exist := overridesMap[clusterName]
+			if !exist {
+				clusterOverrides = util.ClusterOverrides{}
+			}
+			clusterOverrides = append(clusterOverrides, util.ClusterOverride{Path: replicasPath, Value: replicas})
+			overridesMap[clusterName] = clusterOverrides
+		}
 	}
 }
 
@@ -219,7 +235,9 @@ func OverrideUpdateNeeded(overridesMap util.OverridesMap, result map[string]int6
 	resultLen := len(result)
 	checkLen := 0
 	for clusterName, clusterOverridesMap := range overridesMap {
-		for path, rawValue := range clusterOverridesMap {
+		for _, overrideItem := range clusterOverridesMap {
+			path := overrideItem.Path
+			rawValue := overrideItem.Value
 			if path != replicasPath {
 				continue
 			}
