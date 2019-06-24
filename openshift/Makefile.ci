@@ -10,7 +10,7 @@ unit:
 	$(TEST)
 
 vet:
-	echo "ok"
+	go vet $(TEST_PKGS)
 
 managed-e2e:
 	echo "ok"
