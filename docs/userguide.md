@@ -27,6 +27,8 @@
     - [Checking resources status](#checking-resources-status)
     - [Updating FederatedNamespace placement](#updating-federatednamespace-placement)
     - [Cleaning up](#cleaning-up)
+  - [Overrides](#overrides)
+    - [Overriding retained fields](#overriding-retained-fields)
   - [Using Cluster Selector](#using-cluster-selector)
     - [Neither `spec.placement.clusters` nor `spec.placement.clusterSelector` is provided](#neither-specplacementclusters-nor-specplacementclusterselector-is-provided)
     - [Both `spec.placement.clusters` and `spec.placement.clusterSelector` are provided](#both-specplacementclusters-and-specplacementclusterselector-are-provided)
@@ -634,6 +636,52 @@ To cleanup the example simply delete the namespace:
 kubectl delete ns test-namespace
 ```
 > **NOTE:** Deleting the test namespace requires that the KubeFed controllers first perform the removal of managed resources from member clusters. This may take a few moments.
+
+## Overrides
+
+Overrides can be specified for any federated resource and allow varying
+resource content from the template on a per-cluster basis. Overrides are
+implemented via a subset of [jsonpatch](http://jsonpatch.com/), as follows:
+
+ - `op` defines the operation to perform (`add`, `remove` or `replace` are supported)
+   - `replace` replaces a value
+     - if not specified, `op` will default to `replace`
+   - `add` adds a value to an object or array
+   - `remove` removes a value from an object or array
+ - `path` specifies a valid location in the managed resource to target for modification
+   - `path` must start with a leading `/` and entries must be separated by `/`
+     - e.g. `/spec/replicas`
+   - indexed paths start at zero
+     - e.g. `/spec/template/spec/containers/0/image`
+ - `value` specifies the value to `add` or `replace`.
+   - `value` is ignored for `remove`
+
+For example:
+
+```yaml
+kind: FederatedDeployment
+...
+spec:
+  ...
+  overrides:
+  # Apply overrides to cluster1
+    - clusterName: cluster1
+      clusterOverrides:
+        # Set the replicas field to 5
+        - path: "/spec/replicas"
+          value: 5
+        # Set the image of the first container
+        - path: "/spec/template/spec/containers/0/image"
+          value: "nginx:1.17.0-alpine"
+        # Ensure the annotation "foo: bar" exists
+        - path: "/metadata/annotations"
+          op: "add"
+          value:
+            foo: bar
+        # Ensure an annotation with key "foo" does not exist
+        - path: "/metadata/annotations/foo"
+          op: "remove"
+```
 
 ## Using Cluster Selector
 

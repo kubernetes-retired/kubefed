@@ -108,7 +108,8 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 										Type: "object",
 										Properties: map[string]v1beta1.JSONSchemaProps{
 											"op": {
-												Type: "string",
+												Type:    "string",
+												Pattern: "^(add|remove|replace)?$",
 											},
 											"path": {
 												Type: "string",
@@ -136,6 +137,9 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 													},
 												},
 											},
+										},
+										Required: []string{
+											"path",
 										},
 									},
 								},
