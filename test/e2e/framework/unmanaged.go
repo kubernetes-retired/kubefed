@@ -146,7 +146,7 @@ func (f *UnmanagedFramework) AfterEach() {
 		// KubeFed system namespace and should not be removed.
 		if !TestContext.LimitedScope {
 			client := f.KubeClient(userAgent)
-			deleteNamespace(client, namespaceName)
+			DeleteNamespace(client, namespaceName)
 		}
 	}()
 
@@ -258,6 +258,15 @@ func (f *UnmanagedFramework) ClusterConfigs(userAgent string) map[string]common.
 	return clusterConfigs
 }
 
+func (f *UnmanagedFramework) HostConfig(userAgent string) *restclient.Config {
+	for _, clusterConfig := range f.ClusterConfigs(userAgent) {
+		if clusterConfig.IsPrimary {
+			return clusterConfig.Config
+		}
+	}
+	return nil
+}
+
 func (f *UnmanagedFramework) KubeFedSystemNamespace() string {
 	return TestContext.KubeFedSystemNamespace
 }
@@ -268,7 +277,7 @@ func (f *UnmanagedFramework) TestNamespaceName() string {
 			f.testNamespaceName = TestContext.KubeFedSystemNamespace
 		} else {
 			client := f.KubeClient(fmt.Sprintf("%s-create-namespace", f.BaseName))
-			f.testNamespaceName = createTestNamespace(client, f.BaseName)
+			f.testNamespaceName = CreateTestNamespace(client, f.BaseName)
 		}
 	}
 	return f.testNamespaceName
@@ -296,7 +305,7 @@ func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.In
 	return nil
 }
 
-func deleteNamespace(client kubeclientset.Interface, namespaceName string) {
+func DeleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	orphanDependents := false
 	if err := client.CoreV1().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
 		if !apierrors.IsNotFound(err) {
