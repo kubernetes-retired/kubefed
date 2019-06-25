@@ -41,6 +41,7 @@ type FederatedResourceForDispatch interface {
 	Object() *unstructured.Unstructured
 	VersionForCluster(clusterName string) (string, error)
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
+	ApplyOverrides(obj *unstructured.Unstructured, clusterName string) error
 	RecordError(errorCode string, err error)
 	RecordEvent(reason, messageFmt string, args ...interface{})
 	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
@@ -132,6 +133,12 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 		if err != nil {
 			return d.recordOperationError(status.ComputeResourceFailed, clusterName, op, err)
 		}
+
+		err = d.fedResource.ApplyOverrides(obj, clusterName)
+		if err != nil {
+			return d.recordOperationError(status.ApplyOverridesFailed, clusterName, op, err)
+		}
+
 		createdObj, err := client.Resources(obj.GetNamespace()).Create(obj, metav1.CreateOptions{})
 		if err == nil {
 			version := util.ObjectVersion(createdObj)
@@ -180,6 +187,11 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to retain fields")
 			return d.recordOperationError(status.FieldRetentionFailed, clusterName, op, wrappedErr)
+		}
+
+		err = d.fedResource.ApplyOverrides(obj, clusterName)
+		if err != nil {
+			return d.recordOperationError(status.ApplyOverridesFailed, clusterName, op, err)
 		}
 
 		version, err := d.fedResource.VersionForCluster(clusterName)

@@ -454,6 +454,7 @@ The following table enumerates the possible values for cluster status:
 | Status                 | Description                  |
 |------------------------|------------------------------|
 | AlreadyExists          | The target resource already exists in the cluster, and cannot be adopted due to `adoptResources` being disabled. |
+| ApplyOverridesFailed   | An error occurred while attempting to apply overrides to the computed form of the target resource. |
 | CachedRetrievalFailed  | An error occurred when retrieving the cached target resource. |
 | ClientRetrievalFailed  | An error occurred while attempting to create an API client for the member cluster. |
 | ClusterNotReady        | The latest health check for the cluster did not succeed. |
@@ -687,6 +688,23 @@ spec:
           op: "remove"
 ```
 
+### Overriding retained fields
+
+When computing the form of a managed resource that should appear in a cluster
+registered with KubeFed, the following operations are executed in sequence:
+
+ - A new resource is computed from the template of the federated resource
+ - If an existing resource is present, the contents of fields subject to retention are preserved
+ - Overrides are applied
+ - The managed label is set
+
+This order of operations ensures that [fields subject to
+retention](#local-value-retention) can still be overridden (e.g. adding an
+entry to `metadata.annotations`). Care should be taken in applying overrides
+to retained fields that may be modified by controllers in member clusters or
+a managed resource may end up being continuously updated first by the
+controller in the member cluster and then by KubeFed.
+
 ## Using Cluster Selector
 
 In addition to specifying an explicit list of clusters that a resource should be propagated
@@ -831,12 +849,14 @@ changes made to resources it manages in member clusters.  The
 exceptions appear in the following table.  Where retention is
 conditional, an explanation will be provided in a subsequent section.
 
-| Resource Type  | Fields                    | Retention   | Requirement                                                                  |
-|----------------|---------------------------|-------------|------------------------------------------------------------------------------|
-| All            | metadata.resourceVersion  | Always      | Updates require the most recent resourceVersion for concurrency control.     |
-| Scalable       | spec.replicas             | Conditional | The HPA controller may be managing the replica count of a scalable resource. |
-| Service        | spec.clusterIP,spec.ports | Always      | A controller may be managing these fields.                                   |
-| ServiceAccount | secrets                   | Conditional | A controller may be managing this field.                                     |
+| Resource Type  | Fields                    | Retention   | Requirement                                                                        |
+|----------------|---------------------------|-------------|------------------------------------------------------------------------------------|
+| All            | metadata.annotations      | Always      | The annotations field is intended to be managed by controllers in member clusters. |
+| All            | metadata.finalizers       | Always      | The finalizers field is intended to be managed by controllers in member clusters.  |
+| All            | metadata.resourceVersion  | Always      | Updates require the most recent resourceVersion for concurrency control.           |
+| Scalable       | spec.replicas             | Conditional | The HPA controller may be managing the replica count of a scalable resource.       |
+| Service        | spec.clusterIP,spec.ports | Always      | A controller may be managing these fields.                                         |
+| ServiceAccount | secrets                   | Conditional | A controller may be managing this field.                                           |
 
 ### Scalable
 

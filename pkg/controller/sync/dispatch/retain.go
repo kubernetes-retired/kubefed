@@ -30,6 +30,12 @@ func RetainClusterFields(targetKind string, desiredObj, clusterObj, fedObj *unst
 	// Pass the same ResourceVersion as in the cluster object for update operation, otherwise operation will fail.
 	desiredObj.SetResourceVersion(clusterObj.GetResourceVersion())
 
+	// Retain finalizers and annotations since they will typically be set by
+	// controllers in a member cluster.  It is still possible to set the fields
+	// via overrides.
+	desiredObj.SetFinalizers(clusterObj.GetFinalizers())
+	desiredObj.SetAnnotations(clusterObj.GetAnnotations())
+
 	if targetKind == util.ServiceKind {
 		return retainServiceFields(desiredObj, clusterObj)
 	}
