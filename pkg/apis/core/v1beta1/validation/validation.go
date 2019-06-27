@@ -18,14 +18,17 @@ package validation
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apimachineryval "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	valutil "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
@@ -140,6 +143,63 @@ func ValidateFederatedTypeConfigStatus(status *v1beta1.FederatedTypeConfigStatus
 
 	if status.StatusController != nil {
 		allErrs = append(allErrs, validateEnumStrings(fldPath.Child("statusController"), string(*status.StatusController), []string{string(v1beta1.ControllerStatusRunning), string(v1beta1.ControllerStatusNotRunning)})...)
+	}
+	return allErrs
+}
+
+func ValidateKubeFedCluster(obj *v1beta1.KubeFedCluster) field.ErrorList {
+	allErrs := validateKubeFedClusterSpec(&obj.Spec, field.NewPath("spec"))
+	return allErrs
+}
+
+func validateKubeFedClusterSpec(spec *v1beta1.KubeFedClusterSpec, path *field.Path) field.ErrorList {
+	allErrs := validateAPIEndpoint(spec.APIEndpoint, path.Child("apiEndpoint"))
+	allErrs = append(allErrs, validateLocalSecretReference(&spec.SecretRef, path.Child("secretRef"))...)
+	return allErrs
+}
+
+func validateAPIEndpoint(endpoint string, path *field.Path) field.ErrorList {
+	if endpoint == "" {
+		return field.ErrorList{field.Required(path, "")}
+	}
+
+	// Parse APIEndpoint using the same mechanism used by client-go
+	// when the controller-manager creates a client using this APIEndpoint
+	// value.
+	hostURL, _, err := rest.DefaultServerURL(endpoint, "", schema.GroupVersion{}, true)
+	if err != nil {
+		return field.ErrorList{field.Invalid(path, endpoint, err.Error())}
+	}
+
+	allErrs := validateEnumStrings(path, hostURL.Scheme, []string{"http", "https"})
+
+	hostname := hostURL.Hostname()
+	dnsErrs := valutil.IsDNS1123Subdomain(hostname)
+	ipErrs := valutil.IsValidIP(hostname)
+	if dnsErrs != nil && ipErrs != nil {
+		combinedErrMsg := fmt.Sprintf("%s; or %s", strings.Join(ipErrs, ","), strings.Join(dnsErrs, ","))
+		allErrs = append(allErrs, field.Invalid(path, hostname, combinedErrMsg))
+	} // else one of the two succeeded
+
+	port := hostURL.Port()
+	if port != "" {
+		portInt, err := strconv.Atoi(port)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(path, port, "error converting port to integer"))
+		} else if errs := valutil.IsValidPortNum(portInt); errs != nil {
+			allErrs = append(allErrs, field.Invalid(path, portInt, strings.Join(errs, ",")))
+		}
+	}
+
+	return allErrs
+}
+
+func validateLocalSecretReference(secretRef *v1beta1.LocalSecretReference, path *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if secretRef.Name == "" {
+		allErrs = append(allErrs, field.Required(path.Child("name"), ""))
+	} else if errs := valutil.IsDNS1123Subdomain(secretRef.Name); errs != nil {
+		allErrs = append(allErrs, field.Invalid(path.Child("name"), secretRef.Name, strings.Join(errs, ",")))
 	}
 	return allErrs
 }
@@ -265,9 +325,4 @@ func validateGreaterThan0(path *field.Path, value int64) field.ErrorList {
 		errs = append(errs, field.Invalid(path, value, "should be greater than 0"))
 	}
 	return errs
-}
-
-func ValidateKubeFedCluster(object *v1beta1.KubeFedCluster) field.ErrorList {
-	allErrs := field.ErrorList{}
-	return allErrs
 }
