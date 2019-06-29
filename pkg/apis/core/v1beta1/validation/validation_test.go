@@ -332,6 +332,201 @@ func apiResource(apiResource *metav1.APIResource) *v1beta1.APIResource {
 	}
 }
 
+func TestValidateKubeFedClusterSpec(t *testing.T) {
+	// Validate success case
+	validKFC := validKubeFedCluster()
+	if errs := validateKubeFedClusterSpec(&validKFC.Spec, field.NewPath("spec")); len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	// Validate error case
+	errorCases := map[string]*v1beta1.KubeFedCluster{}
+
+	invalidKFC := validKubeFedCluster()
+	invalidKFC.Spec.APIEndpoint = ""
+	errorCases["apiEndpoint: Required value"] = invalidKFC
+
+	for k, v := range errorCases {
+		errs := validateKubeFedClusterSpec(&v.Spec, field.NewPath("spec"))
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", k)
+		} else if !strings.Contains(errs[0].Error(), k) {
+			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), k)
+		}
+	}
+}
+
+func TestValidateAPIEndpoint(t *testing.T) {
+	successProtocolSchemes := []string{
+		"",
+		"http://",
+		"https://",
+	}
+	successAPIEndpoints := []string{
+		"example.com",
+		"my.example.com",
+		"192.0.2.219",
+		"[2001:db8:25a4:8d2::1]",
+	}
+	successPortNums := []string{
+		"",
+		":1",
+		":80",
+		":8080",
+		":65535",
+	}
+	successURLPath := []string{
+		"",
+		"/",
+		"/path/to/endpoint",
+	}
+
+	for _, scheme := range successProtocolSchemes {
+		for _, endpt := range successAPIEndpoints {
+			for _, port := range successPortNums {
+				for _, path := range successURLPath {
+					if scheme == "" && path == "/path/to/endpoint" {
+						// An empty protocol scheme with a URL path (e.g.
+						// /path/to/endpoint) is not supported so skip it.
+						continue
+					}
+					errs := validateAPIEndpoint(scheme+endpt+port+path, field.NewPath("apiEndpoint"))
+					if len(errs) != 0 {
+						t.Errorf("expected success: %v", errs)
+					}
+				}
+			}
+		}
+	}
+
+	errorCases := []struct {
+		apiEndpoint    string
+		expectedErrMsg string
+	}{
+		{
+			"",
+			"apiEndpoint: Required value",
+		},
+		{
+			"https://",
+			`apiEndpoint: Invalid value: "https://": host must be a URL or a host:port pair`,
+		},
+		{
+			"example.com/path/to/somewhere",
+			`apiEndpoint: Invalid value: "example.com/path/to/somewhere": host must be a URL or a host:port pair`,
+		},
+		{
+			"192.0.2.35/path/to/somewhere",
+			`apiEndpoint: Invalid value: "192.0.2.35/path/to/somewhere": host must be a URL or a host:port pair`,
+		},
+		{
+			"tcp://example.com",
+			`apiEndpoint: Unsupported value: "tcp"`,
+		},
+		{
+			"example_com",
+			"lower case alphanumeric characters, '-' or '.'",
+		},
+		{
+			"-example.com",
+			"must start and end with an alphanumeric character",
+		},
+		{
+			"192.0.2..161",
+			`apiEndpoint: Invalid value: "192.0.2..161": must be a valid IP address`,
+		},
+		{
+			"[2001:db8:25a4::8d2::1]",
+			`apiEndpoint: Invalid value: "2001:db8:25a4::8d2::1": must be a valid IP address`,
+		},
+		{
+			"example.com:port80",
+			`apiEndpoint: Invalid value: "port80": error converting port to integer`,
+		},
+		{
+			"example.com:-80",
+			"apiEndpoint: Invalid value: -80: must be between 1 and 65535, inclusive",
+		},
+		{
+			"example.com:0",
+			"apiEndpoint: Invalid value: 0: must be between 1 and 65535, inclusive",
+		},
+		{
+			"example.com:65536",
+			"apiEndpoint: Invalid value: 65536: must be between 1 and 65535, inclusive",
+		},
+	}
+
+	for _, test := range errorCases {
+		errs := validateAPIEndpoint(test.apiEndpoint, field.NewPath("apiEndpoint"))
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else {
+			matchedErr := false
+			for _, err := range errs {
+				if strings.Contains(err.Error(), test.expectedErrMsg) {
+					matchedErr = true
+					break
+				}
+			}
+			if !matchedErr {
+				t.Errorf("unexpected error: %v, expected: %q", errs, test.expectedErrMsg)
+			}
+		}
+	}
+}
+
+func TestValidateLocalSecretReference(t *testing.T) {
+	testCases := []struct {
+		secretName     string
+		expectedErr    bool
+		expectedErrMsg string
+	}{
+		{
+			"validation-test-cluster1",
+			false,
+			"",
+		},
+		{
+			"",
+			true,
+			"name: Required value",
+		},
+		{
+			"invalid_secretname",
+			true,
+			"must consist of lower case alphanumeric characters, '-' or '.'",
+		},
+	}
+
+	for _, test := range testCases {
+		secretRef := &v1beta1.LocalSecretReference{
+			Name: test.secretName,
+		}
+		errs := validateLocalSecretReference(secretRef, field.NewPath("secretRef"))
+		hasErr := len(errs) > 0
+		if hasErr && hasErr != test.expectedErr {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else if hasErr && !strings.Contains(errs[0].Error(), test.expectedErrMsg) {
+			t.Errorf("unexpected error: %v, expected: %q", errs[0].Error(), test.expectedErrMsg)
+		}
+	}
+}
+
+func validKubeFedCluster() *v1beta1.KubeFedCluster {
+	return &v1beta1.KubeFedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "validation-unit-test-cluster",
+		},
+		Spec: v1beta1.KubeFedClusterSpec{
+			APIEndpoint: "https://my.example.com:80/path/to/endpoint",
+			SecretRef: v1beta1.LocalSecretReference{
+				Name: "validation-unit-test-cluster-pw97k",
+			},
+		},
+	}
+}
+
 func TestValidateKubeFedConfig(t *testing.T) {
 	errs := ValidateKubeFedConfig(validKubeFedConfig())
 	if len(errs) != 0 {
