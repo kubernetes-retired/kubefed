@@ -298,7 +298,7 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 	// to it not being possible to limit its scope.
 
 	ftc := tc.DeepCopyObject().(*corev1b1.FederatedTypeConfig)
-	kind := tc.Spec.FederatedType.Kind
+	kind := ftc.Spec.FederatedType.Kind
 
 	// A sync controller for a namespaced resource must be supplied
 	// with the ftc for namespaces so that it can consider federated
@@ -322,7 +322,7 @@ func (c *Controller) startSyncController(tc *corev1b1.FederatedTypeConfig) error
 	klog.Infof("Started sync controller for %q", kind)
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.stopChannels[tc.Name] = stopChan
+	c.stopChannels[ftc.Name] = stopChan
 	return nil
 }
 
