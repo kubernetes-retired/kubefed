@@ -34,6 +34,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -44,6 +45,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -343,6 +346,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -353,6 +357,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -606,6 +612,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -616,6 +623,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -2915,6 +2924,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -2925,6 +2935,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -3228,6 +3240,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -3238,6 +3251,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -5519,6 +5534,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -5529,6 +5545,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -5780,6 +5798,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -5790,6 +5809,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -8060,6 +8081,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -8070,6 +8092,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -8325,6 +8349,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -8335,6 +8360,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object
@@ -8607,6 +8634,7 @@ spec:
                     items:
                       properties:
                         op:
+                          pattern: ^(add|remove|replace)?$
                           type: string
                         path:
                           type: string
@@ -8617,6 +8645,8 @@ spec:
                           - type: boolean
                           - type: object
                           - type: array
+                      required:
+                      - path
                       type: object
                     type: array
                 type: object

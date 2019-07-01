@@ -27,6 +27,16 @@ CHART_FEDERATED_CRD_DIR="${CHART_FEDERATED_CRD_DIR:-charts/kubefed/charts/contro
 CHART_FEDERATED_PROPAGATION_DIR="${CHART_FEDERATED_PROPAGATION_DIR:-charts/kubefed/templates}"
 TEMP_CRDS_YAML="/tmp/kubefed-crds.yaml"
 
+OS=`uname`
+SED=sed
+if [ "${OS}" == "Darwin" ];then
+  if ! which gsed > /dev/null ; then
+    echo "gsed is required by this script. It can be installed via homebrew (https://brew.sh)"
+    exit 1
+  fi
+  SED=gsed
+fi
+
 # Check for existence of kube-apiserver and etcd binaries in bin directory
 if [[ ! -f ${ROOT_DIR}/bin/etcd || ! -f ${ROOT_DIR}/bin/kube-apiserver ]];
 then
@@ -48,15 +58,15 @@ for filename in ./config/crds/*.yaml; do
 done
 
 # Add crd-install to make sure the CRDs can be installed first in a helm chart.
-sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/g' "${TEMP_CRDS_YAML}"
+$SED -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/g' "${TEMP_CRDS_YAML}"
 
 # "diff -U 4" will take 1 as return code which will cause the script failed to execute, here
 # I was force returning true to get a return code as 0.
 crd_diff=`(diff -U 4 ${TEMP_CRDS_YAML} ${CHART_FEDERATED_CRD_DIR}/crds.yaml; true;)`
 if [ -n "${crd_diff}" ]; then
   cp -f ${TEMP_CRDS_YAML} $CHART_FEDERATED_CRD_DIR/crds.yaml
-  sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.k8s.io\/v1beta1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
-  sed -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
+  $SED -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.k8s.io\/v1beta1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
+  $SED -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds.yaml
 fi
 
 # Generate kubeconfig to access kube-apiserver. It is cleaned when script is done.
@@ -91,17 +101,17 @@ for filename in ./config/enabletypedirectives/*.yaml; do
   full_name=${CHART_FEDERATED_PROPAGATION_DIR}/$(basename $filename)
 
   ./bin/kubefedctl --kubeconfig ${WORKDIR}/kubeconfig enable -f "${filename}" --kubefed-namespace="${NS}" --host-cluster-context kubefed -o yaml > ${full_name}
-  sed -n '/^---/,/^---/p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
-  sed -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
+  $SED -n '/^---/,/^---/p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
+  $SED -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/federatedtypeconfig.yaml
 
   echo "---" >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
-  sed -n '/^apiVersion: apiextensions.k8s.io\/v1beta1/,$p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+  $SED -n '/^apiVersion: apiextensions.k8s.io\/v1beta1/,$p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 
   rm ${full_name}
 done
-sed -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/'  ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
-sed -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.kubefed.k8s.io\/v1beta1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
-sed -i '$a{{ end }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+$SED -i 's/^metadata:/metadata:\n  annotations:\n    "helm.sh\/hook": crd-install/'  ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+$SED -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "types.kubefed.k8s.io\/v1beta1"))) }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
+$SED -i '$a{{ end }}' ${CHART_FEDERATED_PROPAGATION_DIR}/crds.yaml
 
 # Clean kube-apiserver daemons and temporary files
 kill %1 # etcd
