@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apimachineryval "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection"
 
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/features"
@@ -147,14 +149,28 @@ func ValidateFederatedTypeConfigStatus(status *v1beta1.FederatedTypeConfigStatus
 	return allErrs
 }
 
-func ValidateKubeFedCluster(obj *v1beta1.KubeFedCluster) field.ErrorList {
-	allErrs := validateKubeFedClusterSpec(&obj.Spec, field.NewPath("spec"))
+func ValidateKubeFedCluster(obj *v1beta1.KubeFedCluster, statusSubResource bool) field.ErrorList {
+	var allErrs field.ErrorList
+	if !statusSubResource {
+		allErrs = validateKubeFedClusterSpec(&obj.Spec, field.NewPath("spec"))
+	} else {
+		allErrs = validateKubeFedClusterStatus(&obj.Status, field.NewPath("status"))
+	}
 	return allErrs
 }
 
 func validateKubeFedClusterSpec(spec *v1beta1.KubeFedClusterSpec, path *field.Path) field.ErrorList {
 	allErrs := validateAPIEndpoint(spec.APIEndpoint, path.Child("apiEndpoint"))
 	allErrs = append(allErrs, validateLocalSecretReference(&spec.SecretRef, path.Child("secretRef"))...)
+	return allErrs
+}
+
+func validateKubeFedClusterStatus(status *v1beta1.KubeFedClusterStatus, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for i, condition := range status.Conditions {
+		allErrs = append(allErrs, validateClusterCondition(&condition, path.Child("conditions").Index(i))...)
+	}
 	return allErrs
 }
 
@@ -201,6 +217,19 @@ func validateLocalSecretReference(secretRef *v1beta1.LocalSecretReference, path 
 	} else if errs := valutil.IsDNS1123Subdomain(secretRef.Name); errs != nil {
 		allErrs = append(allErrs, field.Invalid(path.Child("name"), secretRef.Name, strings.Join(errs, ",")))
 	}
+	return allErrs
+}
+
+func validateClusterCondition(cc *v1beta1.ClusterCondition, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, validateEnumStrings(path.Child("type"), string(cc.Type), []string{string(common.ClusterReady), string(common.ClusterOffline)})...)
+	allErrs = append(allErrs, validateEnumStrings(path.Child("status"), string(cc.Status), []string{string(corev1.ConditionTrue), string(corev1.ConditionFalse), string(corev1.ConditionUnknown)})...)
+
+	if cc.LastProbeTime.IsZero() {
+		allErrs = append(allErrs, field.Required(path.Child("lastProbeTime"), ""))
+	}
+
 	return allErrs
 }
 

@@ -76,8 +76,9 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 
 	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
 
+	isStatusSubResource := admissionSpec.SubResource == "status"
 	webhook.Validate(status, func() field.ErrorList {
-		return validation.ValidateKubeFedCluster(admittingObject)
+		return validation.ValidateKubeFedCluster(admittingObject, isStatusSubResource)
 	})
 
 	return status
