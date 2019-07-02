@@ -42,6 +42,7 @@ type FederatedResourceForDispatch interface {
 	ObjectForCluster(clusterName string) (*unstructured.Unstructured, error)
 	RecordError(errorCode string, err error)
 	RecordEvent(reason, messageFmt string, args ...interface{})
+	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
 }
 
 // ManagedDispatcher dispatches operations to member clusters for resources
@@ -144,11 +145,6 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 			return d.recordOperationError(status.CreationFailed, clusterName, op, err)
 		}
 
-		if d.skipAdoptingResources {
-			_ = d.recordOperationError(status.AlreadyExists, clusterName, op, errors.Errorf("Resource pre-exist in cluster"))
-			return util.StatusAllOK
-		}
-
 		// Attempt to update the existing resource to ensure that it
 		// is labeled as a managed resource.
 		clusterObj, err := client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
@@ -156,6 +152,12 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 			wrappedErr := errors.Wrapf(err, "failed to retrieve object potentially requiring adoption")
 			return d.recordOperationError(status.RetrievalFailed, clusterName, op, wrappedErr)
 		}
+
+		if d.skipAdoptingResources && !d.fedResource.IsNamespaceInHostCluster(clusterObj) {
+			_ = d.recordOperationError(status.AlreadyExists, clusterName, op, errors.Errorf("Resource pre-exist in cluster"))
+			return util.StatusAllOK
+		}
+
 		d.recordError(clusterName, op, errors.Errorf("An update will be attempted instead of a creation due to an existing resource"))
 		d.Update(clusterName, clusterObj)
 		return util.StatusAllOK
