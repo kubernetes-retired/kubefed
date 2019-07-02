@@ -20,11 +20,14 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -332,22 +335,41 @@ func apiResource(apiResource *metav1.APIResource) *v1beta1.APIResource {
 	}
 }
 
-func TestValidateKubeFedClusterSpec(t *testing.T) {
-	// Validate success case
+func TestValidateKubeFedCluster(t *testing.T) {
+	// Validate single success case for spec and status to ensure validation
+	// functions are wired correctly.
+	statusSubResource := []bool{true, false}
 	validKFC := validKubeFedCluster()
-	if errs := validateKubeFedClusterSpec(&validKFC.Spec, field.NewPath("spec")); len(errs) != 0 {
-		t.Errorf("expected success: %v", errs)
+	for _, status := range statusSubResource {
+		if errs := ValidateKubeFedCluster(validKFC, status); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
 	}
 
-	// Validate error case
-	errorCases := map[string]*v1beta1.KubeFedCluster{}
+	// Validate single error case for spec and status to ensure validation
+	// functions are wired correctly.
+	type KFCAndStatusSubResource struct {
+		kfc    *v1beta1.KubeFedCluster
+		status bool
+	}
+	errorCases := map[string]KFCAndStatusSubResource{}
 
-	invalidKFC := validKubeFedCluster()
-	invalidKFC.Spec.APIEndpoint = ""
-	errorCases["apiEndpoint: Required value"] = invalidKFC
+	invalidKFCSpec := validKubeFedCluster()
+	invalidKFCSpec.Spec.APIEndpoint = ""
+	errorCases["apiEndpoint: Required value"] = KFCAndStatusSubResource{
+		invalidKFCSpec,
+		false,
+	}
+
+	invalidKFCStatus := validKubeFedCluster()
+	invalidKFCStatus.Status.Conditions[1].Type = ""
+	errorCases["conditions[1].type: Required value"] = KFCAndStatusSubResource{
+		invalidKFCStatus,
+		true,
+	}
 
 	for k, v := range errorCases {
-		errs := validateKubeFedClusterSpec(&v.Spec, field.NewPath("spec"))
+		errs := ValidateKubeFedCluster(v.kfc, v.status)
 		if len(errs) == 0 {
 			t.Errorf("[%s] expected failure", k)
 		} else if !strings.Contains(errs[0].Error(), k) {
@@ -513,7 +535,88 @@ func TestValidateLocalSecretReference(t *testing.T) {
 	}
 }
 
+func TestValidateClusterCondition(t *testing.T) {
+	testCases := []struct {
+		cc             *v1beta1.ClusterCondition
+		expectedErr    bool
+		expectedErrMsg string
+	}{
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   common.ClusterReady,
+				Status: corev1.ConditionTrue,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    false,
+			expectedErrMsg: "",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Status: corev1.ConditionTrue,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].type: Required value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type: common.ClusterReady,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].status: Required value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   common.ClusterReady,
+				Status: corev1.ConditionTrue,
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].lastProbeTime: Required value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   "Invalid",
+				Status: corev1.ConditionTrue,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].type: Unsupported value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   common.ClusterReady,
+				Status: "Invalid",
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].status: Unsupported value",
+		},
+	}
+
+	for _, test := range testCases {
+		errs := validateClusterCondition(test.cc, field.NewPath("conditions").Index(0))
+		hasErr := len(errs) > 0
+		if hasErr && hasErr != test.expectedErr {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else if hasErr && !strings.Contains(errs[0].Error(), test.expectedErrMsg) {
+			t.Errorf("unexpected error: %v, expected: %q", errs[0].Error(), test.expectedErrMsg)
+		}
+	}
+}
+
 func validKubeFedCluster() *v1beta1.KubeFedCluster {
+	lastProbeTime := time.Now()
 	return &v1beta1.KubeFedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "validation-unit-test-cluster",
@@ -523,6 +626,36 @@ func validKubeFedCluster() *v1beta1.KubeFedCluster {
 			SecretRef: v1beta1.LocalSecretReference{
 				Name: "validation-unit-test-cluster-pw97k",
 			},
+		},
+		Status: v1beta1.KubeFedClusterStatus{
+			Conditions: []v1beta1.ClusterCondition{
+				{
+					Type:   common.ClusterReady,
+					Status: corev1.ConditionTrue,
+					LastProbeTime: metav1.Time{
+						Time: lastProbeTime,
+					},
+					LastTransitionTime: metav1.Time{
+						Time: lastProbeTime,
+					},
+					Reason:  "ClusterReady",
+					Message: "/healthz responded with ok",
+				},
+				{
+					Type:   common.ClusterOffline,
+					Status: corev1.ConditionFalse,
+					LastProbeTime: metav1.Time{
+						Time: lastProbeTime,
+					},
+					LastTransitionTime: metav1.Time{
+						Time: lastProbeTime,
+					},
+					Reason:  "ClusterReachable",
+					Message: "cluster is reachable",
+				},
+			},
+			Zones:  []string{"us-west1-a", "us-west1-b"},
+			Region: "us-west1",
 		},
 	}
 }
