@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	testcommon "sigs.k8s.io/kubefed/test/common"
 )
 
 func TestValidateFederatedTypeConfig(t *testing.T) {
@@ -339,7 +340,7 @@ func TestValidateKubeFedCluster(t *testing.T) {
 	// Validate single success case for spec and status to ensure validation
 	// functions are wired correctly.
 	statusSubResource := []bool{true, false}
-	validKFC := validKubeFedCluster()
+	validKFC := testcommon.ValidKubeFedCluster()
 	for _, status := range statusSubResource {
 		if errs := ValidateKubeFedCluster(validKFC, status); len(errs) != 0 {
 			t.Errorf("expected success: %v", errs)
@@ -354,14 +355,14 @@ func TestValidateKubeFedCluster(t *testing.T) {
 	}
 	errorCases := map[string]KFCAndStatusSubResource{}
 
-	invalidKFCSpec := validKubeFedCluster()
+	invalidKFCSpec := testcommon.ValidKubeFedCluster()
 	invalidKFCSpec.Spec.APIEndpoint = ""
 	errorCases["apiEndpoint: Required value"] = KFCAndStatusSubResource{
 		invalidKFCSpec,
 		false,
 	}
 
-	invalidKFCStatus := validKubeFedCluster()
+	invalidKFCStatus := testcommon.ValidKubeFedCluster()
 	invalidKFCStatus.Status.Conditions[1].Type = ""
 	errorCases["conditions[1].type: Required value"] = KFCAndStatusSubResource{
 		invalidKFCStatus,
@@ -612,51 +613,6 @@ func TestValidateClusterCondition(t *testing.T) {
 		} else if hasErr && !strings.Contains(errs[0].Error(), test.expectedErrMsg) {
 			t.Errorf("unexpected error: %v, expected: %q", errs[0].Error(), test.expectedErrMsg)
 		}
-	}
-}
-
-func validKubeFedCluster() *v1beta1.KubeFedCluster {
-	lastProbeTime := time.Now()
-	return &v1beta1.KubeFedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "validation-unit-test-cluster",
-		},
-		Spec: v1beta1.KubeFedClusterSpec{
-			APIEndpoint: "https://my.example.com:80/path/to/endpoint",
-			SecretRef: v1beta1.LocalSecretReference{
-				Name: "validation-unit-test-cluster-pw97k",
-			},
-		},
-		Status: v1beta1.KubeFedClusterStatus{
-			Conditions: []v1beta1.ClusterCondition{
-				{
-					Type:   common.ClusterReady,
-					Status: corev1.ConditionTrue,
-					LastProbeTime: metav1.Time{
-						Time: lastProbeTime,
-					},
-					LastTransitionTime: metav1.Time{
-						Time: lastProbeTime,
-					},
-					Reason:  "ClusterReady",
-					Message: "/healthz responded with ok",
-				},
-				{
-					Type:   common.ClusterOffline,
-					Status: corev1.ConditionFalse,
-					LastProbeTime: metav1.Time{
-						Time: lastProbeTime,
-					},
-					LastTransitionTime: metav1.Time{
-						Time: lastProbeTime,
-					},
-					Reason:  "ClusterReachable",
-					Message: "cluster is reachable",
-				},
-			},
-			Zones:  []string{"us-west1-a", "us-west1-b"},
-			Region: "us-west1",
-		},
 	}
 }
 
