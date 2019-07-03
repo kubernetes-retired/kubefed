@@ -1,4 +1,6 @@
 # Unreleased
+-  [#908](https://github.com/kubernetes-sigs/kubefed/issues/908) Adds admission
+   webhook validations for KubeFedCluster API.
 -  [#982](https://github.com/kubernetes-sigs/kubefed/issues/982) To
    ensure compatibility with controllers in member clusters,
    metadata.finalizers and metadata.annotations can no longer be set
