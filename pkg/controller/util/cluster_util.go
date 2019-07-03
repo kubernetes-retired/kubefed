@@ -18,6 +18,12 @@ package util
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"net"
+	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -25,6 +31,8 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/transport"
+	"k8s.io/klog"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/client/generic"
@@ -76,6 +84,13 @@ func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Clien
 	clusterConfig.QPS = KubeAPIQPS
 	clusterConfig.Burst = KubeAPIBurst
 
+	if len(fedCluster.Spec.DisabledTLSValidations) != 0 {
+		klog.V(1).Infof("Cluster %s will use a custom transport for TLS certificate validation", fedCluster.Name)
+		if err = CustomizeTLSTransport(fedCluster, clusterConfig); err != nil {
+			return nil, err
+		}
+	}
+
 	return clusterConfig, nil
 }
 
@@ -87,4 +102,120 @@ func IsPrimaryCluster(obj, clusterObj pkgruntime.Object) bool {
 	meta := MetaAccessor(obj)
 	clusterMeta := MetaAccessor(clusterObj)
 	return meta.GetUID() == clusterMeta.GetUID()
+}
+
+// CustomizeTLSTransport replaces the restclient.Config.Transport with one that
+// implements the desired TLS certificate validations
+func CustomizeTLSTransport(fedCluster *fedv1b1.KubeFedCluster, clientConfig *restclient.Config) error {
+	clientTransportConfig, err := clientConfig.TransportConfig()
+	if err != nil {
+		return errors.Errorf("Cluster %s client transport config error: %s", fedCluster.Name, err)
+	}
+	transportConfig, err := transport.TLSConfigFor(clientTransportConfig)
+	if err != nil {
+		return errors.Errorf("Cluster %s transport error: %s", fedCluster.Name, err)
+	}
+
+	err = CustomizeCertificateValidation(fedCluster, transportConfig)
+	if err != nil {
+		return errors.Errorf("Cluster %s custom certificate validation error: %s", fedCluster.Name, err)
+	}
+
+	// using the same defaults as http.DefaultTransport
+	clientConfig.Transport = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       transportConfig,
+	}
+	clientConfig.TLSClientConfig = restclient.TLSClientConfig{}
+	return nil
+}
+
+// CustomizeCertificateValidation modifies an existing tls.Config to disable the
+// desired TLS checks in KubeFedCluster config
+func CustomizeCertificateValidation(fedCluster *fedv1b1.KubeFedCluster, tlsConfig *tls.Config) error {
+	// InsecureSkipVerify must be enabled to prevent early validation errors from
+	// returning before VerifyPeerCertificate is run
+	tlsConfig.InsecureSkipVerify = true
+
+	var ignoreSubjectName, ignoreValidityPeriod bool
+	for _, validation := range fedCluster.Spec.DisabledTLSValidations {
+		switch fedv1b1.TLSValidation(validation) {
+		case fedv1b1.TLSAll:
+			klog.V(1).Infof("Cluster %s will not perform TLS certificate validation", fedCluster.Name)
+			return nil
+		case fedv1b1.TLSSubjectName:
+			ignoreSubjectName = true
+		case fedv1b1.TLSValidityPeriod:
+			ignoreValidityPeriod = true
+		}
+	}
+
+	// Normal TLS SubjectName validation uses the conn dnsname for validation,
+	// but this is not available when using a VerifyPeerCertificate functions.
+	// As a workaround, we will fill the tls.Config.ServerName with the URL host
+	// specified as the KubeFedCluster API target
+	if !ignoreSubjectName && tlsConfig.ServerName == "" {
+		apiURL, err := url.Parse(fedCluster.Spec.APIEndpoint)
+		if err != nil {
+			return errors.Errorf("failed to identify a valid host from APIEndpoint for use in SubjectName validation")
+		}
+		tlsConfig.ServerName = apiURL.Hostname()
+	}
+
+	// VerifyPeerCertificate uses the same logic as crypto/tls Conn.verifyServerCertificate
+	// but uses a modified set of options to ignore specific validations
+	tlsConfig.VerifyPeerCertificate = func(certificates [][]byte, verifiedChains [][]*x509.Certificate) error {
+		opts := x509.VerifyOptions{
+			Roots:         tlsConfig.RootCAs,
+			CurrentTime:   time.Now(),
+			Intermediates: x509.NewCertPool(),
+			DNSName:       tlsConfig.ServerName,
+		}
+		if tlsConfig.Time != nil {
+			opts.CurrentTime = tlsConfig.Time()
+		}
+
+		certs := make([]*x509.Certificate, len(certificates))
+		for i, asn1Data := range certificates {
+			cert, err := x509.ParseCertificate(asn1Data)
+			if err != nil {
+				return errors.New("tls: failed to parse certificate from server: " + err.Error())
+			}
+			certs[i] = cert
+		}
+
+		for i, cert := range certs {
+			if i == 0 {
+				continue
+			}
+			opts.Intermediates.AddCert(cert)
+		}
+
+		if ignoreSubjectName {
+			// set the DNSName to nil to ignore the name validation
+			opts.DNSName = ""
+			klog.V(1).Infof("Cluster %s will not perform tls certificate SubjectName validation", fedCluster.Name)
+		}
+		if ignoreValidityPeriod {
+			// set the CurrentTime to immediately after the certificate start time
+			// this will ensure that certificate passes the validity period check
+			opts.CurrentTime = certs[0].NotBefore.Add(time.Second)
+			klog.V(1).Infof("Cluster %s will not perform tls certificate ValidityPeriod validation", fedCluster.Name)
+		}
+
+		_, err := certs[0].Verify(opts)
+
+		return err
+	}
+
+	return nil
 }

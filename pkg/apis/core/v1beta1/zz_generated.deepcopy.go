@@ -317,6 +317,11 @@ func (in *KubeFedClusterSpec) DeepCopyInto(out *KubeFedClusterSpec) {
 		copy(*out, *in)
 	}
 	out.SecretRef = in.SecretRef
+	if in.DisabledTLSValidations != nil {
+		in, out := &in.DisabledTLSValidations, &out.DisabledTLSValidations
+		*out = make([]TLSValidation, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
