@@ -327,7 +327,7 @@ kubefedctl federate namespace my-namespace --contents --skip-api-resources "conf
 ### Optionally enable type while federating a resource
 `kubefedctl federate` allows optionally enabling the given `<target kubernetes API type>` before
 federating the resource by supplying the `--enable-type flag`. This will enable federation of the
-target type if it is not already enabled. Its recommended to use
+target type if it is not already enabled. It's recommended to use
 [`kubefectl enable`](#enabling-federation-of-an-api-type) beforehand if the intention is to
 specify non default type configuration values.
 
@@ -909,7 +909,7 @@ per cluster user preferences. If the per cluster preferences are absent, it
 distributes the `spec.totalReplicas` evenly among all clusters. It updates (or
 creates if missing) the same `namespace/name` for the
 `targetKind` with the replica values calculated, leveraging the sync controller
-to actually propagate the k8s resource to federated clusters. Its noteworthy that
+to actually propagate the k8s resource to federated clusters. It's noteworthy that
 if an RSP is present, the `spec.replicas` from the federated resource are unused.
 RSP also provides a further more useful feature using `spec.rebalance`. If this is
 set to `true`, the RSP controller monitors the replica pods for target replica
