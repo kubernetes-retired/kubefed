@@ -79,7 +79,7 @@ This package provides the kubefed-client binary (kubefedctl) to interact with th
 %if 0%{do_build}
 %if 0%{make_redistributable}
 # Create Binaries for all internally defined arches
-%{os_git_vars} make build-cross
+%{os_git_vars} make kubefedctl
 %else
 # Create Binaries only for building arch
 %ifarch x86_64
@@ -97,7 +97,7 @@ BUILD_PLATFORM="linux/arm64"
 %ifarch s390x
 BUILD_PLATFORM="linux/s390x"
 %endif
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} make build-cross
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} make kubefedctl
 %endif
 %endif
 
@@ -135,3 +135,4 @@ done
 %changelog
 * Tue Jun 25 2019 Aniket Bhat <anbhat@redhat.com>
 - Initial spec file for building kubefed-client rpm.
+- Change the name of the make target from build-cross to kubefedctl
