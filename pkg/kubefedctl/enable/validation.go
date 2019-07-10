@@ -153,12 +153,12 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 	if templateSchema != nil {
 		specProperties := schema.OpenAPIV3Schema.Properties["spec"].Properties
 		specProperties["template"] = v1beta1.JSONSchemaProps{
-			Type:       "object",
-			Properties: templateSchema,
+			Type: "object",
 		}
 		// Add retainReplicas field to types that exposes a replicas
 		// field that could be targeted by HPA.
 		if templateSpec, ok := templateSchema["spec"]; ok {
+			// TODO: find a simpler way to detect that a resource is scalable than having to compute the entire schema.
 			if replicasField, ok := templateSpec.Properties["replicas"]; ok {
 				if replicasField.Type == "integer" && replicasField.Format == "int32" {
 					specProperties[util.RetainReplicasField] = v1beta1.JSONSchemaProps{
