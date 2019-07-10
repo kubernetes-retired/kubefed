@@ -49,7 +49,6 @@ type FederatedResource interface {
 	UpdateVersions(selectedClusters []string, versionMap map[string]string) error
 	DeleteVersions()
 	ComputePlacement(clusters []*fedv1b1.KubeFedCluster) (selectedClusters sets.String, err error)
-	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
 }
 
 type federatedResource struct {
