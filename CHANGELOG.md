@@ -1,4 +1,5 @@
 # Unreleased
+-  [#1038](https://github.com/kubernetes-sigs/kubefed/pull/1038) Removed template validation schema from Federated API's to facilitate upgrade scenarios.
 
 # v0.1.0-rc3
 -  [#520](https://github.com/kubernetes-sigs/kubefed/issues/520) Adds support
