@@ -20,7 +20,8 @@ IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
 BIN_DIR := bin
 DOCKER ?= docker
-HOST_OS ?= $(shell uname -s | tr A-Z a-z)
+HOST_ARCH ?= $(shell go env GOARCH)
+HOST_PLATFORM ?= $(shell uname -s | tr A-Z a-z)-$(HOST_ARCH)
 
 GIT_VERSION ?= $(shell git describe --always --dirty)
 GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
@@ -80,8 +81,8 @@ vet:
 fmt:
 	$(shell ./hack/update-gofmt.sh)
 
-container: $(HYPERFED_TARGET)-linux
-	cp -f $(HYPERFED_TARGET)-linux images/kubefed/hyperfed
+container: $(HYPERFED_TARGET)-linux-$(HOST_ARCH)
+	cp -f $(HYPERFED_TARGET)-linux-$(HOST_ARCH) images/kubefed/hyperfed
 	$(DOCKER) build images/kubefed -t $(IMAGE_NAME)
 	rm -f images/kubefed/hyperfed
 
@@ -89,19 +90,19 @@ bindir:
 	mkdir -p $(BIN_DIR)
 
 COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFEDCTL_TARGET) $(WEBHOOK_TARGET)
-OSES := linux darwin
+PLATFORMS := linux-amd64 linux-arm64 linux-ppc64le linux-s390x darwin-amd64
 ALL_BINS :=
 
-define OS_template
+define PLATFORM_template
 $(1)-$(2): bindir
-	$(DOCKER_BUILD) 'GOARCH=amd64 GOOS=$(2) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
+	$(DOCKER_BUILD) 'GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
 ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
-$(foreach cmd, $(COMMANDS), $(foreach os, $(OSES), $(eval $(call OS_template, $(cmd),$(os),$(notdir $(cmd))))))
+$(foreach cmd, $(COMMANDS), $(foreach platform, $(PLATFORMS), $(eval $(call PLATFORM_template, $(cmd),$(platform),$(notdir $(cmd))))))
 
 define CMD_template
-$(1): $(1)-$(HOST_OS)
-	ln -sf $(notdir $(1)-$(HOST_OS)) $(1)
+$(1): $(1)-$(HOST_PLATFORM)
+	ln -sf $(notdir $(1)-$(HOST_PLATFORM)) $(1)
 ALL_BINS := $(ALL_BINS) $(1)
 endef
 $(foreach cmd, $(COMMANDS), $(eval $(call CMD_template,$(cmd))))
