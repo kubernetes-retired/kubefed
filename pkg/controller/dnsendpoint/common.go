@@ -118,8 +118,18 @@ func DedupeAndMergeEndpoints(endpoints []*feddnsv1a1.Endpoint) (result []*feddns
 	for i := 1; i < len(endpoints); {
 		if endpoints[i].DNSName == endpoints[i-1].DNSName {
 			// Merge targets
-			endpoints[i-1].Targets = append(endpoints[i-1].Targets, endpoints[i].Targets...)
-			endpoints[i-1].Targets = sortAndRemoveDuplicateTargets(endpoints[i-1].Targets)
+			// dns endpoints controller will generate dns endpoint with same dns name when cluster at same region and az.
+			// if cluster does not have endpoints, controller will generate CNAME record, otherwise will generate A record
+			// here merge same dns name endpoints into one, if a dns name has CNAME and A record, just discard CNAME record, and merge A Record targets.
+			// if only has one type Record, just merge target, remove duplicate targets
+			if endpoints[i-1].RecordType != endpoints[i].RecordType {
+				if endpoints[i-1].RecordType == RecordTypeCNAME {
+					endpoints[i-1] = endpoints[i]
+				}
+			} else {
+				endpoints[i-1].Targets = append(endpoints[i-1].Targets, endpoints[i].Targets...)
+				endpoints[i-1].Targets = sortAndRemoveDuplicateTargets(endpoints[i-1].Targets)
+			}
 
 			// Remove the duplicate endpoint
 			endpoints = append(endpoints[:i], endpoints[i+1:]...)
