@@ -80,7 +80,7 @@ var _ = Describe("IngressDNS", func() {
 
 			ingressDNS.Status = ingressDNSStatus
 			By("Waiting for the IngressDNS object to have correct status")
-			common.WaitForObject(tl, namespace, ingressDNS.Name, objectGetter, ingressDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+			framework.WaitForObject(tl, namespace, ingressDNS.Name, objectGetter, ingressDNS, common.Equivalent)
 		})
 
 		It("IngressDNS status should be updated correctly when there are corresponding ingresses in member clusters", func() {
@@ -106,7 +106,7 @@ var _ = Describe("IngressDNS", func() {
 			ingressDNS.Status = *ingressDNSStatus
 
 			By("Waiting for the IngressDNS object to have correct status")
-			common.WaitForObject(tl, namespace, name, objectGetter, ingressDNS, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+			framework.WaitForObject(tl, namespace, name, objectGetter, ingressDNS, common.Equivalent)
 
 			By("Waiting for the DNSEndpoint object to be created")
 			endpointObjectGetter := func(namespace, name string) (pkgruntime.Object, error) {
@@ -134,7 +134,7 @@ var _ = Describe("IngressDNS", func() {
 				},
 			}
 
-			common.WaitForObject(tl, namespace, "ingress-"+name, endpointObjectGetter, desiredDNSEndpoint, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+			framework.WaitForObject(tl, namespace, "ingress-"+name, endpointObjectGetter, desiredDNSEndpoint, common.Equivalent)
 		})
 	})
 })

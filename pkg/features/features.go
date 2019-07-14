@@ -54,25 +54,18 @@ const (
 	FederatedIngress utilfeature.Feature = "FederatedIngress"
 )
 
-var FeatureNames = []utilfeature.Feature{
-	PushReconciler,
-	SchedulerPreferences,
-	CrossClusterServiceDiscovery,
-	FederatedIngress,
-}
-
 func init() {
-	if err := utilfeature.DefaultFeatureGate.Add(defaultKubeFedFeatureGates); err != nil {
+	if err := utilfeature.DefaultFeatureGate.Add(DefaultKubeFedFeatureGates); err != nil {
 		klog.Fatalf("Unexpected error: %v", err)
 	}
 }
 
-// defaultKubeFedFeatureGates consists of all known KubeFed-specific
+// DefaultKubeFedFeatureGates consists of all known KubeFed-specific
 // feature keys.  To add a new feature, define a key for it above and
 // add it here.
-var defaultKubeFedFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
+var DefaultKubeFedFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
 	SchedulerPreferences:         {Default: true, PreRelease: utilfeature.Alpha},
-	PushReconciler:               {Default: true, PreRelease: utilfeature.Alpha},
+	PushReconciler:               {Default: true, PreRelease: utilfeature.Beta},
 	CrossClusterServiceDiscovery: {Default: true, PreRelease: utilfeature.Alpha},
 	FederatedIngress:             {Default: true, PreRelease: utilfeature.Alpha},
 }

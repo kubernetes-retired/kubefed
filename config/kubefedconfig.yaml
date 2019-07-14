@@ -5,9 +5,13 @@ metadata:
   namespace: kube-federation-system
 spec:
   scope: Cluster
+  controllerDuration:
+    availableDelay: 20s
+    unavailableDelay: 60s
   leaderElect:
     leaseDuration: 1500ms
     renewDeadline: 1000ms
+    resourceLock: configmaps
     retryPeriod: 500ms
   featureGates:
   - name: PushReconciler
@@ -18,3 +22,10 @@ spec:
     configuration: "Enabled"
   - name: FederatedIngress
     configuration: "Enabled"
+  clusterHealthCheck:
+    failureThreshold: 3
+    period: 10s
+    successThreshold: 1
+    timeout: 3s
+  syncController:
+    adoptResources: Enabled
