@@ -30,6 +30,7 @@ NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
 KIND_TAG="${KIND_TAG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
+containerd_config="/etc/containerd/config.toml"
 kubeconfig="${HOME}/.kube/config"
 OS=`uname`
 
@@ -67,26 +68,38 @@ EOF
     return 1
   fi
 
-  configure-insecure-registry-and-reload "sudo bash -c" $(pgrep dockerd)
+  configure-insecure-registry-and-reload "sudo bash -c" $(pgrep dockerd) ${docker_daemon_config}
 }
 
 function configure-insecure-registry-and-reload() {
   local cmd_context="${1}" # context to run command e.g. sudo, docker exec
   local docker_pid="${2}"
-  ${cmd_context} "$(insecure-registry-config-cmd)"
-  ${cmd_context} "$(reload-docker-daemon-cmd "${docker_pid}")"
+  local config_file="${3}"
+  ${cmd_context} "$(insecure-registry-config-cmd ${config_file})"
+  ${cmd_context} "$(reload-daemon-cmd "${docker_pid}")"
 }
 
 function insecure-registry-config-cmd() {
-  echo "cat <<EOF > ${docker_daemon_config}
+  local config_file="${1}"
+  case $config_file in
+    $docker_daemon_config)
+      echo "cat <<EOF > ${docker_daemon_config}
 {
     \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]
 }
 EOF
 "
+      ;;
+    $containerd_config)
+     echo "sed -i '/\[plugins.cri.registry.mirrors\]/a [plugins.cri.registry.mirrors."\"${CONTAINER_REGISTRY_HOST}\""]\nendpoint = ["\"http://${CONTAINER_REGISTRY_HOST}\""]' ${containerd_config}"
+     ;;
+    *)
+     echo "Sorry, config insecure registy is not supported for $config_file"
+     ;;
+  esac
 }
 
-function reload-docker-daemon-cmd() {
+function reload-daemon-cmd() {
   echo "kill -s SIGHUP ${1}"
 }
 
@@ -155,7 +168,10 @@ function check-clusters-ready() {
 }
 
 function configure-insecure-registry-on-cluster() {
-  configure-insecure-registry-and-reload "docker exec cluster${1}-control-plane bash -c" '$(pgrep dockerd)'
+  cmd_context="docker exec cluster${1}-control-plane bash -c"
+  containerd_id=`${cmd_context} "pgrep -x containerd"`
+
+  configure-insecure-registry-and-reload "${cmd_context}" ${containerd_id} ${containerd_config}
 }
 
 if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
