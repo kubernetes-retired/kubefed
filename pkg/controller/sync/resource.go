@@ -164,6 +164,17 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	}
 	obj := &unstructured.Unstructured{Object: templateBody}
 
+	notSupportedTemplate := "metadata.%s cannot be set via template to avoid conflicting with controllers " +
+		"in member clusters. Consider using an override to add or remove elements from this collection."
+	if len(obj.GetAnnotations()) > 0 {
+		r.RecordError("AnnotationsNotSupported", errors.Errorf(notSupportedTemplate, "annotations"))
+		obj.SetAnnotations(nil)
+	}
+	if len(obj.GetFinalizers()) > 0 {
+		r.RecordError("FinalizersNotSupported", errors.Errorf(notSupportedTemplate, "finalizers"))
+		obj.SetFinalizers(nil)
+	}
+
 	// Avoid having to duplicate these details in the template or have
 	// the name/namespace vary between the KubeFed api and member
 	// clusters.
@@ -177,13 +188,20 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	obj.SetKind(targetApiResource.Kind)
 	obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
 
+	return obj, nil
+}
+
+// ApplyOverrides applies overrides for the named cluster to the given
+// object. The managed label is added afterwards to ensure labeling even if an
+// override was attempted.
+func (r *federatedResource) ApplyOverrides(obj *unstructured.Unstructured, clusterName string) error {
 	overrides, err := r.overridesForCluster(clusterName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if overrides != nil {
 		if err := util.ApplyJsonPatch(obj, overrides); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -192,7 +210,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	// KubeFed controllers.
 	util.AddManagedLabel(obj)
 
-	return obj, nil
+	return nil
 }
 
 // TODO(marun) Use an enumeration for errorCode.

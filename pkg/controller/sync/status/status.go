@@ -45,6 +45,7 @@ const (
 	ClusterNotReady        PropagationStatus = "ClusterNotReady"
 	CachedRetrievalFailed  PropagationStatus = "CachedRetrievalFailed"
 	ComputeResourceFailed  PropagationStatus = "ComputeResourceFailed"
+	ApplyOverridesFailed   PropagationStatus = "ApplyOverridesFailed"
 	CreationFailed         PropagationStatus = "CreationFailed"
 	UpdateFailed           PropagationStatus = "UpdateFailed"
 	DeletionFailed         PropagationStatus = "DeletionFailed"

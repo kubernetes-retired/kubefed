@@ -1,4 +1,11 @@
 # Unreleased
+-  [#982](https://github.com/kubernetes-sigs/kubefed/issues/982) To
+   ensure compatibility with controllers in member clusters,
+   metadata.finalizers and metadata.annotations can no longer be set
+   from the template of a federated resource and values for these
+   fields are always retained. The addition of jsonpatch overrides
+   ensures that it is still possible to add or remove entries from
+   these collections.
 -  [#1013](https://github.com/kubernetes-sigs/kubefed/issues/1013) Add support
    for defaulting KubeFedConfigs using mutating admission webhook.
 -  [#1038](https://github.com/kubernetes-sigs/kubefed/pull/1038) Removed template validation schema from Federated API's to facilitate upgrade scenarios.
