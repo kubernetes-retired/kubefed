@@ -71,7 +71,7 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 }
 
 // GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (self *ClusterClient) GetClusterHealthStatus() *fedv1b1.KubeFedClusterStatus {
+func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus, error) {
 	clusterStatus := fedv1b1.KubeFedClusterStatus{}
 	currentTime := metav1.Now()
 	newClusterReadyCondition := fedv1b1.ClusterCondition{
@@ -118,7 +118,7 @@ func (self *ClusterClient) GetClusterHealthStatus() *fedv1b1.KubeFedClusterStatu
 		}
 	}
 
-	return &clusterStatus
+	return &clusterStatus, err
 }
 
 // GetClusterZones gets the kubernetes cluster zones and region by inspecting labels on nodes in the cluster.
