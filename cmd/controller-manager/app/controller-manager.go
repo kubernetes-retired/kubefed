@@ -21,8 +21,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -105,6 +107,22 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		panic(err)
+	}
+
+	runningInCluster := len(masterURL) == 0 && len(kubeconfig) == 0
+	if runningInCluster && len(opts.Config.KubeFedNamespace) == 0 {
+		// For in-cluster deployment set the namespace associated
+		// with the service account token
+		data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			klog.Fatalf("An error occurred while attempting to discover the KubeFed namespace from the service account: %v", err)
+		}
+		opts.Config.KubeFedNamespace = strings.TrimSpace(string(data))
+	}
+
+	// Validate if a kubefed-namespace is configured
+	if len(opts.Config.KubeFedNamespace) == 0 {
+		klog.Fatalf("The KubeFed namespace must be specified via --kubefed-namespace")
 	}
 
 	setOptionsByKubeFedConfig(opts)
