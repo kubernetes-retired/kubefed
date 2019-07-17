@@ -262,7 +262,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	client := c.resourceClient(apiResource)
 
 	if orphanDependents {
-		orphanKey := sync.OrphanManagedResources
+		orphanKey := util.OrphanManagedResourcesAnnotation
 		err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 			var err error
 			if fedObject == nil {
@@ -272,16 +272,10 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 					return false, nil
 				}
 			}
-			// Set the orphan annotation if necessary
-			annotations := fedObject.GetAnnotations()
-			if annotations == nil {
-				annotations = make(map[string]string)
-			}
-			if annotations[orphanKey] == "true" {
+			if util.IsOrphaningEnabled(fedObject) {
 				return true, nil
 			}
-			annotations[orphanKey] = "true"
-			fedObject.SetAnnotations(annotations)
+			util.EnableOrphaning(fedObject)
 			fedObject, err = client.Resources(namespace).Update(fedObject, metav1.UpdateOptions{})
 			if err == nil {
 				return true, nil

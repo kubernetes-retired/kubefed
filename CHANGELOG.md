@@ -9,6 +9,11 @@
 -  [#1013](https://github.com/kubernetes-sigs/kubefed/issues/1013) Add support
    for defaulting KubeFedConfigs using mutating admission webhook.
 -  [#1038](https://github.com/kubernetes-sigs/kubefed/pull/1038) Removed template validation schema from Federated API's to facilitate upgrade scenarios.
+-  [#690](https://github.com/kubernetes-sigs/kubefed/issues/690) Extends `kubefedctl`
+   by adding the `orphaning-deletion` command, which allows to `enable` or `disable`  
+   leaving managed resources, when their relevant federated resource is deleted. 
+   In addition, the command allows to check current `status` of the orphaning deletion 
+   mode.
 
 # v0.1.0-rc3
 -  [#520](https://github.com/kubernetes-sigs/kubefed/issues/520) Adds support

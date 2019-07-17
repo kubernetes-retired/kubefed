@@ -54,12 +54,6 @@ const (
 	// controller will have the opportunity to perform pre-deletion operations
 	// (like deleting managed resources from member clusters).
 	FinalizerSyncController = "kubefed.k8s.io/sync-controller"
-
-	// If this annotation is present on a federated resource, resources in the
-	// member clusters managed by the federated resource should be orphaned.
-	// If the annotation is not present (the default), resources in member
-	// clusters will be deleted before the federated resource is deleted.
-	OrphanManagedResources = "kubefed.k8s.io/orphan"
 )
 
 // KubeFedSyncController synchronizes the state of federated resources
@@ -435,13 +429,12 @@ func (s *KubeFedSyncController) ensureDeletion(fedResource FederatedResource) ut
 		return util.StatusAllOK
 	}
 
-	annotations := obj.GetAnnotations()
-	orphanResources := annotations != nil && annotations[OrphanManagedResources] == "true"
-	if orphanResources {
-		klog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.", OrphanManagedResources, kind, key)
+	if util.IsOrphaningEnabled(obj) {
+		klog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.",
+			util.OrphanManagedResourcesAnnotation, kind, key)
 		err := s.removeFinalizer(fedResource)
 		if err != nil {
-			wrappedErr := errors.Wrapf(err, "failed to remove finalizer %q from %s %q", OrphanManagedResources, kind, key)
+			wrappedErr := errors.Wrapf(err, "failed to remove finalizer %q from %s %q", FinalizerSyncController, kind, key)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}

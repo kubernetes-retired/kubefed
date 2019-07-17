@@ -490,10 +490,19 @@ resources managed by the federated resource from member clusters.
 To prevent removal of these managed resources, add `kubefed.k8s.io/orphan:
 true` as an annotation to the federated resource prior to deletion, as follows.
 
-```bash
-kubectl patch <federated type> <name> \
-    --type=merge -p '{"metadata": {"annotations": {"kubefed.k8s.io/orphan": "true"}}}'
+You can do it by
+```bash 
+kubefedctl orphaning-deletion enable <federated type> <name>
 ```
+You can also check the current `orphaning-deletion` status by:
+ ```bash 
+ kubefedctl orphaning-deletion status <federated type> <name>
+ ```
+And finally, if you want to return to the default deletion behavior, you can disable 
+the `orphaning-deletion` by:
+```bash 
+ kubefedctl orphaning-deletion disable <federated type> <name>
+ ```
 
 If the sync controller for a given federated type is not able to reconcile a
 federated resource slated for deletion, a federated resource that still has the

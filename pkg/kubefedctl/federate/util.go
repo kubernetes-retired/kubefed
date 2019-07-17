@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -36,7 +35,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
-	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
 
 var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}
@@ -106,7 +105,7 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames []string
 		}
 
 		for _, apiResource := range apiResourceList.APIResources {
-			if !apiResource.Namespaced || isFederatedAPIResource(apiResource.Kind, group) ||
+			if !apiResource.Namespaced || util.IsFederatedAPIResource(apiResource.Kind, group) ||
 				apiResourceMatchesSkipName(apiResource, skipAPIResourceNames, group) {
 				continue
 			}
@@ -159,10 +158,6 @@ func apiResourceMatchesSkipName(apiResource metav1.APIResource, skipAPIResourceN
 		}
 	}
 	return false
-}
-
-func isFederatedAPIResource(kind, group string) bool {
-	return strings.HasPrefix(kind, federatedKindPrefix) && group == options.DefaultFederatedGroup
 }
 
 // resources stores a list of resources for an api type
