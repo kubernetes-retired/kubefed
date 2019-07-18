@@ -36,7 +36,7 @@ type Options struct {
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Config.KubeFedNamespace, "kubefed-namespace", util.DefaultKubeFedSystemNamespace, "The namespace the KubeFed control plane is deployed in.")
+	fs.StringVar(&o.Config.KubeFedNamespace, "kubefed-namespace", "", "The namespace the KubeFed control plane is deployed in.")
 }
 
 func NewOptions() *Options {
