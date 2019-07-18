@@ -45,7 +45,20 @@ func (in *APIResource) DeepCopy() *APIResource {
 func (in *ClusterCondition) DeepCopyInto(out *ClusterCondition) {
 	*out = *in
 	in.LastProbeTime.DeepCopyInto(&out.LastProbeTime)
-	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
+	if in.LastTransitionTime != nil {
+		in, out := &in.LastTransitionTime, &out.LastTransitionTime
+		*out = (*in).DeepCopy()
+	}
+	if in.Reason != nil {
+		in, out := &in.Reason, &out.Reason
+		*out = new(string)
+		**out = **in
+	}
+	if in.Message != nil {
+		in, out := &in.Message, &out.Message
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
@@ -344,6 +357,11 @@ func (in *KubeFedClusterStatus) DeepCopyInto(out *KubeFedClusterStatus) {
 		in, out := &in.Zones, &out.Zones
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.Region != nil {
+		in, out := &in.Region, &out.Region
+		*out = new(string)
+		**out = **in
 	}
 	return
 }
