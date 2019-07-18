@@ -290,7 +290,7 @@ kubefedctl federate <target kubernetes API type> <target resource> [flags]
 ```
 
 If the flag `--namespace` is additionally not specified, the `<target resource>` will be
-searched for in the namespace `default`. Please take note that `--namespace` flag is of no
+searched for in the namespace according to the client kubeconfig context. Please take note that `--namespace` flag is of no
 meaning when federating a `namespace` itself and is discarded even if specified.
 Please check the next section for more details about [federating a namespace](#federate-a-namespace).
 
@@ -504,6 +504,8 @@ the `orphaning-deletion` by:
  kubefedctl orphaning-deletion disable <federated type> <name>
  ```
 
+If the flag `--namespace` is additionally not specified, the federated resource will
+be searched for in the namespace according to the client kubeconfig context.
 If the sync controller for a given federated type is not able to reconcile a
 federated resource slated for deletion, a federated resource that still has the
 KubeFed finalizer will linger rather than being garbage collected. If
