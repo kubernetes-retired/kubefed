@@ -57,7 +57,7 @@ type KubeFedClusterStatus struct {
 	Zones []string `json:"zones,omitempty"`
 	// Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.
 	// +optional
-	Region string `json:"region,omitempty"`
+	Region *string `json:"region,omitempty"`
 }
 
 // +genclient
@@ -76,7 +76,8 @@ type KubeFedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KubeFedClusterSpec   `json:"spec,omitempty"`
+	Spec KubeFedClusterSpec `json:"spec"`
+	// +optional
 	Status KubeFedClusterStatus `json:"status,omitempty"`
 }
 
@@ -90,13 +91,13 @@ type ClusterCondition struct {
 	LastProbeTime metav1.Time `json:"lastProbeTime"`
 	// Last time the condition transit from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 	// (brief) reason for the condition's last transition.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason *string `json:"reason,omitempty"`
 	// Human readable message indicating details about last transition.
 	// +optional
-	Message string `json:"message,omitempty"`
+	Message *string `json:"message,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
