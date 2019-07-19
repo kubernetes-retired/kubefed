@@ -1,10 +1,47 @@
 # Makefile.ci holds make directives called by the CI jobs for this repo.
+SHELL := /bin/bash
+REGISTRY ?= quay.io/kubernetes-multicluster
+BIN_DIR := bin
+PODMAN ?= podman
+DIR := ${CURDIR}
+HOST_OS ?= $(shell uname -s | tr A-Z a-z)
+
 TARGET = kubefed
 GOTARGET = sigs.k8s.io/$(TARGET)
 TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
 TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
+
+GIT_VERSION ?= $(shell git describe --always --dirty)
+GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
+GIT_HASH ?= $(shell git rev-parse HEAD)
+BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+GIT_TREESTATE = "clean"
+DIFF = $(shell git diff --quiet >/dev/null 2>&1; if [ $$? -eq 1 ]; then echo "1"; fi)
+ifeq ($(DIFF), 1)
+	GIT_TREESTATE = "dirty"
+endif
+
+ifneq ($(VERBOSE),)
+VERBOSE_FLAG = -v
+endif
+BUILDMNT = /go/src/$(GOTARGET)
+BUILD_IMAGE ?= golang:1.12.5
+
+KUBEFEDCTL_TARGET = bin/kubefedctl
+
+LDFLAG_OPTIONS = -ldflags "-X sigs.k8s.io/kubefed/pkg/version.version=$(GIT_VERSION) \
+	-X sigs.k8s.io/kubefed/pkg/version.gitCommit=$(GIT_HASH) \
+	-X sigs.k8s.io/kubefed/pkg/version.gitTreeState=$(GIT_TREESTATE) \
+	-X sigs.k8s.io/kubefed/pkg/version.buildDate=$(BUILDDATE)"
+
+GO_BUILDCMD = CGO_ENABLED=0 go build $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
+
+PODMAN_BUILD ?= $(PODMAN) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
+
+.PHONY: unit vet managed-e2e kubefedctl
 
 unit:
 	$(TEST)
@@ -14,3 +51,26 @@ vet:
 
 managed-e2e:
 	echo "ok"
+
+bindir:
+	mkdir -p $(BIN_DIR)
+
+COMMAND := $(KUBEFEDCTL_TARGET)
+OSES := linux darwin
+ALL_BINS :=
+
+define OS_template
+$(1)-$(2): bindir
+	$(PODMAN_BUILD) 'GOARCH=amd64 GOOS=$(2) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
+ALL_BINS := $(ALL_BINS) $(1)-$(2)
+endef
+$(foreach os, $(OSES), $(eval $(call OS_template, $(KUBEFEDCTL_TARGET),$(os),$(notdir $(KUBEFEDCTL_TARGET)))))
+
+define CMD_template
+$(1): $(1)-$(HOST_OS)
+	ln -sf $(notdir $(1)-$(HOST_OS)) $(1)
+ALL_BINS := $(ALL_BINS) $(1)
+endef
+$(eval $(call CMD_template,$(KUBEFEDCTL_TARGET)))
+
+kubefedctl: $(KUBEFEDCTL_TARGET)
