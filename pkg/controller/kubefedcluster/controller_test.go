@@ -110,7 +110,7 @@ func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionT
 			Type:               common.ClusterReady,
 			Status:             status,
 			LastProbeTime:      lastProbeTime,
-			LastTransitionTime: lastTransitionTime,
+			LastTransitionTime: &lastTransitionTime,
 		}},
 	}
 }
