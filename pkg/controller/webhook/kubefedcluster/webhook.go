@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	resourceName       = "KubeFedCluster"
+	ResourceName       = "KubeFedCluster"
 	resourcePluralName = "kubefedclusters"
 )
 
@@ -48,14 +48,14 @@ type KubeFedClusterAdmissionHook struct {
 var _ apiserver.ValidatingAdmissionHook = &KubeFedClusterAdmissionHook{}
 
 func (a *KubeFedClusterAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
-	klog.Infof("New ValidatingResource for %q", resourceName)
-	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(resourceName)
+	klog.Infof("New ValidatingResource for %q", ResourceName)
+	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(ResourceName)
 }
 
 func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
 	status := &admissionv1beta1.AdmissionResponse{}
 
-	klog.V(4).Infof("Validating %q AdmissionRequest = %s", resourceName, webhook.AdmissionRequestDebugString(admissionSpec))
+	klog.V(4).Infof("Validating %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	// We want to let through:
 	// - Requests that are not for create, update
@@ -74,15 +74,16 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 		return status
 	}
 
-	klog.V(4).Infof("Validating %q = %+v", resourceName, *admittingObject)
+	klog.V(4).Infof("Validating %q = %+v", ResourceName, *admittingObject)
 
+	isStatusSubResource := admissionSpec.SubResource == "status"
 	webhook.Validate(status, func() field.ErrorList {
-		return validation.ValidateKubeFedCluster(admittingObject)
+		return validation.ValidateKubeFedCluster(admittingObject, isStatusSubResource)
 	})
 
 	return status
 }
 
 func (a *KubeFedClusterAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, resourceName)
+	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, ResourceName)
 }

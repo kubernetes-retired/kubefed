@@ -61,6 +61,7 @@ webhooks:
     - v1beta1
     resources:
     - kubefedclusters
+    - kubefedclusters/status
   failurePolicy: Fail
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
 # See comment above.

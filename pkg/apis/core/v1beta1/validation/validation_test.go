@@ -20,17 +20,21 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
+	testcommon "sigs.k8s.io/kubefed/test/common"
 )
 
 func TestValidateFederatedTypeConfig(t *testing.T) {
@@ -329,6 +333,286 @@ func apiResource(apiResource *metav1.APIResource) *v1beta1.APIResource {
 		Kind:       fmt.Sprintf("Federated%s", apiResource.Kind),
 		PluralName: fmt.Sprintf("federated%s", apiResource.Name),
 		Scope:      enable.FederatedNamespacedToScope(*apiResource),
+	}
+}
+
+func TestValidateKubeFedCluster(t *testing.T) {
+	// Validate single success case for spec and status to ensure validation
+	// functions are wired correctly.
+	statusSubResource := []bool{true, false}
+	validKFC := testcommon.ValidKubeFedCluster()
+	for _, status := range statusSubResource {
+		if errs := ValidateKubeFedCluster(validKFC, status); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
+	}
+
+	// Validate single error case for spec and status to ensure validation
+	// functions are wired correctly.
+	type KFCAndStatusSubResource struct {
+		kfc    *v1beta1.KubeFedCluster
+		status bool
+	}
+	errorCases := map[string]KFCAndStatusSubResource{}
+
+	invalidKFCSpec := testcommon.ValidKubeFedCluster()
+	invalidKFCSpec.Spec.APIEndpoint = ""
+	errorCases["apiEndpoint: Required value"] = KFCAndStatusSubResource{
+		invalidKFCSpec,
+		false,
+	}
+
+	invalidKFCStatus := testcommon.ValidKubeFedCluster()
+	invalidKFCStatus.Status.Conditions[1].Type = ""
+	errorCases["conditions[1].type: Required value"] = KFCAndStatusSubResource{
+		invalidKFCStatus,
+		true,
+	}
+
+	for k, v := range errorCases {
+		errs := ValidateKubeFedCluster(v.kfc, v.status)
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", k)
+		} else if !strings.Contains(errs[0].Error(), k) {
+			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), k)
+		}
+	}
+}
+
+func TestValidateAPIEndpoint(t *testing.T) {
+	successProtocolSchemes := []string{
+		"",
+		"http://",
+		"https://",
+	}
+	successAPIEndpoints := []string{
+		"example.com",
+		"my.example.com",
+		"192.0.2.219",
+		"[2001:db8:25a4:8d2::1]",
+	}
+	successPortNums := []string{
+		"",
+		":1",
+		":80",
+		":8080",
+		":65535",
+	}
+	successURLPath := []string{
+		"",
+		"/",
+		"/path/to/endpoint",
+	}
+
+	for _, scheme := range successProtocolSchemes {
+		for _, endpt := range successAPIEndpoints {
+			for _, port := range successPortNums {
+				for _, path := range successURLPath {
+					if scheme == "" && path == "/path/to/endpoint" {
+						// An empty protocol scheme with a URL path (e.g.
+						// /path/to/endpoint) is not supported so skip it.
+						continue
+					}
+					errs := validateAPIEndpoint(scheme+endpt+port+path, field.NewPath("apiEndpoint"))
+					if len(errs) != 0 {
+						t.Errorf("expected success: %v", errs)
+					}
+				}
+			}
+		}
+	}
+
+	errorCases := []struct {
+		apiEndpoint    string
+		expectedErrMsg string
+	}{
+		{
+			"",
+			"apiEndpoint: Required value",
+		},
+		{
+			"https://",
+			`apiEndpoint: Invalid value: "https://": host must be a URL or a host:port pair`,
+		},
+		{
+			"example.com/path/to/somewhere",
+			`apiEndpoint: Invalid value: "example.com/path/to/somewhere": host must be a URL or a host:port pair`,
+		},
+		{
+			"192.0.2.35/path/to/somewhere",
+			`apiEndpoint: Invalid value: "192.0.2.35/path/to/somewhere": host must be a URL or a host:port pair`,
+		},
+		{
+			"tcp://example.com",
+			`apiEndpoint: Unsupported value: "tcp"`,
+		},
+		{
+			"example_com",
+			"lower case alphanumeric characters, '-' or '.'",
+		},
+		{
+			"-example.com",
+			"must start and end with an alphanumeric character",
+		},
+		{
+			"192.0.2..161",
+			`apiEndpoint: Invalid value: "192.0.2..161": must be a valid IP address`,
+		},
+		{
+			"[2001:db8:25a4::8d2::1]",
+			`apiEndpoint: Invalid value: "2001:db8:25a4::8d2::1": must be a valid IP address`,
+		},
+		{
+			"example.com:port80",
+			`apiEndpoint: Invalid value: "port80": error converting port to integer`,
+		},
+		{
+			"example.com:-80",
+			"apiEndpoint: Invalid value: -80: must be between 1 and 65535, inclusive",
+		},
+		{
+			"example.com:0",
+			"apiEndpoint: Invalid value: 0: must be between 1 and 65535, inclusive",
+		},
+		{
+			"example.com:65536",
+			"apiEndpoint: Invalid value: 65536: must be between 1 and 65535, inclusive",
+		},
+	}
+
+	for _, test := range errorCases {
+		errs := validateAPIEndpoint(test.apiEndpoint, field.NewPath("apiEndpoint"))
+		if len(errs) == 0 {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else {
+			matchedErr := false
+			for _, err := range errs {
+				if strings.Contains(err.Error(), test.expectedErrMsg) {
+					matchedErr = true
+					break
+				}
+			}
+			if !matchedErr {
+				t.Errorf("unexpected error: %v, expected: %q", errs, test.expectedErrMsg)
+			}
+		}
+	}
+}
+
+func TestValidateLocalSecretReference(t *testing.T) {
+	testCases := []struct {
+		secretName     string
+		expectedErr    bool
+		expectedErrMsg string
+	}{
+		{
+			"validation-test-cluster1",
+			false,
+			"",
+		},
+		{
+			"",
+			true,
+			"name: Required value",
+		},
+		{
+			"invalid_secretname",
+			true,
+			"must consist of lower case alphanumeric characters, '-' or '.'",
+		},
+	}
+
+	for _, test := range testCases {
+		secretRef := &v1beta1.LocalSecretReference{
+			Name: test.secretName,
+		}
+		errs := validateLocalSecretReference(secretRef, field.NewPath("secretRef"))
+		hasErr := len(errs) > 0
+		if hasErr && hasErr != test.expectedErr {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else if hasErr && !strings.Contains(errs[0].Error(), test.expectedErrMsg) {
+			t.Errorf("unexpected error: %v, expected: %q", errs[0].Error(), test.expectedErrMsg)
+		}
+	}
+}
+
+func TestValidateClusterCondition(t *testing.T) {
+	testCases := []struct {
+		cc             *v1beta1.ClusterCondition
+		expectedErr    bool
+		expectedErrMsg string
+	}{
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   common.ClusterReady,
+				Status: corev1.ConditionTrue,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    false,
+			expectedErrMsg: "",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Status: corev1.ConditionTrue,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].type: Required value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type: common.ClusterReady,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].status: Required value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   common.ClusterReady,
+				Status: corev1.ConditionTrue,
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].lastProbeTime: Required value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   "Invalid",
+				Status: corev1.ConditionTrue,
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].type: Unsupported value",
+		},
+		{
+			cc: &v1beta1.ClusterCondition{
+				Type:   common.ClusterReady,
+				Status: "Invalid",
+				LastProbeTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "conditions[0].status: Unsupported value",
+		},
+	}
+
+	for _, test := range testCases {
+		errs := validateClusterCondition(test.cc, field.NewPath("conditions").Index(0))
+		hasErr := len(errs) > 0
+		if hasErr && hasErr != test.expectedErr {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else if hasErr && !strings.Contains(errs[0].Error(), test.expectedErrMsg) {
+			t.Errorf("unexpected error: %v, expected: %q", errs[0].Error(), test.expectedErrMsg)
+		}
 	}
 }
 
