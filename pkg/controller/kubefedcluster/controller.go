@@ -20,6 +20,7 @@ import (
 	"context"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -44,6 +45,9 @@ type ClusterData struct {
 
 	// How many times in a row the probe has returned the same result.
 	resultRun int64
+
+	// cachedObj holds the last observer object from apiserver
+	cachedObj *fedv1b1.KubeFedCluster
 }
 
 // ClusterController is responsible for maintaining the health status of each
@@ -98,11 +102,41 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		&fedv1b1.KubeFedCluster{},
 		util.NoResyncPeriod,
 		&cache.ResourceEventHandlerFuncs{
-			DeleteFunc: cc.delFromClusterSet,
-			AddFunc:    cc.addToClusterSet,
+			DeleteFunc: func(obj interface{}) {
+				castObj, ok := obj.(*fedv1b1.KubeFedCluster)
+				if !ok {
+					tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						klog.Errorf("Couldn't get object from tombstone %#v", obj)
+						return
+					}
+					castObj, ok = tombstone.Obj.(*fedv1b1.KubeFedCluster)
+					if !ok {
+						klog.Errorf("Tombstone contained object that is not expected %#v", obj)
+						return
+					}
+				}
+				cc.delFromClusterSet(castObj)
+			},
+			AddFunc: func(obj interface{}) {
+				castObj := obj.(*fedv1b1.KubeFedCluster)
+				cc.addToClusterSet(castObj)
+			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				cc.delFromClusterSet(oldObj)
-				cc.addToClusterSet(newObj)
+				var clusterChanged bool
+				cluster := newObj.(*fedv1b1.KubeFedCluster)
+				cc.mu.Lock()
+				clusterData, ok := cc.clusterDataMap[cluster.Name]
+				if ok && !equality.Semantic.DeepEqual(clusterData.cachedObj.Spec, cluster.Spec) {
+					clusterChanged = true
+				}
+				cc.mu.Unlock()
+				// ignore update if there is no change between the cached object and new
+				if !clusterChanged {
+					return
+				}
+				cc.delFromClusterSet(cluster)
+				cc.addToClusterSet(cluster)
 			},
 		},
 	)
@@ -110,31 +144,29 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 }
 
 // delFromClusterSet removes a cluster from the cluster data map
-func (cc *ClusterController) delFromClusterSet(obj interface{}) {
+func (cc *ClusterController) delFromClusterSet(obj *fedv1b1.KubeFedCluster) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	cluster := obj.(*fedv1b1.KubeFedCluster)
-	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", cluster.Name)
-	delete(cc.clusterDataMap, cluster.Name)
+	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", obj.Name)
+	delete(cc.clusterDataMap, obj.Name)
 }
 
 // addToClusterSet creates a new client for the cluster and stores it in cluster data map.
-func (cc *ClusterController) addToClusterSet(obj interface{}) {
+func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	cluster := obj.(*fedv1b1.KubeFedCluster)
-	clusterData := cc.clusterDataMap[cluster.Name]
+	clusterData := cc.clusterDataMap[obj.Name]
 	if clusterData != nil && clusterData.clusterKubeClient != nil {
 		return
 	}
-	klog.V(1).Infof("ClusterController observed a new cluster: %v", cluster.Name)
+	klog.V(1).Infof("ClusterController observed a new cluster: %v", obj.Name)
 	// create the restclient of cluster
-	restClient, err := NewClusterClientSet(cluster, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
+	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
 	if err != nil || restClient == nil {
 		klog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
 		return
 	}
-	cc.clusterDataMap[cluster.Name] = &ClusterData{clusterKubeClient: restClient}
+	cc.clusterDataMap[obj.Name] = &ClusterData{clusterKubeClient: restClient, cachedObj: obj.DeepCopy()}
 }
 
 // Run begins watching and syncing.
@@ -166,7 +198,9 @@ func (cc *ClusterController) updateClusterStatus() error {
 		if clusterData == nil {
 			// Retry adding cluster client
 			cc.addToClusterSet(cluster)
+			cc.mu.RLock()
 			clusterData = cc.clusterDataMap[cluster.Name]
+			cc.mu.RUnlock()
 			if clusterData == nil {
 				klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
 				continue
