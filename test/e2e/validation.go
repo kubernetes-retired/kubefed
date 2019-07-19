@@ -23,10 +23,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/storage/names"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 	ftc "sigs.k8s.io/kubefed/pkg/controller/webhook/federatedtypeconfig"
 	kfcluster "sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedcluster"
+	kfconfig "sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedconfig"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
@@ -44,7 +47,7 @@ var _ = Describe("Core API Validation", func() {
 		}
 	})
 
-	resourcesToValidate := []string{ftc.ResourceName, kfcluster.ResourceName}
+	resourcesToValidate := []string{ftc.ResourceName, kfcluster.ResourceName, kfconfig.ResourceName}
 	for i := range resourcesToValidate {
 		resourceName := resourcesToValidate[i]
 		vrt := newValidationResourceTest(resourceName)
@@ -134,6 +137,10 @@ type kfClusterValidationTest struct {
 	object pkgruntime.Object
 }
 
+type kfConfigValidationTest struct {
+	object pkgruntime.Object
+}
+
 func newValidationResourceTest(resourceName string) validationResourceTest {
 	var vrt validationResourceTest
 	switch resourceName {
@@ -141,6 +148,8 @@ func newValidationResourceTest(resourceName string) validationResourceTest {
 		vrt = &ftcValidationTest{}
 	case kfcluster.ResourceName:
 		vrt = &kfClusterValidationTest{}
+	case kfconfig.ResourceName:
+		vrt = &kfConfigValidationTest{}
 	}
 	return vrt
 }
@@ -227,6 +236,45 @@ func (kfc *kfClusterValidationTest) validObject() pkgruntime.Object {
 
 func (kfc *kfClusterValidationTest) invalidObjectFromValid(obj pkgruntime.Object) pkgruntime.Object {
 	invalidKfc := obj.DeepCopyObject().(*v1beta1.KubeFedCluster)
+	kfc.setInvalidField(invalidKfc)
+	return invalidKfc
+}
+
+func (kfc *kfConfigValidationTest) initialize() pkgruntime.Object {
+	if kfc.object != nil {
+		return kfc.object
+	}
+
+	kfconfig := common.ValidKubeFedConfig()
+	kfconfig.Name = names.SimpleNameGenerator.GenerateName(util.KubeFedConfigName + "-")
+	kfc.object = kfconfig
+	return kfc.object
+}
+
+func (kfc *kfConfigValidationTest) getObjectMeta() *metav1.ObjectMeta {
+	return &kfc.object.(*v1beta1.KubeFedConfig).ObjectMeta
+}
+
+func (kfc *kfConfigValidationTest) invalidObject(namespace string) pkgruntime.Object {
+	invalidKfc := kfc.object.DeepCopyObject().(*v1beta1.KubeFedConfig)
+	if namespace != "" {
+		invalidKfc.Namespace = namespace
+	}
+
+	kfc.setInvalidField(invalidKfc)
+	return invalidKfc
+}
+
+func (kfc *kfConfigValidationTest) setInvalidField(obj pkgruntime.Object) {
+	*obj.(*v1beta1.KubeFedConfig).Spec.SyncController.AdoptResources = "Unknown"
+}
+
+func (kfc *kfConfigValidationTest) validObject() pkgruntime.Object {
+	return kfc.object.DeepCopyObject()
+}
+
+func (kfc *kfConfigValidationTest) invalidObjectFromValid(obj pkgruntime.Object) pkgruntime.Object {
+	invalidKfc := obj.DeepCopyObject().(*v1beta1.KubeFedConfig)
 	kfc.setInvalidField(invalidKfc)
 	return invalidKfc
 }
