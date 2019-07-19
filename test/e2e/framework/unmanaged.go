@@ -117,6 +117,8 @@ func (f *UnmanagedFramework) BeforeEach() {
 		By("Reading cluster configuration")
 		var err error
 		f.Config, f.Kubeconfig, err = loadConfig(TestContext.KubeConfig, TestContext.KubeContext)
+		f.Config.QPS = util.KubeAPIQPS
+		f.Config.Burst = util.KubeAPIBurst
 		Expect(err).NotTo(HaveOccurred())
 	}
 }
