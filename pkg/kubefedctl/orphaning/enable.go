@@ -53,7 +53,7 @@ func newCmdEnableOrphaning(cmdOut io.Writer, config util.FedConfig) *cobra.Comma
 		Long:    orphaning_enable_long,
 		Example: orphan_enable_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(args)
+			err := opts.Complete(args, config)
 			if err != nil {
 				klog.Fatalf("Error: %v", err)
 			}

@@ -16,6 +16,9 @@
    leaving managed resources, when their relevant federated resource is deleted. 
    In addition, the command allows to check current `status` of the orphaning deletion 
    mode.
+-  [#1044](https://github.com/kubernetes-sigs/kubefed/issues/1044) If a target namespace  
+   of `federate` and all `orphaning-deletion` commands is not specified, use the namespace from
+   the client kubeconfig context. 
 
 # v0.1.0-rc3
 -  [#520](https://github.com/kubernetes-sigs/kubefed/issues/520) Adds support

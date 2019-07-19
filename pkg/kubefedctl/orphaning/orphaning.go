@@ -45,7 +45,7 @@ type orphanResource struct {
 
 // Bind adds the join specific arguments to the flagset passed in as an argument.
 func (o *orphanResource) Bind(flags *pflag.FlagSet) error {
-	flags.StringVarP(&o.resourceNamespace, "namespace", "n", "default", "If present, the namespace scope for this CLI request")
+	flags.StringVarP(&o.resourceNamespace, "namespace", "n", "", "If present, the namespace scope for this CLI request")
 	err := flags.MarkHidden("kubefed-namespace")
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func NewCmdOrphaning(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 }
 
 //  Complete ensures that options are valid and marshals them if necessary.
-func (o *orphanResource) Complete(args []string) error {
+func (o *orphanResource) Complete(args []string, config util.FedConfig) error {
 	if len(args) == 0 {
 		return errors.New("resource type is required")
 	}
@@ -90,6 +90,11 @@ func (o *orphanResource) Complete(args []string) error {
 	}
 	o.resourceName = args[1]
 
+	if len(o.resourceNamespace) == 0 {
+		var err error
+		o.resourceNamespace, err = util.GetNamespace(o.HostClusterContext, o.Kubeconfig, config)
+		return err
+	}
 	return nil
 }
 

@@ -88,7 +88,7 @@ type federateResource struct {
 }
 
 func (j *federateResource) Bind(flags *pflag.FlagSet) {
-	flags.StringVarP(&j.resourceNamespace, "namespace", "n", "default", "The namespace of the resource to federate.")
+	flags.StringVarP(&j.resourceNamespace, "namespace", "n", "", "The namespace of the resource to federate.")
 	flags.StringVarP(&j.output, "output", "o", "", "If provided, the resource that would be created in the API by the command is instead output to stdout in the provided format.  Valid format is ['yaml'].")
 	flags.BoolVarP(&j.enableType, "enable-type", "e", false, "If true, attempt to enable federation of the API type of the resource before creating the federated resource.")
 	flags.BoolVarP(&j.federateContents, "contents", "c", false, "Applicable only to namespaces. If provided, the command will federate all resources within the namespace after federating the namespace.")
@@ -161,6 +161,15 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 
 // Run is the implementation of the `federate resource` command.
 func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
+
+	if len(j.resourceNamespace) == 0 {
+		var err error
+		j.resourceNamespace, err = util.GetNamespace(j.HostClusterContext, j.Kubeconfig, config)
+		if err != nil {
+			return err
+		}
+	}
+
 	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get host cluster config")

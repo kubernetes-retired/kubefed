@@ -18,12 +18,15 @@ package util
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/pkg/errors"
 
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
-	"strings"
 )
 
 const FederatedKindPrefix = "Federated"
@@ -118,6 +121,21 @@ func HealthCheckRoleName(serviceAccountName, namespace string) string {
 	return fmt.Sprintf("kubefed-controller-manager:%s:healthcheck-%s", namespace, serviceAccountName)
 }
 
+// IsFederatedAPIResource checks if a resource with the given Kind and group is a Federated one
 func IsFederatedAPIResource(kind, group string) bool {
 	return strings.HasPrefix(kind, FederatedKindPrefix) && group == options.DefaultFederatedGroup
+}
+
+// GetNamespace returns namespace of the current context
+func GetNamespace(hostClusterContext string, kubeconfig string, config FedConfig) (string, error) {
+	ns, _, err := config.GetClientConfig(hostClusterContext, kubeconfig).Namespace()
+	if err != nil {
+		return "", errors.Wrapf(err, "Failed to get ClientConfig for host cluster context %q and kubeconfig %q",
+			hostClusterContext, kubeconfig)
+	}
+
+	if len(ns) == 0 {
+		ns = "default"
+	}
+	return ns, nil
 }
