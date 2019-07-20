@@ -27,6 +27,14 @@ entries:
     version: 0.0.8
   kubefed:
   - apiVersion: v1
+    created: "2019-07-19T16:38:49.749571917-07:00"
+    description: KubeFed helm chart
+    digest: c889fb71e5c426521a7e7b48d0d32aa3c0ddf907c3b3139a236828251b5e3b2e
+    name: kubefed
+    urls:
+    - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.1.0-rc4/kubefed-0.1.0-rc4.tgz
+    version: 0.1.0-rc4
+  - apiVersion: v1
     created: "2019-06-24T17:28:35.280013854-07:00"
     description: KubeFed helm chart
     digest: de65ef0d2564777486b824211e9ce1a0154bd4480ed1be08dc9d0266f71aeea9
@@ -50,4 +58,4 @@ entries:
     urls:
     - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.1.0-rc1/kubefed-0.1.0-rc1.tgz
     version: 0.1.0-rc1
-generated: "2019-06-24T17:28:35.277897795-07:00"
+generated: "2019-07-19T16:38:49.748669686-07:00"
