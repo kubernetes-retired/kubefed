@@ -29,23 +29,29 @@ if [[ ! "${RELEASE_TAG}" ]]; then
   exit 1
 fi
 
+command -v helm >/dev/null 2>&1 ||
+{
+  echo "helm command not found. Please add helm to your PATH and try again." >&2
+  exit 1
+}
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 RELEASE_VERSION="${RELEASE_TAG:1:${#RELEASE_TAG}-1}"
 
 pushd "${ROOT_DIR}"
   # Build release artifacts for kubefedctl
-  make bin/kubefedctl-linux
-  make bin/kubefedctl-darwin
-  pushd "${ROOT_DIR}/bin"
-    for host_os in linux darwin; do
-      TAR_FILENAME="kubefedctl-${RELEASE_VERSION}-${host_os}-amd64.tgz"
-      BINARY_FILENAME="kubefedctl-${host_os}"
+  arch=amd64
+  for host_os in linux darwin; do
+    make bin/kubefedctl-${host_os}-${arch}
+    pushd "${ROOT_DIR}/bin"
+      TAR_FILENAME="kubefedctl-${RELEASE_VERSION}-${host_os}-${arch}.tgz"
+      BINARY_FILENAME="kubefedctl-${host_os}-${arch}"
       # The binary is built with a platform suffix, but should be archived without it.
       tar cvzf "${TAR_FILENAME}" --transform="flags=r;s|${BINARY_FILENAME}|kubefedctl|" "${BINARY_FILENAME}"
       sha256sum "${TAR_FILENAME}" > "${TAR_FILENAME}.sha"
       mv "${TAR_FILENAME}" "${TAR_FILENAME}.sha" "${ROOT_DIR}/"
-    done
-  popd
+    popd
+  done
 
   # Build release artifacts for the helm chart
   pushd "${ROOT_DIR}/charts"
