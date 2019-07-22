@@ -67,8 +67,8 @@ func NewControllerManagerCommand(stopChan <-chan struct{}) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "controller-manager",
 		Long: `The KubeFed controller manager runs a bunch of controllers
-which watches KubeFed CRD's and the corresponding resources in
-member clusters and does the necessary reconciliation`,
+which watch KubeFed CRD's and the corresponding resources in
+member clusters and do the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(os.Stdout, "KubeFed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
 			if verFlag {
