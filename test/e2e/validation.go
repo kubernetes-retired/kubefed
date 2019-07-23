@@ -37,14 +37,11 @@ import (
 var _ = Describe("Core API Validation", func() {
 	testBaseName := "core-api-validation"
 	f := framework.NewKubeFedFramework(testBaseName)
-	var namespace string
 
 	BeforeEach(func() {
 		if framework.TestContext.InMemoryControllers {
 			framework.Skipf("Running validation admission webhook outside of cluster not supported")
 		}
-
-		namespace = f.TestNamespaceName()
 	})
 
 	resourcesToValidate := []string{ftc.ResourceName, kfcluster.ResourceName}
@@ -52,68 +49,73 @@ var _ = Describe("Core API Validation", func() {
 		resourceName := resourcesToValidate[i]
 		vrt := newValidationResourceTest(resourceName)
 		vrt.initialize()
-		It(fmt.Sprintf("for %s should fail when an invalid %s is created or updated", resourceName, resourceName), func() {
-			userAgent := fmt.Sprintf("test-%s-validation", resourceName)
-			client := f.Client(userAgent)
-			vrt.getObjectMeta().Namespace = namespace
-
-			By(fmt.Sprintf("Creating an invalid %s", resourceName))
-			invalidObj := vrt.invalidObject("")
-			err := client.Create(context.TODO(), invalidObj)
-			if err == nil {
-				f.Logger().Fatalf("Expected error creating invalid %s = %+v", resourceName, invalidObj)
-			}
-
-			By(fmt.Sprintf("Creating a valid %s", resourceName))
-			validObj := vrt.validObject()
-			err = client.Create(context.TODO(), validObj)
-			if err != nil {
-				f.Logger().Fatalf("Unexpected error creating valid %s = %+v, err: %v", resourceName, validObj, err)
-			}
-
-			By(fmt.Sprintf("Updating with an invalid %s", resourceName))
-			invalidObj = vrt.invalidObjectFromValid(validObj)
-			err = client.Update(context.TODO(), invalidObj)
-			if err == nil {
-				f.Logger().Fatalf("Expected error updating invalid %s = %+v", resourceName, vrt)
-			}
-
-			// Immediately delete the created test resource to avoid errors in
-			// other e2e tests that rely on the original e2e testing setup. For
-			// example for KubeFedCluster, delete the test cluster we just
-			// created as it's not a properly joined member cluster that's part
-			// of the original e2e test setup.
-			validObjName := vrt.getObjectMeta().Name
-			err = client.Delete(context.TODO(), validObj, namespace, validObjName)
-			if err != nil && !apierrors.IsNotFound(err) {
-				f.Logger().Errorf("Error deleting %s %s: %v", resourceName, validObjName, err)
-			}
-		})
-
-		// TODO(font): Consider removing once webhook singleton is implemented.
-		When("running with namespace scoped deployment", func() {
-			It(fmt.Sprintf("for %s should succeed when an invalid %s is created outside the kubefed system namespace", resourceName, resourceName), func() {
-				if !framework.TestContext.LimitedScope {
-					framework.Skipf("Cannot run validation admission webhook namespaced test in a cluster scoped deployment")
-				}
-				userAgent := fmt.Sprintf("test-%s-validation", resourceName)
-				client := f.Client(userAgent)
-				kubeClient := f.KubeClient(fmt.Sprintf("%s-create-namespace", testBaseName))
-				namespace := framework.CreateTestNamespace(kubeClient, testBaseName)
-				framework.AddCleanupAction(func() {
-					framework.DeleteNamespace(kubeClient, namespace)
-				})
-
-				By(fmt.Sprintf("Creating an invalid %s in the separate test namespace %s", resourceName, namespace))
-				invalidObj := vrt.invalidObject(namespace)
-				err := client.Create(context.TODO(), invalidObj)
-				if err != nil {
-					f.Logger().Fatalf("Unexpected error creating invalid %s = %+v in another test namespace %s, err: %v", resourceName, invalidObj, namespace, err)
-				}
-			})
-		})
+		runValidationResourceTests(f, vrt, resourceName, testBaseName)
 	}
 })
+
+func runValidationResourceTests(f framework.KubeFedFramework, vrt validationResourceTest, resourceName, testBaseName string) {
+	It(fmt.Sprintf("for %s should fail when an invalid %s is created or updated", resourceName, resourceName), func() {
+		userAgent := fmt.Sprintf("test-%s-validation", resourceName)
+		client := f.Client(userAgent)
+		namespace := f.TestNamespaceName()
+		vrt.getObjectMeta().Namespace = namespace
+
+		By(fmt.Sprintf("Creating an invalid %s", resourceName))
+		invalidObj := vrt.invalidObject("")
+		err := client.Create(context.TODO(), invalidObj)
+		if err == nil {
+			f.Logger().Fatalf("Expected error creating invalid %s = %+v", resourceName, invalidObj)
+		}
+
+		By(fmt.Sprintf("Creating a valid %s", resourceName))
+		validObj := vrt.validObject()
+		err = client.Create(context.TODO(), validObj)
+		if err != nil {
+			f.Logger().Fatalf("Unexpected error creating valid %s = %+v, err: %v", resourceName, validObj, err)
+		}
+
+		By(fmt.Sprintf("Updating with an invalid %s", resourceName))
+		invalidObj = vrt.invalidObjectFromValid(validObj)
+		err = client.Update(context.TODO(), invalidObj)
+		if err == nil {
+			f.Logger().Fatalf("Expected error updating invalid %s = %+v", resourceName, vrt)
+		}
+
+		// Immediately delete the created test resource to avoid errors in
+		// other e2e tests that rely on the original e2e testing setup. For
+		// example for KubeFedCluster, delete the test cluster we just
+		// created as it's not a properly joined member cluster that's part
+		// of the original e2e test setup.
+		validObjName := vrt.getObjectMeta().Name
+		err = client.Delete(context.TODO(), validObj, namespace, validObjName)
+		if err != nil && !apierrors.IsNotFound(err) {
+			f.Logger().Errorf("Error deleting %s %s: %v", resourceName, validObjName, err)
+		}
+	})
+
+	// TODO(font): Consider removing once webhook singleton is implemented.
+	When("running with namespace scoped deployment", func() {
+		It(fmt.Sprintf("for %s should succeed when an invalid %s is created outside the kubefed system namespace", resourceName, resourceName), func() {
+			if !framework.TestContext.LimitedScope {
+				framework.Skipf("Cannot run validation admission webhook namespaced test in a cluster scoped deployment")
+			}
+			userAgent := fmt.Sprintf("test-%s-validation", resourceName)
+			client := f.Client(userAgent)
+			kubeClient := f.KubeClient(fmt.Sprintf("%s-create-namespace", testBaseName))
+			namespace := framework.CreateTestNamespace(kubeClient, testBaseName)
+			framework.AddCleanupAction(func() {
+				framework.DeleteNamespace(kubeClient, namespace)
+			})
+
+			By(fmt.Sprintf("Creating an invalid %s in the separate test namespace %s", resourceName, namespace))
+			invalidObj := vrt.invalidObject(namespace)
+			err := client.Create(context.TODO(), invalidObj)
+			if err != nil {
+				f.Logger().Fatalf("Unexpected error creating invalid %s = %+v in another test namespace %s, err: %v", resourceName, invalidObj, namespace, err)
+			}
+		})
+	})
+}
 
 type validationResourceTest interface {
 	initialize() pkgruntime.Object
