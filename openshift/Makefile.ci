@@ -39,8 +39,6 @@ LDFLAG_OPTIONS = -ldflags "-X sigs.k8s.io/kubefed/pkg/version.version=$(GIT_VERS
 
 GO_BUILDCMD = CGO_ENABLED=0 go build $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
-PODMAN_BUILD ?= $(PODMAN) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
-
 .PHONY: unit vet managed-e2e kubefedctl
 
 unit:
@@ -61,7 +59,7 @@ ALL_BINS :=
 
 define OS_template
 $(1)-$(2): bindir
-	$(PODMAN_BUILD) 'GOARCH=amd64 GOOS=$(2) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
+	$(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go
 ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
 $(foreach os, $(OSES), $(eval $(call OS_template, $(KUBEFEDCTL_TARGET),$(os),$(notdir $(KUBEFEDCTL_TARGET)))))
