@@ -2,8 +2,6 @@
 SHELL := /bin/bash
 REGISTRY ?= quay.io/kubernetes-multicluster
 BIN_DIR := bin
-PODMAN ?= podman
-DIR := ${CURDIR}
 HOST_OS ?= $(shell uname -s | tr A-Z a-z)
 
 TARGET = kubefed
@@ -13,22 +11,15 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
-GIT_VERSION ?= $(shell git describe --always --dirty)
-GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
-GIT_HASH ?= $(shell git rev-parse HEAD)
+GIT_VERSION ?= $(OS_GIT_VERSION)
+GIT_HASH ?= $(OS_GIT_COMMIT)
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-GIT_TREESTATE = "clean"
-DIFF = $(shell git diff --quiet >/dev/null 2>&1; if [ $$? -eq 1 ]; then echo "1"; fi)
-ifeq ($(DIFF), 1)
-	GIT_TREESTATE = "dirty"
-endif
+GIT_TREESTATE ?= $(OS_GIT_TREE_STATE)
 
 ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
 endif
-BUILDMNT = /go/src/$(GOTARGET)
-BUILD_IMAGE ?= golang:1.12.5
 
 KUBEFEDCTL_TARGET = bin/kubefedctl
 

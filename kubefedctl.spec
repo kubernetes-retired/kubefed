@@ -46,7 +46,7 @@
 
 %global package_name kubefed-client
 %global product_name Kubefed Client
-%global import_path github\.com\/openshift\/kubefed # GO_PACKAGE
+%global import_path github.com/openshift/kubefed # GO_PACKAGE
 
 Name:           %{package_name}
 Version:        %{version}
