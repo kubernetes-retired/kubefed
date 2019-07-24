@@ -34,7 +34,7 @@ const (
 
 var (
 	orphaning_status_long = `
-		Checks the status of "orphaning enable" ('kubefed.k8s.io/orphan: true') annotation on a federated resource. 
+		Checks the status of "orphaning enable" ('kubefed.io/orphan: true') annotation on a federated resource. 
 		Returns "Enabled" or "Disabled"
 
 		Current context is assumed to be a Kubernetes cluster hosting the kubefed control plane. 

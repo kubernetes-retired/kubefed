@@ -23,7 +23,7 @@ const (
 	// member clusters managed by the federated resource should be orphaned.
 	// If the annotation is not present (the default), resources in member
 	// clusters will be deleted before the federated resource is deleted.
-	OrphanManagedResourcesAnnotation = "kubefed.k8s.io/orphan"
+	OrphanManagedResourcesAnnotation = "kubefed.io/orphan"
 	OrphanedManagedResourcesValue    = "true"
 )
 

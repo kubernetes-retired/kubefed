@@ -67,7 +67,7 @@ accomplished as follows:
 # Bootstrap and commit a new type
 $ kubebuilder create api --group <your-group> --version v1alpha1 --kind <your-kind>
 $ git add .
-$ git commit -m 'Bootstrapped a new api resource <your-group>.kubefed.k8s.io./v1alpha1/<your-kind>'
+$ git commit -m 'Bootstrapped a new api resource <your-group>.kubefed.io./v1alpha1/<your-kind>'
 
 # Modify and commit the bootstrapped type
 vi pkg/apis/<your-group>/v1alpha1/<your-kind>_types.go

@@ -1,11 +1,11 @@
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: clusterroles.rbac.authorization.k8s.io
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedClusterRole
     pluralName: federatedclusterroles
     scope: Cluster
@@ -18,13 +18,13 @@ spec:
     scope: Cluster
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: configmaps
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedConfigMap
     pluralName: federatedconfigmaps
     scope: Namespaced
@@ -36,13 +36,13 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: deployments.apps
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedDeployment
     pluralName: federateddeployments
     scope: Namespaced
@@ -55,13 +55,13 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: ingresses.extensions
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedIngress
     pluralName: federatedingresses
     scope: Namespaced
@@ -74,13 +74,13 @@ spec:
     scope: Namespaced
     version: v1beta1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: jobs.batch
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedJob
     pluralName: federatedjobs
     scope: Namespaced
@@ -93,13 +93,13 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: namespaces
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedNamespace
     pluralName: federatednamespaces
     scope: Namespaced
@@ -111,13 +111,13 @@ spec:
     scope: Cluster
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: replicasets.apps
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedReplicaSet
     pluralName: federatedreplicasets
     scope: Namespaced
@@ -130,13 +130,13 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: secrets
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedSecret
     pluralName: federatedsecrets
     scope: Namespaced
@@ -148,13 +148,13 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: serviceaccounts
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedServiceAccount
     pluralName: federatedserviceaccounts
     scope: Namespaced
@@ -166,13 +166,13 @@ spec:
     scope: Namespaced
     version: v1
 ---
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: services
 spec:
   federatedType:
-    group: types.kubefed.k8s.io
+    group: types.kubefed.io
     kind: FederatedService
     pluralName: federatedservices
     scope: Namespaced

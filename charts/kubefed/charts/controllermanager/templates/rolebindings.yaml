@@ -28,7 +28,7 @@ subjects:
   name: kubefed-controller
   namespace: {{ .Release.Namespace }}
 ---
-# Grant admission webhook access to core.kubefed.k8s.io in the KubeFed system
+# Grant admission webhook access to core.kubefed.io in the KubeFed system
 # namespace only, regardless of kubefed deployment scope.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

@@ -53,7 +53,7 @@ var (
 		"endpoints",
 		"events",
 		"events.events.k8s.io",
-		"propagatedversions.core.kubefed.k8s.io",
+		"propagatedversions.core.kubefed.io",
 	}
 
 	federate_long = `

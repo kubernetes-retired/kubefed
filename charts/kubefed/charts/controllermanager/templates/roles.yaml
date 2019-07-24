@@ -10,7 +10,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:
-  - scheduling.kubefed.k8s.io
+  - scheduling.kubefed.io
   resources:
   - '*'
   verbs:
@@ -19,17 +19,7 @@ rules:
   - list
   - update
 - apiGroups:
-  - multiclusterdns.kubefed.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - get
-  - watch
-  - list
-  - create
-  - update
-- apiGroups:
-  - core.kubefed.k8s.io
+  - multiclusterdns.kubefed.io
   resources:
   - '*'
   verbs:
@@ -39,7 +29,17 @@ rules:
   - create
   - update
 - apiGroups:
-  - types.kubefed.k8s.io
+  - core.kubefed.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+  - update
+- apiGroups:
+  - types.kubefed.io
   resources:
   - '*'
   verbs:
@@ -94,7 +94,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:
-  - core.kubefed.k8s.io
+  - core.kubefed.io
   resources:
   - federatedtypeconfigs
   - kubefedclusters

@@ -19,5 +19,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=sigs.k8s.io/kubefed/pkg/apis/core
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=core.kubefed.k8s.io
+// +groupName=core.kubefed.io
 package v1alpha1

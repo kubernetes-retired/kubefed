@@ -309,7 +309,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		}
 		createdOrUpdated = "updated"
 	}
-	write(fmt.Sprintf("federatedtypeconfig.core.kubefed.k8s.io/%s %s in namespace %s\n",
+	write(fmt.Sprintf("federatedtypeconfig.core.kubefed.io/%s %s in namespace %s\n",
 		concreteTypeConfig.Name, createdOrUpdated, namespace))
 	return nil
 }
@@ -323,7 +323,7 @@ func GenerateTypeConfigForTarget(apiResource metav1.APIResource, enableTypeDirec
 		// serialized properly to yaml.
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FederatedTypeConfig",
-			APIVersion: "core.kubefed.k8s.io/v1beta1",
+			APIVersion: "core.kubefed.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: typeconfig.GroupQualifiedName(apiResource),

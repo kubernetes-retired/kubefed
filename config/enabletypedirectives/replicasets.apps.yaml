@@ -1,4 +1,4 @@
-apiVersion: core.kubefed.k8s.io/v1beta1
+apiVersion: core.kubefed.io/v1beta1
 kind: EnableTypeDirective
 metadata:
   name: replicasets.apps

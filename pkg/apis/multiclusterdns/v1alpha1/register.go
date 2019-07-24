@@ -21,7 +21,7 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=sigs.k8s.io/kubefed/pkg/apis/multiclusterdns
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=multiclusterdns.kubefed.k8s.io
+// +groupName=multiclusterdns.kubefed.io
 package v1alpha1
 
 import (
@@ -31,7 +31,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "multiclusterdns.kubefed.k8s.io", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "multiclusterdns.kubefed.io", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}

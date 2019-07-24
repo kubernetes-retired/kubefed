@@ -215,10 +215,10 @@ propagation to that cluster.
 
 When `kubefedctl enable` is used to enable types whose plural names (e.g. **deployments**.example.com
 and **deployments**.apps) match, the crd name of the generated federated type would also match (e.g.
-**deployments**.types.kubefed.k8s.io).
+**deployments**.types.kubefed.io).
 
 `kubefedctl enable --federated-group string` specifies the name of the API
-group to use for the generated federated type. It is `types.kubefed.k8s.io` by
+group to use for the generated federated type. It is `types.kubefed.io` by
 default. If a non-default group is used to enable federation of a type, the
 RBAC permissions for the KubeFed controller manager will need to be updated to
 include permissions for the new group.
@@ -308,7 +308,7 @@ If `--output=yaml` is specified, and the target type is not yet enabled for fede
 `kubefedctl federate` will assume the default form of the federated type in generating the
 federated resource.  This may not be compatible with a kubefed control plane that has enabled
 a federated type in a non-default way (e.g. the group of the federated type has been set to
-something other than `types.kubefed.k8s.io`).
+something other than `types.kubefed.io`).
 
 ### Federate a namespace with contents
 `kubefedctl federate` can also be used to federate a target namespace and its contained resources
@@ -361,7 +361,7 @@ clusters, propagation status will be written to the resource as per
 the following example:
 
 ```yaml
-apiVersion: types.kubefed.k8s.io/v1beta1
+apiVersion: types.kubefed.io/v1beta1
 kind: FederatedNamespace
 metadata:
   name: myns
@@ -417,7 +417,7 @@ example, namespace `myns` has been verified to exist in `cluster1`.
 The namespace should not exist in `cluster2`, but deletion has failed.
 
 ```yaml
-apiVersion: types.kubefed.k8s.io/v1beta1
+apiVersion: types.kubefed.io/v1beta1
 kind: FederatedNamespace
 metadata:
   name: myns
@@ -474,20 +474,20 @@ The following table enumerates the possible values for cluster status:
 
 ## Deletion policy
 
-All federated resources reconciled by the sync controller have a finalizer (`kubefed.k8s.io/sync-controller`) added to their
+All federated resources reconciled by the sync controller have a finalizer (`kubefed.io/sync-controller`) added to their
 metadata. This finalizer will prevent deletion of a federated resource
 until the sync controller has a chance to perform pre-deletion
 cleanup.
 
 Pre-deletion cleanup of a federated resource includes removal of
 resources managed by the federated resource from member clusters. To
-ensure retention of managed resources, add `kubefed.k8s.io/orphan:
+ensure retention of managed resources, add `kubefed.io/orphan:
 true` as an annotation to the federated resource prior to deletion:
 
 Pre-deletion cleanup includes removal of
 resources managed by the federated resource from member clusters.
 
-To prevent removal of these managed resources, add `kubefed.k8s.io/orphan:
+To prevent removal of these managed resources, add `kubefed.io/orphan:
 true` as an annotation to the federated resource prior to deletion, as follows.
 
 You can do it by
@@ -545,7 +545,7 @@ kubectl apply -R -f example/sample1
 ```
  **NOTE:** If you get the following error while creating a test resource
 ```
-unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.kubefed.k8s.io/v1beta1",
+unable to recognize "example/sample1/federated<type>.yaml": no matches for kind "Federated<type>" in version "types.kubefed.io/v1beta1",
 
 ```
 then it indicates that a given type may need to be enabled with `kubefedctl enable <type>`
@@ -970,7 +970,7 @@ examples considers 3 federated clusters `A`, `B` and `C`.
 #### Distribute total replicas evenly in all available clusters
 
 ```yaml
-apiVersion: scheduling.kubefed.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -983,7 +983,7 @@ spec:
 or
 
 ```yaml
-apiVersion: scheduling.kubefed.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -1001,7 +1001,7 @@ A, B and C get 3 replicas each.
 #### Distribute total replicas in weighted proportions
 
 ```yaml
-apiVersion: scheduling.kubefed.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -1022,7 +1022,7 @@ any replica as missing weight preference is considered as weight=0.
 #### Distribute replicas in weighted proportions, also enforcing replica limits per cluster
 
 ```yaml
-apiVersion: scheduling.kubefed.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
@@ -1046,7 +1046,7 @@ A gets 4 and B get 5 as weighted distribution is capped by cluster A minReplicas
 #### Distribute replicas evenly in all clusters, however not more than 20 in C
 
 ```yaml
-apiVersion: scheduling.kubefed.k8s.io/v1alpha1
+apiVersion: scheduling.kubefed.io/v1alpha1
 kind: ReplicaSchedulingPreference
 metadata:
   name: test-deployment
