@@ -77,7 +77,7 @@ type FederatedReadOnlyStore interface {
 // to access the clusters they represent.
 type RegisteredClustersView interface {
 	// GetClientForCluster returns a client for the cluster, if present.
-	GetClientForCluster(clusterName string) (ResourceClient, error)
+	GetClientForCluster(clusterName string) (generic.Client, error)
 
 	// GetUnreadyClusters returns a list of all clusters that are not ready yet.
 	GetUnreadyClusters() ([]*fedv1b1.KubeFedCluster, error)
@@ -117,16 +117,9 @@ type FederatedInformer interface {
 	Stop()
 }
 
-// FederatedInformer with extra method for setting fake clients.
-type FederatedInformerForTestOnly interface {
-	FederatedInformer
-
-	SetClientFactory(func(*fedv1b1.KubeFedCluster) (ResourceClient, error))
-}
-
 // A function that should be used to create an informer on the target object. Store should use
 // cache.DeletionHandlingMetaNamespaceKeyFunc as a keying function.
-type TargetInformerFactory func(*fedv1b1.KubeFedCluster, ResourceClient) (cache.Store, cache.Controller)
+type TargetInformerFactory func(*fedv1b1.KubeFedCluster, *restclient.Config) (cache.Store, cache.Controller, error)
 
 // A structure with cluster lifecycle handler functions. Cluster is available (and ClusterAvailable is fired)
 // when it is created in federated etcd and ready. Cluster becomes unavailable (and ClusterUnavailable is fired)
@@ -148,23 +141,27 @@ func NewFederatedInformer(
 	triggerFunc func(pkgruntime.Object),
 	clusterLifecycle *ClusterLifecycleHandlerFuncs) (FederatedInformer, error) {
 
-	targetInformerFactory := func(cluster *fedv1b1.KubeFedCluster, client ResourceClient) (cache.Store, cache.Controller) {
-		return NewManagedResourceInformer(client, config.TargetNamespace, triggerFunc)
+	targetInformerFactory := func(cluster *fedv1b1.KubeFedCluster, clusterConfig *restclient.Config) (cache.Store, cache.Controller, error) {
+		resourceClient, err := NewResourceClient(clusterConfig, apiResource)
+		if err != nil {
+			return nil, nil, err
+		}
+		store, controller := NewManagedResourceInformer(resourceClient, config.TargetNamespace, triggerFunc)
+		return store, controller, nil
 	}
 
 	federatedInformer := &federatedInformerImpl{
 		targetInformerFactory: targetInformerFactory,
-		clientFactory: func(cluster *fedv1b1.KubeFedCluster) (ResourceClient, error) {
-			config, err := BuildClusterConfig(cluster, client, config.KubeFedNamespace)
+		configFactory: func(cluster *fedv1b1.KubeFedCluster) (*restclient.Config, error) {
+			clusterConfig, err := BuildClusterConfig(cluster, client, config.KubeFedNamespace)
 			if err != nil {
 				return nil, err
 			}
-			if config == nil {
+			if clusterConfig == nil {
 				return nil, errors.Errorf("Unable to load configuration for cluster %q", cluster.Name)
 			}
-
-			restclient.AddUserAgent(config, userAgentName)
-			return NewResourceClient(config, apiResource)
+			restclient.AddUserAgent(clusterConfig, userAgentName)
+			return clusterConfig, nil
 		},
 		targetInformers: make(map[string]informer),
 		fedNamespace:    config.KubeFedNamespace,
@@ -278,8 +275,8 @@ type federatedInformerImpl struct {
 	// Structures returned by targetInformerFactory
 	targetInformers map[string]informer
 
-	// A function to build clients.
-	clientFactory func(*fedv1b1.KubeFedCluster) (ResourceClient, error)
+	// Retrieves configuration to access a cluster.
+	configFactory func(*fedv1b1.KubeFedCluster) (*restclient.Config, error)
 
 	// Namespace from which to source KubeFedCluster resources
 	fedNamespace string
@@ -317,26 +314,24 @@ func (f *federatedInformerImpl) Start() {
 	go f.clusterInformer.controller.Run(f.clusterInformer.stopChan)
 }
 
-func (f *federatedInformerImpl) SetClientFactory(clientFactory func(*fedv1b1.KubeFedCluster) (ResourceClient, error)) {
-	f.Lock()
-	defer f.Unlock()
-
-	f.clientFactory = clientFactory
-}
-
 // GetClientForCluster returns a client for the cluster, if present.
-func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (ResourceClient, error) {
+func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic.Client, error) {
 	f.Lock()
 	defer f.Unlock()
-	return f.getClientForClusterUnlocked(clusterName)
+
+	config, err := f.getConfigForClusterUnlocked(clusterName)
+	if err != nil {
+		return nil, errors.Wrap(err, "Client creation failed")
+	}
+
+	return generic.New(config)
 }
 
-func (f *federatedInformerImpl) getClientForClusterUnlocked(clusterName string) (ResourceClient, error) {
+func (f *federatedInformerImpl) getConfigForClusterUnlocked(clusterName string) (*restclient.Config, error) {
 	// No locking needed. Will happen in f.GetCluster.
-	klog.V(4).Infof("Getting clientset for cluster %q", clusterName)
+	klog.V(4).Infof("Getting config for cluster %q", clusterName)
 	if cluster, found, err := f.getReadyClusterUnlocked(clusterName); found && err == nil {
-		klog.V(4).Infof("Got clientset for cluster %q", clusterName)
-		return f.clientFactory(cluster)
+		return f.configFactory(cluster)
 	} else {
 		if err != nil {
 			return nil, err
@@ -426,8 +421,13 @@ func (f *federatedInformerImpl) addCluster(cluster *fedv1b1.KubeFedCluster) {
 	f.Lock()
 	defer f.Unlock()
 	name := cluster.Name
-	if client, err := f.getClientForClusterUnlocked(name); err == nil {
-		store, controller := f.targetInformerFactory(cluster, client)
+	if config, err := f.getConfigForClusterUnlocked(name); err == nil {
+		store, controller, err := f.targetInformerFactory(cluster, config)
+		if err != nil {
+			// TODO: create also an event for cluster.
+			klog.Errorf("Failed to create an informer for cluster %q: %v", cluster.Name, err)
+			return
+		}
 		targetInformer := informer{
 			controller: controller,
 			store:      store,

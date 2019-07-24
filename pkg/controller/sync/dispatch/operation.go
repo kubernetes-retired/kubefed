@@ -24,11 +24,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 
+	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
-type clientAccessorFunc func(clusterName string) (util.ResourceClient, error)
+type clientAccessorFunc func(clusterName string) (generic.Client, error)
 
 type dispatchRecorder interface {
 	recordEvent(clusterName, operation, operationContinuous string)
@@ -91,9 +92,8 @@ func (d *operationDispatcherImpl) Wait() (bool, error) {
 	return ok, nil
 }
 
-func (d *operationDispatcherImpl) clusterOperation(clusterName, op string, opFunc func(util.ResourceClient) util.ReconciliationStatus) {
-	// TODO(marun) Update to generic client and support cancellation
-	// on timeout.
+func (d *operationDispatcherImpl) clusterOperation(clusterName, op string, opFunc func(generic.Client) util.ReconciliationStatus) {
+	// TODO(marun) Support cancellation of client calls on timeout.
 	client, err := d.clientAccessor(clusterName)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "Error retrieving client for cluster")

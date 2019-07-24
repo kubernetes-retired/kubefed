@@ -17,11 +17,9 @@ limitations under the License.
 package podanalyzer
 
 import (
-	"encoding/json"
 	"time"
 
 	api_v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type PodAnalysisResult struct {
@@ -43,16 +41,9 @@ const (
 // AnalyzePods calculates how many pods from the list are in one of
 // the meaningful (from the replica set perspective) states. This function is
 // a temporary workaround against the current lack of ownerRef in pods.
-func AnalyzePods(podList *unstructured.UnstructuredList, currentTime time.Time) PodAnalysisResult {
+func AnalyzePods(podList *api_v1.PodList, currentTime time.Time) PodAnalysisResult {
 	result := PodAnalysisResult{}
-	for _, unstructuredPod := range podList.Items {
-		content, _ := unstructuredPod.MarshalJSON()
-		pod := api_v1.Pod{}
-		err := json.Unmarshal(content, &pod)
-		if err != nil {
-			return result
-		}
-
+	for _, pod := range podList.Items {
 		result.Total++
 		for _, condition := range pod.Status.Conditions {
 			if pod.Status.Phase == api_v1.PodRunning {

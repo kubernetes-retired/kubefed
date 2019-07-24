@@ -18,18 +18,20 @@ package schedulingtypes
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/pkg/errors"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1"
@@ -228,7 +230,7 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 		return plugin.(*Plugin).targetInformer.GetTargetStore().GetByKey(clusterName, key)
 	}
-	podsGetter := func(clusterName string, unstructuredObj *unstructured.Unstructured) (pkgruntime.Object, error) {
+	podsGetter := func(clusterName string, unstructuredObj *unstructured.Unstructured) (*corev1.PodList, error) {
 		client, err := s.podInformer.GetClientForCluster(clusterName)
 		if err != nil {
 			return nil, err
@@ -242,12 +244,16 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 
 		label := labels.SelectorFromSet(labels.Set(selectorLabels))
-
-		unstructuredPodList, err := client.Resources(unstructuredObj.GetNamespace()).List(metav1.ListOptions{LabelSelector: label.String()})
-		if err != nil || unstructuredPodList == nil {
+		opts := &crclient.ListOptions{
+			Namespace:     unstructuredObj.GetNamespace(),
+			LabelSelector: label,
+		}
+		podList := &corev1.PodList{}
+		err = client.ListWithOptions(context.Background(), opts, podList)
+		if err != nil {
 			return nil, err
 		}
-		return unstructuredPodList, nil
+		return podList, nil
 	}
 
 	currentReplicasPerCluster, estimatedCapacity, err := clustersReplicaState(clusterNames, key, objectGetter, podsGetter)
@@ -311,7 +317,7 @@ func clustersReplicaState(
 	clusterNames []string,
 	key string,
 	objectGetter func(clusterName string, key string) (interface{}, bool, error),
-	podsGetter func(clusterName string, obj *unstructured.Unstructured) (pkgruntime.Object, error)) (currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64, err error) {
+	podsGetter func(clusterName string, obj *unstructured.Unstructured) (*corev1.PodList, error)) (currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64, err error) {
 
 	currentReplicasPerCluster = make(map[string]int64)
 	estimatedCapacity = make(map[string]int64)
@@ -345,18 +351,11 @@ func clustersReplicaState(
 			currentReplicasPerCluster[clusterName] = readyReplicas
 		} else {
 			currentReplicasPerCluster[clusterName] = int64(0)
-			pods, err := podsGetter(clusterName, unstructuredObj)
+			podList, err := podsGetter(clusterName, unstructuredObj)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			//TODO: Update AnalysePods to use typed podList.
-			// Unstructured list seems not very suitable for functions like
-			// AnalysePods() and there are many possibilities of unchecked
-			// errors, if extensive set or get of fields is done on unstructured
-			// object. A good mechanism might be to get a typed client
-			// in FedInformer which is much easier to work with in PodLists.
-			podList := pods.(*unstructured.UnstructuredList)
 			podStatus := podanalyzer.AnalyzePods(podList, time.Now())
 			currentReplicasPerCluster[clusterName] = int64(podStatus.RunningAndReady) // include pending as well?
 			unschedulable := int64(podStatus.Unschedulable)

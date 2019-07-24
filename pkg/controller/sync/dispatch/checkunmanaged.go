@@ -17,14 +17,18 @@ limitations under the License.
 package dispatch
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
@@ -39,16 +43,16 @@ type CheckUnmanagedDispatcher interface {
 type checkUnmanagedDispatcherImpl struct {
 	dispatcher *operationDispatcherImpl
 
+	targetGVK  schema.GroupVersionKind
 	targetName util.QualifiedName
-	targetKind string
 }
 
-func NewCheckUnmanagedDispatcher(clientAccessor clientAccessorFunc, targetKind string, targetName util.QualifiedName) CheckUnmanagedDispatcher {
+func NewCheckUnmanagedDispatcher(clientAccessor clientAccessorFunc, targetGVK schema.GroupVersionKind, targetName util.QualifiedName) CheckUnmanagedDispatcher {
 	dispatcher := newOperationDispatcher(clientAccessor, nil)
 	return &checkUnmanagedDispatcherImpl{
 		dispatcher: dispatcher,
+		targetGVK:  targetGVK,
 		targetName: targetName,
-		targetKind: targetKind,
 	}
 }
 
@@ -63,10 +67,12 @@ func (d *checkUnmanagedDispatcherImpl) CheckRemovedOrUnlabeled(clusterName strin
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "check for deletion of resource or removal of managed label from"
 	const opContinuous = "Checking for deletion of resource or removal of managed label from"
-	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
-		klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
+	go d.dispatcher.clusterOperation(clusterName, op, func(client generic.Client) util.ReconciliationStatus {
+		klog.V(2).Infof(eventTemplate, opContinuous, d.targetGVK.Kind, d.targetName, clusterName)
 
-		clusterObj, err := client.Resources(d.targetName.Namespace).Get(d.targetName.Name, metav1.GetOptions{})
+		clusterObj := &unstructured.Unstructured{}
+		clusterObj.SetGroupVersionKind(d.targetGVK)
+		err := client.Get(context.Background(), clusterObj, d.targetName.Namespace, d.targetName.Name)
 		if apierrors.IsNotFound(err) {
 			return util.StatusAllOK
 		}
@@ -95,5 +101,5 @@ func (d *checkUnmanagedDispatcherImpl) CheckRemovedOrUnlabeled(clusterName strin
 }
 
 func (d *checkUnmanagedDispatcherImpl) wrapOperationError(err error, clusterName, operation string) error {
-	return wrapOperationError(err, operation, d.targetKind, d.targetName.String(), clusterName)
+	return wrapOperationError(err, operation, d.targetGVK.Kind, d.targetName.String(), clusterName)
 }

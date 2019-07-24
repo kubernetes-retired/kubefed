@@ -52,10 +52,19 @@ type GenericOverride struct {
 // Namespace and name may not be overridden since these fields are the
 // primary mechanism of association between a federated resource in
 // the host cluster and the target resources in the member clusters.
+//
+// Kind should always be sourced from the FTC and not vary across
+// member clusters.
+//
+// apiVersion can be overridden to support managing resources like
+// Ingress which can exist in different groups at different
+// versions. Users will need to take care not to abuse this
+// capability.
 var invalidPaths = sets.NewString(
 	"/metadata/namespace",
 	"/metadata/name",
 	"/metadata/generateName",
+	"/kind",
 )
 
 // Slice of ClusterOverride
