@@ -108,7 +108,7 @@ $ kubectl -n kube-federation-system delete FederatedTypeConfig --all
 Delete all KubeFed CRDs:
 
 ```bash
-$ kubectl delete crd $(kubectl get crd | grep -E 'kubefed.k8s.io' | awk '{print $1}')
+$ kubectl delete crd $(kubectl get crd | grep -E 'kubefed.io' | awk '{print $1}')
 ```
 
 Then you can uninstall/delete the `kubefed` release:

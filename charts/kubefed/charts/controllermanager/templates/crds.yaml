@@ -1,4 +1,4 @@
-{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.k8s.io/v1beta1"))) }}
+{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.io/v1beta1"))) }}
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -8,9 +8,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: clusterpropagatedversions.core.kubefed.k8s.io
+  name: clusterpropagatedversions.core.kubefed.io
 spec:
-  group: core.kubefed.k8s.io
+  group: core.kubefed.io
   names:
     kind: ClusterPropagatedVersion
     plural: clusterpropagatedversions
@@ -76,9 +76,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: federatedservicestatuses.core.kubefed.k8s.io
+  name: federatedservicestatuses.core.kubefed.io
 spec:
-  group: core.kubefed.k8s.io
+  group: core.kubefed.io
   names:
     kind: FederatedServiceStatus
     plural: federatedservicestatuses
@@ -126,9 +126,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: propagatedversions.core.kubefed.k8s.io
+  name: propagatedversions.core.kubefed.io
 spec:
-  group: core.kubefed.k8s.io
+  group: core.kubefed.io
   names:
     kind: PropagatedVersion
     plural: propagatedversions
@@ -194,9 +194,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: federatedtypeconfigs.core.kubefed.k8s.io
+  name: federatedtypeconfigs.core.kubefed.io
 spec:
-  group: core.kubefed.k8s.io
+  group: core.kubefed.io
   names:
     kind: FederatedTypeConfig
     plural: federatedtypeconfigs
@@ -352,7 +352,7 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: kubefedclusters.core.kubefed.k8s.io
+  name: kubefedclusters.core.kubefed.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.conditions[?(@.type=='Ready')].status
@@ -361,7 +361,7 @@ spec:
   - JSONPath: .metadata.creationTimestamp
     name: age
     type: date
-  group: core.kubefed.k8s.io
+  group: core.kubefed.io
   names:
     kind: KubeFedCluster
     plural: kubefedclusters
@@ -471,9 +471,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: kubefedconfigs.core.kubefed.k8s.io
+  name: kubefedconfigs.core.kubefed.io
 spec:
-  group: core.kubefed.k8s.io
+  group: core.kubefed.io
   names:
     kind: KubeFedConfig
     plural: kubefedconfigs
@@ -596,9 +596,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: dnsendpoints.multiclusterdns.kubefed.k8s.io
+  name: dnsendpoints.multiclusterdns.kubefed.io
 spec:
-  group: multiclusterdns.kubefed.k8s.io
+  group: multiclusterdns.kubefed.io
   names:
     kind: DNSEndpoint
     plural: dnsendpoints
@@ -671,9 +671,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: domains.multiclusterdns.kubefed.k8s.io
+  name: domains.multiclusterdns.kubefed.io
 spec:
-  group: multiclusterdns.kubefed.k8s.io
+  group: multiclusterdns.kubefed.io
   names:
     kind: Domain
     plural: domains
@@ -719,9 +719,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: ingressdnsrecords.multiclusterdns.kubefed.k8s.io
+  name: ingressdnsrecords.multiclusterdns.kubefed.io
 spec:
-  group: multiclusterdns.kubefed.k8s.io
+  group: multiclusterdns.kubefed.io
   names:
     kind: IngressDNSRecord
     plural: ingressdnsrecords
@@ -787,9 +787,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: servicednsrecords.multiclusterdns.kubefed.k8s.io
+  name: servicednsrecords.multiclusterdns.kubefed.io
 spec:
-  group: multiclusterdns.kubefed.k8s.io
+  group: multiclusterdns.kubefed.io
   names:
     kind: ServiceDNSRecord
     plural: servicednsrecords
@@ -879,9 +879,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: replicaschedulingpreferences.scheduling.kubefed.k8s.io
+  name: replicaschedulingpreferences.scheduling.kubefed.io
 spec:
-  group: scheduling.kubefed.k8s.io
+  group: scheduling.kubefed.io
   names:
     kind: ReplicaSchedulingPreference
     plural: replicaschedulingpreferences

@@ -1,4 +1,6 @@
 # Unreleased
+-  [#1053](https://github.com/kubernetes-sigs/kubefed/pull/1053) API group
+   changed from kubefed.k8s.io to kubefed.io.
 
 # v0.1.0-rc4
 -  [#908](https://github.com/kubernetes-sigs/kubefed/issues/908) Adds admission

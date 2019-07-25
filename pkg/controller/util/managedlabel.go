@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	ManagedByKubeFedLabelKey   = "kubefed.k8s.io/managed"
+	ManagedByKubeFedLabelKey   = "kubefed.io/managed"
 	ManagedByKubeFedLabelValue = "true"
 )
 

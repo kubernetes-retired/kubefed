@@ -21,7 +21,7 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=sigs.k8s.io/kubefed/pkg/apis/core
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=core.kubefed.k8s.io
+// +groupName=core.kubefed.io
 package v1beta1
 
 import (
@@ -31,7 +31,7 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "core.kubefed.k8s.io", Version: "v1beta1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "core.kubefed.io", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}

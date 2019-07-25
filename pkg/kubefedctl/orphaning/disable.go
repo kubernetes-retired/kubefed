@@ -31,7 +31,7 @@ import (
 
 var (
 	orphaning_disable_long = `
-		Removes previously added "orphaning enable" ('kubefed.k8s.io/orphan: true')
+		Removes previously added "orphaning enable" ('kubefed.io/orphan: true')
 		annotation from a federated resource.  When the federated resource is subsequently marked for deletion,
 		the resources it manages in member clusters will be removed before the federated resource is removed.
 
@@ -44,7 +44,7 @@ var (
 		kubefedctl orphaning disable FederatedDeployment foo --host-cluster-context=cluster1`
 )
 
-// newCmdDisableOrphaning removes the 'kubefed.k8s.io/orphan: true' annotation from the federated resource
+// newCmdDisableOrphaning removes the 'kubefed.io/orphan: true' annotation from the federated resource
 func newCmdDisableOrphaning(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	opts := &orphanResource{}
 	cmd := &cobra.Command{

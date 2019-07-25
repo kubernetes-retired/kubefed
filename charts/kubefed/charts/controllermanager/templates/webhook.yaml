@@ -9,24 +9,24 @@ metadata:
 # For namespace scoped deployments, create a unique cluster-scoped resource
 # using the namespace.
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
-  name: validations.core.kubefed.k8s.io-{{ .Release.Namespace }}
+  name: validations.core.kubefed.io-{{ .Release.Namespace }}
 {{ else }}
-  name: validations.core.kubefed.k8s.io
+  name: validations.core.kubefed.io
 {{ end }}
 webhooks:
-- name: federatedtypeconfigs.core.kubefed.k8s.io
+- name: federatedtypeconfigs.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/validation.core.kubefed.k8s.io/v1beta1/federatedtypeconfigs
+      path: /apis/validation.core.kubefed.io/v1beta1/federatedtypeconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
     - CREATE
     - UPDATE
     apiGroups:
-    - core.kubefed.k8s.io
+    - core.kubefed.io
     apiVersions:
     - v1beta1
     resources:
@@ -44,19 +44,19 @@ webhooks:
     matchLabels:
       name: {{ .Release.Namespace }}
 {{ end }}
-- name: kubefedclusters.core.kubefed.k8s.io
+- name: kubefedclusters.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/validation.core.kubefed.k8s.io/v1beta1/kubefedclusters
+      path: /apis/validation.core.kubefed.io/v1beta1/kubefedclusters
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
     - CREATE
     - UPDATE
     apiGroups:
-    - core.kubefed.k8s.io
+    - core.kubefed.io
     apiVersions:
     - v1beta1
     resources:
@@ -69,19 +69,19 @@ webhooks:
     matchLabels:
       name: {{ .Release.Namespace }}
 {{ end }}
-- name: kubefedconfigs.core.kubefed.k8s.io
+- name: kubefedconfigs.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/validation.core.kubefed.k8s.io/v1beta1/kubefedconfigs
+      path: /apis/validation.core.kubefed.io/v1beta1/kubefedconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
     - CREATE
     - UPDATE
     apiGroups:
-    - core.kubefed.k8s.io
+    - core.kubefed.io
     apiVersions:
     - v1beta1
     resources:
@@ -100,23 +100,23 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
-  name: mutation.core.kubefed.k8s.io-{{ .Release.Namespace }}
+  name: mutation.core.kubefed.io-{{ .Release.Namespace }}
 {{ else }}
-  name: mutation.core.kubefed.k8s.io
+  name: mutation.core.kubefed.io
 {{ end }}
 webhooks:
-- name: kubefedconfigs.core.kubefed.k8s.io
+- name: kubefedconfigs.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/mutation.core.kubefed.k8s.io/v1beta1/kubefedconfigs
+      path: /apis/mutation.core.kubefed.io/v1beta1/kubefedconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
     - CREATE
     apiGroups:
-    - core.kubefed.k8s.io
+    - core.kubefed.io
     apiVersions:
     - v1beta1
     resources:

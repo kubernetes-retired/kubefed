@@ -53,7 +53,7 @@ const (
 	// If this finalizer is present on a federated resource, the sync
 	// controller will have the opportunity to perform pre-deletion operations
 	// (like deleting managed resources from member clusters).
-	FinalizerSyncController = "kubefed.k8s.io/sync-controller"
+	FinalizerSyncController = "kubefed.io/sync-controller"
 )
 
 // KubeFedSyncController synchronizes the state of federated resources

@@ -62,7 +62,7 @@ spec:
         image: registry.opensource.zalan.do/teapot/external-dns:latest
         args:
         - --source=crd
-        - --crd-source-apiversion=multiclusterdns.kubefed.k8s.io/v1alpha1
+        - --crd-source-apiversion=multiclusterdns.kubefed.io/v1alpha1
         - --crd-source-kind=DNSEndpoint
         - --registry=txt
         - --provider=coredns
@@ -136,7 +136,7 @@ Create `ServiceDNSRecord` to make DNS work for service.
 
 ```bash
 $ cat <<EOF | kubectl create -f -
-apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.io/v1alpha1
 kind: Domain
 metadata:
   # Corresponds to <federation> in the resource records.
@@ -146,7 +146,7 @@ metadata:
 # The domain/subdomain that is setup in your externl-dns provider.
 domain: example.com
 ---
-apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.io/v1alpha1
 kind: ServiceDNSRecord
 metadata:
   # The name of the sample service.
@@ -180,7 +180,7 @@ Create `IngressDNSRecord` to make DNS work for ingress.
 
 ```bash
 $ cat <<EOF | kubectl create -f -
-apiVersion: multiclusterdns.kubefed.k8s.io/v1alpha1
+apiVersion: multiclusterdns.kubefed.io/v1alpha1
 kind: IngressDNSRecord
 metadata:
   name: test-ingress
