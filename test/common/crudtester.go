@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
@@ -462,18 +463,9 @@ func (c *FederatedTypeCrudTester) checkPropagationStatus(fedObject *unstructured
 
 	// Retrieve the resource from the API to ensure the latest status
 	// is considered.
-	latestFedObject := &unstructured.Unstructured{}
-	latestFedObject.SetGroupVersionKind(fedObject.GroupVersionKind())
-	err := c.client.Get(context.TODO(), latestFedObject, qualifiedName.Namespace, qualifiedName.Name)
+	genericStatus, err := GetGenericStatus(c.client, fedObject.GroupVersionKind(), qualifiedName)
 	if err != nil {
-		return false, errors.Wrapf(err, "Failed to retrieve updated resource from the API")
-	}
-
-	// Convert the resource to the status interface
-	genericStatus := &status.GenericFederatedStatus{}
-	err = util.UnstructuredToInterface(latestFedObject, genericStatus)
-	if err != nil {
-		return false, errors.Wrapf(err, "Failed to unmarshall to generic status")
+		return false, err
 	}
 	if genericStatus.Status == nil {
 		c.tl.Logf("Propagation status is not yet available for %s %q", federatedKind, qualifiedName)
@@ -734,4 +726,26 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 	if err != nil {
 		c.tl.Fatalf("Timed out waiting for %s %q", statusKind, qualifiedName)
 	}
+}
+
+// GetGenericStatus retrieves a federated resource and converts it to
+// the generic status interface.
+func GetGenericStatus(client genericclient.Client, gvk schema.GroupVersionKind,
+	qualifiedName util.QualifiedName) (*status.GenericFederatedStatus, error) {
+
+	fedObject := &unstructured.Unstructured{}
+	fedObject.SetGroupVersionKind(gvk)
+	err := client.Get(context.TODO(), fedObject, qualifiedName.Namespace, qualifiedName.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to retrieve federated resource from the API")
+	}
+
+	// Convert the resource to the status struct
+	genericStatus := &status.GenericFederatedStatus{}
+	err = util.UnstructuredToInterface(fedObject, genericStatus)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to unmarshall federated resource to generic status")
+	}
+
+	return genericStatus, nil
 }

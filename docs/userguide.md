@@ -398,6 +398,7 @@ one of the following values:
 | CheckClusters          | One or more clusters is not in the desired state. |
 | ClusterRetrievalFailed | An error prevented retrieval of member clusters. |
 | ComputePlacementFailed | An error prevented computation of placement. |
+| NamespaceNotFederated  | The containing namespace is not federated. |
 
 For reasons other than `CheckClusters`, an event will be logged with
 the same reason and can be examined for more detail:
@@ -407,6 +408,9 @@ kubectl describe federatednamespace myns -n myns | grep ComputePlacementFailed
 
 Warning  ComputePlacementFailed  5m   federatednamespace-controller  Invalid selector <nil>
 ```
+
+If the reason is `NamespaceNotFederated`, the containing namespace can be
+federated by invoking `kubefedctl federate namespace <namespace name>`.
 
 #### Troubleshooting CheckClusters
 

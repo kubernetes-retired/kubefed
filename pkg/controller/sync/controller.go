@@ -84,6 +84,8 @@ type KubeFedSyncController struct {
 	hostClusterClient genericclient.Client
 
 	skipAdoptingResources bool
+
+	limitedScope bool
 }
 
 // StartKubeFedSyncController starts a new sync controller for a type config
@@ -122,6 +124,7 @@ func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfi
 		typeConfig:              typeConfig,
 		hostClusterClient:       client,
 		skipAdoptingResources:   controllerConfig.SkipAdoptingResources,
+		limitedScope:            controllerConfig.LimitedScope(),
 	}
 
 	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
@@ -383,6 +386,17 @@ func (s *KubeFedSyncController) setPropagationStatus(fedResource FederatedResour
 	kind := fedResource.FederatedKind()
 	name := fedResource.FederatedName()
 	obj := fedResource.Object()
+
+	// Only a single reason for propagation failure is reported at any one time, so only report
+	// NamespaceNotFederated if no other explicit error has been indicated.
+	if reason == status.AggregateSuccess {
+		// For a cluster-scoped control plane, report when the containing namespace of a federated
+		// resource is not federated.  The KubeFed system namespace is implicitly federated in a
+		// namespace-scoped control plane.
+		if !s.limitedScope && fedResource.NamespaceNotFederated() {
+			reason = status.NamespaceNotFederated
+		}
+	}
 
 	// If the underlying resource has changed, attempt to retrieve and
 	// update it repeatedly.

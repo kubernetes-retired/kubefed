@@ -42,6 +42,15 @@ func (t *TestContextType) RunControllers() bool {
 	return t.InMemoryControllers
 }
 
+// NamespaceScopedControlPlane indicates that the control plane is
+// effectively namespace-scoped. This may be either because in-memory
+// controllers are running namespace-scoped against a cluster-scoped
+// deployment (a debugging optimization) or if a deployed control
+// plane is running namespace-scoped.
+func (t *TestContextType) NamespaceScopedControlPlane() bool {
+	return t.InMemoryControllers && t.LimitedScopeInMemoryControllers || t.LimitedScope
+}
+
 var TestContext *TestContextType = &TestContextType{}
 
 func registerFlags(t *TestContextType) {

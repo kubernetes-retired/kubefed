@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -29,6 +30,7 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
 	"sigs.k8s.io/kubefed/test/common"
@@ -60,12 +62,54 @@ var _ = Describe("Federated", func() {
 				crudTester.CheckLifecycle(targetObject, overrides)
 			})
 
-			// Labeling behavior should not vary between types, so testing a
-			// single type is sufficient.  Picking a namespaced type minimizes
-			// the impact of teardown failure.
+			// The tests that follow only need to be executed against
+			// a single namespaced type.
 			if typeConfigName != "configmaps" {
 				return
 			}
+
+			It("should report NamespaceNotFederated in propagation status if the containing namespace is not federated", func() {
+				if framework.TestContext.NamespaceScopedControlPlane() {
+					framework.Skipf("Unable to test for NamespaceNotFederated for a namespace-scoped control plane")
+				}
+
+				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
+				// Initialize the test without creating a federated namespace.
+				crudTester, targetObject, overrides := initCrudTestWithPropagation(f, tl, typeConfig, testObjectsFunc, false)
+
+				kind := typeConfig.GetFederatedType().Kind
+
+				By(fmt.Sprintf("Creating a %s whose containing namespace is not federated", kind))
+				fedObject := crudTester.Create(targetObject, overrides)
+
+				qualifiedName := util.NewQualifiedName(fedObject)
+
+				By(fmt.Sprintf("Waiting until the status of the %s %q indicates NamespaceNotFederated", kind, qualifiedName))
+				client := genericclient.NewForConfigOrDie(f.KubeConfig())
+				err := wait.PollImmediate(framework.PollInterval, wait.ForeverTestTimeout, func() (bool, error) {
+					genericStatus, err := common.GetGenericStatus(client, fedObject.GroupVersionKind(), qualifiedName)
+					if err != nil {
+						tl.Fatalf("An error occurred retrieving the status of the %s %q: %v", kind, qualifiedName, err)
+					}
+					if genericStatus.Status == nil {
+						return false, nil
+					}
+					var propCondition *status.GenericCondition
+					for _, condition := range genericStatus.Status.Conditions {
+						if condition.Type == status.PropagationConditionType {
+							propCondition = condition
+							break
+						}
+					}
+					if propCondition == nil {
+						return false, nil
+					}
+					return propCondition.Status == apiv1.ConditionFalse && propCondition.Reason == status.NamespaceNotFederated, nil
+				})
+				if err != nil {
+					tl.Fatalf("Error waiting for %s %q to have propagation status NamespaceNotFederated: %v", kind, qualifiedName, err)
+				}
+			})
 
 			It("should have the managed label removed if not managed", func() {
 				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
@@ -232,11 +276,19 @@ func initCrudTest(f framework.KubeFedFramework, tl common.TestLogger,
 	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) (
 	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
 
+	return initCrudTestWithPropagation(f, tl, typeConfig, testObjectsFunc, true)
+}
+
+func initCrudTestWithPropagation(f framework.KubeFedFramework, tl common.TestLogger,
+	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor,
+	ensureNamespacePropagation bool) (
+	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
+
 	// Initialize in-memory controllers if configuration requires
 	fixture := f.SetUpSyncControllerFixture(typeConfig)
 	f.RegisterFixture(fixture)
 
-	if typeConfig.GetNamespaced() {
+	if typeConfig.GetNamespaced() && ensureNamespacePropagation {
 		// Propagation of namespaced types to member clusters depends on
 		// their containing namespace being propagated.
 		f.EnsureTestNamespacePropagation()
