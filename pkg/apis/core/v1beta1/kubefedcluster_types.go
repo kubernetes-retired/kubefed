@@ -23,6 +23,14 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 )
 
+type TLSValidation string
+
+const (
+	TLSAll            TLSValidation = "*"
+	TLSSubjectName    TLSValidation = "SubjectName"
+	TLSValidityPeriod TLSValidation = "ValidityPeriod"
+)
+
 // KubeFedClusterSpec defines the desired state of KubeFedCluster
 type KubeFedClusterSpec struct {
 	// The API endpoint of the member cluster. This can be a hostname,
@@ -37,6 +45,12 @@ type KubeFedClusterSpec struct {
 	// member cluster. The secret needs to exist in the same namespace
 	// as the control plane and should have a "token" key.
 	SecretRef LocalSecretReference `json:"secretRef"`
+
+	// DisabledTLSValidations defines a list of checks to ignore when validating
+	// the TLS connection to the member cluster.  This can be any of *, SubjectName, or ValidityPeriod.
+	// If * is specified, it is expected to be the only option in list.
+	// +optional
+	DisabledTLSValidations []TLSValidation `json:"disabledTLSValidations,omitempty"`
 }
 
 // LocalSecretReference is a reference to a secret within the enclosing

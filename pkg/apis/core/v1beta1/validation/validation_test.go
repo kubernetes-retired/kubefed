@@ -536,6 +536,55 @@ func TestValidateLocalSecretReference(t *testing.T) {
 	}
 }
 
+func TestDisabledTLSValidations(t *testing.T) {
+	testCases := []struct {
+		disabledTLSValidations []v1beta1.TLSValidation
+		expectedErr            bool
+		expectedErrMsg         string
+	}{
+		{
+			[]v1beta1.TLSValidation{},
+			false,
+			"",
+		},
+		{
+			[]v1beta1.TLSValidation{v1beta1.TLSAll},
+			false,
+			"",
+		},
+		{
+			[]v1beta1.TLSValidation{v1beta1.TLSSubjectName},
+			false,
+			"",
+		},
+		{
+			[]v1beta1.TLSValidation{v1beta1.TLSValidityPeriod},
+			false,
+			"",
+		},
+		{
+			[]v1beta1.TLSValidation{v1beta1.TLSSubjectName, v1beta1.TLSAll},
+			true,
+			"when * is specified, it is expected to be the only option in list",
+		},
+		{
+			[]v1beta1.TLSValidation{v1beta1.TLSAll, v1beta1.TLSValidityPeriod},
+			true,
+			"when * is specified, it is expected to be the only option in list",
+		},
+	}
+
+	for _, test := range testCases {
+		errs := validateDisabledTLSValidations(test.disabledTLSValidations, field.NewPath("disabledTLSValidations"))
+		hasErr := len(errs) > 0
+		if hasErr && hasErr != test.expectedErr {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else if hasErr && !strings.Contains(errs[0].Error(), test.expectedErrMsg) {
+			t.Errorf("unexpected error: %v, expected: %q", errs[0].Error(), test.expectedErrMsg)
+		}
+	}
+}
+
 func TestValidateClusterCondition(t *testing.T) {
 	testCases := []struct {
 		cc             *v1beta1.ClusterCondition

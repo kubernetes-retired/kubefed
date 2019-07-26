@@ -162,6 +162,7 @@ func ValidateKubeFedCluster(obj *v1beta1.KubeFedCluster, statusSubResource bool)
 func validateKubeFedClusterSpec(spec *v1beta1.KubeFedClusterSpec, path *field.Path) field.ErrorList {
 	allErrs := validateAPIEndpoint(spec.APIEndpoint, path.Child("apiEndpoint"))
 	allErrs = append(allErrs, validateLocalSecretReference(&spec.SecretRef, path.Child("secretRef"))...)
+	allErrs = append(allErrs, validateDisabledTLSValidations(spec.DisabledTLSValidations, path.Child("disabledTLSValidations"))...)
 	return allErrs
 }
 
@@ -217,6 +218,26 @@ func validateLocalSecretReference(secretRef *v1beta1.LocalSecretReference, path 
 	} else if errs := valutil.IsDNS1123Subdomain(secretRef.Name); errs != nil {
 		allErrs = append(allErrs, field.Invalid(path.Child("name"), secretRef.Name, strings.Join(errs, ",")))
 	}
+	return allErrs
+}
+
+func validateDisabledTLSValidations(disabledTLSValidations []v1beta1.TLSValidation, path *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	var disableAll bool
+	for _, value := range disabledTLSValidations {
+		// check if All appears in any position of the DisabledTLSValidations slice
+		if value == v1beta1.TLSAll {
+			disableAll = true
+		}
+		allErrs = append(allErrs, validateEnumStrings(path, string(value),
+			[]string{string(v1beta1.TLSAll), string(v1beta1.TLSSubjectName), string(v1beta1.TLSValidityPeriod)})...)
+	}
+	// return an error on the spec.DisabledTLSValidations if All appeared in a list with multiple options
+	if disableAll && len(disabledTLSValidations) > 1 {
+		allErrs = append(allErrs, field.Invalid(path, disabledTLSValidations, "when * is specified, it is expected to be the only option in list"))
+	}
+
 	return allErrs
 }
 
