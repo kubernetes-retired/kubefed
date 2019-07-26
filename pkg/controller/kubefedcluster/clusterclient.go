@@ -42,6 +42,16 @@ const (
 	// Following labels come from k8s.io/kubernetes/pkg/kubelet/apis
 	LabelZoneFailureDomain = "failure-domain.beta.kubernetes.io/zone"
 	LabelZoneRegion        = "failure-domain.beta.kubernetes.io/region"
+
+	// Common ClusterConditions for KubeFedClusterStatus
+	ClusterReady              = "ClusterReady"
+	HealthzOk                 = "/healthz responded with ok"
+	ClusterNotReady           = "ClusterNotReady"
+	HealthzNotOk              = "/healthz responded without ok"
+	ClusterNotReachableReason = "ClusterNotReachable"
+	ClusterNotReachableMsg    = "cluster is not reachable"
+	ClusterReachableReason    = "ClusterReachable"
+	ClusterReachableMsg       = "cluster is reachable"
 )
 
 // ClusterClient provides methods for determining the status and zones of a
@@ -74,37 +84,45 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 func (self *ClusterClient) GetClusterHealthStatus() *fedv1b1.KubeFedClusterStatus {
 	clusterStatus := fedv1b1.KubeFedClusterStatus{}
 	currentTime := metav1.Now()
+	clusterReady := ClusterReady
+	healthzOk := HealthzOk
 	newClusterReadyCondition := fedv1b1.ClusterCondition{
 		Type:               fedcommon.ClusterReady,
 		Status:             corev1.ConditionTrue,
-		Reason:             "ClusterReady",
-		Message:            "/healthz responded with ok",
+		Reason:             &clusterReady,
+		Message:            &healthzOk,
 		LastProbeTime:      currentTime,
-		LastTransitionTime: currentTime,
+		LastTransitionTime: &currentTime,
 	}
+	clusterNotReady := ClusterNotReady
+	healthzNotOk := HealthzNotOk
 	newClusterNotReadyCondition := fedv1b1.ClusterCondition{
 		Type:               fedcommon.ClusterReady,
 		Status:             corev1.ConditionFalse,
-		Reason:             "ClusterNotReady",
-		Message:            "/healthz responded without ok",
+		Reason:             &clusterNotReady,
+		Message:            &healthzNotOk,
 		LastProbeTime:      currentTime,
-		LastTransitionTime: currentTime,
+		LastTransitionTime: &currentTime,
 	}
+	clusterNotReachableReason := ClusterNotReachableReason
+	clusterNotReachableMsg := ClusterNotReachableMsg
 	newClusterOfflineCondition := fedv1b1.ClusterCondition{
 		Type:               fedcommon.ClusterOffline,
 		Status:             corev1.ConditionTrue,
-		Reason:             "ClusterNotReachable",
-		Message:            "cluster is not reachable",
+		Reason:             &clusterNotReachableReason,
+		Message:            &clusterNotReachableMsg,
 		LastProbeTime:      currentTime,
-		LastTransitionTime: currentTime,
+		LastTransitionTime: &currentTime,
 	}
+	clusterReachableReason := ClusterReachableReason
+	clusterReachableMsg := ClusterReachableMsg
 	newClusterNotOfflineCondition := fedv1b1.ClusterCondition{
 		Type:               fedcommon.ClusterOffline,
 		Status:             corev1.ConditionFalse,
-		Reason:             "ClusterReachable",
-		Message:            "cluster is reachable",
+		Reason:             &clusterReachableReason,
+		Message:            &clusterReachableMsg,
 		LastProbeTime:      currentTime,
-		LastTransitionTime: currentTime,
+		LastTransitionTime: &currentTime,
 	}
 	body, err := self.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do().Raw()
 	if err != nil {

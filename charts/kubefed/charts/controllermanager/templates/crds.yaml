@@ -455,6 +455,8 @@ spec:
           required:
           - conditions
           type: object
+      required:
+      - spec
   version: v1beta1
 status:
   acceptedNames:

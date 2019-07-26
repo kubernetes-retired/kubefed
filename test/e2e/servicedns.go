@@ -94,7 +94,7 @@ var _ = Describe("ServiceDNS", func() {
 		for _, clusterName := range f.ClusterNames(userAgent) {
 			serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
 				Cluster: clusterName,
-				Region:  clusterRegionZones[clusterName].Region,
+				Region:  *clusterRegionZones[clusterName].Region,
 				Zones:   clusterRegionZones[clusterName].Zones,
 			})
 		}
@@ -139,7 +139,7 @@ var _ = Describe("ServiceDNS", func() {
 			endpoints := []*dnsv1a1.Endpoint{}
 			for _, cluster := range serviceDNS.Status.DNS {
 				zones := clusterRegionZones[cluster.Cluster].Zones
-				region := clusterRegionZones[cluster.Cluster].Region
+				region := *clusterRegionZones[cluster.Cluster].Region
 				lbs := dnsendpoint.ExtractLoadBalancerTargets(cluster.LoadBalancer)
 
 				endpoint := common.NewDNSEndpoint(
@@ -188,7 +188,7 @@ func createClusterServiceAndEndpoints(f framework.KubeFedFramework, name, namesp
 		serviceDNSStatus.DNS = append(serviceDNSStatus.DNS, dnsv1a1.ClusterDNS{
 			Cluster:      clusterName,
 			LoadBalancer: loadbalancerStatus,
-			Region:       clusterRegionZones[clusterName].Region,
+			Region:       *clusterRegionZones[clusterName].Region,
 			Zones:        clusterRegionZones[clusterName].Zones,
 		})
 
@@ -226,7 +226,8 @@ func ensureClustersHaveRegionZoneAttributes(tl common.TestLogger, client generic
 	clusterRegionZones := make(map[string]fedv1b1.KubeFedClusterStatus)
 	for i, cluster := range clusters.Items {
 		err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-			cluster.Status.Region = fmt.Sprintf("r%d", i)
+			region := fmt.Sprintf("r%d", i)
+			cluster.Status.Region = &region
 			cluster.Status.Zones = []string{fmt.Sprintf("z%d", i)}
 
 			err := client.UpdateStatus(context.TODO(), &cluster)

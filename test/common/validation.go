@@ -24,10 +24,20 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 )
 
 func ValidKubeFedCluster() *v1beta1.KubeFedCluster {
 	lastProbeTime := time.Now()
+	clusterReady := kubefedcluster.ClusterReady
+	healthzOk := kubefedcluster.HealthzOk
+	clusterNotReady := kubefedcluster.ClusterNotReady
+	healthzNotOk := kubefedcluster.HealthzNotOk
+	clusterNotReachableReason := kubefedcluster.ClusterNotReachableReason
+	clusterNotReachableMsg := kubefedcluster.ClusterNotReachableMsg
+	clusterReachableReason := kubefedcluster.ClusterReachableReason
+	clusterReachableMsg := kubefedcluster.ClusterReachableMsg
+	region := "us-west1"
 	return &v1beta1.KubeFedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "validation-test-cluster",
@@ -46,11 +56,35 @@ func ValidKubeFedCluster() *v1beta1.KubeFedCluster {
 					LastProbeTime: metav1.Time{
 						Time: lastProbeTime,
 					},
-					LastTransitionTime: metav1.Time{
+					LastTransitionTime: &metav1.Time{
 						Time: lastProbeTime,
 					},
-					Reason:  "ClusterReady",
-					Message: "/healthz responded with ok",
+					Reason:  &clusterReady,
+					Message: &healthzOk,
+				},
+				{
+					Type:   common.ClusterReady,
+					Status: corev1.ConditionFalse,
+					LastProbeTime: metav1.Time{
+						Time: lastProbeTime,
+					},
+					LastTransitionTime: &metav1.Time{
+						Time: lastProbeTime,
+					},
+					Reason:  &clusterNotReady,
+					Message: &healthzNotOk,
+				},
+				{
+					Type:   common.ClusterOffline,
+					Status: corev1.ConditionTrue,
+					LastProbeTime: metav1.Time{
+						Time: lastProbeTime,
+					},
+					LastTransitionTime: &metav1.Time{
+						Time: lastProbeTime,
+					},
+					Reason:  &clusterNotReachableReason,
+					Message: &clusterNotReachableMsg,
 				},
 				{
 					Type:   common.ClusterOffline,
@@ -58,15 +92,15 @@ func ValidKubeFedCluster() *v1beta1.KubeFedCluster {
 					LastProbeTime: metav1.Time{
 						Time: lastProbeTime,
 					},
-					LastTransitionTime: metav1.Time{
+					LastTransitionTime: &metav1.Time{
 						Time: lastProbeTime,
 					},
-					Reason:  "ClusterReachable",
-					Message: "cluster is reachable",
+					Reason:  &clusterReachableReason,
+					Message: &clusterReachableMsg,
 				},
 			},
 			Zones:  []string{"us-west1-a", "us-west1-b"},
-			Region: "us-west1",
+			Region: &region,
 		},
 	}
 }

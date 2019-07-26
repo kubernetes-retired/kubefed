@@ -255,7 +255,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 	} else {
 		if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
 			// preserve the last transition time
-			setTransitionTime(clusterStatus, storedData.clusterStatus.Conditions[0].LastTransitionTime)
+			setTransitionTime(clusterStatus, *storedData.clusterStatus.Conditions[0].LastTransitionTime)
 		}
 	}
 
@@ -288,11 +288,11 @@ func updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cl
 	if len(zones) == 0 {
 		zones = cluster.Status.Zones
 	}
-	if len(region) == 0 {
-		region = cluster.Status.Region
+	if len(region) == 0 && cluster.Status.Region != nil {
+		region = *cluster.Status.Region
 	}
 	clusterStatus.Zones = zones
-	clusterStatus.Region = region
+	clusterStatus.Region = &region
 	return clusterStatus
 }
 
@@ -308,6 +308,6 @@ func setProbeTime(clusterStatus *fedv1b1.KubeFedClusterStatus, probeTime metav1.
 
 func setTransitionTime(clusterStatus *fedv1b1.KubeFedClusterStatus, transitionTime metav1.Time) {
 	for i := 0; i < len(clusterStatus.Conditions); i++ {
-		clusterStatus.Conditions[i].LastTransitionTime = transitionTime
+		clusterStatus.Conditions[i].LastTransitionTime = &transitionTime
 	}
 }
