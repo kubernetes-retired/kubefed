@@ -328,7 +328,7 @@ kubefedctl federate namespace my-namespace --contents --skip-api-resources "conf
 `kubefedctl federate` allows optionally enabling the given `<target kubernetes API type>` before
 federating the resource by supplying the `--enable-type flag`. This will enable federation of the
 target type if it is not already enabled. It's recommended to use
-[`kubefectl enable`](#enabling-federation-of-an-api-type) beforehand if the intention is to
+[`kubefedctl enable`](#enabling-federation-of-an-api-type) beforehand if the intention is to
 specify non default type configuration values.
 
 ***Example:***
