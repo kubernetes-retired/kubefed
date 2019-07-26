@@ -46,7 +46,7 @@
 
 %global package_name kubefed-client
 %global product_name Kubefed Client
-%global import_path github\.com\/openshift\/kubefed # GO_PACKAGE
+%global import_path github.com/openshift/kubefed # GO_PACKAGE
 
 Name:           %{package_name}
 Version:        %{version}
@@ -71,11 +71,18 @@ ExclusiveArch:  x86_64 aarch64 ppc64le s390x
 This package provides the kubefed-client binary (kubefedctl) to interact with the kubefed controller
 
 %prep
-%if 0%{do_prep}
+GOPATH=$RPM_BUILD_DIR/go
+rm -rf $GOPATH
+mkdir -p $GOPATH/src/%{import_path}
 %setup -q
-%endif
+DIR=$RPM_BUILD_DIR/kubefed-client*
+mv $DIR/*  $GOPATH/src/github.com/openshift/kubefed/
+ln -s $GOPATH/src/github.com/openshift/kubefed $DIR
 
 %build
+export GOPATH=$RPM_BUILD_DIR/go
+cd $GOPATH/src/github.com/openshift/kubefed
+ln -s $GOPATH/sigs.k8s.io/kubefed $GOPATH/src/%{import_path}
 %if 0%{do_build}
 %if 0%{make_redistributable}
 # Create Binaries for all internally defined arches
