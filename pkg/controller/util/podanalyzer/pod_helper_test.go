@@ -17,7 +17,6 @@ limitations under the License.
 package podanalyzer
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 
 	api_v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -58,14 +56,14 @@ func TestAnalyze(t *testing.T) {
 			Conditions: []api_v1.PodCondition{},
 		})
 
-	result := AnalyzePods(&unstructured.UnstructuredList{Items: []unstructured.Unstructured{*podRunning, *podRunning, *podRunning, *podUnschedulable, *podUnschedulable}}, now)
+	result := AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podRunning, *podRunning, *podRunning, *podUnschedulable, *podUnschedulable}}, now)
 	assert.Equal(t, PodAnalysisResult{
 		Total:           5,
 		RunningAndReady: 3,
 		Unschedulable:   2,
 	}, result)
 
-	result = AnalyzePods(&unstructured.UnstructuredList{Items: []unstructured.Unstructured{*podOther}}, now)
+	result = AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podOther}}, now)
 	assert.Equal(t, PodAnalysisResult{
 		Total:           1,
 		RunningAndReady: 0,
@@ -73,8 +71,8 @@ func TestAnalyze(t *testing.T) {
 	}, result)
 }
 
-func newPod(t *testing.T, name string, status api_v1.PodStatus) *unstructured.Unstructured {
-	pod := &api_v1.Pod{
+func newPod(t *testing.T, name string, status api_v1.PodStatus) *api_v1.Pod {
+	return &api_v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "pod",
 			APIVersion: "v1",
@@ -85,11 +83,4 @@ func newPod(t *testing.T, name string, status api_v1.PodStatus) *unstructured.Un
 		},
 		Status: status,
 	}
-
-	uP := &unstructured.Unstructured{}
-	pMarshalled, err := json.Marshal(pod)
-	assert.NoError(t, err)
-	assert.NoError(t, uP.UnmarshalJSON(pMarshalled))
-
-	return uP
 }

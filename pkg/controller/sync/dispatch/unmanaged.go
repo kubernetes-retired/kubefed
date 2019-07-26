@@ -17,14 +17,17 @@ limitations under the License.
 package dispatch
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -43,22 +46,22 @@ type UnmanagedDispatcher interface {
 type unmanagedDispatcherImpl struct {
 	dispatcher *operationDispatcherImpl
 
+	targetGVK  schema.GroupVersionKind
 	targetName util.QualifiedName
-	targetKind string
 
 	recorder dispatchRecorder
 }
 
-func NewUnmanagedDispatcher(clientAccessor clientAccessorFunc, targetKind string, targetName util.QualifiedName) UnmanagedDispatcher {
+func NewUnmanagedDispatcher(clientAccessor clientAccessorFunc, targetGVK schema.GroupVersionKind, targetName util.QualifiedName) UnmanagedDispatcher {
 	dispatcher := newOperationDispatcher(clientAccessor, nil)
-	return newUnmanagedDispatcher(dispatcher, nil, targetKind, targetName)
+	return newUnmanagedDispatcher(dispatcher, nil, targetGVK, targetName)
 }
 
-func newUnmanagedDispatcher(dispatcher *operationDispatcherImpl, recorder dispatchRecorder, targetKind string, targetName util.QualifiedName) *unmanagedDispatcherImpl {
+func newUnmanagedDispatcher(dispatcher *operationDispatcherImpl, recorder dispatchRecorder, targetGVK schema.GroupVersionKind, targetName util.QualifiedName) *unmanagedDispatcherImpl {
 	return &unmanagedDispatcherImpl{
 		dispatcher: dispatcher,
+		targetGVK:  targetGVK,
 		targetName: targetName,
-		targetKind: targetKind,
 		recorder:   recorder,
 	}
 }
@@ -71,14 +74,16 @@ func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "delete"
 	const opContinuous = "Deleting"
-	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
+	go d.dispatcher.clusterOperation(clusterName, op, func(client generic.Client) util.ReconciliationStatus {
 		if d.recorder == nil {
-			klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
+			klog.V(2).Infof(eventTemplate, opContinuous, d.targetGVK.Kind, d.targetName, clusterName)
 		} else {
 			d.recorder.recordEvent(clusterName, op, opContinuous)
 		}
 
-		err := client.Resources(d.targetName.Namespace).Delete(d.targetName.Name, &metav1.DeleteOptions{})
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(d.targetGVK)
+		err := client.Delete(context.Background(), obj, d.targetName.Namespace, d.targetName.Name)
 		if apierrors.IsNotFound(err) {
 			err = nil
 		}
@@ -99,9 +104,9 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "remove managed label from"
 	const opContinuous = "Removing managed label from"
-	go d.dispatcher.clusterOperation(clusterName, op, func(client util.ResourceClient) util.ReconciliationStatus {
+	go d.dispatcher.clusterOperation(clusterName, op, func(client generic.Client) util.ReconciliationStatus {
 		if d.recorder == nil {
-			klog.V(2).Infof(eventTemplate, opContinuous, d.targetKind, d.targetName, clusterName)
+			klog.V(2).Infof(eventTemplate, opContinuous, d.targetGVK.Kind, d.targetName, clusterName)
 		} else {
 			d.recorder.recordEvent(clusterName, op, opContinuous)
 		}
@@ -111,7 +116,7 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 
 		util.RemoveManagedLabel(updateObj)
 
-		_, err := client.Resources(updateObj.GetNamespace()).Update(updateObj, metav1.UpdateOptions{})
+		err := client.Update(context.Background(), updateObj)
 		if err != nil {
 			if d.recorder == nil {
 				wrappedErr := d.wrapOperationError(err, clusterName, op)
@@ -126,7 +131,7 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 }
 
 func (d *unmanagedDispatcherImpl) wrapOperationError(err error, clusterName, operation string) error {
-	return wrapOperationError(err, operation, d.targetKind, d.targetName.String(), clusterName)
+	return wrapOperationError(err, operation, d.targetGVK.Kind, d.targetName.String(), clusterName)
 }
 
 func wrapOperationError(err error, operation, targetKind, targetName, clusterName string) error {

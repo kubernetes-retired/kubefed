@@ -1,4 +1,10 @@
 # Unreleased
+-  [#1052](https://github.com/kubernetes-sigs/kubefed/pull/1052)
+   Support has been added for varying the `apiVersion` of target
+   resources. This is intended to allow a federated type to manage
+   more than one version of the target type across member clusters.
+   `apiVersion` can be set either in the template of a federated
+   resource or via override.
 -  [#951](https://github.com/kubernetes-sigs/kubefed/issues/951)
    Propagation status for a namespaced federated resource whose
    containing namespace is not federated now indicates an unhealthy

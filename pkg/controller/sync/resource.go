@@ -26,8 +26,10 @@ import (
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 
@@ -84,6 +86,11 @@ func (r *federatedResource) TargetName() util.QualifiedName {
 
 func (r *federatedResource) TargetKind() string {
 	return r.typeConfig.GetTargetType().Kind
+}
+
+func (r *federatedResource) TargetGVK() schema.GroupVersionKind {
+	apiResource := r.typeConfig.GetTargetType()
+	return apiResourceToGVK(&apiResource)
 }
 
 func (r *federatedResource) Object() *unstructured.Unstructured {
@@ -191,7 +198,12 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 	}
 	targetApiResource := r.typeConfig.GetTargetType()
 	obj.SetKind(targetApiResource.Kind)
-	obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
+
+	// If the template does not specify an api version, default it to
+	// the one configured for the target type in the FTC.
+	if len(obj.GetAPIVersion()) == 0 {
+		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
+	}
 
 	return obj, nil
 }
@@ -282,4 +294,12 @@ func hashUnstructured(obj *unstructured.Unstructured, description string) (strin
 	}
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func apiResourceToGVK(apiResource *metav1.APIResource) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   apiResource.Group,
+		Version: apiResource.Version,
+		Kind:    apiResource.Kind,
+	}
 }
