@@ -18,19 +18,27 @@ package kubefedcluster
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	kubeclient "k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	genscheme "sigs.k8s.io/kubefed/pkg/client/generic/scheme"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
 )
@@ -70,6 +78,8 @@ type ClusterController struct {
 	// fedNamespace is the name of the namespace containing
 	// KubeFedCluster resources and their associated secrets.
 	fedNamespace string
+
+	eventRecorder record.EventRecorder
 }
 
 // StartClusterController starts a new cluster controller.
@@ -95,6 +105,13 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 		clusterDataMap:           make(map[string]*ClusterData),
 		fedNamespace:             config.KubeFedNamespace,
 	}
+
+	kubeClient := kubeclient.NewForConfigOrDie(kubeConfig)
+	broadcaster := record.NewBroadcaster()
+	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	recorder := broadcaster.NewRecorder(genscheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("kubefedcluster-controller")})
+	cc.eventRecorder = recorder
+
 	var err error
 	_, cc.clusterController, err = util.NewGenericInformerWithEventHandler(
 		config.KubeConfig,
@@ -159,11 +176,13 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	if clusterData != nil && clusterData.clusterKubeClient != nil {
 		return
 	}
+
 	klog.V(1).Infof("ClusterController observed a new cluster: %v", obj.Name)
+
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
 	if err != nil || restClient == nil {
-		klog.Errorf("Failed to create corresponding restclient of kubernetes cluster: %v", err)
+		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this cluster may be malformed"))
 		return
 	}
 	cc.clusterDataMap[obj.Name] = &ClusterData{clusterKubeClient: restClient, cachedObj: obj.DeepCopy()}
@@ -219,11 +238,15 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	storedData *ClusterData, wg *sync.WaitGroup) {
 	clusterClient := storedData.clusterKubeClient
 
-	currentClusterStatus := clusterClient.GetClusterHealthStatus()
+	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
+	if err != nil {
+		cc.RecordError(cluster, "RetrievingClusterHealthFailed", errors.Wrap(err, "Failed to retrieve health of the cluster"))
+	}
+
 	currentClusterStatus = thresholdAdjustedClusterStatus(currentClusterStatus, storedData, cc.clusterHealthCheckConfig)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		currentClusterStatus = updateClusterZonesAndRegion(currentClusterStatus, cluster, clusterClient)
+		currentClusterStatus = cc.updateClusterZonesAndRegion(currentClusterStatus, cluster, clusterClient)
 	}
 
 	storedData.clusterStatus = currentClusterStatus
@@ -232,6 +255,10 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
 	}
 	wg.Done()
+}
+
+func (cc *ClusterController) RecordError(cluster runtime.Object, errorCode string, err error) {
+	cc.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, errorCode, err.Error())
 }
 
 func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus, storedData *ClusterData,
@@ -270,7 +297,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 	return clusterStatus
 }
 
-func updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cluster *fedv1b1.KubeFedCluster,
+func (cc *ClusterController) updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cluster *fedv1b1.KubeFedCluster,
 	clusterClient *ClusterClient) *fedv1b1.KubeFedClusterStatus {
 
 	if !util.IsClusterReady(clusterStatus) {
@@ -279,7 +306,7 @@ func updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cl
 
 	zones, region, err := clusterClient.GetClusterZones()
 	if err != nil {
-		klog.Warningf("Failed to get zones and region for cluster %q: %v", clusterClient.clusterName, err)
+		cc.RecordError(cluster, "RetrievingRegionZonesFailed", errors.Wrap(err, "Failed to get zones and region for the cluster"))
 		return clusterStatus
 	}
 
