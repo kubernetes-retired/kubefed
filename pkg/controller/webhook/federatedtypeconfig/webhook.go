@@ -65,7 +65,7 @@ func (a *FederatedTypeConfigAdmissionHook) Validate(admissionSpec *admissionv1be
 	}
 
 	admittingObject := &v1beta1.FederatedTypeConfig{}
-	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
 	if err != nil {
 		return status
 	}

@@ -68,9 +68,18 @@ func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.Ad
 	}
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
 	if err != nil {
 		return status
+	}
+
+	var oldObject *v1beta1.KubeFedConfig
+	if admissionSpec.Operation == admissionv1beta1.Update {
+		oldObject = &v1beta1.KubeFedConfig{}
+		err = webhook.Unmarshal(&admissionSpec.OldObject, oldObject, status)
+		if err != nil {
+			return status
+		}
 	}
 
 	if !webhook.Initialized(&a.initialized, &a.lock, status) {
@@ -80,7 +89,7 @@ func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.Ad
 	klog.V(4).Infof("Validating %q = %+v", ResourceName, *admittingObject)
 
 	webhook.Validate(status, func() field.ErrorList {
-		return validation.ValidateKubeFedConfig(admittingObject)
+		return validation.ValidateKubeFedConfig(admittingObject, oldObject)
 	})
 
 	return status
@@ -98,7 +107,7 @@ func (a *KubeFedConfigAdmissionHook) Admit(admissionSpec *admissionv1beta1.Admis
 	klog.V(4).Infof("Admitting %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
 	if err != nil {
 		return status
 	}

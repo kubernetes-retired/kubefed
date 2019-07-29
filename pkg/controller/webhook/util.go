@@ -24,6 +24,7 @@ import (
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/dynamic"
@@ -70,8 +71,8 @@ func Allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string, st
 	return false
 }
 
-func Unmarshal(a *admissionv1beta1.AdmissionRequest, object interface{}, status *admissionv1beta1.AdmissionResponse) error {
-	err := json.Unmarshal(a.Object.Raw, object)
+func Unmarshal(rawExt *runtime.RawExtension, object interface{}, status *admissionv1beta1.AdmissionResponse) error {
+	err := json.Unmarshal(rawExt.Raw, object)
 	if err != nil {
 		status.Allowed = false
 		status.Result = &metav1.Status{
