@@ -233,6 +233,14 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		c.stopController(statusKey, statusStopChan)
 	}
 
+	if !startNewSyncController && !stopSyncController &&
+		typeConfig.Status.ObservedGeneration != typeConfig.Generation {
+		if err := c.refreshSyncController(typeConfig); err != nil {
+			runtime.HandleError(err)
+			return util.StatusError
+		}
+	}
+
 	typeConfig.Status.ObservedGeneration = typeConfig.Generation
 	syncControllerRunning := startNewSyncController || (syncRunning && !stopSyncController)
 	if syncControllerRunning {
@@ -348,6 +356,17 @@ func (c *Controller) stopController(key string, stopChan chan struct{}) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	delete(c.stopChannels, key)
+}
+
+func (c *Controller) refreshSyncController(tc *corev1b1.FederatedTypeConfig) error {
+	klog.Infof("refreshing sync controller for %q", tc.Name)
+
+	syncStopChan, ok := c.getStopChannel(tc.Name)
+	if ok {
+		c.stopController(tc.Name, syncStopChan)
+	}
+
+	return c.startSyncController(tc)
 }
 
 func (c *Controller) ensureFinalizer(tc *corev1b1.FederatedTypeConfig) (bool, error) {
