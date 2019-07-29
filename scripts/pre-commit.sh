@@ -33,7 +33,7 @@ E2E_TEST_CMD="${COMMON_TEST_CMD} ${COMMON_TEST_ARGS}"
 # Disable limited scope in-memory controllers to ensure the controllers in the
 # race detection test behave consistently with deployed controllers for a
 # given control plane scope.
-IN_MEMORY_E2E_TEST_CMD="${COMMON_TEST_CMD} -race ${COMMON_TEST_ARGS} -in-memory-controllers=true -limited-scope-in-memory-controllers=false"
+IN_MEMORY_E2E_TEST_CMD="${COMMON_TEST_CMD} -timeout 900s -race ${COMMON_TEST_ARGS} -in-memory-controllers=true -limited-scope-in-memory-controllers=false"
 
 function build-binaries() {
   ${MAKE_CMD} hyperfed
