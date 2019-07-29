@@ -73,16 +73,15 @@ This package provides the kubefed-client binary (kubefedctl) to interact with th
 %prep
 GOPATH=$RPM_BUILD_DIR/go
 rm -rf $GOPATH
-mkdir -p $GOPATH/src/%{import_path}
+mkdir -p $GOPATH/src/sigs.k8s.io/kubefed
 %setup -q
 DIR=$RPM_BUILD_DIR/kubefed-client*
-mv $DIR/*  $GOPATH/src/github.com/openshift/kubefed/
-ln -s $GOPATH/src/github.com/openshift/kubefed $DIR
+mv $DIR/*  $GOPATH/src/sigs.k8s.io/kubefed/
+ln -s $GOPATH/src/sigs.k8s.io/kubefed/kubefed $DIR
 
 %build
 export GOPATH=$RPM_BUILD_DIR/go
-cd $GOPATH/src/github.com/openshift/kubefed
-ln -s $GOPATH/sigs.k8s.io/kubefed $GOPATH/src/%{import_path}
+cd $GOPATH/src/sigs.k8s.io/kubefed
 %if 0%{do_build}
 %if 0%{make_redistributable}
 # Create Binaries for all internally defined arches
