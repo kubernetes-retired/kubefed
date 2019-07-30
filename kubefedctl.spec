@@ -74,7 +74,10 @@ This package provides the kubefed-client binary (kubefedctl) to interact with th
 GOPATH=$RPM_BUILD_DIR/go
 rm -rf $GOPATH
 mkdir -p $GOPATH/src/sigs.k8s.io/kubefed
-%setup -q
+cd $RPM_BUILD_DIR
+rm -rf kubefed-client*
+tar -xzmf %{_sourcedir}/kubefed-client*
+cd kubefed-client*
 DIR=$RPM_BUILD_DIR/kubefed-client*
 mv $DIR/*  $GOPATH/src/sigs.k8s.io/kubefed/
 ln -s $GOPATH/src/sigs.k8s.io/kubefed/kubefed $DIR
