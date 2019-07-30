@@ -165,7 +165,8 @@ func (j *joinFederation) Complete(args []string) error {
 
 // Run is the implementation of the `join` command.
 func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
-	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
+	hostClientConfig := config.GetClientConfig(j.HostClusterContext, j.Kubeconfig)
+	hostConfig, err := hostClientConfig.ClientConfig()
 	if err != nil {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
@@ -182,6 +183,16 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	if err != nil {
 		klog.V(2).Infof("Failed to get joining cluster config: %v", err)
 		return err
+	}
+
+	// Set HostClusterContext as current context in kube config if it is not set
+	if j.HostClusterContext == "" {
+		rawConfig, err := hostClientConfig.RawConfig()
+		if err != nil {
+			klog.V(2).Infof("Failed to get current context in host client config")
+			return err
+		}
+		j.HostClusterContext = rawConfig.CurrentContext
 	}
 
 	hostClusterName := j.HostClusterContext
