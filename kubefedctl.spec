@@ -113,7 +113,7 @@ OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} make -f openshift/Mak
 %install
 install -d %{buildroot}%{_bindir}
 
-install -p -m 755 $RPM_BUILD_DIR/go/bin/kubefedctl* %{buildroot}%{_bindir}/kubefedctl
+install -p -m 755 $RPM_BUILD_DIR/go/src/sigs.k8s.io/kubefed/bin/kubefedctl %{buildroot}%{_bindir}/kubefedctl
 
 # EXAMPLE: Install tests
 # install -d %{buildroot}%{_libexecdir}/%{name}
@@ -123,8 +123,8 @@ install -p -m 755 $RPM_BUILD_DIR/go/bin/kubefedctl* %{buildroot}%{_bindir}/kubef
 # install -p -m 0755 _output/local/bin/${PLATFORM}/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
 
 %files
-%doc README.md
-%license LICENSE
+%doc $RPM_BUILD_DIR/go/src/sigs.k8s.io/kubefed/README.md
+%license $RPM_BUILD_DIR/go/src/sigs.k8s.io/kubefed/LICENSE
 %{_bindir}/kubefedctl
 # EXAMPLE: Managing configuration
 # %defattr(-,root,root,0700)
