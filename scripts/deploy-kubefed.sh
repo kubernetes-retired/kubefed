@@ -18,9 +18,9 @@
 # current kubectl context.  It also registers the hosting cluster with
 # the control plane.
 #
-# This script depends on kubectl, kubebuilder and helm being installed
-# in the path.  These and other test binaries can be installed via the
-# download-binaries.sh script, which downloads to ./bin:
+# This script depends on kubectl and helm being installed in the path. These
+# and other test binaries can be installed via the download-binaries.sh script,
+# which downloads to ./bin:
 #
 #   $ ./scripts/download-binaries.sh
 #   $ export PATH=$(pwd)/bin:${PATH}
@@ -104,6 +104,16 @@ function kubefed-admission-webhook-ready() {
   [[ "${readyReplicas}" -ge "1" ]]
 }
 
+function check-command-installed() {
+  local cmdName="${1}"
+
+  command -v "${cmdName}" >/dev/null 2>&1 ||
+  {
+    echo "${cmdName} command not found. Please download dependencies using $(dirname ${BASH_SOURCE})/download-binaries.sh and install it in your PATH." >&2
+    exit 1
+  }
+}
+
 NS="${KUBEFED_NAMESPACE:-kube-federation-system}"
 IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
@@ -137,9 +147,12 @@ to ensure credentials are available for push:
   exit 2
 fi
 
-shift
 # Allow for no specific JOIN_CLUSTERS: they probably want to kubefedctl themselves.
+shift
 JOIN_CLUSTERS="${*-}"
+
+check-command-installed kubectl
+check-command-installed helm
 
 # Use DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to skip docker
 # push on container image when not using latest image.
