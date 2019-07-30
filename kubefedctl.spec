@@ -108,16 +108,9 @@ OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} make -f openshift/Mak
 %endif
 
 %install
-
-PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
-# Install linux components
-for bin in 'kubefedctl'
-do
-    echo "+++ INSTALLING ${bin}"
-    install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
-done
+install -p -m 755 $RPM_BUILD_DIR/go/bin/kubefedctl* %{buildroot}%{_bindir}/kubefedctl
 
 # EXAMPLE: Install tests
 # install -d %{buildroot}%{_libexecdir}/%{name}
