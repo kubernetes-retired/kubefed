@@ -141,18 +141,13 @@ function fixup-cluster() {
   local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
   export KUBECONFIG="${KUBECONFIG:-}:${kubeconfig_path}"
 
+  if [ "$OS" != "Darwin" ];then
+    # Set container IP address as kube API endpoint in order for clusters to reach kube API servers in other clusters.
+    kind get kubeconfig --name "cluster${i}" --internal >${kubeconfig_path}
+  fi
+
   # Simplify context name
   kubectl config rename-context "kubernetes-admin@cluster${i}" "cluster${i}"
-
-  # TODO(font): Need to set container IP address in order for clusters to reach
-  # kube API servers in other clusters until
-  # https://github.com/kubernetes-sigs/kind/issues/111 is resolved.
-  if [ "$OS" != "Darwin" ];then
-      local container_ip_addr=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cluster${i}-control-plane)
-      # Using the container ip allows the use of port 6443 instead of the
-      # random port intended to be exposed on localhost.
-      sed -i.bak "s/localhost.*$/${container_ip_addr}:6443/" ${kubeconfig_path}&& rm -rf ${kubeconfig_path}.bak
-  fi
 
   # TODO(font): Need to rename auth user name to avoid conflicts when using
   # multiple cluster kubeconfigs. Remove once
