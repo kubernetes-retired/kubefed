@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/version"
@@ -209,11 +210,6 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 			// Ensure the federated name is namespace qualified.
 			federatedName.Namespace = federatedName.Name
 		} else {
-			if federatedName.Namespace != federatedName.Name {
-				// A FederatedNamespace is only valid for propagation
-				// if it has the same name as the containing namespace.
-				return nil, false, nil
-			}
 			// Ensure the target name is not namespace qualified.
 			targetName.Namespace = ""
 		}
@@ -240,6 +236,14 @@ func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (Fe
 
 	var namespace *unstructured.Unstructured
 	if a.targetIsNamespace {
+		if federatedName.Namespace != federatedName.Name {
+			// A FederatedNamespace is only valid for propagation
+			// if it has the same name as the containing namespace.
+			a.eventRecorder.Eventf(
+				resource, corev1.EventTypeWarning,
+				"InvalidName", "The name of a federated namespace must match the name of its containing namespace.")
+			return nil, false, nil
+		}
 		namespace, err = util.ObjFromCache(a.namespaceStore, a.typeConfig.GetTargetType().Kind, targetName.String())
 		if err != nil {
 			return nil, false, err
