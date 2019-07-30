@@ -65,7 +65,7 @@ func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.A
 	}
 
 	admittingObject := &v1beta1.KubeFedCluster{}
-	err := webhook.Unmarshal(admissionSpec, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
 	if err != nil {
 		return status
 	}

@@ -1,4 +1,6 @@
 # Unreleased
+-  [#1058](https://github.com/kubernetes-sigs/kubefed/issues/1058)
+   KubeFedConfig spec.scope is now immutable.
 -  [#1052](https://github.com/kubernetes-sigs/kubefed/pull/1052)
    Support has been added for varying the `apiVersion` of target
    resources. This is intended to allow a federated type to manage

@@ -308,7 +308,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	// file or already existing before the defaulting and validation webhook
 	// was registered e.g. prior to installation, upgrading, or due to issue
 	// https://github.com/kubernetes-sigs/kubefed/issues/983.
-	errs := validation.ValidateKubeFedConfig(fedConfig)
+	errs := validation.ValidateKubeFedConfig(fedConfig, nil)
 	if len(errs) != 0 {
 		klog.Fatalf("Error: invalid KubeFedConfig %q: %v", qualifedName, errs)
 	} else {

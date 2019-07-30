@@ -254,13 +254,18 @@ func validateClusterCondition(cc *v1beta1.ClusterCondition, path *field.Path) fi
 	return allErrs
 }
 
-func ValidateKubeFedConfig(kubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList {
+func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	spec := kubeFedConfig.Spec
 	specPath := field.NewPath("spec")
 	allErrs = append(allErrs, validateEnumStrings(specPath.Child("scope"), string(spec.Scope),
 		[]string{string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped)})...)
+
+	if oldKubeFedConfig != nil {
+		// We are validating a KubeFedConfig update.
+		allErrs = append(allErrs, apimachineryval.ValidateImmutableField(spec.Scope, oldKubeFedConfig.Spec.Scope, specPath.Child("scope"))...)
+	}
 
 	duration := spec.ControllerDuration
 	durationPath := specPath.Child("controllerDuration")

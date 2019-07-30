@@ -666,7 +666,7 @@ func TestValidateClusterCondition(t *testing.T) {
 }
 
 func TestValidateKubeFedConfig(t *testing.T) {
-	errs := ValidateKubeFedConfig(validKubeFedConfig())
+	errs := ValidateKubeFedConfig(validKubeFedConfig(), validKubeFedConfig())
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -676,6 +676,10 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	invalidScope := validKubeFedConfig()
 	invalidScope.Spec.Scope = "NeitherClusterOrNamespaceScoped"
 	errorCases["spec.scope: Unsupported value"] = invalidScope
+
+	immutableScope := validKubeFedConfig()
+	immutableScope.Spec.Scope = apiextv1b1.NamespaceScoped
+	errorCases[`spec.scope: Invalid value: "Namespaced": field is immutable`] = immutableScope
 
 	invalidControllerDurationNil := validKubeFedConfig()
 	invalidControllerDurationNil.Spec.ControllerDuration = nil
@@ -819,7 +823,7 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	errorCases["spec.syncController.adoptResources: Unsupported value"] = invalidAdoptResources
 
 	for k, v := range errorCases {
-		errs := ValidateKubeFedConfig(v)
+		errs := ValidateKubeFedConfig(v, validKubeFedConfig())
 		if len(errs) == 0 {
 			t.Errorf("[%s] expected failure", k)
 		} else if !strings.Contains(errs[0].Error(), k) {
