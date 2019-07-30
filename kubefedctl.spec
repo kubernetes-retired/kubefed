@@ -55,7 +55,7 @@ Summary:        Kubefed Client (kubefedctl)
 License:        ASL 2.0
 URL:            https://github.com/openshift/kubefed
 
-Source0:        https://%{import_path}/archive/%{commit}/kubefed-%{version}.tar.gz
+Source0:        https://%{import_path}/archive/%{commit}/kubefed-client-%{version}.tar.gz
 BuildRequires:  golang >= %{golang_version}
 Provides:       kubefedctl
 # If go_arches not defined fall through to implicit golang archs
@@ -75,10 +75,10 @@ GOPATH=$RPM_BUILD_DIR/go
 rm -rf $GOPATH
 mkdir -p $GOPATH/src/sigs.k8s.io/kubefed
 cd $RPM_BUILD_DIR
-rm -rf kubefed-client*
-tar -xzmf %{_sourcedir}/kubefed-client*
-cd kubefed-client*
-DIR=$RPM_BUILD_DIR/kubefed-client*
+rm -rf kubefed-client-%{version}
+tar -xzmf %{_sourcedir}/kubefed-client-%{version}.tar.gz
+cd kubefed-client-%{version}
+DIR=$RPM_BUILD_DIR/kubefed-client-%{version}
 mv $DIR/*  $GOPATH/src/sigs.k8s.io/kubefed/
 ln -s $GOPATH/src/sigs.k8s.io/kubefed/kubefed $DIR
 
@@ -115,22 +115,10 @@ install -d %{buildroot}%{_bindir}
 
 install -p -m 755 $RPM_BUILD_DIR/go/src/sigs.k8s.io/kubefed/bin/kubefedctl %{buildroot}%{_bindir}/kubefedctl
 
-# EXAMPLE: Install tests
-# install -d %{buildroot}%{_libexecdir}/%{name}
-# install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
-
-# EXAMPLE: Install other files
-# install -p -m 0755 _output/local/bin/${PLATFORM}/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
-
 %files
 %doc $RPM_BUILD_DIR/go/src/sigs.k8s.io/kubefed/README.md
 %license $RPM_BUILD_DIR/go/src/sigs.k8s.io/kubefed/LICENSE
 %{_bindir}/kubefedctl
-# EXAMPLE: Managing configuration
-# %defattr(-,root,root,0700)
-# %dir %config(noreplace) %{_sysconfdir}/origin
-# %ghost %dir %config(noreplace) %{_sysconfdir}/origin
-# %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %pre
 
