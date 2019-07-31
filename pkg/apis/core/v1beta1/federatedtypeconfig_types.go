@@ -219,7 +219,9 @@ func (f *FederatedTypeConfig) GetStatusType() *metav1.APIResource {
 }
 
 func (f *FederatedTypeConfig) GetStatusEnabled() bool {
-	return f.Spec.StatusCollection != nil && *f.Spec.StatusCollection == StatusCollectionEnabled
+	return f.Spec.StatusCollection != nil &&
+		*f.Spec.StatusCollection == StatusCollectionEnabled &&
+		f.Name == "services"
 }
 
 // TODO(font): This method should be removed from the interface i.e. remove

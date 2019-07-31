@@ -95,6 +95,9 @@ func StartKubeFedStatusController(controllerConfig *util.ControllerConfig, stopC
 func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeConfig typeconfig.Interface) (*KubeFedStatusController, error) {
 	federatedAPIResource := typeConfig.GetFederatedType()
 	statusAPIResource := typeConfig.GetStatusType()
+	if statusAPIResource == nil {
+		return nil, errors.Errorf("Status collection is not supported for %q", federatedAPIResource.Kind)
+	}
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
 	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
 
