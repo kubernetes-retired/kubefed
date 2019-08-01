@@ -100,7 +100,11 @@ func (o *orphanResource) Complete(args []string, config util.FedConfig) error {
 
 // Returns a Federated Resources Interface
 func (o *orphanResource) GetResourceClient(config util.FedConfig, cmdOut io.Writer) (dynamic.ResourceInterface, error) {
-	hostConfig, err := config.HostConfig(o.HostClusterContext, o.Kubeconfig)
+	hostClientConfig := config.GetClientConfig(o.HostClusterContext, o.Kubeconfig)
+	if err := o.SetHostClusterContextFromConfig(hostClientConfig); err != nil {
+		return nil, err
+	}
+	hostConfig, err := hostClientConfig.ClientConfig()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to load configuration for cluster context %q in kubeconfig %q.`",
 			o.HostClusterContext, o.Kubeconfig)

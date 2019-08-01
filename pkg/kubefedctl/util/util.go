@@ -128,10 +128,16 @@ func IsFederatedAPIResource(kind, group string) bool {
 
 // GetNamespace returns namespace of the current context
 func GetNamespace(hostClusterContext string, kubeconfig string, config FedConfig) (string, error) {
-	ns, _, err := config.GetClientConfig(hostClusterContext, kubeconfig).Namespace()
+	clientConfig := config.GetClientConfig(hostClusterContext, kubeconfig)
+	currentContext, err := options.CurrentContext(clientConfig)
+	if err != nil {
+		return "", err
+	}
+
+	ns, _, err := clientConfig.Namespace()
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to get ClientConfig for host cluster context %q and kubeconfig %q",
-			hostClusterContext, kubeconfig)
+			currentContext, kubeconfig)
 	}
 
 	if len(ns) == 0 {

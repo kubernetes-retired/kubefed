@@ -25,6 +25,7 @@ import (
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -48,6 +49,29 @@ func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 		"Namespace in the host cluster where the KubeFed system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,
 		"Run the command in dry-run mode, without making any server requests.")
+}
+
+// SetHostClusterContextFromConfig sets the host cluster context to
+// the name of the the config context if a value was not provided.
+func (o *GlobalSubcommandOptions) SetHostClusterContextFromConfig(config clientcmd.ClientConfig) error {
+	if len(o.HostClusterContext) > 0 {
+		return nil
+	}
+	currentContext, err := CurrentContext(config)
+	if err != nil {
+		return err
+	}
+	o.HostClusterContext = currentContext
+	return nil
+}
+
+// CurrentContext retrieves the current context from the provided config.
+func CurrentContext(config clientcmd.ClientConfig) (string, error) {
+	rawConfig, err := config.RawConfig()
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get current context from config")
+	}
+	return rawConfig.CurrentContext, nil
 }
 
 // CommonJoinOptions holds the common configuration required by the join and

@@ -1,4 +1,7 @@
 # Unreleased
+-  [#1076](https://github.com/kubernetes-sigs/kubefed/pull/1076)
+   All `kubefedctl` commands now default `--host-cluster-context` to the
+   current context in log messages.
 -  [#1086](https://github.com/kubernetes-sigs/kubefed/pull/1086)
    `kubefedctl federate` now removes all metadata fields except labels
    from the template of federated resources created from a
