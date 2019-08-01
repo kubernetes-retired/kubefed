@@ -29,7 +29,7 @@ ENV USER_ID=1001
 
 # copy in binaries
 WORKDIR /root/
-COPY --from=builder /go/src/sigs.k8s.io/kubefed/bin/hyperfed-linux /root/hyperfed
+COPY --from=builder /go/src/sigs.k8s.io/kubefed/bin/hyperfed /root/hyperfed
 RUN ln -s hyperfed controller-manager && ln -s hyperfed kubefedctl &&  ln -s hyperfed webhook
 
 # user directive - this image does not require root
