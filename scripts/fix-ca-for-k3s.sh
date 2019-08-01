@@ -19,13 +19,14 @@
 #
 # Description:
 # This script fixes up the configuration for member clusters
-# running k3s. (https://k3s.io/)
+# running older versions of k3s (< v0.7.0). (https://k3s.io/)
 # Namely it updates caBundle for the member clusters to match with
 # the ones in KUBECONFIG. It's intended to be run after joining
 # member clusters successfully.
+# Note that this is not necessary for k3s v0.7.0.
 #
 # Background:
-# In k3s, different endpoints and certificates are configured for
+# In k3s < v0.7.0, different endpoints and certificates are configured for
 # users (KUBECONFIG) and pods (service accounts).
 # Because "kubefedctl join" uses the endpoint from KUBECONFIG and
 # the certificate from a service account in the member cluster,
@@ -33,6 +34,10 @@
 # member clusters, producing the messages like the following.
 #
 # 	x509: certificate signed by unknown authority
+#
+# k3s v0.7.0 has been changed to use the same CA cert to sign them. [1]
+# Thus this workaround is no longer necessary.
+# [1] https://github.com/rancher/k3s/commit/2c9444399b427ffb706818f5bf3892a8880673bf
 
 set -o errexit
 set -o nounset
