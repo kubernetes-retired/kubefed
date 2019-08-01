@@ -16,6 +16,21 @@
 
 # This library holds bash utility functions.
 
+# util::command-installed checks if the command from argument 1 is installed.
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: command name to check if it is installed in PATH
+# Returns:
+#  0 if command is installed in PATH
+#  1 if the command is NOT installed in PATH
+function util::command-installed() {
+  command -v "${1}" >/dev/null 2>&1 || return 1
+  return 0
+}
+readonly -f util::command-installed
+
 # util::wait-for-condition blocks until the provided condition becomes true
 #
 # Globals:
