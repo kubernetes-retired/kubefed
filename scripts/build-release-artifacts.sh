@@ -24,8 +24,9 @@ set -o nounset
 set -o pipefail
 
 RELEASE_TAG="${1-}"
-if [[ ! "${RELEASE_TAG}" ]]; then
-  >&2 echo "usage: $0 <release tag of the form v[0-9]+.[0-9]+.[0-9]+>"
+RELEASE_TAG_REGEX="^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$"
+if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
+  >&2 echo "usage: $0 <release tag of the form v[0-9]+.[0-9]+.[0-9]+(-rc[0-9]+)?>"
   exit 1
 fi
 
@@ -37,6 +38,9 @@ command -v helm >/dev/null 2>&1 ||
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 RELEASE_VERSION="${RELEASE_TAG:1:${#RELEASE_TAG}-1}"
+# This file name is used by the create github release script. If modifying,
+# also update it there as well.
+ASSETS_FILE="kubefed-${RELEASE_TAG}-asset-files.txt"
 
 pushd "${ROOT_DIR}"
   # Build release artifacts for kubefedctl
@@ -50,6 +54,7 @@ pushd "${ROOT_DIR}"
       tar cvzf "${TAR_FILENAME}" --transform="flags=r;s|${BINARY_FILENAME}|kubefedctl|" "${BINARY_FILENAME}"
       sha256sum "${TAR_FILENAME}" > "${TAR_FILENAME}.sha"
       mv "${TAR_FILENAME}" "${TAR_FILENAME}.sha" "${ROOT_DIR}/"
+      echo -e "${TAR_FILENAME}\n${TAR_FILENAME}.sha" >> "${ASSETS_FILE}"
     popd
   done
 
@@ -68,6 +73,7 @@ pushd "${ROOT_DIR}"
 
     sha256sum "kubefed-${RELEASE_VERSION}.tgz" > "kubefed-${RELEASE_VERSION}.tgz.sha"
     mv kubefed-${RELEASE_VERSION}.tgz* "${ROOT_DIR}/"
+    echo -e "kubefed-${RELEASE_VERSION}.tgz\nkubefed-${RELEASE_VERSION}.tgz.sha" >> "${ASSETS_FILE}"
 
     # Revert the chart changes (should not be committed)
     mv kubefed/values.yaml.backup kubefed/values.yaml
