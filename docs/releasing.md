@@ -7,7 +7,48 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-### Releasing KubeFed
+## Releasing KubeFed
+
+### Automated
+
+Creating a KubeFed release can be automated by running a couple of scripts.
+
+##### Prerequisites
+
+The scripts used to automated the release of KubeFed rely on the following
+prereqs:
+
+- [hub CLI](https://github.com/github/hub#installation)
+    - Once installed verify you can run `hub release show -f "%n" v0.1.0-rc5`
+      without prompting for GitHub authentication.
+- [jq](https://stedolan.github.io/jq/)
+- helm. See
+  https://github.com/kubernetes-sigs/kubefed/blob/master/docs/development.md#binaries
+  for details.
+- git remote naming conventions used by GitHub's `hub` CLI tool:
+    - `origin` GitHub remote name for KubeFed fork. This can be overriden with
+      `GITHUB_REMOTE_FORK_NAME=<remote>`.
+    - `upstream` GitHub remote name for upstream KubeFed repo. This can be
+      overriden with `GITHUB_REMOTE_UPSTREAM_NAME=<remote>`.
+
+##### Create Release
+
+1. `./scripts/build-release.sh <RELEASE_TAG>`
+
+    - This step builds the release artifacts, creates the annotated
+      `RELEASE_TAG` and pushes it to master at `GITHUB_REMOTE_UPSTREAM_NAME`.
+      It then verifies the Travis build starts and completes successfully
+      followed by verification that the container image built is successfully
+      pushed to Quay.
+
+2. Edit the `CHANGELOG.md` for correct wording and leave it uncommitted. Then proceed to the next
+   step.
+3. `./scripts/create-gh-release.sh <RELEASE_TAG>`
+    - This step creates a pull request with the release `RELEASE_TAG` changes
+      and creates a GitHub draft release. It outputs the URLs for each at the
+      end of the script execution for manual merging and publishing when ready.
+
+### Manual
 
 Creating a KubeFed release involves the following steps:
 
