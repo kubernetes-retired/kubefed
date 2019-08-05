@@ -31,6 +31,19 @@ function util::command-installed() {
 }
 readonly -f util::command-installed
 
+# util::log echoes the supplied argument with a common header.
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: string to echo
+# Returns:
+#  0
+function util::log() {
+  echo "##### ${1}..."
+}
+readonly -f util::log
+
 # util::wait-for-condition blocks until the provided condition becomes true
 #
 # Globals:
