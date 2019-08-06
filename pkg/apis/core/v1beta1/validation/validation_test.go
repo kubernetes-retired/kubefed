@@ -29,8 +29,6 @@ import (
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
-	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
@@ -666,99 +664,99 @@ func TestValidateClusterCondition(t *testing.T) {
 }
 
 func TestValidateKubeFedConfig(t *testing.T) {
-	errs := ValidateKubeFedConfig(validKubeFedConfig(), validKubeFedConfig())
+	errs := ValidateKubeFedConfig(testcommon.ValidKubeFedConfig(), testcommon.ValidKubeFedConfig())
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
 
 	errorCases := map[string]*v1beta1.KubeFedConfig{}
 
-	invalidScope := validKubeFedConfig()
+	invalidScope := testcommon.ValidKubeFedConfig()
 	invalidScope.Spec.Scope = "NeitherClusterOrNamespaceScoped"
 	errorCases["spec.scope: Unsupported value"] = invalidScope
 
-	immutableScope := validKubeFedConfig()
+	immutableScope := testcommon.ValidKubeFedConfig()
 	immutableScope.Spec.Scope = apiextv1b1.NamespaceScoped
 	errorCases[`spec.scope: Invalid value: "Namespaced": field is immutable`] = immutableScope
 
-	invalidControllerDurationNil := validKubeFedConfig()
+	invalidControllerDurationNil := testcommon.ValidKubeFedConfig()
 	invalidControllerDurationNil.Spec.ControllerDuration = nil
 	errorCases["spec.controllerDuration: Required value"] = invalidControllerDurationNil
 
-	invalidAvailableDelayNil := validKubeFedConfig()
+	invalidAvailableDelayNil := testcommon.ValidKubeFedConfig()
 	invalidAvailableDelayNil.Spec.ControllerDuration.AvailableDelay = nil
 	errorCases["spec.controllerDuration.availableDelay: Required value"] = invalidAvailableDelayNil
 
-	invalidAvailableDelayGreaterThan0 := validKubeFedConfig()
+	invalidAvailableDelayGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidAvailableDelayGreaterThan0.Spec.ControllerDuration.AvailableDelay.Duration = 0
 	errorCases["spec.controllerDuration.availableDelay: Invalid value"] = invalidAvailableDelayGreaterThan0
 
-	invalidUnavailableDelayNil := validKubeFedConfig()
+	invalidUnavailableDelayNil := testcommon.ValidKubeFedConfig()
 	invalidUnavailableDelayNil.Spec.ControllerDuration.UnavailableDelay = nil
 	errorCases["spec.controllerDuration.unavailableDelay: Required value"] = invalidUnavailableDelayNil
 
-	invalidUnavailableDelayGreaterThan0 := validKubeFedConfig()
+	invalidUnavailableDelayGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidUnavailableDelayGreaterThan0.Spec.ControllerDuration.UnavailableDelay.Duration = 0
 	errorCases["spec.controllerDuration.unavailableDelay: Invalid value"] = invalidUnavailableDelayGreaterThan0
 
-	invalidLeaderElectNil := validKubeFedConfig()
+	invalidLeaderElectNil := testcommon.ValidKubeFedConfig()
 	invalidLeaderElectNil.Spec.LeaderElect = nil
 	errorCases["spec.leaderElect: Required value"] = invalidLeaderElectNil
 
-	invalidLeaseDurationNil := validKubeFedConfig()
+	invalidLeaseDurationNil := testcommon.ValidKubeFedConfig()
 	invalidLeaseDurationNil.Spec.LeaderElect.LeaseDuration = nil
 	errorCases["spec.leaderElect.leaseDuration: Required value"] = invalidLeaseDurationNil
 
-	invalidLeaseDurationGreaterThan0 := validKubeFedConfig()
+	invalidLeaseDurationGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidLeaseDurationGreaterThan0.Spec.LeaderElect.LeaseDuration.Duration = 0
 	errorCases["spec.leaderElect.leaseDuration: Invalid value"] = invalidLeaseDurationGreaterThan0
 
-	invalidRenewDeadlineNil := validKubeFedConfig()
+	invalidRenewDeadlineNil := testcommon.ValidKubeFedConfig()
 	invalidRenewDeadlineNil.Spec.LeaderElect.RenewDeadline = nil
 	errorCases["spec.leaderElect.renewDeadline: Required value"] = invalidRenewDeadlineNil
 
-	invalidRenewDeadlineGreaterThan0 := validKubeFedConfig()
+	invalidRenewDeadlineGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidRenewDeadlineGreaterThan0.Spec.LeaderElect.RenewDeadline.Duration = 0
 	errorCases["spec.leaderElect.renewDeadline: Invalid value"] = invalidRenewDeadlineGreaterThan0
 
 	// spec.leaderElect.leaderDuration must be greater than renewDeadline
-	invalidElectorLeaseDurationGreater := validKubeFedConfig()
+	invalidElectorLeaseDurationGreater := testcommon.ValidKubeFedConfig()
 	invalidElectorLeaseDurationGreater.Spec.LeaderElect.LeaseDuration.Duration = 1
 	invalidElectorLeaseDurationGreater.Spec.LeaderElect.RenewDeadline.Duration = 2
 	errorCases["spec.leaderElect.leaseDuration: Invalid value"] = invalidElectorLeaseDurationGreater
 
-	invalidRetryPeriodNil := validKubeFedConfig()
+	invalidRetryPeriodNil := testcommon.ValidKubeFedConfig()
 	invalidRetryPeriodNil.Spec.LeaderElect.RetryPeriod = nil
 	errorCases["spec.leaderElect.retryPeriod: Required value"] = invalidRetryPeriodNil
 
-	invalidRetryPeriodGreaterThan0 := validKubeFedConfig()
+	invalidRetryPeriodGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidRetryPeriodGreaterThan0.Spec.LeaderElect.RetryPeriod.Duration = 0
 	errorCases["spec.leaderElect.retryPeriod: Invalid value"] = invalidRetryPeriodGreaterThan0
 
 	// spec.leaderElect.renewDeadline must be greater than retryPeriod*JitterFactor(1.2)
-	invalidElectorDuration := validKubeFedConfig()
+	invalidElectorDuration := testcommon.ValidKubeFedConfig()
 	invalidElectorDuration.Spec.LeaderElect.RenewDeadline.Duration = 12
 	invalidElectorDuration.Spec.LeaderElect.RetryPeriod.Duration = 10
 	errorCases["spec.leaderElect.renewDeadline: Invalid value"] = invalidElectorDuration
 
-	invalidElectorResourceLockNil := validKubeFedConfig()
+	invalidElectorResourceLockNil := testcommon.ValidKubeFedConfig()
 	invalidElectorResourceLockNil.Spec.LeaderElect.ResourceLock = nil
 	errorCases["spec.leaderElect.resourceLock: Required value"] = invalidElectorResourceLockNil
 
-	invalidElectorResourceLock := validKubeFedConfig()
+	invalidElectorResourceLock := testcommon.ValidKubeFedConfig()
 	invalidElectorResourceLockType := v1beta1.ResourceLockType("NeitherConfigmapsOrEndpoints")
 	invalidElectorResourceLock.Spec.LeaderElect.ResourceLock = &invalidElectorResourceLockType
 	errorCases["spec.leaderElect.resourceLock: Unsupported value"] = invalidElectorResourceLock
 
-	invalidFeatureGateNil := validKubeFedConfig()
+	invalidFeatureGateNil := testcommon.ValidKubeFedConfig()
 	invalidFeatureGateNil.Spec.FeatureGates = nil
 	errorCases["spec.featureGates: Required value"] = invalidFeatureGateNil
 
-	invalidFeatureGateName := validKubeFedConfig()
+	invalidFeatureGateName := testcommon.ValidKubeFedConfig()
 	invalidFeatureGateName.Spec.FeatureGates[0].Name = "BadFeatureName"
 	errorCases["spec.featureGates.name: Unsupported value"] = invalidFeatureGateName
 
-	invalidDupFeatureGates := validKubeFedConfig()
+	invalidDupFeatureGates := testcommon.ValidKubeFedConfig()
 	dupFeature := v1beta1.FeatureGatesConfig{
 		Name:          string(features.PushReconciler),
 		Configuration: v1beta1.ConfigurationEnabled,
@@ -766,83 +764,68 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	invalidDupFeatureGates.Spec.FeatureGates = append(invalidDupFeatureGates.Spec.FeatureGates, dupFeature)
 	errorCases["spec.featureGates.name: Duplicate value"] = invalidDupFeatureGates
 
-	invalidFeatureGateConf := validKubeFedConfig()
+	invalidFeatureGateConf := testcommon.ValidKubeFedConfig()
 	invalidFeatureGateConf.Spec.FeatureGates[0].Configuration = v1beta1.ConfigurationMode("NeitherEnableOrDisable")
 	errorCases["spec.featureGates.configuration: Unsupported value"] = invalidFeatureGateConf
 
-	invalidClusterHealthCheckNil := validKubeFedConfig()
+	invalidClusterHealthCheckNil := testcommon.ValidKubeFedConfig()
 	invalidClusterHealthCheckNil.Spec.ClusterHealthCheck = nil
 	errorCases["spec.clusterHealthCheck: Required value"] = invalidClusterHealthCheckNil
 
 	zeroInt := int64(0)
 	zeroIntPtr := &zeroInt
 
-	invalidPeriodNil := validKubeFedConfig()
+	invalidPeriodNil := testcommon.ValidKubeFedConfig()
 	invalidPeriodNil.Spec.ClusterHealthCheck.Period = nil
 	errorCases["spec.clusterHealthCheck.period: Required value"] = invalidPeriodNil
 
-	invalidPeriodGreaterThan0 := validKubeFedConfig()
+	invalidPeriodGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidPeriodGreaterThan0.Spec.ClusterHealthCheck.Period.Duration = 0
 	errorCases["spec.clusterHealthCheck.period: Invalid value"] = invalidPeriodGreaterThan0
 
-	invalidFailureThresholdNil := validKubeFedConfig()
+	invalidFailureThresholdNil := testcommon.ValidKubeFedConfig()
 	invalidFailureThresholdNil.Spec.ClusterHealthCheck.FailureThreshold = nil
 	errorCases["spec.clusterHealthCheck.failureThreshold: Required value"] = invalidFailureThresholdNil
 
-	invalidFailureThresholdGreaterThan0 := validKubeFedConfig()
+	invalidFailureThresholdGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidFailureThresholdGreaterThan0.Spec.ClusterHealthCheck.FailureThreshold = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.failureThreshold: Invalid value"] = invalidFailureThresholdGreaterThan0
 
-	invalidSuccessThresholdNil := validKubeFedConfig()
+	invalidSuccessThresholdNil := testcommon.ValidKubeFedConfig()
 	invalidSuccessThresholdNil.Spec.ClusterHealthCheck.SuccessThreshold = nil
 	errorCases["spec.clusterHealthCheck.successThreshold: Required value"] = invalidSuccessThresholdNil
 
-	invalidSuccessThresholdGreaterThan0 := validKubeFedConfig()
+	invalidSuccessThresholdGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidSuccessThresholdGreaterThan0.Spec.ClusterHealthCheck.SuccessThreshold = zeroIntPtr
 	errorCases["spec.clusterHealthCheck.successThreshold: Invalid value"] = invalidSuccessThresholdGreaterThan0
 
-	invalidTimeoutNil := validKubeFedConfig()
+	invalidTimeoutNil := testcommon.ValidKubeFedConfig()
 	invalidTimeoutNil.Spec.ClusterHealthCheck.Timeout = nil
 	errorCases["spec.clusterHealthCheck.timeout: Required value"] = invalidTimeoutNil
 
-	invalidTimeoutGreaterThan0 := validKubeFedConfig()
+	invalidTimeoutGreaterThan0 := testcommon.ValidKubeFedConfig()
 	invalidTimeoutGreaterThan0.Spec.ClusterHealthCheck.Timeout.Duration = 0
 	errorCases["spec.clusterHealthCheck.timeout: Invalid value"] = invalidTimeoutGreaterThan0
 
-	invalidSyncControllerNil := validKubeFedConfig()
+	invalidSyncControllerNil := testcommon.ValidKubeFedConfig()
 	invalidSyncControllerNil.Spec.SyncController = nil
 	errorCases["spec.syncController: Required value"] = invalidSyncControllerNil
 
-	invalidAdoptResourcesNil := validKubeFedConfig()
+	invalidAdoptResourcesNil := testcommon.ValidKubeFedConfig()
 	invalidAdoptResourcesNil.Spec.SyncController.AdoptResources = nil
 	errorCases["spec.syncController.adoptResources: Required value"] = invalidAdoptResourcesNil
 
-	invalidAdoptResources := validKubeFedConfig()
+	invalidAdoptResources := testcommon.ValidKubeFedConfig()
 	invalidAdoptResourcesValue := v1beta1.ResourceAdoption("NeitherEnableOrDisable")
 	invalidAdoptResources.Spec.SyncController.AdoptResources = &invalidAdoptResourcesValue
 	errorCases["spec.syncController.adoptResources: Unsupported value"] = invalidAdoptResources
 
 	for k, v := range errorCases {
-		errs := ValidateKubeFedConfig(v, validKubeFedConfig())
+		errs := ValidateKubeFedConfig(v, testcommon.ValidKubeFedConfig())
 		if len(errs) == 0 {
 			t.Errorf("[%s] expected failure", k)
 		} else if !strings.Contains(errs[0].Error(), k) {
 			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), k)
 		}
 	}
-}
-
-func validKubeFedConfig() *v1beta1.KubeFedConfig {
-	kfc := &v1beta1.KubeFedConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: util.DefaultKubeFedSystemNamespace,
-			Name:      util.KubeFedConfigName,
-		},
-		Spec: v1beta1.KubeFedConfigSpec{
-			Scope: apiextv1b1.ClusterScoped,
-		},
-	}
-
-	defaults.SetDefaultKubeFedConfig(kfc)
-	return kfc
 }

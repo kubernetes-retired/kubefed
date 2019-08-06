@@ -20,11 +20,14 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
 	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func ValidKubeFedCluster() *v1beta1.KubeFedCluster {
@@ -103,4 +106,19 @@ func ValidKubeFedCluster() *v1beta1.KubeFedCluster {
 			Region: &region,
 		},
 	}
+}
+
+func ValidKubeFedConfig() *v1beta1.KubeFedConfig {
+	kfc := &v1beta1.KubeFedConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: util.DefaultKubeFedSystemNamespace,
+			Name:      util.KubeFedConfigName,
+		},
+		Spec: v1beta1.KubeFedConfigSpec{
+			Scope: apiextv1b1.ClusterScoped,
+		},
+	}
+
+	defaults.SetDefaultKubeFedConfig(kfc)
+	return kfc
 }
