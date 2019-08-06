@@ -17,46 +17,22 @@ limitations under the License.
 package framework
 
 import (
-	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"runtime"
-	"strings"
-
 	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/test/common"
 )
 
 func LoadEnableTypeDirectives(tl common.TestLogger) []*kfenable.EnableTypeDirective {
-	path := enableTypeDirectivesPath(tl)
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		tl.Fatalf("Error reading EnableTypeDirective resources from path %q: %v", path, err)
-	}
 	enableTypeDirectives := []*kfenable.EnableTypeDirective{}
-	suffix := ".yaml"
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), suffix) {
-			continue
-		}
-		filename := filepath.Join(path, file.Name())
+	for _, file := range common.AssetNames() {
 		obj := kfenable.NewEnableTypeDirective()
-		err := kfenable.DecodeYAMLFromFile(filename, obj)
+		filename, err := common.DecodeYamlFromBindata(file, "config/enabletypedirectives/", obj)
 		if err != nil {
-			tl.Fatalf("Error loading EnableTypeDirective from file %q: %v", filename, err)
+			tl.Fatalf("Error loading EnableTypeDirective from this file %q: %v", filename, err)
 		}
-		enableTypeDirectives = append(enableTypeDirectives, obj)
+		if len(filename) != 0 {
+			enableTypeDirectives = append(enableTypeDirectives, obj)
+		}
+
 	}
 	return enableTypeDirectives
-}
-
-func enableTypeDirectivesPath(tl common.TestLogger) string {
-	// Get the directory of the current executable
-	_, filename, _, _ := runtime.Caller(0)
-	managedPath := filepath.Dir(filename)
-	path, err := filepath.Abs(fmt.Sprintf("%s/../../../config/enabletypedirectives", managedPath))
-	if err != nil {
-		tl.Fatalf("Error discovering the path to FederatedType resources: %v", err)
-	}
-	return path
 }

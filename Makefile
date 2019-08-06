@@ -49,6 +49,7 @@ HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
 KUBEFEDCTL_TARGET = bin/kubefedctl
 WEBHOOK_TARGET = bin/webhook
+E2E_BINARY_TARGET = bin/e2e
 
 LDFLAG_OPTIONS = -ldflags "-X sigs.k8s.io/kubefed/pkg/version.version=$(GIT_VERSION) \
                       -X sigs.k8s.io/kubefed/pkg/version.gitCommit=$(GIT_HASH) \
@@ -65,9 +66,9 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook
+.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook e2e
 
-all: container hyperfed controller kubefedctl webhook
+all: container hyperfed controller kubefedctl webhook e2e
 
 # Unit tests
 test: vet
@@ -100,12 +101,20 @@ ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
 $(foreach cmd, $(COMMANDS), $(foreach platform, $(PLATFORMS), $(eval $(call PLATFORM_template, $(cmd),$(platform),$(notdir $(cmd))))))
 
+define E2E_PLATFORM_template
+$(1)-$(2): bindir
+	$(DOCKER_BUILD) 'GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) go test -c $(LDFLAG_OPTIONS) -o $(1)-$(2) ./test/$(3)'
+ALL_BINS := $(ALL_BINS) $(1)-$(2)
+endef
+$(foreach platform, $(PLATFORMS), $(eval $(call E2E_PLATFORM_template, $(E2E_BINARY_TARGET),$(platform),$(notdir $(E2E_BINARY_TARGET)))))
+
 define CMD_template
 $(1): $(1)-$(HOST_PLATFORM)
 	ln -sf $(notdir $(1)-$(HOST_PLATFORM)) $(1)
 ALL_BINS := $(ALL_BINS) $(1)
 endef
 $(foreach cmd, $(COMMANDS), $(eval $(call CMD_template,$(cmd))))
+$(eval $(call CMD_template,$(E2E_BINARY_TARGET)))
 
 hyperfed: $(HYPERFED_TARGET)
 
@@ -114,6 +123,8 @@ controller: $(CONTROLLER_TARGET)
 kubefedctl: $(KUBEFEDCTL_TARGET)
 
 webhook: $(WEBHOOK_TARGET)
+
+e2e: $(E2E_BINARY_TARGET)
 
 # Generate code
 generate-code:
@@ -124,6 +135,7 @@ endif
 
 generate: generate-code kubefedctl
 	./scripts/sync-up-helm-chart.sh
+	./scripts/update-bindata.sh
 
 push: container
 

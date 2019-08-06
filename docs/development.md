@@ -14,6 +14,7 @@
     - [Running Tests](#running-tests)
     - [Running Tests With In-Memory Controllers](#running-tests-with-in-memory-controllers)
     - [Cleanup](#cleanup)
+  - [Embedding static files using go-bindata](#embedding-static-files-using-go-bindata)
   - [Test Your Changes](#test-your-changes)
     - [Automated Deployment](#automated-deployment)
   - [Test Latest Master Changes (`canary`)](#test-latest-master-changes-canary)
@@ -187,6 +188,19 @@ KubeFed controller manager:
 ### Cleanup
 
 Follow the [cleanup instructions in the user guide](../charts/kubefed/README.md#uninstalling-the-chart).
+
+## Embedding static files using go-bindata
+This project is using `go-bindata` tool for embedding static files into its e2e
+test-suite to enable the creation of a self-contained e2e binary.
+
+You can install this utility using the [download-binaries.sh](../scripts/download-binaries.sh) 
+script.
+
+Use `make generate` to regenerate the `bindata.go` file in case the bundled
+content changes. It's necessary to follow this step to ensure that e2e
+test-suite passes the CI build. 
+
+Please refer to [this](../scripts/update-bindata.sh) script for more information.
 
 ## Test Your Changes
 

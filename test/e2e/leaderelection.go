@@ -19,9 +19,9 @@ package e2e
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
@@ -76,17 +76,21 @@ var _ = Describe("Leader Elector", func() {
 })
 
 func spawnControllerManagerProcess(tl common.TestLogger, kubeConfigPath, namespace string) (*exec.Cmd, io.ReadCloser, error) {
-	// Get the directory of the current executable
-	_, filename, _, _ := runtime.Caller(0)
-	managedPath := filepath.Dir(filename)
-	confFile, err := filepath.Abs(fmt.Sprintf("%s/../../config/kubefedconfig.yaml", managedPath))
+	kubeFedConfigAsset := common.MustAsset("config/kubefedconfig.yaml")
+	tmpFile, err := ioutil.TempFile("", "leaderelectionconfig.yaml")
 	if err != nil {
-		tl.Fatalf("Error discovering the configuration file for FecerationConfig resources: %v", err)
+		tl.Fatalf("Error creating the temp file for KubeFedConfig resource: %v", err)
 	}
-
+	_, err = tmpFile.Write(kubeFedConfigAsset)
+	if err != nil {
+		tl.Fatalf("Error writing the temp file content for KubeFedConfig resource: %v", err)
+	}
+	framework.AddCleanupAction(func() {
+		os.Remove(tmpFile.Name())
+	})
 	args := []string{fmt.Sprintf("--kubeconfig=%s", kubeConfigPath),
 		fmt.Sprintf("--kubefed-namespace=%s", namespace),
-		fmt.Sprintf("--kubefed-config=%s", confFile),
+		fmt.Sprintf("--kubefed-config=%s", tmpFile.Name()),
 	}
 	return framework.StartControllerManager(args)
 }

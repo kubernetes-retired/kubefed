@@ -17,9 +17,6 @@ limitations under the License.
 package common
 
 import (
-	"path/filepath"
-	"runtime"
-
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,11 +92,4 @@ func newTestUnstructured(apiResource metav1.APIResource, namespace string) *unst
 	obj := &unstructured.Unstructured{}
 	federate.SetBasicMetaFields(obj, apiResource, "", namespace, "test-e2e-")
 	return obj
-}
-
-func fixturePath() string {
-	// Get the directory of the current executable
-	_, filename, _, _ := runtime.Caller(0)
-	commonPath := filepath.Dir(filename)
-	return filepath.Join(commonPath, "fixtures")
 }
