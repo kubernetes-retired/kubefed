@@ -1,4 +1,8 @@
 # Unreleased
+-  [#1079](https://github.com/kubernetes-sigs/kubefed/issues/1079) The
+   spec field is now required in generated federated types. For types
+   generated previously, a check has been added so that a missing spec
+   field does not cause a nil pointer exception.
 
 # v0.1.0-rc5
 -  [#1058](https://github.com/kubernetes-sigs/kubefed/issues/1058)

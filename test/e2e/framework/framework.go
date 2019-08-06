@@ -259,14 +259,14 @@ func (f *frameworkWrapper) EnsureTestFederatedNamespace(allClusters bool) *unstr
 	// Othewise create it.
 	obj.SetName(namespace)
 	obj.SetNamespace(namespace)
+	spec := map[string]interface{}{}
 	if allClusters {
 		// An empty cluster selector field selects all clusters
-		obj.Object[util.SpecField] = map[string]interface{}{
-			util.PlacementField: map[string]interface{}{
-				util.ClusterSelectorField: map[string]interface{}{},
-			},
+		spec[util.PlacementField] = map[string]interface{}{
+			util.ClusterSelectorField: map[string]interface{}{},
 		}
 	}
+	obj.Object[util.SpecField] = spec
 
 	err = client.Create(context.Background(), obj)
 	if err != nil {

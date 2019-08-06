@@ -272,6 +272,9 @@ func GetOverrideHash(rawObj *unstructured.Unstructured) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "Error retrieving overrides")
 	}
+	if override.Spec == nil {
+		return "", nil
+	}
 	// Only hash the overrides
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
