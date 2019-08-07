@@ -1,4 +1,9 @@
 # Unreleased
+-  [#1087](https://github.com/kubernetes-sigs/kubefed/issues/1087)
+   The ReplicaScheduling controller now correctly updates existing
+   overrides of `/spec/replicas`. Previously the controller was able
+   to create and remove overrides for the `replicas` field but would
+   fail to update them.
 -  [#1076](https://github.com/kubernetes-sigs/kubefed/pull/1076)
    All `kubefedctl` commands now default `--host-cluster-context` to the
    current context in log messages.
