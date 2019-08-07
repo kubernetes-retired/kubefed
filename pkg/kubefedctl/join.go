@@ -92,7 +92,7 @@ type joinFederation struct {
 
 type joinFederationOptions struct {
 	secretName      string
-	Scope           apiextv1b1.ResourceScope
+	scope           apiextv1b1.ResourceScope
 	errorOnExisting bool
 }
 
@@ -174,7 +174,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.Scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
+	j.scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
 	if err != nil {
 		return err
 	}
@@ -201,14 +201,14 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
-		hostClusterName, j.ClusterName, j.secretName, j.Scope, j.DryRun, j.errorOnExisting)
+		hostClusterName, j.ClusterName, j.secretName, j.scope, j.DryRun, j.errorOnExisting)
 }
 
 // JoinCluster performs all the necessary steps to register a cluster
 // with a KubeFed control plane provided the required set of
 // parameters are passed in.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
-	hostClusterName, joiningClusterName, secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+	hostClusterName, joiningClusterName, secretName string, scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get host cluster clientset: %v", err)
@@ -248,7 +248,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 
 	secret, caBundle, err := createRBACSecret(hostClientset, clusterClientset,
 		kubefedNamespace, joiningClusterName, hostClusterName,
-		secretName, Scope, dryRun, errorOnExisting)
+		secretName, scope, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Could not create cluster credentials secret: %v", err)
 		return err
@@ -385,7 +385,7 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 // access the joining cluster.
 func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.Interface,
 	namespace, joiningClusterName, hostClusterName,
-	secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, []byte, error) {
+	secretName string, scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, []byte, error) {
 
 	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
@@ -399,7 +399,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 
 	klog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	if Scope == apiextv1b1.NamespaceScoped {
+	if scope == apiextv1b1.NamespaceScoped {
 		klog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)
