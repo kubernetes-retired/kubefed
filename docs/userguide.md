@@ -386,6 +386,37 @@ status:
   - name: cluster2
 ```
 
+## Aggregated status
+This is an optional feature that can be enabled to collect and aggregate
+the status of target type in member clusters. This can be useful for some
+high-level controllers which can rely on such aggregate status without
+watching individual clusters by themselves.
+
+To enable aggregated status for a federated type configure
+the `FederatedTypeConfig` of that type indicating the same as below:
+For eg: if you want to enable aggregated status for services,
+1. Create a new CRD from the type say `FederatedServiceStatus` similar to the type in
+[here](https://github.com/kubernetes-sigs/kubefed/blob/master/pkg/apis/core/v1alpha1/federatedservicestatus_types.go) and
+register it to the `kubefed` control plane.
+2. Update the FederatedTypeConfig service adding the below fields. for eg:
+```yaml
+...
+  statusCollection: "Enabled"
+  statusType:
+    group: core.kubefed.io
+    kind: FederatedServiceStatus
+    pluralName: federatedservicestatuses
+    scope: Namespaced
+    version: v1alpha1
+```
+**Note:** Specify the correct details for group, version, kind about the
+status CRD you created in first step.
+
+After enabling the `statusCollection`, for every resource of federated type
+there will be a corresponding resource of status type created with the same
+name and namespace with the aggregated status for the federated type from
+member clusters.
+
 ### Troubleshooting condition status
 
 If the sync controller encounters an error in creating, updating or
