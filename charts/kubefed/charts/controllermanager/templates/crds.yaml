@@ -200,6 +200,8 @@ spec:
   names:
     kind: FederatedTypeConfig
     plural: federatedtypeconfigs
+    shortNames:
+    - ftc
   scope: Namespaced
   subresources:
     status: {}
