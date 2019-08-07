@@ -38,19 +38,27 @@ import (
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
 
-var systemMetadataFields = []string{"selfLink", "uid", "resourceVersion", "generation", "creationTimestamp", "deletionTimestamp", "deletionGracePeriodSeconds"}
-
-func RemoveUnwantedFields(resource *unstructured.Unstructured) {
-	for _, field := range systemMetadataFields {
-		unstructured.RemoveNestedField(resource.Object, "metadata", field)
-		// For resources with pod template subresource (jobs, deployments, replicasets)
-		unstructured.RemoveNestedField(resource.Object, "spec", "template", "metadata", field)
-	}
-	unstructured.RemoveNestedField(resource.Object, "metadata", "name")
-	unstructured.RemoveNestedField(resource.Object, "metadata", "namespace")
+func RemoveUnwantedFields(resource *unstructured.Unstructured) error {
 	unstructured.RemoveNestedField(resource.Object, "apiVersion")
 	unstructured.RemoveNestedField(resource.Object, "kind")
 	unstructured.RemoveNestedField(resource.Object, "status")
+
+	// All metadata fields save labels should be cleared. Other
+	// metadata fields will be set by the system on creation or
+	// subsequently by controllers.
+	labels, _, err := unstructured.NestedMap(resource.Object, "metadata", "labels")
+	if err != nil {
+		return errors.Wrap(err, "Failed to retrieve metadata.labels")
+	}
+	unstructured.RemoveNestedField(resource.Object, "metadata")
+	if len(labels) > 0 {
+		err := unstructured.SetNestedMap(resource.Object, labels, "metadata", "labels")
+		if err != nil {
+			return errors.Wrap(err, "Failed to set metadata.labels")
+		}
+	}
+
+	return nil
 }
 
 func SetBasicMetaFields(resource *unstructured.Unstructured, apiResource metav1.APIResource, name, namespace, generateName string) {

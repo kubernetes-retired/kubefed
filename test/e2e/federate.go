@@ -264,8 +264,12 @@ func validateTemplateEquality(tl common.TestLogger, fedResource, targetResource 
 
 	expectedResource := &unstructured.Unstructured{}
 	expectedResource.Object = templateMap.(map[string]interface{})
-	federate.RemoveUnwantedFields(expectedResource)
-	federate.RemoveUnwantedFields(targetResource)
+	if err := federate.RemoveUnwantedFields(expectedResource); err != nil {
+		tl.Fatalf("Failed to remove unwanted fields from expected resource: %v", err)
+	}
+	if err := federate.RemoveUnwantedFields(targetResource); err != nil {
+		tl.Fatalf("Failed to remove unwanted fields from target resource: %v", err)
+	}
 	if kind == util.NamespaceKind {
 		unstructured.RemoveNestedField(targetResource.Object, "spec", "finalizers")
 	}

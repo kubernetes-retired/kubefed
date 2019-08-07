@@ -1,4 +1,10 @@
 # Unreleased
+-  [#1086](https://github.com/kubernetes-sigs/kubefed/pull/1086)
+   `kubefedctl federate` now removes all metadata fields except labels
+   from the template of federated resources created from a
+   non-federated resource. Previously `metadata.annotations` and
+   `metadata.finalizers` were not removed which could result in
+   propagation errors.
 -  [#1079](https://github.com/kubernetes-sigs/kubefed/issues/1079) The
    spec field is now required in generated federated types. For types
    generated previously, a check has been added so that a missing spec

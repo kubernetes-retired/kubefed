@@ -361,8 +361,10 @@ func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resour
 	fedAPIResource := typeConfig.GetFederatedType()
 	targetResource := resource.DeepCopy()
 
+	targetKind := typeConfig.GetTargetType().Kind
+
 	// Special handling is needed for some controller set fields.
-	switch typeConfig.GetTargetType().Kind {
+	switch targetKind {
 	case ctlutil.NamespaceKind:
 		{
 			unstructured.RemoveNestedField(targetResource.Object, "spec", "finalizers")
@@ -397,9 +399,22 @@ func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resour
 	resourceNamespace := getNamespace(typeConfig, qualifiedName)
 	fedResource := &unstructured.Unstructured{}
 	SetBasicMetaFields(fedResource, fedAPIResource, qualifiedName.Name, resourceNamespace, "")
-	RemoveUnwantedFields(targetResource)
 
-	err := unstructured.SetNestedField(fedResource.Object, targetResource.Object, ctlutil.SpecField, ctlutil.TemplateField)
+	// Warn if annotations are present in case the intention is to
+	// define annotations in the template of the federated resource.
+	annotations, _, err := unstructured.NestedMap(targetResource.Object, "metadata", "annotations")
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to retrieve metadata.annotations")
+	}
+	if len(annotations) > 0 {
+		klog.Warningf("Annotations defined for %s %q will not appear in the template of the federated resource: %v", targetKind, qualifiedName, annotations)
+	}
+
+	if err := RemoveUnwantedFields(targetResource); err != nil {
+		return nil, err
+	}
+
+	err = unstructured.SetNestedField(fedResource.Object, targetResource.Object, ctlutil.SpecField, ctlutil.TemplateField)
 	if err != nil {
 		return nil, err
 	}
