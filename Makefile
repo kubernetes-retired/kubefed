@@ -81,8 +81,8 @@ vet:
 fmt:
 	$(shell ./hack/update-gofmt.sh)
 
-container: $(HYPERFED_TARGET)-$(HOST_PLATFORM)
-	cp -f $(HYPERFED_TARGET)-$(HOST_PLATFORM) images/kubefed/hyperfed
+container: $(HYPERFED_TARGET)-linux-$(HOST_ARCH)
+	cp -f $(HYPERFED_TARGET)-linux-$(HOST_ARCH) images/kubefed/hyperfed
 	$(DOCKER) build images/kubefed -t $(IMAGE_NAME)
 	rm -f images/kubefed/hyperfed
 
