@@ -267,7 +267,9 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 
 	klog.V(4).Infof("Starting to reconcile %s %q", kind, key)
 	startTime := time.Now()
-	defer klog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
+	defer func() {
+		klog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
+	}()
 
 	if fedResource.Object().GetDeletionTimestamp() != nil {
 		klog.V(3).Infof("Handling deletion of %s %q", kind, key)
