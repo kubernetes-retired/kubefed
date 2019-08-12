@@ -241,7 +241,9 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 
 	klog.V(4).Infof("Starting to reconcile %v %v", statusKind, key)
 	startTime := time.Now()
-	defer klog.V(4).Infof("Finished reconciling %v %v (duration: %v)", statusKind, key, time.Since(startTime))
+	defer func() {
+		klog.V(4).Infof("Finished reconciling %v %v (duration: %v)", statusKind, key, time.Since(startTime))
+	}()
 
 	fedObject, err := s.objFromCache(s.federatedStore, federatedKind, key)
 	if err != nil {

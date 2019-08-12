@@ -203,7 +203,9 @@ func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedN
 
 	klog.V(4).Infof("Starting to reconcile %s controller triggered key named %v", kind, key)
 	startTime := time.Now()
-	defer klog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Since(startTime))
+	defer func() {
+		klog.V(4).Infof("Finished reconciling %s controller triggered key named %v (duration: %v)", kind, key, time.Since(startTime))
+	}()
 
 	obj, err := s.objFromCache(s.store, kind, key)
 	if err != nil {
