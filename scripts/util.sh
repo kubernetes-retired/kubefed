@@ -14,8 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This library holds bash utility functions.
+# This library holds common bash variables and utility functions.
 
+# Variables
+#
+#
+# RELEASE_TAG_REGEX contains the regular expression used to validate a semantic
+# version.
+export RELEASE_TAG_REGEX="^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$"
+
+
+# Utility Functions
+#
+#
 # util::command-installed checks if the command from argument 1 is installed.
 #
 # Globals:
