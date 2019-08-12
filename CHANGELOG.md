@@ -1,4 +1,6 @@
 # Unreleased
+-  [#1098](https://github.com/kubernetes-sigs/kubefed/pull/1098)
+   Propagated version is now only updated when changed.
 -  [#1087](https://github.com/kubernetes-sigs/kubefed/issues/1087)
    The ReplicaScheduling controller now correctly updates existing
    overrides of `/spec/replicas`. Previously the controller was able

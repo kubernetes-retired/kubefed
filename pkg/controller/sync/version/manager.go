@@ -175,8 +175,12 @@ func (m *VersionManager) Update(resource VersionedResource,
 	}
 
 	if oldStatus != nil && util.PropagatedVersionStatusEquivalent(oldStatus, status) {
+		m.Unlock()
 		klog.V(4).Infof("No update necessary for %s %q", m.adapter.TypeName(), qualifiedName)
-	} else if obj == nil {
+		return nil
+	}
+
+	if obj == nil {
 		ownerReference := ownerReferenceForUnstructured(resource.Object())
 		obj = m.adapter.NewVersion(qualifiedName, ownerReference, status)
 		m.versions[key] = obj
@@ -185,6 +189,9 @@ func (m *VersionManager) Update(resource VersionedResource,
 	}
 
 	m.Unlock()
+
+	// Since writeVersion calls the Kube API, the manager should be
+	// unlocked to avoid blocking on calls across the network.
 
 	return m.writeVersion(obj, qualifiedName)
 }
