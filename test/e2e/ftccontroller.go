@@ -108,6 +108,8 @@ var _ = Describe("FTC controller", func() {
 			tl.Fatalf("Error updating target CRD version %q: %v", existingCrd.Spec.Version, err)
 		}
 
+		waitForTargetCrd(f.Logger(), f.KubeConfig(), targetAPIResource.Name, "v2")
+
 		By("Enabling federation of the CRD v2 to make target version of the FederatedTypeConfig updated")
 		needCleanup = false
 		typeConfig = enableResource(f, &targetAPIResource, "v2", needCleanup)
@@ -134,7 +136,7 @@ func enableResource(f framework.KubeFedFramework, targetAPIResource *metav1.APIR
 
 	resources, err := kfenable.GetResources(f.KubeConfig(), enableTypeDirective)
 	if err != nil {
-		tl.Fatalf("Error retrieving resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
+		tl.Fatalf("Error retrieving resources to enable federation of target type %q version %q: %v", targetAPIResource.Kind, version, err)
 	}
 	typeConfig := resources.TypeConfig
 
