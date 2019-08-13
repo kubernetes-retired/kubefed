@@ -1,4 +1,9 @@
 # Unreleased
+-  [#1099](https://github.com/kubernetes-sigs/kubefed/pull/1099)
+   Updates to propagation status are now only made in response to
+   propagation to member clusters or errors in propagation. Previously
+   propagation status was updated every time a federated resource was
+   reconciled which could result in unnecessary resource consumption.
 -  [#1098](https://github.com/kubernetes-sigs/kubefed/pull/1098)
    Propagated version is now only updated when changed.
 -  [#1087](https://github.com/kubernetes-sigs/kubefed/issues/1087)

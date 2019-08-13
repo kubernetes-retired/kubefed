@@ -58,7 +58,7 @@ type ManagedDispatcher interface {
 	Create(clusterName string)
 	Update(clusterName string, clusterObj *unstructured.Unstructured)
 	VersionMap() map[string]string
-	StatusMap() status.PropagationStatusMap
+	CollectedStatus() status.CollectedPropagationStatus
 
 	RecordClusterError(propStatus status.PropagationStatus, clusterName string, err error)
 	RecordStatus(clusterName string, propStatus status.PropagationStatus)
@@ -73,6 +73,10 @@ type managedDispatcherImpl struct {
 	versionMap            map[string]string
 	statusMap             status.PropagationStatusMap
 	skipAdoptingResources bool
+
+	// Track when resource updates are performed to allow indicating
+	// when a change was last propagated to member clusters.
+	resourcesUpdated bool
 }
 
 func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource FederatedResourceForDispatch, skipAdoptingResources bool) ManagedDispatcher {
@@ -213,6 +217,7 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 		if err != nil {
 			return d.recordOperationError(status.UpdateFailed, clusterName, op, err)
 		}
+		d.setResourcesUpdated()
 		version = util.ObjectVersion(obj)
 		d.recordVersion(clusterName, version)
 		return util.StatusAllOK
@@ -276,12 +281,21 @@ func (d *managedDispatcherImpl) recordVersion(clusterName, version string) {
 	d.versionMap[clusterName] = version
 }
 
-func (d *managedDispatcherImpl) StatusMap() status.PropagationStatusMap {
+func (d *managedDispatcherImpl) setResourcesUpdated() {
+	d.Lock()
+	defer d.Unlock()
+	d.resourcesUpdated = true
+}
+
+func (d *managedDispatcherImpl) CollectedStatus() status.CollectedPropagationStatus {
 	d.RLock()
 	defer d.RUnlock()
 	statusMap := make(status.PropagationStatusMap)
 	for key, value := range d.statusMap {
 		statusMap[key] = value
 	}
-	return statusMap
+	return status.CollectedPropagationStatus{
+		StatusMap:        statusMap,
+		ResourcesUpdated: d.resourcesUpdated,
+	}
 }

@@ -205,7 +205,7 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 										"reason": {
 											Type: "string",
 										},
-										"lastProbeTime": {
+										"lastUpdateTime": {
 											Format: "date-time",
 											Type:   "string",
 										},
