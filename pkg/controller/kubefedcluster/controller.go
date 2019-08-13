@@ -144,7 +144,10 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 				cluster := newObj.(*fedv1b1.KubeFedCluster)
 				cc.mu.Lock()
 				clusterData, ok := cc.clusterDataMap[cluster.Name]
-				if ok && !equality.Semantic.DeepEqual(clusterData.cachedObj.Spec, cluster.Spec) {
+
+				if ok && !equality.Semantic.DeepEqual(clusterData.cachedObj.Spec, cluster.Spec) &&
+					!equality.Semantic.DeepEqual(clusterData.cachedObj.ObjectMeta.Annotations, cluster.ObjectMeta.Annotations) &&
+					!equality.Semantic.DeepEqual(clusterData.cachedObj.ObjectMeta.Labels, cluster.ObjectMeta.Labels) {
 					clusterChanged = true
 				}
 				cc.mu.Unlock()
