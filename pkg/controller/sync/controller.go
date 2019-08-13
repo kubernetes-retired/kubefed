@@ -272,10 +272,8 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 	}()
 
 	if fedResource.Object().GetDeletionTimestamp() != nil {
-		klog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		return s.ensureDeletion(fedResource)
 	}
-	klog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
 	err = s.ensureFinalizer(fedResource)
 	if err != nil {
 		fedResource.RecordError("EnsureFinalizerError", errors.Wrap(err, "Failed to ensure finalizer"))
@@ -302,7 +300,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 
 	kind := fedResource.TargetKind()
 	key := fedResource.TargetName().String()
-	klog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
+	klog.V(4).Infof("Ensuring %s %q in clusters: %s", kind, key, strings.Join(selectedClusterNames.List(), ","))
 
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources)
 
