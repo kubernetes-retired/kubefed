@@ -442,7 +442,7 @@ func CreateResources(cmdOut io.Writer, hostConfig *rest.Config, artifactsList []
 			if err != nil {
 				return err
 			}
-			err = enable.CreateResources(cmdOut, hostConfig, typeResources, namespace)
+			err = enable.CreateResources(cmdOut, hostConfig, typeResources, namespace, dryRun)
 			if err != nil {
 				return err
 			}

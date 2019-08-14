@@ -150,7 +150,7 @@ func enableTypeConfigResource(name, namespace string, config *restclient.Config,
 		}
 
 		if enableTypeDirective.Name == name {
-			err = kfenable.CreateResources(nil, config, resources, namespace)
+			err = kfenable.CreateResources(nil, config, resources, namespace, false)
 			if err != nil {
 				tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
 			}

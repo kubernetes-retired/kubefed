@@ -148,7 +148,7 @@ func validateCrdCrud(f framework.KubeFedFramework, targetCrdKind string, namespa
 	}
 	typeConfig := resources.TypeConfig
 
-	err = kfenable.CreateResources(nil, hostConfig, resources, f.KubeFedSystemNamespace())
+	err = kfenable.CreateResources(nil, hostConfig, resources, f.KubeFedSystemNamespace(), false)
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}

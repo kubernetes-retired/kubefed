@@ -140,7 +140,7 @@ func enableResource(f framework.KubeFedFramework, targetAPIResource *metav1.APIR
 	}
 	typeConfig := resources.TypeConfig
 
-	err = kfenable.CreateResources(nil, f.KubeConfig(), resources, f.KubeFedSystemNamespace())
+	err = kfenable.CreateResources(nil, f.KubeConfig(), resources, f.KubeFedSystemNamespace(), false)
 	if err != nil {
 		tl.Fatalf("Error creating resources to enable federation of target type %q: %v", targetAPIResource.Kind, err)
 	}
