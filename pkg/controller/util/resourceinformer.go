@@ -23,24 +23,32 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 )
 
-// NewManagedResourceInformer returns an unfiltered informer.
-func NewResourceInformer(client ResourceClient, namespace string, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
-	return newResourceInformer(client, namespace, triggerFunc, "")
+// NewResourceInformer returns an unfiltered informer.
+func NewResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
+	return newResourceInformer(client, namespace, apiResource, triggerFunc, "")
 }
 
 // NewManagedResourceInformer returns an informer limited to resources
 // managed by KubeFed as indicated by labeling.
-func NewManagedResourceInformer(client ResourceClient, namespace string, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
+func NewManagedResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(pkgruntime.Object)) (cache.Store, cache.Controller) {
 	labelSelector := labels.Set(map[string]string{ManagedByKubeFedLabelKey: ManagedByKubeFedLabelValue}).AsSelector().String()
-	return newResourceInformer(client, namespace, triggerFunc, labelSelector)
+	return newResourceInformer(client, namespace, apiResource, triggerFunc, labelSelector)
 }
 
-func newResourceInformer(client ResourceClient, namespace string, triggerFunc func(pkgruntime.Object), labelSelector string) (cache.Store, cache.Controller) {
+func newResourceInformer(client ResourceClient, namespace string, apiResource *metav1.APIResource, triggerFunc func(pkgruntime.Object), labelSelector string) (cache.Store, cache.Controller) {
+	obj := &unstructured.Unstructured{}
+
+	if apiResource != nil {
+		gvk := schema.GroupVersionKind{Group: apiResource.Group, Version: apiResource.Version, Kind: apiResource.Kind}
+		obj.SetGroupVersionKind(gvk)
+		obj.SetNamespace(namespace)
+	}
 	return cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (pkgruntime.Object, error) {
@@ -52,7 +60,7 @@ func newResourceInformer(client ResourceClient, namespace string, triggerFunc fu
 				return client.Resources(namespace).Watch(options)
 			},
 		},
-		nil, // Skip checks for expected type since the type will depend on the client
+		obj, // use a unstructured type with apiVersion / Kind populated for informer logging purposes
 		NoResyncPeriod,
 		NewTriggerOnAllChanges(triggerFunc),
 	)
