@@ -95,7 +95,7 @@ func NewFederatedResourceAccessor(
 	if err != nil {
 		return nil, err
 	}
-	a.federatedStore, a.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, enqueueObj)
+	a.federatedStore, a.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, &federatedTypeAPIResource, enqueueObj)
 
 	if a.targetIsNamespace {
 		// Initialize an informer for namespaces.  The namespace
@@ -106,7 +106,7 @@ func NewFederatedResourceAccessor(
 		if err != nil {
 			return nil, err
 		}
-		a.namespaceStore, a.namespaceController = util.NewResourceInformer(namespaceTypeClient, targetNamespace, enqueueObj)
+		a.namespaceStore, a.namespaceController = util.NewResourceInformer(namespaceTypeClient, targetNamespace, &namespaceAPIResource, enqueueObj)
 	}
 
 	if typeConfig.GetNamespaced() {
@@ -133,7 +133,7 @@ func NewFederatedResourceAccessor(
 		if err != nil {
 			return nil, err
 		}
-		a.fedNamespaceStore, a.fedNamespaceController = util.NewResourceInformer(fedNamespaceClient, targetNamespace, fedNamespaceEnqueue)
+		a.fedNamespaceStore, a.fedNamespaceController = util.NewResourceInformer(fedNamespaceClient, targetNamespace, fedNamespaceAPIResource, fedNamespaceEnqueue)
 	}
 
 	a.versionManager = version.NewVersionManager(

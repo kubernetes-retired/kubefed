@@ -82,7 +82,7 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 	if err != nil {
 		return nil, err
 	}
-	p.federatedStore, p.federatedController = util.NewResourceInformer(p.federatedTypeClient, targetNamespace, kubeFedEventHandler)
+	p.federatedStore, p.federatedController = util.NewResourceInformer(p.federatedTypeClient, targetNamespace, &federatedTypeAPIResource, kubeFedEventHandler)
 
 	return p, nil
 }
