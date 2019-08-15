@@ -473,6 +473,10 @@ func (c *FederatedTypeCrudTester) checkFederatedStatus(fedObject *unstructured.U
 	}
 	fedStatus := resource.Status
 
+	if fedStatus.ObservedGeneration != fedObject.GetGeneration() {
+		return false, errors.Errorf("Waiting for status.observedGeneration to match metadata.generation for %s %q", federatedKind, qualifiedName)
+	}
+
 	// Check that aggregate status is ok
 	conditionTrue := false
 	for _, condition := range fedStatus.Conditions {
@@ -608,10 +612,12 @@ func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceCl
 
 func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, obj *unstructured.Unstructured, mutateResourceFunc func(*unstructured.Unstructured)) (*unstructured.Unstructured, error) {
 	client := c.resourceClient(apiResource)
+	var updatedObj *unstructured.Unstructured
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		mutateResourceFunc(obj)
 
-		_, err := client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+		var err error
+		updatedObj, err = client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
 		if apierrors.IsConflict(err) {
 			// The resource was updated by the KubeFed controller.
 			// Get the latest version and retry.
@@ -624,7 +630,7 @@ func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, o
 		}
 		return (err == nil), err
 	})
-	return obj, err
+	return updatedObj, err
 }
 
 // expectedVersion retrieves the version of the resource expected in the named cluster

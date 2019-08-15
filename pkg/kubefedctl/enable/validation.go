@@ -240,6 +240,10 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 								},
 							},
 						},
+						"observedGeneration": {
+							Format: "int64",
+							Type:   "integer",
+						},
 					},
 				},
 			},

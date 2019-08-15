@@ -24,6 +24,7 @@ import (
 
 func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 	testCases := map[string]struct {
+		generation       int64
 		reason           AggregateReason
 		statusMap        PropagationStatusMap
 		resourcesUpdated bool
@@ -48,6 +49,10 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			reason:          NamespaceNotFederated,
 			expectedChanged: true,
 		},
+		"Changed generation indicates changed": {
+			generation:      1,
+			expectedChanged: true,
+		},
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
@@ -68,7 +73,7 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				StatusMap:        tc.statusMap,
 				ResourcesUpdated: tc.resourcesUpdated,
 			}
-			changed := propStatus.update(tc.reason, collectedStatus)
+			changed := propStatus.update(tc.generation, tc.reason, collectedStatus)
 			if tc.expectedChanged != changed {
 				t.Fatalf("Expected changed to be %v, got %v", tc.expectedChanged, changed)
 			}

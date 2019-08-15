@@ -92,8 +92,9 @@ type GenericCondition struct {
 }
 
 type GenericFederatedStatus struct {
-	Conditions []*GenericCondition    `json:"conditions,omitempty"`
-	Clusters   []GenericClusterStatus `json:"clusters,omitempty"`
+	ObservedGeneration int64                  `json:"observedGeneration,omitempty"`
+	Conditions         []*GenericCondition    `json:"conditions,omitempty"`
+	Clusters           []GenericClusterStatus `json:"clusters,omitempty"`
 }
 
 type GenericFederatedResource struct {
@@ -123,7 +124,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 		resource.Status = &GenericFederatedStatus{}
 	}
 
-	changed := resource.Status.update(reason, collectedStatus)
+	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus)
 	if !changed {
 		return false, nil
 	}
@@ -142,10 +143,17 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 	return true, nil
 }
 
-// update ensures that the status reflects the given reason and collected
-// status. Returns a boolean indication of whether the status has been
-// changed.
-func (s *GenericFederatedStatus) update(reason AggregateReason, collectedStatus CollectedPropagationStatus) bool {
+// update ensures that the status reflects the given generation, reason
+// and collected status. Returns a boolean indication of whether the
+// status has been changed.
+func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason,
+	collectedStatus CollectedPropagationStatus) bool {
+
+	generationUpdated := s.ObservedGeneration != generation
+	if generationUpdated {
+		s.ObservedGeneration = generation
+	}
+
 	// Identify whether one or more clusters could not be reconciled
 	// successfully.
 	if reason == AggregateSuccess {
@@ -164,7 +172,10 @@ func (s *GenericFederatedStatus) update(reason AggregateReason, collectedStatus 
 	// occur even if status.clusters was unchanged).
 	changesPropagated := clustersChanged || len(collectedStatus.StatusMap) > 0 && collectedStatus.ResourcesUpdated
 
-	return s.setPropagationCondition(reason, changesPropagated)
+	propStatusUpdated := s.setPropagationCondition(reason, changesPropagated)
+
+	statusUpdated := generationUpdated || propStatusUpdated
+	return statusUpdated
 }
 
 // setClusters sets the status.clusters slice from a propagation status
