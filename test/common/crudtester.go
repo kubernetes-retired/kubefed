@@ -433,7 +433,7 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 		waitInterval := 1 * time.Second
 		var waitingForError error
 		err := wait.PollImmediate(waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-			ok, err := c.checkPropagationStatus(fedObject, clusterName, objExpected)
+			ok, err := c.checkFederatedStatus(fedObject, clusterName, objExpected)
 			if err != nil {
 				// Logging lots of waiting messages would clutter the
 				// logs.  Instead, track the most recent message
@@ -448,34 +448,34 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 		})
 		if err != nil {
 			if waitingForError != nil {
-				c.tl.Fatalf("Failed to check propagation status for %s %q: %v", federatedKind, qualifiedName, waitingForError)
+				c.tl.Fatalf("Failed to check status for %s %q: %v", federatedKind, qualifiedName, waitingForError)
 			}
-			c.tl.Fatalf("Failed to check propagation status for %s %q: %v", federatedKind, qualifiedName, err)
+			c.tl.Fatalf("Failed to check status for %s %q: %v", federatedKind, qualifiedName, err)
 		}
 	}
 }
 
-// checkPropagationStatus ensures that the federated resource status
+// checkFederatedStatus ensures that the federated resource status
 // reflects the expected propagation state.
-func (c *FederatedTypeCrudTester) checkPropagationStatus(fedObject *unstructured.Unstructured, clusterName string, objExpected bool) (bool, error) {
+func (c *FederatedTypeCrudTester) checkFederatedStatus(fedObject *unstructured.Unstructured, clusterName string, objExpected bool) (bool, error) {
 	federatedKind := fedObject.GetKind()
 	qualifiedName := util.NewQualifiedName(fedObject)
 
 	// Retrieve the resource from the API to ensure the latest status
 	// is considered.
-	genericStatus, err := GetGenericStatus(c.client, fedObject.GroupVersionKind(), qualifiedName)
+	resource, err := GetGenericResource(c.client, fedObject.GroupVersionKind(), qualifiedName)
 	if err != nil {
 		return false, err
 	}
-	if genericStatus.Status == nil {
-		c.tl.Logf("Propagation status is not yet available for %s %q", federatedKind, qualifiedName)
+	if resource.Status == nil {
+		c.tl.Logf("Status is not yet available for %s %q", federatedKind, qualifiedName)
 		return false, nil
 	}
-	propStatus := genericStatus.Status
+	fedStatus := resource.Status
 
 	// Check that aggregate status is ok
 	conditionTrue := false
-	for _, condition := range propStatus.Conditions {
+	for _, condition := range fedStatus.Conditions {
 		if condition.Type == status.PropagationConditionType {
 			if condition.Status == apiv1.ConditionTrue {
 				conditionTrue = true
@@ -490,7 +490,7 @@ func (c *FederatedTypeCrudTester) checkPropagationStatus(fedObject *unstructured
 	// Check that the cluster status is correct
 	if objExpected {
 		clusterStatusOK := false
-		for _, cluster := range propStatus.Clusters {
+		for _, cluster := range fedStatus.Clusters {
 			if cluster.Name == clusterName && cluster.Status == status.ClusterPropagationOK {
 				clusterStatusOK = true
 				break
@@ -501,7 +501,7 @@ func (c *FederatedTypeCrudTester) checkPropagationStatus(fedObject *unstructured
 		}
 	} else {
 		clusterRemoved := true
-		for _, cluster := range propStatus.Clusters {
+		for _, cluster := range fedStatus.Clusters {
 			if cluster.Name == clusterName && cluster.Status != status.WaitingForRemoval {
 				clusterRemoved = false
 				break
@@ -728,10 +728,10 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 	}
 }
 
-// GetGenericStatus retrieves a federated resource and converts it to
-// the generic status interface.
-func GetGenericStatus(client genericclient.Client, gvk schema.GroupVersionKind,
-	qualifiedName util.QualifiedName) (*status.GenericFederatedStatus, error) {
+// GetGenericResource retrieves a federated resource and converts it to
+// the generic resource struct.
+func GetGenericResource(client genericclient.Client, gvk schema.GroupVersionKind,
+	qualifiedName util.QualifiedName) (*status.GenericFederatedResource, error) {
 
 	fedObject := &unstructured.Unstructured{}
 	fedObject.SetGroupVersionKind(gvk)
@@ -740,12 +740,11 @@ func GetGenericStatus(client genericclient.Client, gvk schema.GroupVersionKind,
 		return nil, errors.Wrapf(err, "Failed to retrieve federated resource from the API")
 	}
 
-	// Convert the resource to the status struct
-	genericStatus := &status.GenericFederatedStatus{}
-	err = util.UnstructuredToInterface(fedObject, genericStatus)
+	resource := &status.GenericFederatedResource{}
+	err = util.UnstructuredToInterface(fedObject, resource)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to unmarshall federated resource to generic status")
+		return nil, errors.Wrapf(err, "Failed to unmarshall federated resource to generic resource struct")
 	}
 
-	return genericStatus, nil
+	return resource, nil
 }

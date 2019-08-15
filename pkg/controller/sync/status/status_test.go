@@ -51,7 +51,7 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			propStatus := &GenericPropagationStatus{
+			propStatus := &GenericFederatedStatus{
 				Clusters: []GenericClusterStatus{
 					{
 						Name: "cluster1",

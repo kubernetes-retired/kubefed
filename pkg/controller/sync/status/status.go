@@ -91,16 +91,16 @@ type GenericCondition struct {
 	Reason AggregateReason `json:"reason,omitempty"`
 }
 
-type GenericPropagationStatus struct {
+type GenericFederatedStatus struct {
 	Conditions []*GenericCondition    `json:"conditions,omitempty"`
 	Clusters   []GenericClusterStatus `json:"clusters,omitempty"`
 }
 
-type GenericFederatedStatus struct {
+type GenericFederatedResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Status *GenericPropagationStatus `json:"status,omitempty"`
+	Status *GenericFederatedStatus `json:"status,omitempty"`
 }
 
 type PropagationStatusMap map[string]PropagationStatus
@@ -110,35 +110,34 @@ type CollectedPropagationStatus struct {
 	ResourcesUpdated bool
 }
 
-// SetPropagationStatus sets the conditions and clusters fields of the
-// federated resource's object map from the provided reason and collected
-// propagation status. Returns a boolean indication of whether status
-// should be written to the API.
-func SetPropagationStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus) (bool, error) {
-	status := &GenericFederatedStatus{}
-	err := util.UnstructuredToInterface(fedObject, status)
+// SetFederatedStatus sets the conditions and clusters fields of the
+// federated resource's object map. Returns a boolean indication of
+// whether status should be written to the API.
+func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus) (bool, error) {
+	resource := &GenericFederatedResource{}
+	err := util.UnstructuredToInterface(fedObject, resource)
 	if err != nil {
-		return false, errors.Wrapf(err, "Failed to unmarshall to generic status")
+		return false, errors.Wrapf(err, "Failed to unmarshall to generic resource")
 	}
-	if status.Status == nil {
-		status.Status = &GenericPropagationStatus{}
+	if resource.Status == nil {
+		resource.Status = &GenericFederatedStatus{}
 	}
 
-	changed := status.Status.update(reason, collectedStatus)
+	changed := resource.Status.update(reason, collectedStatus)
 	if !changed {
 		return false, nil
 	}
 
-	statusJSON, err := json.Marshal(status)
+	resourceJSON, err := json.Marshal(resource)
 	if err != nil {
 		return false, errors.Wrapf(err, "Failed to marshall generic status to json")
 	}
-	statusObj := &unstructured.Unstructured{}
-	err = statusObj.UnmarshalJSON(statusJSON)
+	resourceObj := &unstructured.Unstructured{}
+	err = resourceObj.UnmarshalJSON(resourceJSON)
 	if err != nil {
-		return false, errors.Wrapf(err, "Failed to marshall generic status json to unstructured")
+		return false, errors.Wrapf(err, "Failed to marshall generic resource json to unstructured")
 	}
-	fedObject.Object[util.StatusField] = statusObj.Object[util.StatusField]
+	fedObject.Object[util.StatusField] = resourceObj.Object[util.StatusField]
 
 	return true, nil
 }
@@ -146,7 +145,7 @@ func SetPropagationStatus(fedObject *unstructured.Unstructured, reason Aggregate
 // update ensures that the status reflects the given reason and collected
 // status. Returns a boolean indication of whether the status has been
 // changed.
-func (s *GenericPropagationStatus) update(reason AggregateReason, collectedStatus CollectedPropagationStatus) bool {
+func (s *GenericFederatedStatus) update(reason AggregateReason, collectedStatus CollectedPropagationStatus) bool {
 	// Identify whether one or more clusters could not be reconciled
 	// successfully.
 	if reason == AggregateSuccess {
@@ -171,7 +170,7 @@ func (s *GenericPropagationStatus) update(reason AggregateReason, collectedStatu
 // setClusters sets the status.clusters slice from a propagation status
 // map. Returns a boolean indication of whether the status.clusters was
 // modified.
-func (s *GenericPropagationStatus) setClusters(statusMap PropagationStatusMap) bool {
+func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap) bool {
 	if !s.clustersDiffers(statusMap) {
 		return false
 	}
@@ -187,7 +186,7 @@ func (s *GenericPropagationStatus) setClusters(statusMap PropagationStatusMap) b
 
 // clustersDiffers checks whether `status.clusters` differs from the
 // given status map.
-func (s *GenericPropagationStatus) clustersDiffers(statusMap PropagationStatusMap) bool {
+func (s *GenericFederatedStatus) clustersDiffers(statusMap PropagationStatusMap) bool {
 	if len(s.Clusters) != len(statusMap) {
 		return true
 	}
@@ -202,7 +201,7 @@ func (s *GenericPropagationStatus) clustersDiffers(statusMap PropagationStatusMa
 // setPropagationCondition ensures that the Propagation condition is
 // updated to reflect the given reason.  The type of the condition is
 // derived from the reason (empty -> True, not empty -> False).
-func (s *GenericPropagationStatus) setPropagationCondition(reason AggregateReason, changesPropagated bool) bool {
+func (s *GenericFederatedStatus) setPropagationCondition(reason AggregateReason, changesPropagated bool) bool {
 	// Determine the appropriate status from the reason.
 	var newStatus apiv1.ConditionStatus
 	if reason == AggregateSuccess {
