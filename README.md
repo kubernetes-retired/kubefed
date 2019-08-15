@@ -73,6 +73,17 @@ using KubeFed.
 Take a look at our [development guide](docs/development.md) if you are
 interested in contributing.
 
+## Community
+
+Refer to the [contributing guidelines](./CONTRIBUTING.md) if you would like to contribute to KubeFed.
+
+### Communication channels
+
+KubeFed is sponsored by [SIG Multicluster](https://github.com/kubernetes/community/tree/master/sig-multicluster) and it uses the same communication channels as SIG multicluster.
+
+* Slack channel: [#sig-multicluster](http://slack.k8s.io/#sig-multicluster)
+* [Mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster)
+
 ## Code of Conduct
 
 Participation in the Kubernetes community is governed by the
