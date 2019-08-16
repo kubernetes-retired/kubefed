@@ -92,7 +92,7 @@ type joinFederation struct {
 
 type joinFederationOptions struct {
 	secretName      string
-	Scope           apiextv1b1.ResourceScope
+	scope           apiextv1b1.ResourceScope
 	errorOnExisting bool
 }
 
@@ -178,7 +178,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.Scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
+	j.scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
 	if err != nil {
 		return err
 	}
@@ -195,14 +195,28 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
-		hostClusterName, j.ClusterName, j.secretName, j.Scope, j.DryRun, j.errorOnExisting)
+		hostClusterName, j.ClusterName, j.secretName, j.scope, j.DryRun, j.errorOnExisting)
 }
 
-// JoinCluster performs all the necessary steps to register a cluster
-// with a KubeFed control plane provided the required set of
-// parameters are passed in.
+// JoinCluster registers a cluster with a KubeFed control plane. The
+// KubeFed namespace in the joining cluster will be the same as in the
+// host cluster.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
-	hostClusterName, joiningClusterName, secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+	hostClusterName, joiningClusterName, secretName string,
+	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+
+	return joinClusterForNamespace(hostConfig, clusterConfig, kubefedNamespace,
+		kubefedNamespace, hostClusterName, joiningClusterName, secretName,
+		scope, dryRun, errorOnExisting)
+}
+
+// joinClusterForNamespace registers a cluster with a KubeFed control
+// plane. The KubeFed namespace in the joining cluster is provided by
+// the joiningNamespace parameter.
+func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
+	joiningNamespace, hostClusterName, joiningClusterName, secretName string,
+	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get host cluster clientset: %v", err)
@@ -222,35 +236,34 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	}
 
 	klog.V(2).Infof("Performing preflight checks.")
-	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterName, kubefedNamespace, errorOnExisting)
+	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterName, joiningNamespace, errorOnExisting)
 	if err != nil {
 		return err
 	}
 
-	klog.V(2).Infof("Creating %s namespace in joining cluster", kubefedNamespace)
-	_, err = createKubeFedNamespace(clusterClientset, kubefedNamespace,
+	klog.V(2).Infof("Creating %s namespace in joining cluster", joiningNamespace)
+	_, err = createKubeFedNamespace(clusterClientset, joiningNamespace,
 		joiningClusterName, dryRun)
 	if err != nil {
 		klog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
-			kubefedNamespace, err)
+			joiningNamespace, err)
 		return err
 	}
-	klog.V(2).Infof("Created %s namespace in joining cluster", kubefedNamespace)
+	klog.V(2).Infof("Created %s namespace in joining cluster", joiningNamespace)
 
-	// Create a service account and use its credentials.
-	klog.V(2).Info("Creating cluster credentials secret")
-
-	secret, caBundle, err := createRBACSecret(hostClientset, clusterClientset,
-		kubefedNamespace, joiningClusterName, hostClusterName,
-		secretName, Scope, dryRun, errorOnExisting)
+	saName, err := createAuthorizedServiceAccount(clusterClientset,
+		joiningNamespace, joiningClusterName, hostClusterName,
+		scope, dryRun, errorOnExisting)
 	if err != nil {
-		klog.V(2).Infof("Could not create cluster credentials secret: %v", err)
 		return err
 	}
 
-	klog.V(2).Info("Cluster credentials secret created")
-
-	klog.V(2).Info("Creating federated cluster resource")
+	secret, caBundle, err := populateSecretInHostCluster(clusterClientset, hostClientset,
+		saName, kubefedNamespace, joiningNamespace, joiningClusterName, secretName, dryRun)
+	if err != nil {
+		klog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
+		return err
+	}
 
 	var disabledTLSValidations []fedv1b1.TLSValidation
 	if clusterConfig.TLSClientConfig.Insecure {
@@ -374,12 +387,13 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 	return fedNamespace, nil
 }
 
-// createRBACSecret creates a secret in the joining cluster using a service
-// account, and populate that secret into the host cluster to allow it to
-// access the joining cluster.
-func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.Interface,
-	namespace, joiningClusterName, hostClusterName,
-	secretName string, Scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*corev1.Secret, []byte, error) {
+// createAuthorizedServiceAccount creates a service account and grants
+// the privileges required by the KubeFed control plane to manage
+// resources in the joining cluster.  The name of the created service
+// account is returned on success.
+func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface,
+	namespace, joiningClusterName, hostClusterName string,
+	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (string, error) {
 
 	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
@@ -388,18 +402,18 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 	if err != nil {
 		klog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
 			saName, joiningClusterName, err)
-		return nil, nil, err
+		return "", err
 	}
 
 	klog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
 
-	if Scope == apiextv1b1.NamespaceScoped {
+	if scope == apiextv1b1.NamespaceScoped {
 		klog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
 		err = createRoleAndBinding(joiningClusterClientset, saName, namespace, joiningClusterName, dryRun, errorOnExisting)
 		if err != nil {
 			klog.V(2).Infof("Error creating role and binding for service account: %s in joining cluster: %s due to: %v", saName, joiningClusterName, err)
-			return nil, nil, err
+			return "", err
 		}
 
 		klog.V(2).Infof("Created role and binding for service account: %s in joining cluster: %s",
@@ -412,7 +426,7 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 		if err != nil {
 			klog.V(2).Infof("Error creating health check cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 				saName, joiningClusterName, err)
-			return nil, nil, err
+			return "", err
 		}
 
 		klog.V(2).Infof("Created health check cluster role and binding for service account: %s in joining cluster: %s",
@@ -425,25 +439,14 @@ func createRBACSecret(hostClusterClientset, joiningClusterClientset kubeclient.I
 		if err != nil {
 			klog.V(2).Infof("Error creating cluster role and binding for service account: %s in joining cluster: %s due to: %v",
 				saName, joiningClusterName, err)
-			return nil, nil, err
+			return "", err
 		}
 
 		klog.V(2).Infof("Created cluster role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
 	}
 
-	klog.V(2).Infof("Creating secret in host cluster: %s", hostClusterName)
-
-	secret, caBundle, err := populateSecretInHostCluster(joiningClusterClientset, hostClusterClientset,
-		saName, namespace, joiningClusterName, secretName, dryRun)
-	if err != nil {
-		klog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
-		return nil, nil, err
-	}
-
-	klog.V(2).Infof("Created secret in host cluster: %s", hostClusterName)
-
-	return secret, caBundle, nil
+	return saName, nil
 }
 
 // createServiceAccount creates a service account in the cluster associated
@@ -795,8 +798,11 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 // hostClientset, putting it in a secret named secretName in the provided
 // namespace.
 func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Interface,
-	saName, namespace, joiningClusterName, secretName string,
+	saName, hostNamespace, joiningNamespace, joiningClusterName, secretName string,
 	dryRun bool) (*corev1.Secret, []byte, error) {
+
+	klog.V(2).Infof("Creating cluster credentials secret in host cluster")
+
 	if dryRun {
 		dryRunSecret := &corev1.Secret{}
 		dryRunSecret.Name = secretName
@@ -806,7 +812,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	// Get the secret from the joining cluster.
 	var secret *corev1.Secret
 	err := wait.PollImmediate(1*time.Second, serviceAccountSecretTimeout, func() (bool, error) {
-		sa, err := clusterClientset.CoreV1().ServiceAccounts(namespace).Get(saName,
+		sa, err := clusterClientset.CoreV1().ServiceAccounts(joiningNamespace).Get(saName,
 			metav1.GetOptions{})
 		if err != nil {
 			return false, nil
@@ -815,7 +821,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 		for _, objReference := range sa.Secrets {
 			saSecretName := objReference.Name
 			var err error
-			secret, err = clusterClientset.CoreV1().Secrets(namespace).Get(saSecretName,
+			secret, err = clusterClientset.CoreV1().Secrets(joiningNamespace).Get(saSecretName,
 				metav1.GetOptions{})
 			if err != nil {
 				return false, nil
@@ -841,7 +847,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	// Create a secret in the host cluster containing the token.
 	v1Secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
+			Namespace: hostNamespace,
 		},
 		Data: map[string][]byte{
 			ctlutil.TokenKey: token,
@@ -854,7 +860,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 		v1Secret.Name = secretName
 	}
 
-	v1SecretResult, err := hostClientset.CoreV1().Secrets(namespace).Create(&v1Secret)
+	v1SecretResult, err := hostClientset.CoreV1().Secrets(hostNamespace).Create(&v1Secret)
 	if err != nil {
 		klog.V(2).Infof("Could not create secret in host cluster: %v", err)
 		return nil, nil, err
