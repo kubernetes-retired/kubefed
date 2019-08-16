@@ -243,20 +243,33 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 	return fedConfig
 }
 
-func setDefaultKubeFedConfigScope(fedConfig *corev1b1.KubeFedConfig) {
-	if len(fedConfig.Spec.Scope) == 0 {
-		// TODO(sohankunkerkar) Remove when no longer necessary.
-		// This Environment variable is a temporary addition to support Red Hat's downstream testing efforts.
-		// Its continued existence should not be relied upon.
-		const defaultScopeEnv = "DEFAULT_KUBEFED_SCOPE"
-		defaultScope := os.Getenv(defaultScopeEnv)
-		if len(defaultScope) != 0 {
-			if defaultScope != string(apiextv1b1.ClusterScoped) && defaultScope != string(apiextv1b1.NamespaceScoped) {
-				klog.Fatalf("%s must be Cluster or Namespaced; got %q", defaultScopeEnv, defaultScope)
-			}
+func setDefaultKubeFedConfigScope(fedConfig *corev1b1.KubeFedConfig) bool {
+	// TODO(sohankunkerkar) Remove when no longer necessary.
+	// This Environment variable is a temporary addition to support Red Hat's downstream testing efforts.
+	// Its continued existence should not be relied upon.
+	const defaultScopeEnv = "DEFAULT_KUBEFED_SCOPE"
+	defaultScope := os.Getenv(defaultScopeEnv)
+	if len(defaultScope) != 0 {
+		if defaultScope != string(apiextv1b1.ClusterScoped) && defaultScope != string(apiextv1b1.NamespaceScoped) {
+			klog.Fatalf("%s must be one of %s or %s; got %q", defaultScopeEnv,
+				string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped), defaultScope)
+			return false
+		}
+
+		if len(fedConfig.Spec.Scope) == 0 {
 			fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
+			klog.Infof("Setting the scope of KubeFedConfig spec to %s", defaultScope)
+			return true
+		} else {
+			if fedConfig.Spec.Scope != apiextv1b1.ResourceScope(defaultScope) {
+				klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
+					string(fedConfig.Spec.Scope), defaultScope)
+				fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
+				return true
+			}
 		}
 	}
+	return false
 }
 
 func createKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig) {
@@ -277,6 +290,22 @@ func createKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig)
 	}
 }
 
+func updateKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig) {
+	name := fedConfig.Name
+	namespace := fedConfig.Namespace
+	qualifiedName := util.QualifiedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+
+	client := genericclient.NewForConfigOrDieWithUserAgent(config, "kubefedconfig")
+	// Update the KubeFedConfig requested by the caller
+	err := client.Update(context.Background(), fedConfig)
+	if err != nil {
+		klog.Fatalf("Error updating KubeFedConfig %q: %v", qualifiedName, err)
+	}
+}
+
 func setOptionsByKubeFedConfig(opts *options.Options) {
 	fedConfig := getKubeFedConfig(opts)
 	if fedConfig == nil {
@@ -294,9 +323,12 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 				Namespace: qualifiedName.Namespace,
 			},
 		}
-
 		setDefaultKubeFedConfigScope(fedConfig)
 		createKubeFedConfig(opts.Config.KubeConfig, fedConfig)
+	} else {
+		if setDefaultKubeFedConfigScope(fedConfig) {
+			updateKubeFedConfig(opts.Config.KubeConfig, fedConfig)
+		}
 	}
 
 	qualifedName := util.QualifiedName{
