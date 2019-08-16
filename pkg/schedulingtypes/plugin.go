@@ -249,7 +249,7 @@ func OverrideUpdateNeeded(overridesMap util.OverridesMap, result map[string]int6
 			}
 			value := int64(floatValue)
 			replicas, ok := result[clusterName]
-			if !ok || value != int64(replicas) {
+			if !ok || value != replicas {
 				return true
 			}
 			checkLen += 1
