@@ -25,15 +25,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-
 	restclient "k8s.io/client-go/rest"
+
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedschedulingv1a1 "sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
-	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
-	"sigs.k8s.io/kubefed/pkg/kubefedctl"
-	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
@@ -47,23 +44,12 @@ var _ = Describe("Scheduling", func() {
 
 	userAgent := "rsp-test"
 
-	schedulingTypes := make(map[string]schedulingtypes.SchedulerFactory)
-	for typeConfigName, schedulingType := range schedulingtypes.SchedulingTypes() {
-		if schedulingType.Kind != schedulingtypes.RSPKind {
-			continue
-		}
-		schedulingTypes[typeConfigName] = schedulingType.SchedulerFactory
-	}
-	if len(schedulingTypes) == 0 {
-		tl.Fatalf("No target types found for scheduling type %q", schedulingtypes.RSPKind)
-	}
+	schedulingTypes := GetSchedulingTypes(tl)
 
 	var kubeConfig *restclient.Config
 	var genericClient genericclient.Client
 	var namespace string
 	var clusterNames []string
-	var controllerFixture *framework.ControllerFixture
-	var controller *schedulingmanager.SchedulingManager
 	typeConfigs := make(map[string]typeconfig.Interface)
 
 	BeforeEach(func() {
@@ -87,46 +73,9 @@ var _ = Describe("Scheduling", func() {
 			kubeConfig = f.KubeConfig()
 		}
 		namespace = f.TestNamespaceName()
-		if framework.TestContext.RunControllers() {
-			controllerFixture, controller = framework.NewSchedulingManagerFixture(tl, f.ControllerConfig())
-			f.RegisterFixture(controllerFixture)
-		}
-	})
 
-	Describe("SchedulingManager", func() {
-		Context("when federatedtypeconfig resources are changed", func() {
-			It("related scheduler and plugin controllers should be dynamically disabled/enabled", func() {
-				if !framework.TestContext.RunControllers() {
-					framework.Skipf("The scheduling manager can only be tested when controllers are running in-process.")
-				}
-
-				// The deletion of FederatedTypeConfigs performed by this test
-				// requires the FederatedTypeConfig controller in order to
-				// remove its finalizer for proper deletion.
-				controllerFixture = framework.NewFederatedTypeConfigControllerFixture(tl, f.ControllerConfig())
-				f.RegisterFixture(controllerFixture)
-
-				// make sure scheduler/plugin initialization are done before our test
-				By("Waiting for scheduler/plugin controllers are initialized in scheduling manager")
-				waitForSchedulerStarted(tl, controller, schedulingTypes)
-
-				By("Deleting federatedtypeconfig resources for scheduler/plugin controllers")
-				for targetTypeName := range schedulingTypes {
-					deleteTypeConfigResource(targetTypeName, f.KubeFedSystemNamespace(), kubeConfig, tl)
-				}
-
-				By("Waiting for scheduler/plugin controllers are destroyed in scheduling manager")
-				waitForSchedulerDeleted(tl, controller, schedulingTypes)
-
-				By("Enabling federatedtypeconfig resources again for scheduler/plugin controllers")
-				for targetTypeName := range schedulingTypes {
-					enableTypeConfigResource(targetTypeName, f.KubeFedSystemNamespace(), kubeConfig, tl)
-				}
-
-				By("Waiting for the scheduler/plugin controllers are started in scheduling manager")
-				waitForSchedulerStarted(tl, controller, schedulingTypes)
-			})
-		})
+		controllerFixture, _ := framework.NewSchedulingManagerFixture(tl, f.ControllerConfig())
+		f.RegisterFixture(controllerFixture)
 	})
 
 	Describe("ReplicaSchedulingPreferences", func() {
@@ -172,7 +121,6 @@ var _ = Describe("Scheduling", func() {
 			Describe(fmt.Sprintf("scheduling for federated %s", typeConfigName), func() {
 				for testName, tc := range testCases {
 					It(fmt.Sprintf("should result in %s", testName), func() {
-
 						typeConfig, ok := typeConfigs[typeConfigName]
 						if !ok {
 							tl.Fatalf("Unable to find type config for %q", typeConfigName)
@@ -216,39 +164,6 @@ var _ = Describe("Scheduling", func() {
 		}
 	})
 })
-
-func waitForSchedulerDeleted(tl common.TestLogger, controller *schedulingmanager.SchedulingManager, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
-	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		scheduler := controller.GetScheduler(schedulingtypes.RSPKind)
-		if scheduler != nil {
-			return false, nil
-		}
-
-		return true, nil
-	})
-	if err != nil {
-		tl.Fatalf("Error stopping for scheduler/plugin controllers: %v", err)
-	}
-}
-
-func waitForSchedulerStarted(tl common.TestLogger, controller *schedulingmanager.SchedulingManager, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
-	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		scheduler := controller.GetScheduler(schedulingtypes.RSPKind)
-		if scheduler == nil {
-			return false, nil
-		}
-		for targetTypeName := range schedulingTypes {
-			if !scheduler.HasPlugin(targetTypeName) {
-				return false, nil
-			}
-		}
-
-		return true, nil
-	})
-	if err != nil {
-		tl.Fatalf("Error starting for scheduler and plugins: %v", err)
-	}
-}
 
 func rspSpecWithoutClusterList(total int32, targetKind string) fedschedulingv1a1.ReplicaSchedulingPreferenceSpec {
 	return fedschedulingv1a1.ReplicaSchedulingPreferenceSpec{
@@ -375,28 +290,4 @@ func int32MapToInt64(original map[string]int32) map[string]int64 {
 		result[k] = int64(v)
 	}
 	return result
-}
-
-func enableTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
-	for _, enableTypeDirective := range framework.LoadEnableTypeDirectives(tl) {
-		resources, err := kfenable.GetResources(config, enableTypeDirective)
-		if err != nil {
-			tl.Fatalf("Error retrieving resource definitions for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
-		}
-
-		if enableTypeDirective.Name == name {
-			err = kfenable.CreateResources(nil, config, resources, namespace)
-			if err != nil {
-				tl.Fatalf("Error creating resources for EnableTypeDirective %q: %v", enableTypeDirective.Name, err)
-			}
-		}
-	}
-}
-
-func deleteTypeConfigResource(name, namespace string, config *restclient.Config, tl common.TestLogger) {
-	qualifiedName := util.QualifiedName{Namespace: namespace, Name: name}
-	err := kubefedctl.DisableFederation(nil, config, nil, qualifiedName, true, false, false)
-	if err != nil {
-		tl.Fatalf("Error disabling federation of target type %q: %v", qualifiedName, err)
-	}
 }
