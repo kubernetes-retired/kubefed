@@ -59,7 +59,7 @@ Set up your [Docker environment](https://docs.docker.com/install/).
 ## Adding a new API type
 
 As per the
-[docs](http://book.kubebuilder.io/quick_start.html)
+[docs](https://book.kubebuilder.io/quick-start.html)
 for kubebuilder, bootstrapping a new KubeFed API type can be
 accomplished as follows:
 
