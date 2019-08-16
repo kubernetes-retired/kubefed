@@ -133,7 +133,12 @@ func (j *unjoinFederation) Complete(args []string) error {
 
 // Run is the implementation of the `unjoin` command.
 func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
-	hostConfig, err := config.HostConfig(j.HostClusterContext, j.Kubeconfig)
+	hostClientConfig := config.GetClientConfig(j.HostClusterContext, j.Kubeconfig)
+	if err := j.SetHostClusterContextFromConfig(hostClientConfig); err != nil {
+		return err
+	}
+
+	hostConfig, err := hostClientConfig.ClientConfig()
 	if err != nil {
 		// TODO(font): Return new error with this same text so it can be output
 		// by caller.
@@ -159,13 +164,13 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return UnjoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
-		hostClusterName, j.HostClusterContext, j.ClusterContext, j.ClusterName, j.forceDeletion, j.DryRun)
+		hostClusterName, j.ClusterContext, j.ClusterName, j.forceDeletion, j.DryRun)
 }
 
 // UnjoinCluster performs all the necessary steps to remove the
 // registration of a cluster from a KubeFed control plane provided the
 // required set of parameters are passed in.
-func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName, hostClusterContext,
+func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName,
 	unjoiningClusterContext, unjoiningClusterName string, forceDeletion, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
