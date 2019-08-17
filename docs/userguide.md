@@ -376,11 +376,13 @@ status:
   conditions:
   - type: Propagation
     status: True
-    lastProbeTime: "2019-05-08T01:23:20Z"
     lastTransitionTime: "2019-05-08T01:23:20Z"
+    lastUpdateTime: "2019-05-08T01:23:20Z"
   # The namespace 'myns' has been verified to exist in the
-  # following clusters as of the lastProbeTime recorded
-  # in the 'Propagation' condition.
+  # following clusters as of the lastUpdateTime recorded
+  # in the 'Propagation' condition. Since that time, no
+  # change has been detected to this resource or the
+  # resources it manages.
   clusters:
   - name: cluster1
   - name: cluster2
@@ -435,8 +437,8 @@ status:
   - type: Propagation
     status: False
     reason: CheckClusters
-    lastProbeTime: "2019-05-08T01:23:20Z"
     lastTransitionTime: "2019-05-08T01:23:20Z"
+    lastUpdateTime: "2019-05-08T01:23:20Z"
   clusters:
   - name: cluster1
   - name: cluster2

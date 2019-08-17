@@ -61,13 +61,6 @@ const (
 	PathField             = "path"
 	ValueField            = "value"
 
-	// Propagation status fields
-	ConditionsField         = "conditions"
-	TypeField               = "type"
-	ReasonField             = "reason"
-	LastProbeTimeField      = "lastProbeTime"
-	LastTransitionTimeField = "lastTransitionTime"
-
 	// Cluster reference
 	ClustersField = "clusters"
 	NameField     = "name"

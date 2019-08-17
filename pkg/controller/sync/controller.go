@@ -272,10 +272,8 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 	}()
 
 	if fedResource.Object().GetDeletionTimestamp() != nil {
-		klog.V(3).Infof("Handling deletion of %s %q", kind, key)
 		return s.ensureDeletion(fedResource)
 	}
-	klog.V(3).Infof("Ensuring finalizer exists on %s %q", kind, key)
 	err = s.ensureFinalizer(fedResource)
 	if err != nil {
 		fedResource.RecordError("EnsureFinalizerError", errors.Wrap(err, "Failed to ensure finalizer"))
@@ -302,7 +300,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 
 	kind := fedResource.TargetKind()
 	key := fedResource.TargetName().String()
-	klog.V(4).Infof("Syncing %s %q in underlying clusters, selected clusters are: %s", kind, key, selectedClusterNames)
+	klog.V(4).Infof("Ensuring %s %q in clusters: %s", kind, key, strings.Join(selectedClusterNames.List(), ","))
 
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources)
 
@@ -380,12 +378,16 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 		runtime.HandleError(err)
 	}
 
-	statusMap := dispatcher.StatusMap()
-	return s.setPropagationStatus(fedResource, status.AggregateSuccess, statusMap)
+	collectedStatus := dispatcher.CollectedStatus()
+	return s.setPropagationStatus(fedResource, status.AggregateSuccess, &collectedStatus)
 }
 
 func (s *KubeFedSyncController) setPropagationStatus(fedResource FederatedResource,
-	reason status.AggregateReason, statusMap status.PropagationStatusMap) util.ReconciliationStatus {
+	reason status.AggregateReason, collectedStatus *status.CollectedPropagationStatus) util.ReconciliationStatus {
+
+	if collectedStatus == nil {
+		collectedStatus = &status.CollectedPropagationStatus{}
+	}
 
 	kind := fedResource.FederatedKind()
 	name := fedResource.FederatedName()
@@ -405,8 +407,11 @@ func (s *KubeFedSyncController) setPropagationStatus(fedResource FederatedResour
 	// If the underlying resource has changed, attempt to retrieve and
 	// update it repeatedly.
 	err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
-		if err := status.SetPropagationStatus(obj, reason, statusMap); err != nil {
+		if updateRequired, err := status.SetPropagationStatus(obj, reason, *collectedStatus); err != nil {
 			return false, errors.Wrapf(err, "failed to set the status")
+		} else if !updateRequired {
+			klog.V(4).Infof("No update necessary for %s %q propagation status", kind, name)
+			return true, nil
 		}
 
 		err := s.hostClusterClient.UpdateStatus(context.TODO(), obj)

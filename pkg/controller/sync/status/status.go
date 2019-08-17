@@ -79,9 +79,10 @@ type GenericCondition struct {
 	Type ConditionType `json:"type"`
 	// Status of the condition, one of True, False, Unknown.
 	Status apiv1.ConditionStatus `json:"status"`
-	// Last time the condition was checked.
+	// Last time reconciliation resulted in an error or the last time a
+	// change was propagated to member clusters.
 	// +optional
-	LastProbeTime string `json:"lastProbeTime,omitempty"`
+	LastUpdateTime string `json:"lastUpdateTime,omitempty"`
 	// Last time the condition transit from one status to another.
 	// +optional
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
@@ -104,51 +105,104 @@ type GenericFederatedStatus struct {
 
 type PropagationStatusMap map[string]PropagationStatus
 
+type CollectedPropagationStatus struct {
+	StatusMap        PropagationStatusMap
+	ResourcesUpdated bool
+}
+
 // SetPropagationStatus sets the conditions and clusters fields of the
-// federated resource's object map from the provided reason and
-// cluster status map.
-func SetPropagationStatus(fedObject *unstructured.Unstructured, reason AggregateReason, statusMap PropagationStatusMap) error {
+// federated resource's object map from the provided reason and collected
+// propagation status. Returns a boolean indication of whether status
+// should be written to the API.
+func SetPropagationStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus) (bool, error) {
 	status := &GenericFederatedStatus{}
 	err := util.UnstructuredToInterface(fedObject, status)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to unmarshall to generic status")
+		return false, errors.Wrapf(err, "Failed to unmarshall to generic status")
 	}
 	if status.Status == nil {
 		status.Status = &GenericPropagationStatus{}
 	}
-	propStatus := status.Status
 
+	changed := status.Status.update(reason, collectedStatus)
+	if !changed {
+		return false, nil
+	}
+
+	statusJSON, err := json.Marshal(status)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to marshall generic status to json")
+	}
+	statusObj := &unstructured.Unstructured{}
+	err = statusObj.UnmarshalJSON(statusJSON)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to marshall generic status json to unstructured")
+	}
+	fedObject.Object[util.StatusField] = statusObj.Object[util.StatusField]
+
+	return true, nil
+}
+
+// update ensures that the status reflects the given reason and collected
+// status. Returns a boolean indication of whether the status has been
+// changed.
+func (s *GenericPropagationStatus) update(reason AggregateReason, collectedStatus CollectedPropagationStatus) bool {
 	// Identify whether one or more clusters could not be reconciled
 	// successfully.
-	if reason == AggregateSuccess && statusMap != nil {
-		for _, value := range statusMap {
+	if reason == AggregateSuccess {
+		for _, value := range collectedStatus.StatusMap {
 			if value != ClusterPropagationOK {
 				reason = CheckClusters
 				break
 			}
 		}
 	}
-	propStatus.setPropagationCondition(reason)
-	propStatus.setClusterStatus(statusMap)
 
-	statusJSON, err := json.Marshal(status)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to marshall generic status to json")
-	}
-	statusObj := &unstructured.Unstructured{}
-	err = statusObj.UnmarshalJSON(statusJSON)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to marshall generic status json to unstructured")
-	}
-	fedObject.Object[util.StatusField] = statusObj.Object[util.StatusField]
+	clustersChanged := s.setClusters(collectedStatus.StatusMap)
 
-	return nil
+	// Indicate that changes were propagated if either status.clusters
+	// was changed or if existing resources were updated (which could
+	// occur even if status.clusters was unchanged).
+	changesPropagated := clustersChanged || len(collectedStatus.StatusMap) > 0 && collectedStatus.ResourcesUpdated
+
+	return s.setPropagationCondition(reason, changesPropagated)
+}
+
+// setClusters sets the status.clusters slice from a propagation status
+// map. Returns a boolean indication of whether the status.clusters was
+// modified.
+func (s *GenericPropagationStatus) setClusters(statusMap PropagationStatusMap) bool {
+	if !s.clustersDiffers(statusMap) {
+		return false
+	}
+	s.Clusters = []GenericClusterStatus{}
+	for clusterName, status := range statusMap {
+		s.Clusters = append(s.Clusters, GenericClusterStatus{
+			Name:   clusterName,
+			Status: status,
+		})
+	}
+	return true
+}
+
+// clustersDiffers checks whether `status.clusters` differs from the
+// given status map.
+func (s *GenericPropagationStatus) clustersDiffers(statusMap PropagationStatusMap) bool {
+	if len(s.Clusters) != len(statusMap) {
+		return true
+	}
+	for _, status := range s.Clusters {
+		if statusMap[status.Name] != status.Status {
+			return true
+		}
+	}
+	return false
 }
 
 // setPropagationCondition ensures that the Propagation condition is
 // updated to reflect the given reason.  The type of the condition is
 // derived from the reason (empty -> True, not empty -> False).
-func (s *GenericPropagationStatus) setPropagationCondition(reason AggregateReason) {
+func (s *GenericPropagationStatus) setPropagationCondition(reason AggregateReason, changesPropagated bool) bool {
 	// Determine the appropriate status from the reason.
 	var newStatus apiv1.ConditionStatus
 	if reason == AggregateSuccess {
@@ -176,27 +230,19 @@ func (s *GenericPropagationStatus) setPropagationCondition(reason AggregateReaso
 		s.Conditions = append(s.Conditions, propCondition)
 	}
 
-	propCondition.Status = newStatus
-	propCondition.Reason = reason
-	propCondition.LastProbeTime = time.Now().UTC().Format(time.RFC3339)
+	now := time.Now().UTC().Format(time.RFC3339)
 
-	// Determine whether the latest status represents a change from
-	// the old that requires updating the transition time.
-	transition := newCondition || propCondition.Status != newStatus
+	transition := newCondition || !(propCondition.Status == newStatus && propCondition.Reason == reason)
 	if transition {
-		propCondition.LastTransitionTime = propCondition.LastProbeTime
+		propCondition.LastTransitionTime = now
+		propCondition.Status = newStatus
+		propCondition.Reason = reason
 	}
 
-}
-
-// setClusterStatus sets the cluster status slice from a propagation
-// status map.
-func (s *GenericPropagationStatus) setClusterStatus(statusMap PropagationStatusMap) {
-	s.Clusters = []GenericClusterStatus{}
-	for clusterName, status := range statusMap {
-		s.Clusters = append(s.Clusters, GenericClusterStatus{
-			Name:   clusterName,
-			Status: status,
-		})
+	updateRequired := changesPropagated || transition
+	if updateRequired {
+		propCondition.LastUpdateTime = now
 	}
+
+	return updateRequired
 }
