@@ -1,4 +1,6 @@
 # Unreleased
+
+# v0.1.0-rc6
 -  [#1099](https://github.com/kubernetes-sigs/kubefed/pull/1099)
    Updates to propagation status are now only made in response to
    propagation to member clusters or errors in propagation. Previously
