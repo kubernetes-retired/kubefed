@@ -67,6 +67,10 @@ curl "${curl_args}O" "${golint_url}" \
     && tar xzfP "${golint_tgz}" -C "${dest_dir}" --strip-components=1 "${golint_dir}/golangci-lint" \
     && rm "${golint_tgz}"
 
+# Install go-bindata tool
+go get -u github.com/go-bindata/go-bindata/...
+
+
 echo    "# destination:"
 echo    "#   ${dest_dir}"
 echo    "# versions:"
@@ -74,3 +78,4 @@ echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
 echo -n "#   helm:           "; "${dest_dir}/helm" version --client --short
 echo -n "#   golangci-lint:  "; "${dest_dir}/golangci-lint" --version
+echo -n "#   go-bindata:     "; "go-bindata" -version

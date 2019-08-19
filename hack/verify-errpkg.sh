@@ -26,6 +26,7 @@ find_files() {
         -wholename '*/vendor/*' \
         -o -wholename '*/pkg/client/*' \
         -o -wholename '*/*deepcopy.go' \
+        -o -wholename '*/test/common/bindata.go' \
         -o -wholename '*/doc.go' \
       \) -prune \
     \) -name '*.go'

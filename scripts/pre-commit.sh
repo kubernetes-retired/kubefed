@@ -22,23 +22,30 @@ set -o pipefail
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
+TEMP_DIR="$(mktemp -d)"
 MAKE_CMD="make -C ${ROOT_DIR}"
+OS="$(go env GOOS)"
+ARCH="$(go env GOARCH)"
+PLATFORM="${OS}-${ARCH}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 JOIN_CLUSTERS="${JOIN_CLUSTERS:-}"
 DOWNLOAD_BINARIES="${DOWNLOAD_BINARIES:-}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
-COMMON_TEST_CMD="go test -v"
-COMMON_TEST_ARGS="./test/e2e -args  -kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
-E2E_TEST_CMD="${COMMON_TEST_CMD} ${COMMON_TEST_ARGS}"
+COMMON_TEST_ARGS="-kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+E2E_TEST_CMD="${TEMP_DIR}/e2e-${PLATFORM} ${COMMON_TEST_ARGS}"
 # Disable limited scope in-memory controllers to ensure the controllers in the
 # race detection test behave consistently with deployed controllers for a
 # given control plane scope.
-IN_MEMORY_E2E_TEST_CMD="${COMMON_TEST_CMD} -timeout 900s -race ${COMMON_TEST_ARGS} -in-memory-controllers=true -limited-scope-in-memory-controllers=false"
+IN_MEMORY_E2E_TEST_CMD="go test -v -timeout 900s -race ./test/e2e -args ${COMMON_TEST_ARGS} -in-memory-controllers=true -limited-scope-in-memory-controllers=false"
 
 function build-binaries() {
   ${MAKE_CMD} hyperfed
   ${MAKE_CMD} controller
   ${MAKE_CMD} kubefedctl
+  ${MAKE_CMD} e2e
+  # Copying the test binary to ${TEMP_DIR} to ensure
+  # there's no dependency on the static files in the path
+  cp ${ROOT_DIR}/bin/e2e-${PLATFORM} ${TEMP_DIR}
 }
 
 function download-dependencies() {

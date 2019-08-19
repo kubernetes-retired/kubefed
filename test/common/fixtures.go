@@ -17,8 +17,7 @@ limitations under the License.
 package common
 
 import (
-	"io/ioutil"
-	"path/filepath"
+	"bytes"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -42,29 +41,30 @@ func TypeConfigFixturesOrDie(tl TestLogger) map[string]*unstructured.Unstructure
 }
 
 func typeConfigFixtures() (map[string]*unstructured.Unstructured, error) {
-	path := fixturePath()
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error reading fixture from path %q", path)
-	}
-
 	fixtures := make(map[string]*unstructured.Unstructured)
-	suffix := ".yaml"
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), suffix) {
-			continue
-		}
-
-		typeConfigName := strings.TrimSuffix(file.Name(), suffix)
-
-		filename := filepath.Join(path, file.Name())
+	for _, file := range AssetNames() {
 		fixture := &unstructured.Unstructured{}
-		err := kfenable.DecodeYAMLFromFile(filename, fixture)
+		typeConfigName, err := DecodeYamlFromBindata(file, "test/common/fixtures/", fixture)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error reading fixture for %q", typeConfigName)
+			return nil, errors.Wrapf(err, "Error reading a fixture from %q", typeConfigName)
 		}
-		fixtures[typeConfigName] = fixture
+		if len(typeConfigName) != 0 {
+			fixtures[typeConfigName] = fixture
+		}
 	}
 
 	return fixtures, nil
+}
+
+func DecodeYamlFromBindata(filename, prefix string, obj interface{}) (string, error) {
+	if !strings.HasPrefix(filename, prefix) {
+		return "", nil
+	}
+	yaml := MustAsset(filename)
+	name := strings.TrimSuffix(strings.TrimPrefix(filename, prefix), ".yaml")
+	err := kfenable.DecodeYAML(bytes.NewBuffer(yaml), obj)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
 }
