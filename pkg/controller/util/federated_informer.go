@@ -165,6 +165,7 @@ func NewFederatedInformer(
 		},
 		targetInformers: make(map[string]informer),
 		fedNamespace:    config.KubeFedNamespace,
+		clusterClients:  make(map[string]generic.Client),
 	}
 
 	getClusterData := func(name string) []interface{} {
@@ -278,6 +279,9 @@ type federatedInformerImpl struct {
 	// Retrieves configuration to access a cluster.
 	configFactory func(*fedv1b1.KubeFedCluster) (*restclient.Config, error)
 
+	// Caches cluster clients (reduces client discovery and secret retrieval)
+	clusterClients map[string]generic.Client
+
 	// Namespace from which to source KubeFedCluster resources
 	fedNamespace string
 }
@@ -319,12 +323,20 @@ func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic
 	f.Lock()
 	defer f.Unlock()
 
+	// return cached client if one exists (to prevent frequent secret retrieval and rest discovery)
+	if client, ok := f.clusterClients[clusterName]; ok {
+		return client, nil
+	}
 	config, err := f.getConfigForClusterUnlocked(clusterName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Client creation failed")
 	}
-
-	return generic.New(config)
+	client, err := generic.New(config)
+	if err != nil {
+		return client, err
+	}
+	f.clusterClients[clusterName] = client
+	return client, nil
 }
 
 func (f *federatedInformerImpl) getConfigForClusterUnlocked(clusterName string) (*restclient.Config, error) {
@@ -450,6 +462,7 @@ func (f *federatedInformerImpl) deleteCluster(cluster *fedv1b1.KubeFedCluster) {
 		close(targetInformer.stopChan)
 	}
 	delete(f.targetInformers, name)
+	delete(f.clusterClients, name)
 }
 
 // Returns a store created over all stores from target informers.
