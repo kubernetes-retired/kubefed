@@ -1,4 +1,9 @@
 # Unreleased
+-  [#1121](https://github.com/kubernetes-sigs/kubefed/pull/1121) Update
+   `kubefedctl federate` shorthand option for `--enable-type` to `-t` instead
+   of `-e` to avoid confusing error message when only one dash is accidentally
+   used e.g. `-enable-type`, resulting in a valid parsing of flags but
+   erroneous use of the option.
 
 # v0.1.0-rc6
 -  [#1099](https://github.com/kubernetes-sigs/kubefed/pull/1099)
