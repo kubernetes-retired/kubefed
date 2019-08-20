@@ -90,7 +90,7 @@ type federateResource struct {
 func (j *federateResource) Bind(flags *pflag.FlagSet) {
 	flags.StringVarP(&j.resourceNamespace, "namespace", "n", "", "The namespace of the resource to federate.")
 	flags.StringVarP(&j.output, "output", "o", "", "If provided, the resource that would be created in the API by the command is instead output to stdout in the provided format.  Valid format is ['yaml'].")
-	flags.BoolVarP(&j.enableType, "enable-type", "e", false, "If true, attempt to enable federation of the API type of the resource before creating the federated resource.")
+	flags.BoolVarP(&j.enableType, "enable-type", "t", false, "If true, attempt to enable federation of the API type of the resource before creating the federated resource.")
 	flags.BoolVarP(&j.federateContents, "contents", "c", false, "Applicable only to namespaces. If provided, the command will federate all resources within the namespace after federating the namespace.")
 	flags.StringVarP(&j.filename, "filename", "f", "", "If specified, the provided yaml file will be used as the input for target resources to federate. This mode will only emit federated resource yaml to standard output. Other flag options if provided will be ignored.")
 	flags.StringSliceVarP(&j.skipAPIResourceNames, "skip-api-resources", "s", []string{}, "Comma separated names of the api resources to skip when federating contents in a namespace. Name could be short name "+
