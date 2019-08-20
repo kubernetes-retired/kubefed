@@ -181,12 +181,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return nil
 	}
 
-	if j.DryRun {
-		// Avoid mutating the API
-		return nil
-	}
-
-	return CreateResources(cmdOut, hostConfig, resources, j.KubeFedNamespace)
+	return CreateResources(cmdOut, hostConfig, resources, j.KubeFedNamespace, j.DryRun)
 }
 
 type typeResources struct {
@@ -224,7 +219,7 @@ func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective)
 // TODO(marun) Allow updates to the configuration for a type that has
 // already been enabled for kubefed.  This would likely involve
 // updating the version of the target type and the validation of the schema.
-func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string) error {
+func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResources, namespace string, dryRun bool) error {
 	write := func(data string) {
 		if cmdOut != nil {
 			if _, err := cmdOut.Write([]byte(data)); err != nil {
@@ -274,9 +269,11 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 
 	existingCRD, err := crdClient.CustomResourceDefinitions().Get(resources.CRD.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
-		if err != nil {
-			return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
+		if !dryRun {
+			_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
+			if err != nil {
+				return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
+			}
 		}
 		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
 	} else if err != nil {
@@ -302,9 +299,11 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		}
 
 		existingCRD.Spec = resources.CRD.Spec
-		_, err = crdClient.CustomResourceDefinitions().Update(existingCRD)
-		if err != nil {
-			return errors.Wrapf(err, "Error updating CRD %q", resources.CRD.Name)
+		if !dryRun {
+			_, err = crdClient.CustomResourceDefinitions().Update(existingCRD)
+			if err != nil {
+				return errors.Wrapf(err, "Error updating CRD %q", resources.CRD.Name)
+			}
 		}
 		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s updated\n", resources.CRD.Name))
 	}
@@ -316,15 +315,19 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "Error retrieving FederatedTypeConfig %q", concreteTypeConfig.Name)
 		}
-		err = client.Create(context.TODO(), concreteTypeConfig)
-		if err != nil {
-			return errors.Wrapf(err, "Error creating FederatedTypeConfig %q", concreteTypeConfig.Name)
+		if !dryRun {
+			err = client.Create(context.TODO(), concreteTypeConfig)
+			if err != nil {
+				return errors.Wrapf(err, "Error creating FederatedTypeConfig %q", concreteTypeConfig.Name)
+			}
 		}
 	} else {
 		existingTypeConfig.Spec = concreteTypeConfig.Spec
-		err = client.Update(context.TODO(), existingTypeConfig)
-		if err != nil {
-			return errors.Wrapf(err, "Error updating FederatedTypeConfig %q", concreteTypeConfig.Name)
+		if !dryRun {
+			err = client.Update(context.TODO(), existingTypeConfig)
+			if err != nil {
+				return errors.Wrapf(err, "Error updating FederatedTypeConfig %q", concreteTypeConfig.Name)
+			}
 		}
 		createdOrUpdated = "updated"
 	}
