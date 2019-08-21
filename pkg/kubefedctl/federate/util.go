@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	versionhelper "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
@@ -114,7 +115,8 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames []string
 
 		for _, apiResource := range apiResourceList.APIResources {
 			if !apiResource.Namespaced || util.IsFederatedAPIResource(apiResource.Kind, group) ||
-				apiResourceMatchesSkipName(apiResource, skipAPIResourceNames, group) {
+				apiResourceMatchesSkipName(apiResource, skipAPIResourceNames, group) ||
+				len(validation.IsDNS1123Subdomain(apiResource.Name)) != 0 {
 				continue
 			}
 
