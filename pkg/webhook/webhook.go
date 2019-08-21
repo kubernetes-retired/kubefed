@@ -17,6 +17,7 @@ limitations under the License.
 package webhook
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/openshift/generic-admission-server/pkg/apiserver"
@@ -26,6 +27,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/federatedtypeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedconfig"
+	"sigs.k8s.io/kubefed/pkg/version"
 )
 
 func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
@@ -39,6 +41,17 @@ func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	cmd.Use = "webhook"
 	cmd.Short = "Start a kubefed webhook server"
 	cmd.Long = "Start a kubefed webhook server"
+
+	versionFlag := false
+	cmd.Flags().BoolVar(&versionFlag, "version", false,
+		"Prints version information for kubefed admission webhook and quits")
+	cmd.PreRun = func(c *cobra.Command, args []string) {
+		fmt.Fprintf(os.Stdout, "KubeFed admission webhook version: %s\n",
+			fmt.Sprintf("%#v", version.Get()))
+		if versionFlag {
+			os.Exit(0)
+		}
+	}
 
 	return cmd
 }
