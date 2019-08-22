@@ -462,11 +462,11 @@ func TestValidateAPIEndpoint(t *testing.T) {
 		},
 		{
 			"example.com:port80",
-			`apiEndpoint: Invalid value: "port80": error converting port to integer`,
+			`apiEndpoint: Invalid value: "example.com:port80": parse https://example.com:port80: invalid port ":port80" after host`,
 		},
 		{
 			"example.com:-80",
-			"apiEndpoint: Invalid value: -80: must be between 1 and 65535, inclusive",
+			`apiEndpoint: Invalid value: "example.com:-80": parse https://example.com:-80: invalid port ":-80" after host`,
 		},
 		{
 			"example.com:0",
