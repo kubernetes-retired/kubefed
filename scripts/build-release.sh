@@ -45,6 +45,15 @@ function build-release-artifacts() {
 
 function create-and-push-tag() {
   # Use the upstream git remote convention name used by hub.
+
+  if git ls-remote --tags "${GITHUB_REMOTE_UPSTREAM_NAME}" refs/tags/"${RELEASE_TAG}" &> /dev/null; then
+    echo "git tag ${RELEASE_TAG} already exists in ${GITHUB_REMOTE_UPSTREAM_NAME} remote. Continuing..."
+    return 0
+  fi
+
+  # Make sure upstream is updated with the latest commit.
+  git fetch "${GITHUB_REMOTE_UPSTREAM_NAME}" --prune
+
   # This creates an annotated tag required to ensure that the KubeFed binaries
   # are versioned correctly.
   git tag -a "${RELEASE_TAG}" "${GITHUB_REMOTE_UPSTREAM_NAME}/master" -m "Creating release tag ${RELEASE_TAG}"
@@ -75,16 +84,26 @@ function travis-build-status() {
   curl -sH 'Travis-API-Version: 3' ${travisBuildStatusApi} | jq -r .last_build.state
 }
 
-function verify-travis-build-started() {
+CI_PASSED_STATUS="passed"
+CI_COMPLETED_STATUSES="${CI_PASSED_STATUS} failed errored canceled"
+
+function travis-build-started() {
+  local startedStatuses="started ${CI_COMPLETED_STATUSES}"
   local buildStatus="$(travis-build-status)"
-  [[ "${buildStatus}" == "started" ]]
+
+  for status in ${startedStatuses}; do
+    if [[ "${status}" == "${buildStatus}" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
-function verify-travis-build-completed() {
-  local statuses="${PASSED_STATUS} failed errored canceled"
+function travis-build-completed() {
   local buildStatus="$(travis-build-status)"
 
-  for status in ${statuses}; do
+  for status in ${CI_COMPLETED_STATUSES}; do
     if [[ "${status}" == "${buildStatus}" ]]; then
       return 0
     fi
@@ -94,13 +113,13 @@ function verify-travis-build-completed() {
 }
 
 function verify-continuous-integration() {
-  PASSED_STATUS="passed"
-  util::wait-for-condition "kubefed CI build to start" "verify-travis-build-started started" 300
-  util::wait-for-condition "kubefed CI build to complete" "verify-travis-build-completed" 3600
+  util::wait-for-condition "kubefed CI build to start" "travis-build-started" 1200
+  util::wait-for-condition "kubefed CI build to complete" "travis-build-completed" 3600
+
   local buildStatus="$(travis-build-status)"
 
-  if [[ "${buildStatus}" == "${PASSED_STATUS}" ]]; then
-    echo "kubefed CI build ${PASSED_STATUS}"
+  if [[ "${buildStatus}" == "${CI_PASSED_STATUS}" ]]; then
+    echo "kubefed CI build ${CI_PASSED_STATUS}"
   else
     echo "kubefed CI build ${buildStatus}. Exiting."
     exit 1
@@ -117,7 +136,9 @@ function verify-container-image() {
 }
 
 function update-changelog() {
-  sed -i "/# Unreleased/a \\\n# ${RELEASE_TAG}" CHANGELOG.md
+  if ! grep "^# ${RELEASE_TAG}" CHANGELOG.md &> /dev/null; then
+    sed -i "/# Unreleased/a \\\n# ${RELEASE_TAG}" CHANGELOG.md
+  fi
 }
 
 if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
@@ -134,7 +155,7 @@ build-release-artifacts
 util::log "Creating local git annotated tag and pushing tag to kick off build process"
 create-and-push-tag
 
-util::log "Verifing image builds and completes successfully in Travis. This will take a while (~1 hour)"
+util::log "Verifying image builds and completes successfully in Travis. This can take a while (~1 hour)"
 verify-continuous-integration
 
 util::log "Verifying container image tags and pushes successfully to Quay"

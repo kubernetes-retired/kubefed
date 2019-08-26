@@ -41,6 +41,15 @@ function prime-command-for-auth() {
   hub release show -f "%n" v0.1.0-rc5
 }
 
+RELEASE_ASSETS_FILE="kubefed-${RELEASE_TAG}-asset-files.txt"
+
+function verify-assets-file-exists() {
+  if [[ ! -f "${RELEASE_ASSETS_FILE}" ]]; then
+    echo "ERROR: kubefed release assets file '${RELEASE_ASSETS_FILE}' does not exist. Please run ${ROOT_DIR}/scripts/build-release-artifacts.sh and try again."
+    return 1
+  fi
+}
+
 function github-release-template() {
   # Add leading # for markdown heading level 1 (h1)
   local regex="$(echo ${RELEASE_TAG_REGEX/^/^\# })"
@@ -75,7 +84,7 @@ function create-github-release() {
 
   # Build asset attach arguments for hub release command
   local assetArgs
-  for asset in $(cat kubefed-${RELEASE_TAG}-asset-files.txt); do
+  for asset in $(cat "${RELEASE_ASSETS_FILE}"); do
     assetArgs+="--attach ${asset} "
   done
 
@@ -109,6 +118,9 @@ verify-command-installed
 
 util::log "Priming hub CLI command for authentication"
 prime-command-for-auth
+
+util::log "Verifying release assets file exists"
+verify-assets-file-exists
 
 util::log "Creating pull request with release ${RELEASE_TAG} changes"
 create-release-pr
