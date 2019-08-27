@@ -76,7 +76,6 @@ type KubeFedSyncController struct {
 	clusterAvailableDelay   time.Duration
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
-	updateTimeout           time.Duration
 
 	typeConfig typeconfig.Interface
 
@@ -120,7 +119,6 @@ func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfi
 		clusterAvailableDelay:   controllerConfig.ClusterAvailableDelay,
 		clusterUnavailableDelay: controllerConfig.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
-		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
 		typeConfig:              typeConfig,
 		hostClusterClient:       client,
@@ -177,7 +175,6 @@ func (s *KubeFedSyncController) minimizeLatency() {
 	s.clusterAvailableDelay = time.Second
 	s.clusterUnavailableDelay = time.Second
 	s.smallDelay = 20 * time.Millisecond
-	s.updateTimeout = 5 * time.Second
 	s.worker.SetDelay(50*time.Millisecond, s.clusterAvailableDelay)
 }
 

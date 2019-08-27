@@ -66,7 +66,6 @@ type SchedulingPreferenceController struct {
 	clusterAvailableDelay   time.Duration
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
-	updateTimeout           time.Duration
 }
 
 // SchedulingPreferenceController starts a new controller for given type of SchedulingPreferences
@@ -101,7 +100,6 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
 		clusterUnavailableDelay: config.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
-		updateTimeout:           time.Second * 30,
 		eventRecorder:           recorder,
 	}
 
@@ -154,7 +152,6 @@ func (s *SchedulingPreferenceController) minimizeLatency() {
 	s.clusterAvailableDelay = time.Second
 	s.clusterUnavailableDelay = time.Second
 	s.smallDelay = 20 * time.Millisecond
-	s.updateTimeout = 5 * time.Second
 	s.worker.SetDelay(50*time.Millisecond, s.clusterAvailableDelay)
 }
 
