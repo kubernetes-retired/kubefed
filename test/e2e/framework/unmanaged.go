@@ -42,6 +42,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const (
+	// Allow high rates of client calls from e2e tests. The clusters
+	// targeted for testing are expected to be dedicated and it
+	// shouldn't be necessary to restrict the rate of client calls.
+	testConfigQPS   = 80
+	testConfigBurst = 100
+)
+
 var (
 	clusterControllerFixture *ControllerFixture
 	// The client and set of deleted namespaces is used on suite
@@ -368,6 +376,8 @@ func loadConfig(configPath, context string) (*restclient.Config, *clientcmdapi.C
 	if err != nil {
 		return nil, nil, errors.Errorf("error creating default client config: %v", err.Error())
 	}
+	cfg.QPS = testConfigQPS
+	cfg.Burst = testConfigBurst
 	return cfg, c, nil
 }
 
