@@ -1,4 +1,8 @@
 # Unreleased
+-  [#1129](https://github.com/kubernetes-sigs/kubefed/pull/1129)
+   An empty `spec.placement.clusters` field will now always result in
+   no clusters being selected. Previously an empty `clusters` field
+   could result in `spec.placement.clusterSelector` being used.
 -  [#1107](https://github.com/kubernetes-sigs/kubefed/pull/1107)
   `status.observedGeneration` is now recorded by the sync controller
    for federated resources to provide an indication of whether the

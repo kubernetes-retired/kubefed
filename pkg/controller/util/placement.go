@@ -52,6 +52,9 @@ func UnmarshalGenericPlacement(obj *unstructured.Unstructured) (*GenericPlacemen
 }
 
 func (p *GenericPlacement) ClusterNames() []string {
+	if p.Spec.Placement.Clusters == nil {
+		return nil
+	}
 	clusterNames := []string{}
 	for _, cluster := range p.Spec.Placement.Clusters {
 		clusterNames = append(clusterNames, cluster.Name)
@@ -72,11 +75,14 @@ func GetClusterNames(obj *unstructured.Unstructured) ([]string, error) {
 }
 
 func SetClusterNames(obj *unstructured.Unstructured, clusterNames []string) error {
-	clusters := []interface{}{}
-	for _, clusterName := range clusterNames {
-		clusters = append(clusters, map[string]interface{}{
-			NameField: clusterName,
-		})
+	var clusters []interface{}
+	if clusterNames != nil {
+		clusters = []interface{}{}
+		for _, clusterName := range clusterNames {
+			clusters = append(clusters, map[string]interface{}{
+				NameField: clusterName,
+			})
+		}
 	}
 	return unstructured.SetNestedSlice(obj.Object, clusters, SpecField, PlacementField, ClustersField)
 }
