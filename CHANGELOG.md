@@ -1,4 +1,8 @@
 # Unreleased
+-  [#1107](https://github.com/kubernetes-sigs/kubefed/pull/1107)
+  `status.observedGeneration` is now recorded by the sync controller
+   for federated resources to provide an indication of whether the
+   current state of a resource has been processed.
 -  [#1121](https://github.com/kubernetes-sigs/kubefed/pull/1121) Update
    `kubefedctl federate` shorthand option for `--enable-type` to `-t` instead
    of `-e` to avoid confusing error message when only one dash is accidentally

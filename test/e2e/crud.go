@@ -87,15 +87,15 @@ var _ = Describe("Federated", func() {
 				By(fmt.Sprintf("Waiting until the status of the %s %q indicates NamespaceNotFederated", kind, qualifiedName))
 				client := genericclient.NewForConfigOrDie(f.KubeConfig())
 				err := wait.PollImmediate(framework.PollInterval, wait.ForeverTestTimeout, func() (bool, error) {
-					genericStatus, err := common.GetGenericStatus(client, fedObject.GroupVersionKind(), qualifiedName)
+					genericResource, err := common.GetGenericResource(client, fedObject.GroupVersionKind(), qualifiedName)
 					if err != nil {
 						tl.Fatalf("An error occurred retrieving the status of the %s %q: %v", kind, qualifiedName, err)
 					}
-					if genericStatus.Status == nil {
+					if genericResource.Status == nil {
 						return false, nil
 					}
 					var propCondition *status.GenericCondition
-					for _, condition := range genericStatus.Status.Conditions {
+					for _, condition := range genericResource.Status.Conditions {
 						if condition.Type == status.PropagationConditionType {
 							propCondition = condition
 							break

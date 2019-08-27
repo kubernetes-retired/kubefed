@@ -289,13 +289,13 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
 		fedResource.RecordError(string(status.ClusterRetrievalFailed), errors.Wrap(err, "Failed to retrieve list of clusters"))
-		return s.setPropagationStatus(fedResource, status.ClusterRetrievalFailed, nil)
+		return s.setFederatedStatus(fedResource, status.ClusterRetrievalFailed, nil)
 	}
 
 	selectedClusterNames, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
 		fedResource.RecordError(string(status.ComputePlacementFailed), errors.Wrap(err, "Failed to compute placement"))
-		return s.setPropagationStatus(fedResource, status.ComputePlacementFailed, nil)
+		return s.setFederatedStatus(fedResource, status.ComputePlacementFailed, nil)
 	}
 
 	kind := fedResource.TargetKind()
@@ -379,10 +379,10 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	}
 
 	collectedStatus := dispatcher.CollectedStatus()
-	return s.setPropagationStatus(fedResource, status.AggregateSuccess, &collectedStatus)
+	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus)
 }
 
-func (s *KubeFedSyncController) setPropagationStatus(fedResource FederatedResource,
+func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource,
 	reason status.AggregateReason, collectedStatus *status.CollectedPropagationStatus) util.ReconciliationStatus {
 
 	if collectedStatus == nil {
@@ -407,10 +407,10 @@ func (s *KubeFedSyncController) setPropagationStatus(fedResource FederatedResour
 	// If the underlying resource has changed, attempt to retrieve and
 	// update it repeatedly.
 	err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
-		if updateRequired, err := status.SetPropagationStatus(obj, reason, *collectedStatus); err != nil {
+		if updateRequired, err := status.SetFederatedStatus(obj, reason, *collectedStatus); err != nil {
 			return false, errors.Wrapf(err, "failed to set the status")
 		} else if !updateRequired {
-			klog.V(4).Infof("No update necessary for %s %q propagation status", kind, name)
+			klog.V(4).Infof("No status update necessary for %s %q", kind, name)
 			return true, nil
 		}
 
