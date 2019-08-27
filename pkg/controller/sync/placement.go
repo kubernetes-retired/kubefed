@@ -85,12 +85,9 @@ func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1
 
 	selectedNames := sets.String{}
 	clusterNames := placement.ClusterNames()
-	if len(clusterNames) > 0 {
-		// Explicit cluster names take precedence over a selector.
-		for _, clusterName := range clusterNames {
-			selectedNames.Insert(clusterName)
-		}
-	} else {
+	// Only use selector if clusters are nil. An empty list of
+	// clusters implies no clusters are selected.
+	if clusterNames == nil {
 		selector, err := placement.ClusterSelector()
 		if err != nil {
 			return nil, err
@@ -99,6 +96,10 @@ func selectedClusterNames(resource *unstructured.Unstructured, clusters []*fedv1
 			if selector.Matches(labels.Set(cluster.Labels)) {
 				selectedNames.Insert(cluster.Name)
 			}
+		}
+	} else {
+		for _, clusterName := range clusterNames {
+			selectedNames.Insert(clusterName)
 		}
 	}
 

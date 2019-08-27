@@ -58,6 +58,13 @@ func TestSelectedClusterNames(t *testing.T) {
 		"no clusters when cluster names and selector absent": {
 			expectedNames: sets.NewString(),
 		},
+		"no clusters when cluster names empty and selector not empty": {
+			clusterNames: []string{},
+			clusterSelector: map[string]string{
+				"foo": "bar",
+			},
+			expectedNames: sets.NewString(),
+		},
 		"all clusters when cluster names absent and selector empty": {
 			clusterSelector: map[string]string{},
 			expectedNames:   sets.NewString("cluster1", "cluster2"),
@@ -77,10 +84,8 @@ func TestSelectedClusterNames(t *testing.T) {
 					"spec": make(map[string]interface{}),
 				},
 			}
-			if testCase.clusterNames != nil {
-				if err := util.SetClusterNames(obj, testCase.clusterNames); err != nil {
-					t.Fatalf("Unexpected error: %v", err)
-				}
+			if err := util.SetClusterNames(obj, testCase.clusterNames); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
 			}
 			if testCase.clusterSelector != nil {
 				if err := unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, util.MatchLabelsField); err != nil {
