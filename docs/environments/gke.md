@@ -5,6 +5,10 @@
 - [Google Kubernetes Engine (GKE) Deployment Guide](#google-kubernetes-engine-gke-deployment-guide)
   - [RBAC Workaround](#rbac-workaround)
   - [Additional firewall rule for kubefed-admission-webhook in GKE private clusters](#additional-firewall-rule-for-kubefed-admission-webhook-in-gke-private-clusters)
+    - [Issue](#issue)
+    - [Background](#background)
+    - [Resolution](#resolution)
+    - [See also](#see-also)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

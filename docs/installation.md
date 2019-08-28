@@ -4,6 +4,7 @@
 
 - [Installing KubeFed](#installing-kubefed)
   - [Prerequisites](#prerequisites)
+    - [kubefedctl CLI](#kubefedctl-cli)
     - [Creating Clusters](#creating-clusters)
     - [Deployment Image](#deployment-image)
   - [Helm Chart Deployment](#helm-chart-deployment)
@@ -13,6 +14,23 @@
 # Installing KubeFed
 
 ## Prerequisites
+
+### kubefedctl CLI
+
+`kubefedctl` is the KubeFed command line utility. You can download
+the latest binary from the [release page](https://github.com/kubernetes-sigs/kubefed/releases).
+
+```bash
+VERSION=<latest-version, e.g. 0.1.0-rc3>
+OS=<darwin/linux>
+ARCH=amd64
+curl -LO https://github.com/kubernetes-sigs/kubefed/releases/download/v${VERSION}/kubefedctl-${VERSION}-${OS}-${ARCH}.tgz
+tar -zxvf kubefedctl-*.tgz
+chmod u+x kubefedctl
+sudo mv kubefedctl /usr/local/bin/ # make sure the location is in the PATH
+```
+
+**NOTE:** `kubefedctl` is built for Linux and OSX only in the release package.
 
 ### Creating Clusters
 
