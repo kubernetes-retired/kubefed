@@ -68,7 +68,14 @@ curl "${curl_args}O" "${golint_url}" \
     && rm "${golint_tgz}"
 
 # Install go-bindata tool
-go get -u github.com/go-bindata/go-bindata/...
+GOBIN="$(go env GOPATH)/bin"
+gobindata_version="v3.1.2"
+go get -d github.com/go-bindata/go-bindata/...
+pushd ${GOPATH}/src/github.com/go-bindata/go-bindata
+git checkout ${gobindata_version}
+go install github.com/go-bindata/go-bindata/...
+ln -s ${GOBIN}/go-bindata ${dest_dir}/go-bindata
+popd
 
 
 echo    "# destination:"
@@ -78,4 +85,4 @@ echo -n "#   kubectl:        "; "${dest_dir}/kubectl" version --client --short
 echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
 echo -n "#   helm:           "; "${dest_dir}/helm" version --client --short
 echo -n "#   golangci-lint:  "; "${dest_dir}/golangci-lint" --version
-echo -n "#   go-bindata:     "; "go-bindata" -version
+echo -n "#   go-bindata:     "; "${dest_dir}/go-bindata" -version

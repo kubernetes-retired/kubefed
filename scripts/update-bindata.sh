@@ -35,8 +35,8 @@ if command -v go-bindata > /dev/null; then
     config/kubefedconfig.yaml \
     config/enabletypedirectives
 
-  cat ./hack/boilerplate.go.txt ./test/common/bindata.go > tmp \
-    && mv tmp ./test/common/bindata.go
+  cat ./hack/boilerplate.go.txt ./test/common/bindata.go > bindatatmp \
+    && mv bindatatmp ./test/common/bindata.go
 else
   echo "go-bindata is not found. Use './scripts/download-binaries.sh' to download it."
   exit 1
