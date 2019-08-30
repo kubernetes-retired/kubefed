@@ -290,7 +290,7 @@ func createKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig)
 	}
 }
 
-func updateKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig) {
+func deleteKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig) {
 	name := fedConfig.Name
 	namespace := fedConfig.Namespace
 	qualifiedName := util.QualifiedName{
@@ -299,10 +299,10 @@ func updateKubeFedConfig(config *rest.Config, fedConfig *corev1b1.KubeFedConfig)
 	}
 
 	client := genericclient.NewForConfigOrDieWithUserAgent(config, "kubefedconfig")
-	// Update the KubeFedConfig requested by the caller
-	err := client.Update(context.Background(), fedConfig)
+	// Delete the KubeFedConfig requested by the caller
+	err := client.Delete(context.Background(), fedConfig, namespace, name)
 	if err != nil {
-		klog.Fatalf("Error updating KubeFedConfig %q: %v", qualifiedName, err)
+		klog.Fatalf("Error deleting KubeFedConfig %q: %v", qualifiedName, err)
 	}
 }
 
@@ -326,8 +326,11 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 		setDefaultKubeFedConfigScope(fedConfig)
 		createKubeFedConfig(opts.Config.KubeConfig, fedConfig)
 	} else {
-		if setDefaultKubeFedConfigScope(fedConfig) {
-			updateKubeFedConfig(opts.Config.KubeConfig, fedConfig)
+		newFedConfig := &corev1b1.KubeFedConfig{}
+		fedConfig.DeepCopyInto(newFedConfig)
+		if setDefaultKubeFedConfigScope(newFedConfig) {
+			deleteKubeFedConfig(opts.Config.KubeConfig, fedConfig)
+			createKubeFedConfig(opts.Config.KubeConfig, newFedConfig)
 		}
 	}
 
