@@ -262,6 +262,11 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 	allErrs = append(allErrs, validateEnumStrings(specPath.Child("scope"), string(spec.Scope),
 		[]string{string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped)})...)
 
+	if oldKubeFedConfig != nil {
+		// We are validating a KubeFedConfig update.
+		allErrs = append(allErrs, apimachineryval.ValidateImmutableField(spec.Scope, oldKubeFedConfig.Spec.Scope, specPath.Child("scope"))...)
+	}
+
 	duration := spec.ControllerDuration
 	durationPath := specPath.Child("controllerDuration")
 	if duration == nil {
