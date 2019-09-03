@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 )
@@ -286,6 +287,20 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		}
 
 		for _, ftc := range ftcs.Items {
+			targetAPI := concreteTypeConfig.Spec.TargetType
+			existingAPI := ftc.Spec.TargetType
+			if IsEquivalentAPI(&existingAPI, &targetAPI) {
+				existingName := qualifiedAPIResourceName(ftc.GetTargetType())
+				name := qualifiedAPIResourceName(concreteTypeConfig.GetTargetType())
+				qualifiedFTCName := ctlutil.QualifiedName{
+					Namespace: ftc.Namespace,
+					Name:      ftc.Name,
+				}
+
+				return errors.Errorf("Failed to enable %q. Federation of this type is already enabled for equivalent type %q by FederatedTypeConfig %q",
+					name, existingName, qualifiedFTCName)
+			}
+
 			if concreteTypeConfig.Name == ftc.Name {
 				continue
 			}
