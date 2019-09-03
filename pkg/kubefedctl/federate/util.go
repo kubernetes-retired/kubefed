@@ -31,6 +31,7 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	versionhelper "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
@@ -115,8 +116,7 @@ func namespacedAPIResourceMap(config *rest.Config, skipAPIResourceNames []string
 
 		for _, apiResource := range apiResourceList.APIResources {
 			if !apiResource.Namespaced || util.IsFederatedAPIResource(apiResource.Kind, group) ||
-				apiResourceMatchesSkipName(apiResource, skipAPIResourceNames, group) ||
-				len(validation.IsDNS1123Subdomain(apiResource.Name)) != 0 {
+				apiResourceMatchesSkipName(apiResource, skipAPIResourceNames, group) {
 				continue
 			}
 
@@ -207,7 +207,16 @@ func getResourcesInNamespace(config *rest.Config, namespace string, skipAPIResou
 		targetResources := resources{apiResource: apiResource}
 		for _, item := range resourceList.Items {
 			resource := item
-			targetResources.resources = append(targetResources.resources, &resource)
+			errors := validation.IsDNS1123Subdomain(resource.GetName())
+			if len(errors) == 0 {
+				targetResources.resources = append(targetResources.resources, &resource)
+			} else {
+				klog.Warningf("Skipping resource %s of type %s because it does not conform to the DNS-1123 subdomain spec.", resource.GetName(), apiResource.Name)
+				klog.Warningf("The following error(s) were reported during DNS-1123 validation: ")
+				for _, err := range errors {
+					klog.Warningf(err)
+				}
+			}
 		}
 		resourcesInNamespace = append(resourcesInNamespace, targetResources)
 	}
