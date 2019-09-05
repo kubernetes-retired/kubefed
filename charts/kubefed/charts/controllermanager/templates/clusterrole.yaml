@@ -51,6 +51,7 @@ rules:
   - ""
   resources:
   - namespaces
+  - secrets
   verbs:
   - get
   - watch
