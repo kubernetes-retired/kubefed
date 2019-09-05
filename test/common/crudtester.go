@@ -331,6 +331,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		stateMsg = "not present"
 	}
 	for clusterName, testCluster := range c.testClusters {
+		namespace = util.QualifiedNameForCluster(clusterName, qualifiedName).Namespace
 		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 			obj, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
 			switch {
@@ -391,29 +392,31 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 	// TODO(marun) run checks in parallel
 	primaryClusterName := c.getPrimaryClusterName()
 	for clusterName, testCluster := range c.testClusters {
+		targetName := util.QualifiedNameForCluster(clusterName, qualifiedName)
+
 		objExpected := selectedClusters.Has(clusterName)
 
 		operation := "to be deleted from"
 		if objExpected {
 			operation = "in"
 		}
-		c.tl.Logf("Waiting for %s %q %s cluster %q", targetKind, qualifiedName, operation, clusterName)
+		c.tl.Logf("Waiting for %s %q %s cluster %q", targetKind, targetName, operation, clusterName)
 
 		if objExpected {
-			err := c.waitForResource(testCluster.Client, qualifiedName, overridesMap[clusterName], func() string {
+			err := c.waitForResource(testCluster.Client, targetName, overridesMap[clusterName], func() string {
 				version, _ := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
 				return version
 			})
 			switch {
 			case err == wait.ErrWaitTimeout:
-				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
+				c.tl.Fatalf("Timeout verifying %s %q in cluster %q: %v", targetKind, targetName, clusterName, err)
 			case err != nil:
-				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
+				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", targetKind, targetName, clusterName, err)
 			}
 		} else if c.targetIsNamespace && clusterName == primaryClusterName {
-			c.checkHostNamespaceUnlabeled(testCluster.Client, qualifiedName, targetKind, clusterName)
+			c.checkHostNamespaceUnlabeled(testCluster.Client, targetName, targetKind, clusterName)
 		} else {
-			err := c.waitForResourceDeletion(testCluster.Client, qualifiedName, func() bool {
+			err := c.waitForResourceDeletion(testCluster.Client, targetName, func() bool {
 				version, ok := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
 				return version == "" && ok
 			})
@@ -422,10 +425,10 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 			switch {
 			case err == wait.ErrWaitTimeout:
 				if objExpected {
-					c.tl.Fatalf("Timeout verifying deletion of %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
+					c.tl.Fatalf("Timeout verifying deletion of %s %q in cluster %q: %v", targetKind, targetName, clusterName, err)
 				}
 			case err != nil:
-				c.tl.Fatalf("Failed to verify deletion of %s %q in cluster %q: %v", targetKind, qualifiedName, clusterName, err)
+				c.tl.Fatalf("Failed to verify deletion of %s %q in cluster %q: %v", targetKind, targetName, clusterName, err)
 			}
 		}
 
