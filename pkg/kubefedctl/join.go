@@ -101,7 +101,7 @@ type joinFederationOptions struct {
 func (o *joinFederationOptions) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.secretName, "secret-name", "",
 		"Name of the secret where the cluster's credentials will be stored in the host cluster. This name should be a valid RFC 1035 label. If unspecified, defaults to a generated name containing the cluster name.")
-	flags.BoolVar(&o.errorOnExisting, "error-on-existing", false,
+	flags.BoolVar(&o.errorOnExisting, "error-on-existing", true,
 		"Whether the join operation will throw an error if it encounters existing artifacts with the same name as those it's trying to create. If false, the join operation will update existing artifacts to match its own specification.")
 }
 
