@@ -281,6 +281,9 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	return nil
 }
 
+// This function is exported for testing purposes only.
+var TestOnly_JoinClusterForNamespace = joinClusterForNamespace
+
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
 func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClusterName,

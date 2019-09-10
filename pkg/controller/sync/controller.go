@@ -596,7 +596,6 @@ func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersion
 	}
 
 	dispatcher := dispatch.NewUnmanagedDispatcher(s.informer.GetClientForCluster, gvk, qualifiedName)
-	key := qualifiedName.String()
 	retrievalFailureClusters := []string{}
 	unreadyClusters := []string{}
 	for _, cluster := range clusters {
@@ -607,6 +606,7 @@ func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersion
 			continue
 		}
 
+		key := util.QualifiedNameForCluster(clusterName, qualifiedName).String()
 		rawClusterObj, _, err := s.informer.GetTargetStore().GetByKey(clusterName, key)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to retrieve %s %q for cluster %q", gvk.Kind, key, clusterName)
