@@ -190,14 +190,6 @@ func validateAPIEndpoint(endpoint string, path *field.Path) field.ErrorList {
 
 	allErrs := validateEnumStrings(path, hostURL.Scheme, []string{"http", "https"})
 
-	hostname := hostURL.Hostname()
-	dnsErrs := valutil.IsDNS1123Subdomain(hostname)
-	ipErrs := valutil.IsValidIP(hostname)
-	if dnsErrs != nil && ipErrs != nil {
-		combinedErrMsg := fmt.Sprintf("%s; or %s", strings.Join(ipErrs, ","), strings.Join(dnsErrs, ","))
-		allErrs = append(allErrs, field.Invalid(path, hostname, combinedErrMsg))
-	} // else one of the two succeeded
-
 	port := hostURL.Port()
 	if port != "" {
 		portInt, err := strconv.Atoi(port)
