@@ -445,22 +445,6 @@ func TestValidateAPIEndpoint(t *testing.T) {
 			`apiEndpoint: Unsupported value: "tcp"`,
 		},
 		{
-			"example_com",
-			"lower case alphanumeric characters, '-' or '.'",
-		},
-		{
-			"-example.com",
-			"must start and end with an alphanumeric character",
-		},
-		{
-			"192.0.2..161",
-			`apiEndpoint: Invalid value: "192.0.2..161": must be a valid IP address`,
-		},
-		{
-			"[2001:db8:25a4::8d2::1]",
-			`apiEndpoint: Invalid value: "2001:db8:25a4::8d2::1": must be a valid IP address`,
-		},
-		{
 			"example.com:port80",
 			`apiEndpoint: Invalid value: "example.com:port80": parse https://example.com:port80: invalid port ":port80" after host`,
 		},
