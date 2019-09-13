@@ -1,24 +1,34 @@
 {{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.io/v1beta1"))) }}
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: clusterpropagatedversions.core.kubefed.io
 spec:
   group: core.kubefed.io
   names:
     kind: ClusterPropagatedVersion
+    listKind: ClusterPropagatedVersionList
     plural: clusterpropagatedversions
+    singular: clusterpropagatedversion
   scope: Cluster
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
+      description: ClusterPropagatedVersion holds version information about the state
+        propagated from KubeFed APIs (configured by FederatedTypeConfig resources)
+        to member clusters. The name of a ClusterPropagatedVersion encodes the kind
+        and name of the resource it stores information for (i.e. <lower-case kind>-<resource
+        name>). If a target resource has a populated metadata.Generation field, the
+        generation will be stored with a prefix of `gen:` as the version for the cluster.  If
+        metadata.Generation is not available, metadata.ResourceVersion will be stored
+        with a prefix of `rv:` as the version for the cluster.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -33,6 +43,7 @@ spec:
         metadata:
           type: object
         status:
+          description: PropagatedVersionStatus defines the observed state of PropagatedVersion
           properties:
             clusterVersions:
               description: The last versions produced in each cluster for this resource.
@@ -57,10 +68,15 @@ spec:
               description: The observed version of the template for this resource.
               type: string
           required:
-          - templateVersion
           - overridesVersion
+          - templateVersion
           type: object
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -68,20 +84,22 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: federatedservicestatuses.core.kubefed.io
 spec:
   group: core.kubefed.io
   names:
     kind: FederatedServiceStatus
+    listKind: FederatedServiceStatusList
     plural: federatedservicestatuses
+    singular: federatedservicestatus
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -93,10 +111,38 @@ spec:
           type: string
         clusterStatus:
           items:
+            description: FederatedServiceClusterStatus is the observed status of the
+              resource for a named cluster
             properties:
               clusterName:
                 type: string
               status:
+                description: ServiceStatus represents the current status of a service.
+                properties:
+                  loadBalancer:
+                    description: LoadBalancer contains the current status of the load-balancer,
+                      if one is present.
+                    properties:
+                      ingress:
+                        description: Ingress is a list containing ingress points for
+                          the load-balancer. Traffic intended for the service should
+                          be sent to these ingress points.
+                        items:
+                          description: 'LoadBalancerIngress represents the status
+                            of a load-balancer ingress point: traffic intended for
+                            the service should be sent to an ingress point.'
+                          properties:
+                            hostname:
+                              description: Hostname is set for load-balancer ingress
+                                points that are DNS based (typically AWS load-balancers)
+                              type: string
+                            ip:
+                              description: IP is set for load-balancer ingress points
+                                that are IP based (typically GCE or OpenStack load-balancers)
+                              type: string
+                          type: object
+                        type: array
+                    type: object
                 type: object
             required:
             - clusterName
@@ -110,7 +156,12 @@ spec:
           type: string
         metadata:
           type: object
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -118,73 +169,7 @@ status:
   conditions: []
   storedVersions: []
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    "helm.sh/hook": crd-install
-  creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: propagatedversions.core.kubefed.io
-spec:
-  group: core.kubefed.io
-  names:
-    kind: PropagatedVersion
-    plural: propagatedversions
-  scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        status:
-          properties:
-            clusterVersions:
-              description: The last versions produced in each cluster for this resource.
-              items:
-                properties:
-                  clusterName:
-                    description: The name of the cluster the version is for.
-                    type: string
-                  version:
-                    description: The last version produced for the resource by a KubeFed
-                      operation.
-                    type: string
-                required:
-                - clusterName
-                - version
-                type: object
-              type: array
-            overridesVersion:
-              description: The observed version of the overrides for this resource.
-              type: string
-            templateVersion:
-              description: The observed version of the template for this resource.
-              type: string
-          required:
-          - templateVersion
-          - overridesVersion
-          type: object
-  version: v1alpha1
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -192,21 +177,28 @@ metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: federatedtypeconfigs.core.kubefed.io
 spec:
   group: core.kubefed.io
   names:
     kind: FederatedTypeConfig
+    listKind: FederatedTypeConfigList
     plural: federatedtypeconfigs
     shortNames:
     - ftc
+    singular: federatedtypeconfig
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
+      description: "FederatedTypeConfig programs KubeFed to know about a single API
+        type - the \"target type\" - that a user wants to federate. For each target
+        type, there is a corresponding FederatedType that has the following fields:
+        \n - The \"template\" field specifies the basic definition of a federated
+        resource - The \"placement\" field specifies the placement information for
+        the federated   resource - The \"overrides\" field specifies how the target
+        resource should vary across   clusters."
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -221,6 +213,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: FederatedTypeConfigSpec defines the desired state of FederatedTypeConfig.
           properties:
             federatedType:
               description: Configuration for the federated type that defines (via
@@ -245,10 +238,10 @@ spec:
                   description: Version of the resource.
                   type: string
               required:
-              - version
               - kind
               - pluralName
               - scope
+              - version
               type: object
             propagation:
               description: Whether or not propagation to member clusters should be
@@ -281,10 +274,10 @@ spec:
                   description: Version of the resource.
                   type: string
               required:
-              - version
               - kind
               - pluralName
               - scope
+              - version
               type: object
             targetType:
               description: The configuration of the target type. If not set, the pluralName
@@ -309,17 +302,18 @@ spec:
                   description: Version of the resource.
                   type: string
               required:
-              - version
               - kind
               - pluralName
               - scope
+              - version
               type: object
           required:
-          - targetType
-          - propagation
           - federatedType
+          - propagation
+          - targetType
           type: object
         status:
+          description: FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig
           properties:
             observedGeneration:
               description: ObservedGeneration is the generation as observed by the
@@ -338,7 +332,12 @@ spec:
           type: object
       required:
       - spec
+      type: object
   version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -346,32 +345,36 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: kubefedclusters.core.kubefed.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.conditions[?(@.type=='Ready')].status
-    name: ready
-    type: string
   - JSONPath: .metadata.creationTimestamp
     name: age
     type: date
+  - JSONPath: .status.conditions[?(@.type=='Ready')].status
+    name: ready
+    type: string
   group: core.kubefed.io
   names:
     kind: KubeFedCluster
+    listKind: KubeFedClusterList
     plural: kubefedclusters
+    singular: kubefedcluster
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
+      description: KubeFedCluster configures KubeFed to be aware of a Kubernetes cluster
+        and encapsulates the details necessary to communicate with the cluster.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -386,6 +389,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: KubeFedClusterSpec defines the desired state of KubeFedCluster
           properties:
             apiEndpoint:
               description: The API endpoint of the member cluster. This can be a hostname,
@@ -419,10 +423,13 @@ spec:
           - secretRef
           type: object
         status:
+          description: KubeFedClusterStatus contains information about the current
+            status of a cluster updated periodically by cluster controller.
           properties:
             conditions:
               description: Conditions is an array of current cluster conditions.
               items:
+                description: ClusterCondition describes current state of a cluster.
                 properties:
                   lastProbeTime:
                     description: Last time the condition was checked.
@@ -447,9 +454,9 @@ spec:
                     description: Type of cluster condition, Ready or Offline.
                     type: string
                 required:
-                - type
-                - status
                 - lastProbeTime
+                - status
+                - type
                 type: object
               type: array
             region:
@@ -467,7 +474,12 @@ spec:
           type: object
       required:
       - spec
+      type: object
   version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -475,20 +487,22 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: kubefedconfigs.core.kubefed.io
 spec:
   group: core.kubefed.io
   names:
     kind: KubeFedConfig
+    listKind: KubeFedConfigList
     plural: kubefedconfigs
+    singular: kubefedconfig
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -506,6 +520,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: KubeFedConfigSpec defines the desired state of KubeFedConfig
           properties:
             clusterHealthCheck:
               properties:
@@ -544,8 +559,8 @@ spec:
                   name:
                     type: string
                 required:
-                - name
                 - configuration
+                - name
                 type: object
               type: array
             leaderElect:
@@ -592,7 +607,12 @@ spec:
           type: object
       required:
       - spec
+      type: object
   version: v1beta1
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -600,25 +620,113 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: dnsendpoints.multiclusterdns.kubefed.io
+  name: propagatedversions.core.kubefed.io
 spec:
-  group: multiclusterdns.kubefed.io
+  group: core.kubefed.io
   names:
-    kind: DNSEndpoint
-    plural: dnsendpoints
+    kind: PropagatedVersion
+    listKind: PropagatedVersionList
+    plural: propagatedversions
+    singular: propagatedversion
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
+      description: PropagatedVersion holds version information about the state propagated
+        from KubeFed APIs (configured by FederatedTypeConfig resources) to member
+        clusters. The name of a PropagatedVersion encodes the kind and name of the
+        resource it stores information for (i.e. <lower-case kind>-<resource name>).
+        If a target resource has a populated metadata.Generation field, the generation
+        will be stored with a prefix of `gen:` as the version for the cluster.  If
+        metadata.Generation is not available, metadata.ResourceVersion will be stored
+        with a prefix of `rv:` as the version for the cluster.
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        status:
+          description: PropagatedVersionStatus defines the observed state of PropagatedVersion
+          properties:
+            clusterVersions:
+              description: The last versions produced in each cluster for this resource.
+              items:
+                properties:
+                  clusterName:
+                    description: The name of the cluster the version is for.
+                    type: string
+                  version:
+                    description: The last version produced for the resource by a KubeFed
+                      operation.
+                    type: string
+                required:
+                - clusterName
+                - version
+                type: object
+              type: array
+            overridesVersion:
+              description: The observed version of the overrides for this resource.
+              type: string
+            templateVersion:
+              description: The observed version of the template for this resource.
+              type: string
+          required:
+          - overridesVersion
+          - templateVersion
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    "helm.sh/hook": crd-install
+  creationTimestamp: null
+  name: dnsendpoints.multiclusterdns.kubefed.io
+spec:
+  group: multiclusterdns.kubefed.io
+  names:
+    kind: DNSEndpoint
+    listKind: DNSEndpointList
+    plural: dnsendpoints
+    singular: dnsendpoint
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: DNSEndpoint is the CRD wrapper for Endpoint which is designed to
+        act as a source of truth for external-dns.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -633,14 +741,19 @@ spec:
         metadata:
           type: object
         spec:
+          description: DNSEndpointSpec defines the desired state of DNSEndpoint
           properties:
             endpoints:
               items:
+                description: Endpoint is a high-level association between a service
+                  and an IP.
                 properties:
                   dnsName:
                     description: The FQDN of the DNS record.
                     type: string
                   labels:
+                    additionalProperties:
+                      type: string
                     description: Labels stores labels defined for the Endpoint.
                     type: object
                   recordTTL:
@@ -660,6 +773,7 @@ spec:
               type: array
           type: object
         status:
+          description: DNSEndpointStatus defines the observed state of DNSEndpoint
           properties:
             observedGeneration:
               description: ObservedGeneration is the generation as observed by the
@@ -667,7 +781,12 @@ spec:
               format: int64
               type: integer
           type: object
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -675,20 +794,22 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: domains.multiclusterdns.kubefed.io
 spec:
   group: multiclusterdns.kubefed.io
   names:
     kind: Domain
+    listKind: DomainList
     plural: domains
+    singular: domain
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -715,7 +836,12 @@ spec:
           type: string
       required:
       - domain
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -723,20 +849,22 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: ingressdnsrecords.multiclusterdns.kubefed.io
 spec:
   group: multiclusterdns.kubefed.io
   names:
     kind: IngressDNSRecord
+    listKind: IngressDNSRecordList
     plural: ingressdnsrecords
+    singular: ingressdnsrecord
   scope: Namespaced
   subresources:
     status: {}
@@ -756,6 +884,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: IngressDNSRecordSpec defines the desired state of IngressDNSRecord
           properties:
             hosts:
               description: Host from the IngressRule in Cluster Ingress Spec
@@ -769,21 +898,49 @@ spec:
               type: integer
           type: object
         status:
+          description: IngressDNSRecordStatus defines the observed state of IngressDNSRecord
           properties:
             dns:
               description: Array of Ingress Controller LoadBalancers
               items:
+                description: ClusterIngressDNS defines the observed status of Ingress
+                  within a cluster.
                 properties:
                   cluster:
                     description: Cluster name
                     type: string
                   loadBalancer:
                     description: LoadBalancer for the corresponding ingress controller
+                    properties:
+                      ingress:
+                        description: Ingress is a list containing ingress points for
+                          the load-balancer. Traffic intended for the service should
+                          be sent to these ingress points.
+                        items:
+                          description: 'LoadBalancerIngress represents the status
+                            of a load-balancer ingress point: traffic intended for
+                            the service should be sent to an ingress point.'
+                          properties:
+                            hostname:
+                              description: Hostname is set for load-balancer ingress
+                                points that are DNS based (typically AWS load-balancers)
+                              type: string
+                            ip:
+                              description: IP is set for load-balancer ingress points
+                                that are IP based (typically GCE or OpenStack load-balancers)
+                              type: string
+                          type: object
+                        type: array
                     type: object
                 type: object
               type: array
           type: object
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -791,25 +948,41 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: servicednsrecords.multiclusterdns.kubefed.io
 spec:
   group: multiclusterdns.kubefed.io
   names:
     kind: ServiceDNSRecord
+    listKind: ServiceDNSRecordList
     plural: servicednsrecords
+    singular: servicednsrecord
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
+      description: "ServiceDNSRecord defines a scheme of DNS name and subdomains that
+        should be programmed with endpoint information about a Service deployed in
+        multiple Kubernetes clusters. ServiceDNSRecord is name-associated with the
+        Services it programs endpoint information for, meaning that a ServiceDNSRecord
+        expresses the intent to program DNS with information about endpoints for the
+        Kubernetes Service resources with the same name and namespace in different
+        clusters. \n For the example, given the following values: \n metadata.name:
+        test-service metadata.namespace: test-namespace spec.federationName: test-federation
+        \n the following set of DNS names will be programmed: \n Global Level: test-service.test-namespace.test-federation.svc.<federation-domain>
+        Region Level: test-service.test-namespace.test-federation.svc.(status.DNS[*].region).<federation-domain>
+        Zone Level  : test-service.test-namespace.test-federation.svc.(status.DNS[*].zone).(status.DNS[*].region).<federation-domain>
+        \n Optionally, when DNSPrefix is specified, another DNS name will be programmed
+        which would be a CNAME record pointing to DNS name at global level as below:
+        <dns-prefix>.<federation-domain> --> test-service.test-namespace.test-federation.svc.<federation-domain>"
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -824,6 +997,7 @@ spec:
         metadata:
           type: object
         spec:
+          description: ServiceDNSRecordSpec defines the desired state of ServiceDNSRecord.
           properties:
             allowServiceWithoutEndpoints:
               description: AllowServiceWithoutEndpoints allows DNS records to be written
@@ -850,15 +1024,38 @@ spec:
           - domainRef
           type: object
         status:
+          description: ServiceDNSRecordStatus defines the observed state of ServiceDNSRecord.
           properties:
             dns:
               items:
+                description: ClusterDNS defines the observed status of LoadBalancer
+                  within a cluster.
                 properties:
                   cluster:
                     description: Cluster name
                     type: string
                   loadBalancer:
                     description: LoadBalancer for the corresponding service
+                    properties:
+                      ingress:
+                        description: Ingress is a list containing ingress points for
+                          the load-balancer. Traffic intended for the service should
+                          be sent to these ingress points.
+                        items:
+                          description: 'LoadBalancerIngress represents the status
+                            of a load-balancer ingress point: traffic intended for
+                            the service should be sent to an ingress point.'
+                          properties:
+                            hostname:
+                              description: Hostname is set for load-balancer ingress
+                                points that are DNS based (typically AWS load-balancers)
+                              type: string
+                            ip:
+                              description: IP is set for load-balancer ingress points
+                                that are IP based (typically GCE or OpenStack load-balancers)
+                              type: string
+                          type: object
+                        type: array
                     type: object
                   region:
                     description: Region to which the cluster belongs
@@ -875,7 +1072,12 @@ spec:
                 in Domain API
               type: string
           type: object
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
@@ -883,20 +1085,22 @@ status:
   conditions: []
   storedVersions: []
 ---
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     "helm.sh/hook": crd-install
   creationTimestamp: null
-  labels:
-    controller-tools.k8s.io: "1.0"
   name: replicaschedulingpreferences.scheduling.kubefed.io
 spec:
   group: scheduling.kubefed.io
   names:
     kind: ReplicaSchedulingPreference
+    listKind: ReplicaSchedulingPreferenceList
     plural: replicaschedulingpreferences
+    singular: replicaschedulingpreference
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -914,8 +1118,32 @@ spec:
         metadata:
           type: object
         spec:
+          description: ReplicaSchedulingPreferenceSpec defines the desired state of
+            ReplicaSchedulingPreference
           properties:
             clusters:
+              additionalProperties:
+                description: Preferences regarding number of replicas assigned to
+                  a cluster workload object (dep, rs, ..) within a federated workload
+                  object.
+                properties:
+                  maxReplicas:
+                    description: Maximum number of replicas that should be assigned
+                      to this cluster workload object. Unbounded if no value provided
+                      (default).
+                    format: int64
+                    type: integer
+                  minReplicas:
+                    description: Minimum number of replicas that should be assigned
+                      to this cluster workload object. 0 by default.
+                    format: int64
+                    type: integer
+                  weight:
+                    description: A number expressing the preference to put an additional
+                      replica to this cluster workload object. 0 by default.
+                    format: int64
+                    type: integer
+                type: object
               description: A mapping between cluster names and preferences regarding
                 a local workload object (dep, rs, .. ) in these clusters. "*" (if
                 provided) applies to all clusters if an explicit mapping is not provided.
@@ -951,8 +1179,15 @@ spec:
           - totalReplicas
           type: object
         status:
+          description: ReplicaSchedulingPreferenceStatus defines the observed state
+            of ReplicaSchedulingPreference
           type: object
+      type: object
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""
