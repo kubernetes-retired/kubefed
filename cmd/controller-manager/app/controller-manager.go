@@ -127,7 +127,7 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 
 	setOptionsByKubeFedConfig(opts)
 
-	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
+	if err := utilfeature.DefaultMutableFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
 		klog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 

@@ -55,7 +55,7 @@ const (
 )
 
 func init() {
-	if err := utilfeature.DefaultFeatureGate.Add(DefaultKubeFedFeatureGates); err != nil {
+	if err := utilfeature.DefaultMutableFeatureGate.Add(DefaultKubeFedFeatureGates); err != nil {
 		klog.Fatalf("Unexpected error: %v", err)
 	}
 }
