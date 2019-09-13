@@ -27,12 +27,9 @@ type FederatedServiceClusterStatus struct {
 	Status      corev1.ServiceStatus `json:"status"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedServiceStatus
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:path=federatedservicestatuses
+
 type FederatedServiceStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -41,7 +38,7 @@ type FederatedServiceStatus struct {
 	ClusterStatus []FederatedServiceClusterStatus `json:"clusterStatus,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedServiceStatusList contains a list of FederatedServiceStatus
 type FederatedServiceStatusList struct {

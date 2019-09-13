@@ -43,13 +43,10 @@ type ClusterIngressDNS struct {
 	LoadBalancer corev1.LoadBalancerStatus `json:"loadBalancer,omitempty"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// IngressDNSRecord
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ingressdnsrecords
 // +kubebuilder:subresource:status
+
 type IngressDNSRecord struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -58,7 +55,7 @@ type IngressDNSRecord struct {
 	Status IngressDNSRecordStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // IngressDNSRecordList contains a list of IngressDNSRecord
 type IngressDNSRecordList struct {

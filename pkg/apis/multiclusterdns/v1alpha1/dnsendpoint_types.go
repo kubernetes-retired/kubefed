@@ -57,15 +57,12 @@ type DNSEndpointStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=dnsendpoints
+// +kubebuilder:subresource:status
 
 // DNSEndpoint is the CRD wrapper for Endpoint which is designed to act as a
 // source of truth for external-dns.
-//
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=dnsendpoints
-// +kubebuilder:subresource:status
 type DNSEndpoint struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -74,7 +71,7 @@ type DNSEndpoint struct {
 	Status DNSEndpointStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // DNSEndpointList contains a list of DNSEndpoint
 type DNSEndpointList struct {

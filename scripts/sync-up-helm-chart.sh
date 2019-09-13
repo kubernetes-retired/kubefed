@@ -48,7 +48,7 @@ fi
 rm -f ./config/crds/*.yaml
 
 # Generate CRD manifest files
-go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd:trivialVersions=true paths="./pkg/apis/..." output:crd:artifacts:config=config/crds
 
 # Merge all CRD manifest files into one file
 echo "---" > ${TEMP_CRDS_YAML}

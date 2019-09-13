@@ -17,10 +17,7 @@ limitations under the License.
 // NOTE: Boilerplate only.  Ignore this file.
 
 // Package v1alpha1 contains API Schema definitions for the multiclusterdns v1alpha1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=sigs.k8s.io/kubefed/pkg/apis/multiclusterdns
-// +k8s:defaulter-gen=TypeMeta
+// +kubebuilder:object:generate=true
 // +groupName=multiclusterdns.kubefed.io
 package v1alpha1
 

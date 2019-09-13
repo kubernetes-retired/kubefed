@@ -1,3 +1,4 @@
 version: "1"
 domain: kubefed.io
 repo: sigs.k8s.io/kubefed
+multigroup: true

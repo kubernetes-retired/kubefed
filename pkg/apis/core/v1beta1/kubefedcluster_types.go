@@ -74,18 +74,15 @@ type KubeFedClusterStatus struct {
 	Region *string `json:"region,omitempty"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name=age,type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
+// +kubebuilder:resource:path=kubefedclusters
+// +kubebuilder:subresource:status
 
 // KubeFedCluster configures KubeFed to be aware of a Kubernetes
 // cluster and encapsulates the details necessary to communicate with
 // the cluster.
-//
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=kubefedclusters
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
-// +kubebuilder:printcolumn:name=age,type=date,JSONPath=.metadata.creationTimestamp
 type KubeFedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -114,7 +111,7 @@ type ClusterCondition struct {
 	Message *string `json:"message,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // KubeFedClusterList contains a list of KubeFedCluster
 type KubeFedClusterList struct {

@@ -20,12 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Domain
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:path=domains
+
 type Domain struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -36,7 +33,7 @@ type Domain struct {
 	NameServer string `json:"nameServer,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // DomainList contains a list of Domain
 type DomainList struct {

@@ -16,13 +16,10 @@ limitations under the License.
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the core v1alpha1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=sigs.k8s.io/kubefed/pkg/apis/core
-// +k8s:defaulter-gen=TypeMeta
+// Package v1beta1 contains API Schema definitions for the core v1beta1 API group
+// +kubebuilder:object:generate=true
 // +groupName=core.kubefed.io
-package v1alpha1
+package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,16 +28,11 @@ import (
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "core.kubefed.io", Version: "v1alpha1"}
+	SchemeGroupVersion = schema.GroupVersion{Group: "core.kubefed.io", Version: "v1beta1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 
-	// AddToScheme is required by pkg/client/...
+	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
 )
-
-// Resource is required by pkg/client/listers/...
-func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}

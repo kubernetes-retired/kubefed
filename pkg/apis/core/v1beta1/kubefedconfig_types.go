@@ -118,12 +118,9 @@ const (
 	AdoptResourcesDisabled ResourceAdoption = "Disabled"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// KubeFedConfig
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubefedconfigs
+
 type KubeFedConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -131,7 +128,7 @@ type KubeFedConfig struct {
 	Spec KubeFedConfigSpec `json:"spec"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // KubeFedConfigList contains a list of KubeFedConfig
 type KubeFedConfigList struct {
