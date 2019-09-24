@@ -24,9 +24,9 @@ import (
 type ClusterPropagatedVersionSpec struct {
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=clusterpropagatedversions,scope=Cluster
+// +kubebuilder:subresource:status
 
 // ClusterPropagatedVersion holds version information about the state
 // propagated from KubeFed APIs (configured by FederatedTypeConfig
@@ -37,10 +37,6 @@ type ClusterPropagatedVersionSpec struct {
 // stored with a prefix of `gen:` as the version for the cluster.  If
 // metadata.Generation is not available, metadata.ResourceVersion will
 // be stored with a prefix of `rv:` as the version for the cluster.
-//
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=clusterpropagatedversions
-// +kubebuilder:subresource:status
 type ClusterPropagatedVersion struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -49,8 +45,7 @@ type ClusterPropagatedVersion struct {
 	Status PropagatedVersionStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
+// +kubebuilder:object:root=true
 
 // ClusterPropagatedVersionList contains a list of ClusterPropagatedVersion
 type ClusterPropagatedVersionList struct {

@@ -34,9 +34,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/component-base/logs"
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/leaderelection"
@@ -127,7 +127,7 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 
 	setOptionsByKubeFedConfig(opts)
 
-	if err := utilfeature.DefaultFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
+	if err := utilfeature.DefaultMutableFeatureGate.SetFromMap(opts.FeatureGates); err != nil {
 		klog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 

@@ -74,12 +74,9 @@ type ClusterPreferences struct {
 type ReplicaSchedulingPreferenceStatus struct {
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ReplicaSchedulingPreference
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:resource:path=replicaschedulingpreferences
+
 type ReplicaSchedulingPreference struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -88,7 +85,7 @@ type ReplicaSchedulingPreference struct {
 	Status ReplicaSchedulingPreferenceStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // ReplicaSchedulingPreferenceList contains a list of ReplicaSchedulingPreference
 type ReplicaSchedulingPreferenceList struct {

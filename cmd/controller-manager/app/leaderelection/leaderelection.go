@@ -56,6 +56,7 @@ func NewKubeFedLeaderElector(opts *options.Options, fnStartControllers func(*opt
 		opts.Config.KubeFedNamespace,
 		component,
 		leaderElectionClient.CoreV1(),
+		leaderElectionClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: eventRecorder,

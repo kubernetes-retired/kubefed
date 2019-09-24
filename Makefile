@@ -131,7 +131,7 @@ generate-code:
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
-	go generate ./pkg/... ./cmd/...
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths="./..."
 
 generate: generate-code kubefedctl
 	./scripts/sync-up-helm-chart.sh

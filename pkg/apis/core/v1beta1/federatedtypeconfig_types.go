@@ -106,8 +106,9 @@ type FederatedTypeConfigStatus struct {
 	StatusController *ControllerStatus `json:"statusController,omitempty"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=federatedtypeconfigs,shortName=ftc
+// +kubebuilder:subresource:status
 
 // FederatedTypeConfig programs KubeFed to know about a single API type - the
 // "target type" - that a user wants to federate. For each target type, there is
@@ -118,10 +119,6 @@ type FederatedTypeConfigStatus struct {
 //   resource
 // - The "overrides" field specifies how the target resource should vary across
 //   clusters.
-//
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=federatedtypeconfigs,shortName=ftc
-// +kubebuilder:subresource:status
 type FederatedTypeConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -131,7 +128,7 @@ type FederatedTypeConfig struct {
 	Status FederatedTypeConfigStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // FederatedTypeConfigList contains a list of FederatedTypeConfig
 type FederatedTypeConfigList struct {
