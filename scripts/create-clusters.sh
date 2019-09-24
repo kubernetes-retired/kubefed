@@ -28,6 +28,7 @@ CONFIGURE_INSECURE_REGISTRY_CLUSTER="${CONFIGURE_INSECURE_REGISTRY_CLUSTER-y}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
+KIND_IMAGE="${KIND_IMAGE:-}"
 KIND_TAG="${KIND_TAG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
 containerd_config="/etc/containerd/config.toml"
@@ -107,7 +108,9 @@ function create-clusters() {
   local num_clusters=${1}
 
   local image_arg=""
-  if [[ "${KIND_TAG}" ]]; then
+  if [[ "${KIND_IMAGE}" ]]; then
+    image_arg="--image=${KIND_IMAGE}"
+  elif [[ "${KIND_TAG}" ]]; then
     image_arg="--image=kindest/node:${KIND_TAG}"
   fi
   for i in $(seq ${num_clusters}); do
