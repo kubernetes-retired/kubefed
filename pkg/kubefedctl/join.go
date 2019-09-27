@@ -194,8 +194,10 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		hostClusterName = j.HostClusterName
 	}
 
-	return JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
+	_, err = JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
 		hostClusterName, j.ClusterName, j.secretName, j.scope, j.DryRun, j.errorOnExisting)
+
+	return err
 }
 
 // JoinCluster registers a cluster with a KubeFed control plane. The
@@ -203,7 +205,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // host cluster.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	hostClusterName, joiningClusterName, secretName string,
-	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 
 	return joinClusterForNamespace(hostConfig, clusterConfig, kubefedNamespace,
 		kubefedNamespace, hostClusterName, joiningClusterName, secretName,
@@ -215,30 +217,30 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 // the joiningNamespace parameter.
 func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	joiningNamespace, hostClusterName, joiningClusterName, secretName string,
-	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) error {
+	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get host cluster clientset: %v", err)
-		return err
+		return nil, err
 	}
 
 	clusterClientset, err := util.ClusterClientset(clusterConfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get joining cluster clientset: %v", err)
-		return err
+		return nil, err
 	}
 
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get kubefed clientset: %v", err)
-		return err
+		return nil, err
 	}
 
 	klog.V(2).Infof("Performing preflight checks.")
 	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterName, joiningNamespace, errorOnExisting)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	klog.V(2).Infof("Creating %s namespace in joining cluster", joiningNamespace)
@@ -247,7 +249,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	if err != nil {
 		klog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
 			joiningNamespace, err)
-		return err
+		return nil, err
 	}
 	klog.V(2).Infof("Created %s namespace in joining cluster", joiningNamespace)
 
@@ -255,14 +257,14 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 		joiningNamespace, joiningClusterName, hostClusterName,
 		scope, dryRun, errorOnExisting)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	secret, caBundle, err := populateSecretInHostCluster(clusterClientset, hostClientset,
 		saName, kubefedNamespace, joiningNamespace, joiningClusterName, secretName, dryRun)
 	if err != nil {
 		klog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
-		return err
+		return nil, err
 	}
 
 	var disabledTLSValidations []fedv1b1.TLSValidation
@@ -270,15 +272,15 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 		disabledTLSValidations = append(disabledTLSValidations, fedv1b1.TLSAll)
 	}
 
-	_, err = createKubeFedCluster(client, joiningClusterName, clusterConfig.Host,
+	kubefedCluster, err := createKubeFedCluster(client, joiningClusterName, clusterConfig.Host,
 		secret.Name, kubefedNamespace, caBundle, disabledTLSValidations, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
-		return err
+		return nil, err
 	}
 
 	klog.V(2).Info("Created federated cluster resource")
-	return nil
+	return kubefedCluster, nil
 }
 
 // This function is exported for testing purposes only.
