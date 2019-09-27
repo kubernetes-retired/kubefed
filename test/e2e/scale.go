@@ -98,7 +98,7 @@ var _ = Describe("Simulated Scale", func() {
 			memberClusters = append(memberClusters, memberCluster)
 			joiningNamespace := memberCluster
 
-			err := kubefedctl.TestOnly_JoinClusterForNamespace(
+			_, err := kubefedctl.TestOnly_JoinClusterForNamespace(
 				hostConfig, hostConfig, hostNamespace,
 				joiningNamespace, hostCluster, memberCluster,
 				"", apiextv1b1.NamespaceScoped, false, false)
