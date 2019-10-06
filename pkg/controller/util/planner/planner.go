@@ -231,18 +231,17 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 
 	if p.preferences.Spec.Rebalance {
 		return plan, overflow, nil
-	} else {
-		// If rebalance = false then overflow is trimmed at the level
-		// of replicas that it failed to place somewhere.
-		newOverflow := make(map[string]int64)
-		for key, value := range overflow {
-			value = minInt64(value, remainingReplicas)
-			if value > 0 {
-				newOverflow[key] = value
-			}
-		}
-		return plan, newOverflow, nil
 	}
+	// If rebalance = false then overflow is trimmed at the level
+	// of replicas that it failed to place somewhere.
+	newOverflow := make(map[string]int64)
+	for key, value := range overflow {
+		value = minInt64(value, remainingReplicas)
+		if value > 0 {
+			newOverflow[key] = value
+		}
+	}
+	return plan, newOverflow, nil
 }
 
 func minInt64(a int64, b int64) int64 {

@@ -47,6 +47,7 @@ import (
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -751,34 +752,34 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"config": &bintree{nil, map[string]*bintree{
-		"enabletypedirectives": &bintree{nil, map[string]*bintree{
-			"clusterroles.rbac.authorization.k8s.io.yaml": &bintree{configEnabletypedirectivesClusterrolesRbacAuthorizationK8sIoYaml, map[string]*bintree{}},
-			"configmaps.yaml":                             &bintree{configEnabletypedirectivesConfigmapsYaml, map[string]*bintree{}},
-			"deployments.apps.yaml":                       &bintree{configEnabletypedirectivesDeploymentsAppsYaml, map[string]*bintree{}},
-			"ingresses.extensions.yaml":                   &bintree{configEnabletypedirectivesIngressesExtensionsYaml, map[string]*bintree{}},
-			"jobs.batch.yaml":                             &bintree{configEnabletypedirectivesJobsBatchYaml, map[string]*bintree{}},
-			"namespaces.yaml":                             &bintree{configEnabletypedirectivesNamespacesYaml, map[string]*bintree{}},
-			"replicasets.apps.yaml":                       &bintree{configEnabletypedirectivesReplicasetsAppsYaml, map[string]*bintree{}},
-			"secrets.yaml":                                &bintree{configEnabletypedirectivesSecretsYaml, map[string]*bintree{}},
-			"serviceaccounts.yaml":                        &bintree{configEnabletypedirectivesServiceaccountsYaml, map[string]*bintree{}},
-			"services.yaml":                               &bintree{configEnabletypedirectivesServicesYaml, map[string]*bintree{}},
+	"config": {nil, map[string]*bintree{
+		"enabletypedirectives": {nil, map[string]*bintree{
+			"clusterroles.rbac.authorization.k8s.io.yaml": {configEnabletypedirectivesClusterrolesRbacAuthorizationK8sIoYaml, map[string]*bintree{}},
+			"configmaps.yaml":                             {configEnabletypedirectivesConfigmapsYaml, map[string]*bintree{}},
+			"deployments.apps.yaml":                       {configEnabletypedirectivesDeploymentsAppsYaml, map[string]*bintree{}},
+			"ingresses.extensions.yaml":                   {configEnabletypedirectivesIngressesExtensionsYaml, map[string]*bintree{}},
+			"jobs.batch.yaml":                             {configEnabletypedirectivesJobsBatchYaml, map[string]*bintree{}},
+			"namespaces.yaml":                             {configEnabletypedirectivesNamespacesYaml, map[string]*bintree{}},
+			"replicasets.apps.yaml":                       {configEnabletypedirectivesReplicasetsAppsYaml, map[string]*bintree{}},
+			"secrets.yaml":                                {configEnabletypedirectivesSecretsYaml, map[string]*bintree{}},
+			"serviceaccounts.yaml":                        {configEnabletypedirectivesServiceaccountsYaml, map[string]*bintree{}},
+			"services.yaml":                               {configEnabletypedirectivesServicesYaml, map[string]*bintree{}},
 		}},
-		"kubefedconfig.yaml": &bintree{configKubefedconfigYaml, map[string]*bintree{}},
+		"kubefedconfig.yaml": {configKubefedconfigYaml, map[string]*bintree{}},
 	}},
-	"test": &bintree{nil, map[string]*bintree{
-		"common": &bintree{nil, map[string]*bintree{
-			"fixtures": &bintree{nil, map[string]*bintree{
-				"clusterroles.rbac.authorization.k8s.io.yaml": &bintree{testCommonFixturesClusterrolesRbacAuthorizationK8sIoYaml, map[string]*bintree{}},
-				"configmaps.yaml":                             &bintree{testCommonFixturesConfigmapsYaml, map[string]*bintree{}},
-				"deployments.apps.yaml":                       &bintree{testCommonFixturesDeploymentsAppsYaml, map[string]*bintree{}},
-				"ingresses.extensions.yaml":                   &bintree{testCommonFixturesIngressesExtensionsYaml, map[string]*bintree{}},
-				"jobs.batch.yaml":                             &bintree{testCommonFixturesJobsBatchYaml, map[string]*bintree{}},
-				"namespaces.yaml":                             &bintree{testCommonFixturesNamespacesYaml, map[string]*bintree{}},
-				"replicasets.apps.yaml":                       &bintree{testCommonFixturesReplicasetsAppsYaml, map[string]*bintree{}},
-				"secrets.yaml":                                &bintree{testCommonFixturesSecretsYaml, map[string]*bintree{}},
-				"serviceaccounts.yaml":                        &bintree{testCommonFixturesServiceaccountsYaml, map[string]*bintree{}},
-				"services.yaml":                               &bintree{testCommonFixturesServicesYaml, map[string]*bintree{}},
+	"test": {nil, map[string]*bintree{
+		"common": {nil, map[string]*bintree{
+			"fixtures": {nil, map[string]*bintree{
+				"clusterroles.rbac.authorization.k8s.io.yaml": {testCommonFixturesClusterrolesRbacAuthorizationK8sIoYaml, map[string]*bintree{}},
+				"configmaps.yaml":                             {testCommonFixturesConfigmapsYaml, map[string]*bintree{}},
+				"deployments.apps.yaml":                       {testCommonFixturesDeploymentsAppsYaml, map[string]*bintree{}},
+				"ingresses.extensions.yaml":                   {testCommonFixturesIngressesExtensionsYaml, map[string]*bintree{}},
+				"jobs.batch.yaml":                             {testCommonFixturesJobsBatchYaml, map[string]*bintree{}},
+				"namespaces.yaml":                             {testCommonFixturesNamespacesYaml, map[string]*bintree{}},
+				"replicasets.apps.yaml":                       {testCommonFixturesReplicasetsAppsYaml, map[string]*bintree{}},
+				"secrets.yaml":                                {testCommonFixturesSecretsYaml, map[string]*bintree{}},
+				"serviceaccounts.yaml":                        {testCommonFixturesServiceaccountsYaml, map[string]*bintree{}},
+				"services.yaml":                               {testCommonFixturesServicesYaml, map[string]*bintree{}},
 			}},
 		}},
 	}},

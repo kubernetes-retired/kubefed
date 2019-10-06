@@ -40,13 +40,13 @@ import (
 )
 
 var (
-	unjoin_long = `
+	unjoinLong = `
 		Unjoin removes the registration of a Kubernetes cluster
 		from a KubeFed control plane. Current context is assumed
 		to be a Kubernetes cluster hosting a KubeFed control
 		plane. Please use the --host-cluster-context flag
 		otherwise.`
-	unjoin_example = `
+	unjoinExample = `
 		# Remove the registration of a Kubernetes cluster
 		# from a KubeFed control plane by specifying the
 		# cluster name and the context name of the control
@@ -82,8 +82,8 @@ func NewCmdUnjoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "unjoin CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
 		Short:   "Remove the registration of a cluster from a KubeFed control plane",
-		Long:    unjoin_long,
-		Example: unjoin_example,
+		Long:    unjoinLong,
+		Example: unjoinExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {

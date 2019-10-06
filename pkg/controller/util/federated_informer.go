@@ -343,13 +343,15 @@ func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic
 func (f *federatedInformerImpl) getConfigForClusterUnlocked(clusterName string) (*restclient.Config, error) {
 	// No locking needed. Will happen in f.GetCluster.
 	klog.V(4).Infof("Getting config for cluster %q", clusterName)
-	if cluster, found, err := f.getReadyClusterUnlocked(clusterName); found && err == nil {
-		return f.configFactory(cluster)
-	} else {
-		if err != nil {
-			return nil, err
-		}
+	cluster, found, err := f.getReadyClusterUnlocked(clusterName)
+	if err != nil {
+		return nil, err
 	}
+
+	if found && err == nil {
+		return f.configFactory(cluster)
+	}
+
 	return nil, errors.Errorf("cluster %q not found", clusterName)
 }
 
@@ -409,7 +411,8 @@ func (f *federatedInformerImpl) GetReadyCluster(name string) (*fedv1b1.KubeFedCl
 
 func (f *federatedInformerImpl) getReadyClusterUnlocked(name string) (*fedv1b1.KubeFedCluster, bool, error) {
 	key := fmt.Sprintf("%s/%s", f.fedNamespace, name)
-	if obj, exist, err := f.clusterInformer.store.GetByKey(key); exist && err == nil {
+	obj, exist, err := f.clusterInformer.store.GetByKey(key)
+	if exist && err == nil {
 		if cluster, ok := obj.(*fedv1b1.KubeFedCluster); ok {
 			if IsClusterReady(&cluster.Status) {
 				return cluster, true, nil
@@ -418,10 +421,8 @@ func (f *federatedInformerImpl) getReadyClusterUnlocked(name string) (*fedv1b1.K
 
 		}
 		return nil, false, errors.Errorf("wrong data in FederatedInformerImpl cluster store: %v", obj)
-
-	} else {
-		return nil, false, err
 	}
+	return nil, false, err
 }
 
 // Synced returns true if the view is synced (for the first time)

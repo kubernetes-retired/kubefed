@@ -37,8 +37,8 @@ const (
 	DefaultSingleCallTimeout = 30 * time.Second
 )
 
-// unique identifier of the e2e run
-var RunId = uuid.NewUUID()
+// RunID unique identifier of the e2e run
+var RunID = uuid.NewUUID()
 
 func nowStamp() string {
 	return time.Now().Format(time.StampMilli)

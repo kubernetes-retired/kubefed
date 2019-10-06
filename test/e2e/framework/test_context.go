@@ -53,7 +53,7 @@ func (t *TestContextType) NamespaceScopedControlPlane() bool {
 	return t.InMemoryControllers && t.LimitedScopeInMemoryControllers || t.LimitedScope
 }
 
-var TestContext *TestContextType = &TestContextType{}
+var TestContext TestContextType = &TestContextType{}
 
 func registerFlags(t *TestContextType) {
 	flag.BoolVar(&t.InMemoryControllers, "in-memory-controllers", false,

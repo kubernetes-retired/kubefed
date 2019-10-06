@@ -56,7 +56,7 @@ var (
 		"propagatedversions.core.kubefed.io",
 	}
 
-	federate_long = `
+	federateLong = `
 		Federate creates a federated resource from a kubernetes resource.
 		The target resource must exist in the cluster hosting the kubefed
 		control plane. If the federated resource needs to be created in the
@@ -69,7 +69,7 @@ var (
 		the kubefed control plane. Please use the --host-cluster-context
 		flag otherwise.`
 
-	federate_example = `
+	federateExample = `
 		# Federate resource named "my-cm" in namespace "my-ns" of kubernetes type "configmaps" (identified by short name "cm")
 		kubefedctl federate cm "my-cm" -n "my-ns" --host-cluster-context=cluster1`
 )
@@ -107,7 +107,7 @@ func (j *federateResource) Complete(args []string) error {
 
 	if len(j.filename) > 0 {
 		if len(args) > 0 {
-			return errors.Errorf("Flag '--filename' does not take any args. Got args: %v", args)
+			return errors.Errorf("flag '--filename' does not take any args. Got args: %v", args)
 		}
 		return nil
 	}
@@ -137,8 +137,8 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 	cmd := &cobra.Command{
 		Use:     "federate TYPE-NAME RESOURCE-NAME",
 		Short:   "Federate creates a federated resource from a kubernetes resource",
-		Long:    federate_long,
-		Example: federate_example,
+		Long:    federateLong,
+		Example: federateExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -206,7 +206,7 @@ func (j *federateResource) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	kind := artifacts.typeConfig.GetTargetType().Kind
 	if kind != ctlutil.NamespaceKind && j.federateContents {
-		return errors.New("Flag '--contents' can only be used with type 'namespaces'.")
+		return errors.New("flag '--contents' can only be used with type 'namespaces'")
 	}
 
 	if kind == ctlutil.NamespaceKind && j.federateContents {

@@ -260,13 +260,12 @@ func setDefaultKubeFedConfigScope(fedConfig *corev1b1.KubeFedConfig) bool {
 			fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
 			klog.Infof("Setting the scope of KubeFedConfig spec to %s", defaultScope)
 			return true
-		} else {
-			if fedConfig.Spec.Scope != apiextv1b1.ResourceScope(defaultScope) {
-				klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
-					string(fedConfig.Spec.Scope), defaultScope)
-				fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
-				return true
-			}
+		}
+		if fedConfig.Spec.Scope != apiextv1b1.ResourceScope(defaultScope) {
+			klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
+				string(fedConfig.Spec.Scope), defaultScope)
+			fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
+			return true
 		}
 	}
 	return false

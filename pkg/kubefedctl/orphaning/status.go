@@ -33,15 +33,15 @@ const (
 )
 
 var (
-	orphaning_status_long = `
-		Checks the status of "orphaning enable" ('kubefed.io/orphan: true') annotation on a federated resource. 
+	orphaningStatusLong = `
+		Checks the status of "orphaning enable" ('kubefed.io/orphan: true') annotation on a federated resource.
 		Returns "Enabled" or "Disabled"
 
-		Current context is assumed to be a Kubernetes cluster hosting the kubefed control plane. 
+		Current context is assumed to be a Kubernetes cluster hosting the kubefed control plane.
 		Please use the --host-cluster-context flag otherwise.`
 
-	orphaning_status_example = `
-		# Checks the status of the orphaning mode of a federated resource of type FederatedDeployment and named foo 
+	orphaningStatusExample = `
+		# Checks the status of the orphaning mode of a federated resource of type FederatedDeployment and named foo
 		kubefedctl orphaning status FederatedDeployment foo --host-cluster-context=cluster1`
 )
 
@@ -51,8 +51,8 @@ func newCmdStatusOrphaning(cmdOut io.Writer, config util.FedConfig) *cobra.Comma
 	cmd := &cobra.Command{
 		Use:     "status <resource type> <resource name>",
 		Short:   "Get the orphaning deletion status of the federated resource",
-		Long:    orphaning_status_long,
-		Example: orphaning_status_example,
+		Long:    orphaningStatusLong,
+		Example: orphaningStatusExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args, config)
 			if err != nil {

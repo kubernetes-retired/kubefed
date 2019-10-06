@@ -252,7 +252,7 @@ func OverrideUpdateNeeded(overridesMap util.OverridesMap, result map[string]int6
 			if !ok || value != replicas {
 				return true
 			}
-			checkLen += 1
+			checkLen++
 		}
 	}
 

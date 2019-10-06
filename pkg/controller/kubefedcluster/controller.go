@@ -100,7 +100,7 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 	client := genericclient.NewForConfigOrDieWithUserAgent(kubeConfig, "cluster-controller")
 
 	cc := &ClusterController{
-		client:                   client,
+		client: client,
 		clusterHealthCheckConfig: clusterHealthCheckConfig,
 		clusterDataMap:           make(map[string]*ClusterData),
 		fedNamespace:             config.KubeFedNamespace,

@@ -24,7 +24,6 @@ import (
 
 	"github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
-
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -326,7 +325,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	targetKind := c.typeConfig.GetTargetType().Kind
 
 	// TODO(marun) Consider using informer to detect expected deletion state.
-	var stateMsg string = "unlabeled"
+	var stateMsg = "unlabeled"
 	if deletingInCluster {
 		stateMsg = "not present"
 	}
@@ -561,7 +560,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			if len(expectedOverrides) > 0 {
 				expectedClusterObject := clusterObj.DeepCopy()
 				// Applying overrides on copy of received cluster object should not change the cluster object if the overrides are properly applied.
-				if err := util.ApplyJsonPatch(expectedClusterObject, expectedOverrides); err != nil {
+				if err := util.ApplyJSONPatch(expectedClusterObject, expectedOverrides); err != nil {
 					c.tl.Fatalf("Failed to apply json patch: %v", err)
 				}
 

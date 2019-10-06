@@ -50,14 +50,14 @@ const (
 )
 
 var (
-	join_long = `
+	joinLong = `
 		Join registers a Kubernetes cluster with a KubeFed control
 		plane.
 
 		Current context is assumed to be a Kubernetes cluster
 		hosting a KubeFed control plane. Please use the
 		--host-cluster-context flag otherwise.`
-	join_example = `
+	joinExample = `
 		# Register a cluster with a KubeFed control plane by
 		# specifying the cluster name and the context name of
 		# the control plane's host cluster. Cluster name must
@@ -113,8 +113,8 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "join CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
 		Short:   "Register a cluster with a KubeFed control plane",
-		Long:    join_long,
-		Example: join_example,
+		Long:    joinLong,
+		Example: joinExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -284,7 +284,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 }
 
 // This function is exported for testing purposes only.
-var TestOnly_JoinClusterForNamespace = joinClusterForNamespace
+var TestOnlyJoinClusterForNamespace = joinClusterForNamespace
 
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
