@@ -41,7 +41,7 @@ func NewKubeFedLeaderElector(opts *options.Options, fnStartControllers func(*opt
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		klog.Infof("unable to get hostname: %v", err)
+		klog.Errorf("unable to get hostname: %v", err)
 		return nil, err
 	}
 
@@ -62,7 +62,7 @@ func NewKubeFedLeaderElector(opts *options.Options, fnStartControllers func(*opt
 			EventRecorder: eventRecorder,
 		})
 	if err != nil {
-		klog.Infof("couldn't create resource lock: %v", err)
+		klog.Errorf("couldn't create resource lock: %v", err)
 		return nil, err
 	}
 
