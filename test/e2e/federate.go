@@ -72,7 +72,7 @@ var _ = Describe("Federate ", func() {
 	for _, testKey := range toTest {
 		typeConfigName := testKey
 		fixture := typeConfigFixtures[testKey]
-		It(fmt.Sprintf("resource %q, should create an equivalant federated resource in the host cluster", typeConfigName), func() {
+		It(fmt.Sprintf("resource %q, should create an equivalent federated resource in the host cluster", typeConfigName), func() {
 			typeConfig := &fedv1b1.FederatedTypeConfig{}
 			err := client.Get(context.Background(), typeConfig, f.KubeFedSystemNamespace(), typeConfigName)
 			if err != nil {
@@ -121,7 +121,7 @@ var _ = Describe("Federate ", func() {
 		})
 	}
 
-	It("namespace with contents, should create equivalant federated resources for all namespaced resources", func() {
+	It("namespace with contents, should create equivalent federated resources for all namespaced resources", func() {
 		if framework.TestContext.LimitedScope {
 			framework.Skipf("Federate namespace with content is not tested when control plane is namespace scoped")
 		}
@@ -176,7 +176,7 @@ var _ = Describe("Federate ", func() {
 		validateResourcesEqualityFromAPI(tl, createdTargetResources, kubeConfig)
 	})
 
-	It("input yaml from a file, should emit equivalant federated resources", func() {
+	It("input yaml from a file, should emit equivalent federated resources", func() {
 		tmpFile, err := ioutil.TempFile("", "tmp-")
 		if err != nil {
 			tl.Fatalf("Error creating temperory file: %v", err)
