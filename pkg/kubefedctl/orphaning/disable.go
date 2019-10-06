@@ -32,7 +32,7 @@ import (
 var (
 	orphaning_disable_long = `
 		Removes previously added "orphaning enable" ('kubefed.io/orphan: true')
-		annotation from a federated resource.  When the federated resource is subsequently marked for deletion,
+		annotation from a federated resource. When the federated resource is subsequently marked for deletion,
 		the resources it manages in member clusters will be removed before the federated resource is removed.
 
 		Current context is assumed to be a Kubernetes cluster hosting
@@ -40,7 +40,7 @@ var (
 		--host-cluster-context flag otherwise.`
 
 	orphaning_disable_example = `
-		# Disable the orphaning mode for a federated resource of type FederatedDeployment and named foo 
+		# Disable the orphaning mode for a federated resource of type FederatedDeployment and named foo
 		kubefedctl orphaning disable FederatedDeployment foo --host-cluster-context=cluster1`
 )
 

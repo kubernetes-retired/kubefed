@@ -50,7 +50,7 @@ const (
 
 var (
 	disable_long = `
-		Disables propagation of a Kubernetes API type.  This command
+		Disables propagation of a Kubernetes API type. This command
 		can also optionally delete the API resources added by the enable
 		command.
 
