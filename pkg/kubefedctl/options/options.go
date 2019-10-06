@@ -44,7 +44,7 @@ type GlobalSubcommandOptions struct {
 // GlobalSubcommandBind adds the global subcommand flags to the flagset passed in.
 func (o *GlobalSubcommandOptions) GlobalSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
-	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context")
+	flags.StringVar(&o.HostClusterContext, "host-cluster-context", "", "Host cluster context.")
 	flags.StringVar(&o.KubeFedNamespace, "kubefed-namespace", util.DefaultKubeFedSystemNamespace,
 		"Namespace in the host cluster where the KubeFed system components are installed. This namespace will also be the target of propagation if the controller manager is running with namespaced scope.")
 	flags.BoolVar(&o.DryRun, "dry-run", false,

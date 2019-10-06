@@ -45,7 +45,7 @@ type orphanResource struct {
 
 // Bind adds the join specific arguments to the flagset passed in as an argument.
 func (o *orphanResource) Bind(flags *pflag.FlagSet) error {
-	flags.StringVarP(&o.resourceNamespace, "namespace", "n", "", "If present, the namespace scope for this CLI request")
+	flags.StringVarP(&o.resourceNamespace, "namespace", "n", "", "If present, the namespace scope for this CLI request.")
 	err := flags.MarkHidden("kubefed-namespace")
 	if err != nil {
 		return err
