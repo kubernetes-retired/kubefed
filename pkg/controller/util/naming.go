@@ -17,7 +17,7 @@ limitations under the License.
 package util
 
 // The functions in this file are exposed as variables to allow them
-// to be overriden for testing purposes. Simulated scale testing
+// to be overridden for testing purposes. Simulated scale testing
 // requires being able to change the namespace of target resources
 // (NamespaceForCluster and QualifiedNameForCluster) and ensure that
 // the namespace of a federated resource will always be the kubefed
