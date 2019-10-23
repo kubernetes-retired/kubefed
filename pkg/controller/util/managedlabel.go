@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	ManagedByKubeFedLabelKey   = "kubefed.io/managed"
-	ManagedByKubeFedLabelValue = "true"
+	ManagedByKubeFedLabelKey     = "kubefed.io/managed"
+	ManagedByKubeFedLabelValue   = "true"
+	UnmanagedByKubeFedLabelValue = "false"
 )
 
 // HasManagedLabel indicates whether the given object has the managed
@@ -33,6 +34,16 @@ func HasManagedLabel(obj *unstructured.Unstructured) bool {
 		return false
 	}
 	return labels[ManagedByKubeFedLabelKey] == ManagedByKubeFedLabelValue
+}
+
+// IsExplicitlyUnmanaged indicates whether the given object has the managed
+// label with value false.
+func IsExplicitlyUnmanaged(obj *unstructured.Unstructured) bool {
+	labels := obj.GetLabels()
+	if labels == nil {
+		return false
+	}
+	return labels[ManagedByKubeFedLabelKey] == UnmanagedByKubeFedLabelValue
 }
 
 // AddManagedLabel ensures that the given object has the managed

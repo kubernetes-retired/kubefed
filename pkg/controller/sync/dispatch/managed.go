@@ -185,6 +185,11 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "update"
 	go d.dispatcher.clusterOperation(clusterName, op, func(client generic.Client) util.ReconciliationStatus {
+		if util.IsExplicitlyUnmanaged(clusterObj) {
+			err := errors.Errorf("Unable to manage the object which has label %s: %s", util.ManagedByKubeFedLabelKey, util.UnmanagedByKubeFedLabelValue)
+			return d.recordOperationError(status.ManagedLabelFalse, clusterName, op, err)
+		}
+
 		obj, err := d.fedResource.ObjectForCluster(clusterName)
 		if err != nil {
 			return d.recordOperationError(status.ComputeResourceFailed, clusterName, op, err)

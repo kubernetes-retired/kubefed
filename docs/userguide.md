@@ -454,6 +454,7 @@ The following table enumerates the possible values for cluster status:
 | FieldRetentionFailed   | An error occurred while attempting to retain the value of one or more fields in the target resource (e.g. `clusterIP` for a service) |
 | LabelRemovalFailed     | Removal of the KubeFed label from the target resource failed. |
 | LabelRemovalTimedOut   | Removal of the KubeFed label from the target resource timed out. |
+| ManagedLabelFalse      | Unable to manage the object which has label kubefed.io/managed: false |
 | RetrievalFailed        | Retrievel of the target resource from the cluster failed. |
 | UpdateFailed           | Update of the target resource failed. |
 | UpdateTimedOut         | Update of the target resource timed out. |

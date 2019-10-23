@@ -53,6 +53,7 @@ const (
 	FieldRetentionFailed   PropagationStatus = "FieldRetentionFailed"
 	VersionRetrievalFailed PropagationStatus = "VersionRetrievalFailed"
 	ClientRetrievalFailed  PropagationStatus = "ClientRetrievalFailed"
+	ManagedLabelFalse      PropagationStatus = "ManagedLabelFalse"
 
 	// Operation timeout errors
 	CreationTimedOut     PropagationStatus = "CreationTimedOut"
