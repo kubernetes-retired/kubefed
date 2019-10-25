@@ -308,7 +308,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 			fedType := ftc.Spec.FederatedType
 			name := typeconfig.GroupQualifiedName(metav1.APIResource{Name: fedType.PluralName, Group: fedType.Group})
 			if name == existingCRD.Name {
-				return errors.Errorf("Failed to enable federation of %q due to the FederatedTypeConfig for %q already referencing a federated type CRD named %q. If these target types are distinct despite sharing the same kind, specifying a non-default --federation-group should allow %q to be enabled.",
+				return errors.Errorf("Failed to enable federation of %q due to the FederatedTypeConfig for %q already referencing a federated type CRD named %q. If these target types are distinct despite sharing the same kind, specifying a non-default --federated-group should allow %q to be enabled.",
 					concreteTypeConfig.Name, ftc.Name, name, concreteTypeConfig.Name)
 			}
 		}
