@@ -56,7 +56,7 @@ var (
 		"propagatedversions.core.kubefed.io",
 	}
 
-	federate_long = `
+	federateLong = `
 		Federate creates a federated resource from a kubernetes resource.
 		The target resource must exist in the cluster hosting the kubefed
 		control plane. If the federated resource needs to be created in the
@@ -69,7 +69,7 @@ var (
 		the kubefed control plane. Please use the --host-cluster-context
 		flag otherwise.`
 
-	federate_example = `
+	federateExample = `
 		# Federate resource named "my-cm" in namespace "my-ns" of kubernetes type "configmaps" (identified by short name "cm")
 		kubefedctl federate cm "my-cm" -n "my-ns" --host-cluster-context=cluster1`
 )
@@ -137,8 +137,8 @@ func NewCmdFederateResource(cmdOut io.Writer, config util.FedConfig) *cobra.Comm
 	cmd := &cobra.Command{
 		Use:     "federate TYPE-NAME RESOURCE-NAME",
 		Short:   "Federate creates a federated resource from a kubernetes resource",
-		Long:    federate_long,
-		Example: federate_example,
+		Long:    federateLong,
+		Example: federateExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {

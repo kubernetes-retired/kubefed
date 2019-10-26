@@ -49,7 +49,7 @@ const (
 )
 
 var (
-	enable_long = `
+	enableLong = `
 		Enables a Kubernetes API type (including a CRD) to be propagated
 		to clusters registered with a KubeFed control plane.  A CRD for
 		the federated type will be generated and a FederatedTypeConfig will
@@ -59,7 +59,7 @@ var (
 		the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
-	enable_example = `
+	enableExample = `
 		# Enable federation of Deployments
 		kubefedctl enable deployments.apps --host-cluster-context=cluster1
 
@@ -98,8 +98,8 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "enable (NAME | -f FILENAME)",
 		Short:   "Enables propagation of a Kubernetes API type",
-		Long:    enable_long,
-		Example: enable_example,
+		Long:    enableLong,
+		Example: enableExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
