@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	orphaning_enable_long = `
+	orphaningEnableLong = `
 		Prevents the removal of managed resources from member clusters when their managing federated 
 		resource is removed. This is accomplished by adding 'kubefed.io/orphan: true' as an annotation to the 
 		federated resource.
@@ -39,7 +39,7 @@ var (
 		the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
-	orphan_enable_example = `
+	orphanEnableExample = `
 		# Enable the orphaning mode for a federated resource of type FederatedDeployment and named foo 
 		kubefedctl orphaning enable FederatedDeployment foo --host-cluster-context=cluster1`
 )
@@ -50,8 +50,8 @@ func newCmdEnableOrphaning(cmdOut io.Writer, config util.FedConfig) *cobra.Comma
 	cmd := &cobra.Command{
 		Use:     "enable <resource type> <resource name>",
 		Short:   "Enable the orphaning (i.e. retention) of resources managed by a federated resource upon its removal.",
-		Long:    orphaning_enable_long,
-		Example: orphan_enable_example,
+		Long:    orphaningEnableLong,
+		Example: orphanEnableExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args, config)
 			if err != nil {
