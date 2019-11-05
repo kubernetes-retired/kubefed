@@ -92,7 +92,7 @@ func (in *DNSEndpoint) DeepCopyObject() runtime.Object {
 func (in *DNSEndpointList) DeepCopyInto(out *DNSEndpointList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DNSEndpoint, len(*in))
@@ -190,7 +190,7 @@ func (in *Domain) DeepCopyObject() runtime.Object {
 func (in *DomainList) DeepCopyInto(out *DomainList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Domain, len(*in))
@@ -276,7 +276,7 @@ func (in *IngressDNSRecord) DeepCopyObject() runtime.Object {
 func (in *IngressDNSRecordList) DeepCopyInto(out *IngressDNSRecordList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]IngressDNSRecord, len(*in))
@@ -398,7 +398,7 @@ func (in *ServiceDNSRecord) DeepCopyObject() runtime.Object {
 func (in *ServiceDNSRecordList) DeepCopyInto(out *ServiceDNSRecordList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ServiceDNSRecord, len(*in))
