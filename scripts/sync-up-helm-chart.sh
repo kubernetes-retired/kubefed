@@ -53,7 +53,8 @@ go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd:trivia
 # Merge all CRD manifest files into one file
 echo "---" > ${TEMP_CRDS_YAML}
 for filename in ./config/crds/*.yaml; do
-  cat $filename >> ${TEMP_CRDS_YAML}
+  # Remove unwanted kubebuilder annotation
+   sed '/controller-gen.kubebuilder.io/d; /annotations:/d' $filename >> ${TEMP_CRDS_YAML}
   echo "---" >> ${TEMP_CRDS_YAML}
 done
 
