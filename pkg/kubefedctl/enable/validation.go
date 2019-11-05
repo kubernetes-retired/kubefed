@@ -23,6 +23,7 @@ import (
 )
 
 func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
+	preserveUnknownFields := true
 	schema := ValidationSchema(v1beta1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]v1beta1.JSONSchemaProps{
@@ -114,28 +115,12 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 											"path": {
 												Type: "string",
 											},
+											// Supporting the override of an arbitrary field
+											// precludes up-front validation.  Errors in
+											// the definition of override values will need to
+											// be caught during propagation.
 											"value": {
-												// Supporting the override of an arbitrary field
-												// precludes up-front validation.  Errors in
-												// the definition of override values will need to
-												// be caught during propagation.
-												AnyOf: []v1beta1.JSONSchemaProps{
-													{
-														Type: "string",
-													},
-													{
-														Type: "integer",
-													},
-													{
-														Type: "boolean",
-													},
-													{
-														Type: "object",
-													},
-													{
-														Type: "array",
-													},
-												},
+												XPreserveUnknownFields: &preserveUnknownFields,
 											},
 										},
 										Required: []string{
@@ -255,6 +240,7 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 			Required: []string{
 				"spec",
 			},
+			Type: "object",
 		},
 	}
 }
