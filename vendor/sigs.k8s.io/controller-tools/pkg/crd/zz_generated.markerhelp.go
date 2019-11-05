@@ -34,11 +34,11 @@ func (Generator) Help() *markers.DefinitionHelp {
 		FieldHelp: map[string]markers.DetailedHelp{
 			"TrivialVersions": markers.DetailedHelp{
 				Summary: "indicates that we should produce a single-version CRD. ",
-				Details: " Single \"trivial-version\" CRDs are compatible with older (pre 1.13) Kubernetes API servers.  The storage version's schema will be used as the CRD's schema.",
+				Details: "Single \"trivial-version\" CRDs are compatible with older (pre 1.13) Kubernetes API servers.  The storage version's schema will be used as the CRD's schema.",
 			},
 			"MaxDescLen": markers.DetailedHelp{
 				Summary: "specifies the maximum description length for fields in CRD's OpenAPI schema. ",
-				Details: " 0 indicates drop the description for all fields completely. n indicates limit the description to at most n characters and truncate the description to closest sentence boundary if it exceeds n characters.",
+				Details: "0 indicates drop the description for all fields completely. n indicates limit the description to at most n characters and truncate the description to closest sentence boundary if it exceeds n characters.",
 			},
 		},
 	}

@@ -111,7 +111,7 @@ func mergeIdenticalPrinterColumns(crd *apiext.CustomResourceDefinition) {
 // this restriction it would be ambiguous how a v1-with-identical-subresources
 // converts into a v1beta1).
 func MergeIdenticalVersionInfo(crd *apiext.CustomResourceDefinition) {
-	if len(crd.Spec.Versions) > 1 {
+	if len(crd.Spec.Versions) > 0 {
 		mergeIdenticalSubresources(crd)
 		mergeIdenticalSchemata(crd)
 		mergeIdenticalPrinterColumns(crd)

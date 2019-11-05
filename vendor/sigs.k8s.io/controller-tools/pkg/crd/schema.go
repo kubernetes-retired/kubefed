@@ -389,8 +389,8 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *v1beta1.JSO
 }
 
 // builtinToType converts builtin basic types to their equivalent JSON schema form.
-// It *only* handles types allowed by the kubernetes API standards, meaning
-// no floats (technically we shouldn't allow int64 or plain int either, but :shrug:).
+// It *only* handles types allowed by the kubernetes API standards. Floats are not
+// allowed.
 func builtinToType(basic *types.Basic) (typ string, format string, err error) {
 	// NB(directxman12): formats from OpenAPI v3 are slightly different than those defined
 	// in JSONSchema.  This'll use the OpenAPI v3 ones, since they're useful for bounding our

@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-tools/pkg/genall"
 	"sigs.k8s.io/controller-tools/pkg/loader"
 	"sigs.k8s.io/controller-tools/pkg/markers"
+	"sigs.k8s.io/controller-tools/pkg/version"
 )
 
 // +controllertools:marker:generateHelp
@@ -81,6 +82,7 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 		if g.TrivialVersions {
 			toTrivialVersions(&crd)
 		}
+		addAttribution(&crd)
 		fileName := fmt.Sprintf("%s_%s.yaml", crd.Spec.Group, crd.Spec.Names.Plural)
 		if err := ctx.WriteYAML(fileName, crd); err != nil {
 			return err
@@ -114,6 +116,15 @@ func toTrivialVersions(crd *apiext.CustomResourceDefinition) {
 	crd.Spec.Validation = canonicalSchema
 	crd.Spec.Subresources = canonicalSubresources
 	crd.Spec.AdditionalPrinterColumns = canonicalColumns
+}
+
+// addAttribution adds attribution info to indicate controller-gen tool was used
+// to generate this CRD definition along with the version info.
+func addAttribution(crd *apiext.CustomResourceDefinition) {
+	if crd.ObjectMeta.Annotations == nil {
+		crd.ObjectMeta.Annotations = map[string]string{}
+	}
+	crd.ObjectMeta.Annotations["controller-gen.kubebuilder.io/version"] = version.Version()
 }
 
 // FindMetav1 locates the actual package representing metav1 amongst

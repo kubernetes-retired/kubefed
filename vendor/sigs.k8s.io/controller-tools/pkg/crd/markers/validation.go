@@ -72,6 +72,9 @@ var FieldOnlyMarkers = []*definitionWithHelp{
 
 	must(markers.MakeDefinition("nullable", markers.DescribesField, Nullable{})).
 		WithHelp(Nullable{}.Help()),
+
+	must(markers.MakeAnyTypeDefinition("kubebuilder:default", markers.DescribesField, Default{})).
+		WithHelp(Default{}.Help()),
 }
 
 func init() {
@@ -158,6 +161,19 @@ type Type string
 //
 // This is often not necessary, but may be helpful with custom serialization.
 type Nullable struct{}
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Default sets the default value for this field.
+//
+// A default value will be accepted as any value valid for the
+// field. Formatting for common types include: boolean: `true`, string:
+// `Cluster`, numerical: `1.24`, array: `{1,2}`, object: `{policy:
+// "delete"}`). Defaults should be defined in pruned form, and only best-effort
+// validation will be performed. Full validation of a default requires
+// submission of the containing CRD to an apiserver.
+type Default struct {
+	Value interface{}
+}
 
 func (m Maximum) ApplyToSchema(schema *v1beta1.JSONSchemaProps) error {
 	if schema.Type != "integer" {
@@ -282,5 +298,15 @@ func (m Type) ApplyFirst() {}
 
 func (m Nullable) ApplyToSchema(schema *v1beta1.JSONSchemaProps) error {
 	schema.Nullable = true
+	return nil
+}
+
+// Defaults are only valid CRDs created with the v1 API
+func (m Default) ApplyToSchema(schema *v1beta1.JSONSchemaProps) error {
+	marshalledDefault, err := json.Marshal(m.Value)
+	if err != nil {
+		return err
+	}
+	schema.Default = &v1beta1.JSON{Raw: marshalledDefault}
 	return nil
 }
