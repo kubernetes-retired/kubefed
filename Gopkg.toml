@@ -24,39 +24,39 @@ required = [
 
 [[override]]
   name="k8s.io/apimachinery"
-  version="kubernetes-1.14.1"
+  version="kubernetes-1.16.0"
 
 [[override]]
   name="k8s.io/client-go"
-  version="kubernetes-1.14.1"
+  version="kubernetes-1.16.0"
 
 [[override]]
   name="k8s.io/api"
-  version="kubernetes-1.14.1"
+  version="kubernetes-1.16.0"
 
 [[override]]
   name="k8s.io/kube-aggregator"
-  version="kubernetes-1.14.1"
+  version="kubernetes-1.16.0"
 
 [[override]]
   name="k8s.io/apiextensions-apiserver"
-  version="kubernetes-1.14.1"
+  version="kubernetes-1.16.0"
 
 [[override]]
   name="k8s.io/apiserver"
-  version="kubernetes-1.14.1"
+  version="kubernetes-1.16.0"
 
 [[override]]
   name="github.com/openshift/generic-admission-server"
-  revision="30a7ee0ea2ba57c5701e636ba5fef406d6e5ddc8"
+  revision="92cbaa8d51b1b9fa33a7eda76683b3482590e534"
 
 [[override]]
   name="k8s.io/kube-openapi"
-  revision="18908d120c6bdee559200d65ed8b8de9d253ccac"
+  revision="743ec37842bffe49dd4221d9026f30fb1d5adbc4"
 
 [[override]]
   name="sigs.k8s.io/structured-merge-diff"
-  revision="e85c7b244fd2cc57bb829d73a061f93a441e63ce"
+  revision="6149e4549fca4602cb9449007ff8ef61b2feff3b"
 
 [[override]]
   name = "github.com/coreos/etcd"
@@ -74,11 +74,12 @@ required = [
 
 [[override]]
   name="sigs.k8s.io/controller-runtime"
-  version="v0.2.0"
+  # This hash ensures kube 1.16 compatibility. v0.3.0 is not kube 1.16 compatible.
+  revision="b2bc3490f2e3d30e331bff2eaf948e78759ab5c5"
 
 [[override]]
   name="sigs.k8s.io/controller-tools"
-  version="v0.2.0"
+  version="v0.2.2"
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
