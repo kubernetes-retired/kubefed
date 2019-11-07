@@ -12,6 +12,10 @@
    of `-e` to avoid confusing error message when only one dash is accidentally
    used e.g. `-enable-type`, resulting in a valid parsing of flags but
    erroneous use of the option.
+-  [#1167](https://github.com/kubernetes-sigs/kubefed/pull/1167) Add
+   `kubectl apply` via a Job in the helm chart to apply updates to CRDs and
+   handles re-installing the chart because deleting a chart does not delete
+   the CRDs
 
 # v0.1.0-rc6
 -  [#1099](https://github.com/kubernetes-sigs/kubefed/pull/1099)
