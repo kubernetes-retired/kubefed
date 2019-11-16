@@ -5,7 +5,6 @@ kind: ClusterRole
 metadata:
   labels:
     api: kubefed
-    kubebuilder.k8s.io: 1.0.0
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
   name: kubefed-admin
 rules:
@@ -39,7 +38,6 @@ kind: ClusterRole
 metadata:
   labels:
     api: kubefed
-    kubebuilder.k8s.io: 1.0.0
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
   name: kubefed-edit
 rules:
@@ -94,7 +92,6 @@ kind: ClusterRole
 metadata:
   labels:
     api: kubefed
-    kubebuilder.k8s.io: 1.0.0
     rbac.authorization.k8s.io/aggregate-to-view: "true"
   name: kubefed-view
 rules:
