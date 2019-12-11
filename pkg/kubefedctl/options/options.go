@@ -77,17 +77,14 @@ func CurrentContext(config clientcmd.ClientConfig) (string, error) {
 // CommonJoinOptions holds the common configuration required by the join and
 // unjoin subcommands of `kubefedctl`.
 type CommonJoinOptions struct {
-	ClusterName     string
-	ClusterContext  string
-	HostClusterName string
+	ClusterName    string
+	ClusterContext string
 }
 
 // CommonSubcommandBind adds the common subcommand flags to the flagset passed in.
 func (o *CommonJoinOptions) CommonSubcommandBind(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ClusterContext, "cluster-context", "",
 		"Name of the cluster's context in the local kubeconfig. Defaults to cluster name if unspecified.")
-	flags.StringVar(&o.HostClusterName, "host-cluster-name", "",
-		"If set, overrides the use of host-cluster-context name in resource names created in the target cluster. This option must be used when the context name has characters invalid for kubernetes resources like \"/\" and \":\".")
 }
 
 // SetName sets the name from the args passed in for the required positional

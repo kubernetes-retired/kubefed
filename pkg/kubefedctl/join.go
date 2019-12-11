@@ -18,10 +18,8 @@ package kubefedctl
 
 import (
 	"context"
-	goerrors "errors"
 	"io"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -148,14 +146,6 @@ func (j *joinFederation) Complete(args []string) error {
 		j.ClusterContext = j.ClusterName
 	}
 
-	if j.HostClusterName != "" && strings.ContainsAny(j.HostClusterName, ":/") {
-		return goerrors.New("host-cluster-name may not contain \"/\" or \":\"")
-	}
-
-	if j.HostClusterName == "" && strings.ContainsAny(j.HostClusterContext, ":/") {
-		klog.Fatal("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
-	}
-
 	klog.V(2).Infof("Args and flags: name %s, host: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, secret-name: %s, dry-run: %v",
 		j.ClusterName, j.HostClusterContext, j.KubeFedNamespace, j.Kubeconfig, j.ClusterContext,
 		j.secretName, j.DryRun)
@@ -191,9 +181,6 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	hostClusterName := j.HostClusterContext
-	if j.HostClusterName != "" {
-		hostClusterName = j.HostClusterName
-	}
 
 	_, err = JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
 		hostClusterName, j.ClusterName, j.secretName, uid, j.scope, j.DryRun, j.errorOnExisting)

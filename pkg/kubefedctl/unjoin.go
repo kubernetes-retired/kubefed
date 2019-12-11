@@ -18,9 +18,7 @@ package kubefedctl
 
 import (
 	"context"
-	goerrors "errors"
 	"io"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -117,14 +115,6 @@ func (j *unjoinFederation) Complete(args []string) error {
 		j.ClusterContext = j.ClusterName
 	}
 
-	if j.HostClusterName != "" && strings.ContainsAny(j.HostClusterName, ":/") {
-		return goerrors.New("host-cluster-name may not contain \"/\" or \":\"")
-	}
-
-	if j.HostClusterName == "" && strings.ContainsAny(j.HostClusterContext, ":/") {
-		return goerrors.New("host-cluster-name must be set if the name of the host cluster context contains one of \":\" or \"/\"")
-	}
-
 	klog.V(2).Infof("Args and flags: name %s, host-cluster-context: %s, host-system-namespace: %s, kubeconfig: %s, cluster-context: %s, dry-run: %v",
 		j.ClusterName, j.HostClusterContext, j.KubeFedNamespace, j.Kubeconfig, j.ClusterContext, j.DryRun)
 
@@ -163,11 +153,6 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		// should still be removed from the host cluster.
 	}
 
-	hostClusterName := j.HostClusterContext
-	if j.HostClusterName != "" {
-		hostClusterName = j.HostClusterName
-	}
-
 	return UnjoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
 		j.ClusterContext, j.ClusterName, uid, j.forceDeletion, j.DryRun)
 }
@@ -175,7 +160,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // UnjoinCluster performs all the necessary steps to remove the
 // registration of a cluster from a KubeFed control plane provided the
 // required set of parameters are passed in.
-func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName,
+func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	unjoiningClusterContext, unjoiningClusterName, uid string, forceDeletion, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
