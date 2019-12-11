@@ -178,7 +178,8 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
+	var uid string
+	j.scope, uid, err = options.GetConfFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
 	if err != nil {
 		return err
 	}
@@ -195,7 +196,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	_, err = JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
-		hostClusterName, j.ClusterName, j.secretName, j.scope, j.DryRun, j.errorOnExisting)
+		hostClusterName, j.ClusterName, j.secretName, uid, j.scope, j.DryRun, j.errorOnExisting)
 
 	return err
 }
@@ -204,11 +205,11 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // KubeFed namespace in the joining cluster will be the same as in the
 // host cluster.
 func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
-	hostClusterName, joiningClusterName, secretName string,
+	hostClusterName, joiningClusterName, secretName, uid string,
 	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 
 	return joinClusterForNamespace(hostConfig, clusterConfig, kubefedNamespace,
-		kubefedNamespace, hostClusterName, joiningClusterName, secretName,
+		kubefedNamespace, hostClusterName, joiningClusterName, secretName, uid,
 		scope, dryRun, errorOnExisting)
 }
 
@@ -216,7 +217,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 // plane. The KubeFed namespace in the joining cluster is provided by
 // the joiningNamespace parameter.
 func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
-	joiningNamespace, hostClusterName, joiningClusterName, secretName string,
+	joiningNamespace, hostClusterName, joiningClusterName, secretName, uid string,
 	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 
 	hostClientset, err := util.HostClientset(hostConfig)
@@ -238,7 +239,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	}
 
 	klog.V(2).Infof("Performing preflight checks.")
-	err = performPreflightChecks(clusterClientset, joiningClusterName, hostClusterName, joiningNamespace, errorOnExisting)
+	err = performPreflightChecks(clusterClientset, joiningClusterName, joiningNamespace, uid, errorOnExisting)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +255,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	klog.V(2).Infof("Created %s namespace in joining cluster", joiningNamespace)
 
 	saName, err := createAuthorizedServiceAccount(clusterClientset,
-		joiningNamespace, joiningClusterName, hostClusterName,
+		joiningNamespace, joiningClusterName, uid,
 		scope, dryRun, errorOnExisting)
 	if err != nil {
 		return nil, err
@@ -288,10 +289,10 @@ var TestOnly_JoinClusterForNamespace = joinClusterForNamespace
 
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
-func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClusterName,
-	kubefedNamespace string, errorOnExisting bool) error {
+func performPreflightChecks(clusterClientset kubeclient.Interface, name,
+	kubefedNamespace, uid string, errorOnExisting bool) error {
 	// Make sure there is no existing service account in the joining cluster.
-	saName := util.ClusterServiceAccountName(name, hostClusterName)
+	saName := util.ClusterServiceAccountName(name, uid)
 	_, err := clusterClientset.CoreV1().ServiceAccounts(kubefedNamespace).Get(saName,
 		metav1.GetOptions{})
 
@@ -397,13 +398,13 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 // resources in the joining cluster.  The name of the created service
 // account is returned on success.
 func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface,
-	namespace, joiningClusterName, hostClusterName string,
+	namespace, joiningClusterName, uid string,
 	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (string, error) {
 
 	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
-		joiningClusterName, hostClusterName, dryRun, errorOnExisting)
+		joiningClusterName, uid, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
 			saName, joiningClusterName, err)
@@ -458,8 +459,8 @@ func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface
 // with clusterClientset with credentials that will be used by the host cluster
 // to access its API server.
 func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
-	joiningClusterName, hostClusterName string, dryRun, errorOnExisting bool) (string, error) {
-	saName := util.ClusterServiceAccountName(joiningClusterName, hostClusterName)
+	joiningClusterName, uid string, dryRun, errorOnExisting bool) (string, error) {
+	saName := util.ClusterServiceAccountName(joiningClusterName, uid)
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      saName,

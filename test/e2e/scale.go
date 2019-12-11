@@ -101,7 +101,7 @@ var _ = Describe("Simulated Scale", func() {
 			_, err := kubefedctl.TestOnly_JoinClusterForNamespace(
 				hostConfig, hostConfig, hostNamespace,
 				joiningNamespace, hostCluster, memberCluster,
-				"", apiextv1b1.NamespaceScoped, false, false)
+				"", "testid", apiextv1b1.NamespaceScoped, false, false)
 
 			defer func() {
 				framework.DeleteNamespace(client, joiningNamespace)

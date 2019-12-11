@@ -103,8 +103,8 @@ func ClusterClientset(config *rest.Config) (*kubeclient.Clientset, error) {
 
 // ClusterServiceAccountName returns the name of a service account whose
 // credentials are used by the host cluster to access the client cluster.
-func ClusterServiceAccountName(joiningClusterName, hostClusterName string) string {
-	return fmt.Sprintf("%s-%s", joiningClusterName, hostClusterName)
+func ClusterServiceAccountName(joiningClusterName, uid string) string {
+	return fmt.Sprintf("%s-%s", joiningClusterName, uid)
 }
 
 // RoleName returns the name of a Role or ClusterRole and its

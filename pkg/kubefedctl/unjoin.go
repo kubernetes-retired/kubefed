@@ -146,6 +146,11 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
+	_, uid, err := options.GetConfFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
+	if err != nil {
+		return err
+	}
+
 	clusterConfig, err := config.ClusterConfig(j.ClusterContext, j.Kubeconfig)
 	if err != nil {
 		klog.V(2).Infof("Failed to get unjoining cluster config: %v", err)
@@ -164,14 +169,14 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	return UnjoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
-		hostClusterName, j.ClusterContext, j.ClusterName, j.forceDeletion, j.DryRun)
+		j.ClusterContext, j.ClusterName, uid, j.forceDeletion, j.DryRun)
 }
 
 // UnjoinCluster performs all the necessary steps to remove the
 // registration of a cluster from a KubeFed control plane provided the
 // required set of parameters are passed in.
 func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName,
-	unjoiningClusterContext, unjoiningClusterName string, forceDeletion, dryRun bool) error {
+	unjoiningClusterContext, unjoiningClusterName, uid string, forceDeletion, dryRun bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
@@ -197,7 +202,7 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hos
 	}
 
 	if clusterClientset != nil {
-		err := deleteRBACResources(clusterClientset, kubefedNamespace, unjoiningClusterName, hostClusterName, forceDeletion, dryRun)
+		err := deleteRBACResources(clusterClientset, kubefedNamespace, unjoiningClusterName, uid, forceDeletion, dryRun)
 		if err != nil {
 			if !forceDeletion {
 				return err
@@ -269,9 +274,9 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 // deleteRBACResources deletes the cluster role, cluster rolebindings and service account
 // from the unjoining cluster.
 func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
-	namespace, unjoiningClusterName, hostClusterName string, forceDeletion, dryRun bool) error {
+	namespace, unjoiningClusterName, uid string, forceDeletion, dryRun bool) error {
 
-	saName := util.ClusterServiceAccountName(unjoiningClusterName, hostClusterName)
+	saName := util.ClusterServiceAccountName(unjoiningClusterName, uid)
 
 	err := deleteClusterRoleAndBinding(unjoiningClusterClientset, saName, namespace, unjoiningClusterName, forceDeletion, dryRun)
 	if err != nil {

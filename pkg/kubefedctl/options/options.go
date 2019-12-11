@@ -101,17 +101,17 @@ func (o *CommonJoinOptions) SetName(args []string) error {
 	return nil
 }
 
-func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, error) {
+func GetConfFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiextv1b1.ResourceScope, string, error) {
 	client, err := genericclient.New(hostConfig)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to get kubefed clientset")
-		return "", err
+		return "", "", err
 	}
 
 	fedConfig := &fedv1b1.KubeFedConfig{}
 	err = client.Get(context.TODO(), fedConfig, namespace, util.KubeFedConfigName)
 	if apierrors.IsNotFound(err) {
-		return "", errors.Errorf(
+		return "", "", errors.Errorf(
 			"A KubeFedConfig named %q was not found in namespace %q. Is a KubeFed control plane running in this namespace?",
 			util.KubeFedConfigName, namespace)
 	} else if err != nil {
@@ -120,10 +120,14 @@ func GetScopeFromKubeFedConfig(hostConfig *rest.Config, namespace string) (apiex
 			Name:      util.KubeFedConfigName,
 		}
 		err = errors.Wrapf(err, "Error retrieving KubeFedConfig %q", config)
-		return "", err
+		return "", "", err
 	}
 
-	return fedConfig.Spec.Scope, nil
+	// use first 8 characters to identify resource for member cluster management
+	uid := string(fedConfig.UID)
+	uid = uid[0:8]
+
+	return fedConfig.Spec.Scope, uid, nil
 }
 
 // CommonEnableOptions holds the common configuration required by the enable
