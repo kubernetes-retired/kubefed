@@ -215,12 +215,12 @@ func NewFederatedInformer(
 			UpdateFunc: func(old, cur interface{}) {
 				oldCluster, ok := old.(*fedv1b1.KubeFedCluster)
 				if !ok {
-					klog.Errorf("Internal error: Cluster %v not updated.  Old cluster not of correct type.", old)
+					klog.Errorf("Internal error: Cluster %v not updated. Old cluster not of correct type.", old)
 					return
 				}
 				curCluster, ok := cur.(*fedv1b1.KubeFedCluster)
 				if !ok {
-					klog.Errorf("Internal error: Cluster %v not updated.  New cluster not of correct type.", cur)
+					klog.Errorf("Internal error: Cluster %v not updated. New cluster not of correct type.", cur)
 					return
 				}
 				if IsClusterReady(&oldCluster.Status) != IsClusterReady(&curCluster.Status) || !reflect.DeepEqual(oldCluster.Spec, curCluster.Spec) || !reflect.DeepEqual(oldCluster.ObjectMeta.Labels, curCluster.ObjectMeta.Labels) || !reflect.DeepEqual(oldCluster.ObjectMeta.Annotations, curCluster.ObjectMeta.Annotations) {
