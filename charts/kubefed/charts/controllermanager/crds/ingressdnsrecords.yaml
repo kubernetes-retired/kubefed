@@ -1,0 +1,96 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: ingressdnsrecords.multiclusterdns.kubefed.io
+spec:
+  group: multiclusterdns.kubefed.io
+  names:
+    kind: IngressDNSRecord
+    listKind: IngressDNSRecordList
+    plural: ingressdnsrecords
+    singular: ingressdnsrecord
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: IngressDNSRecordSpec defines the desired state of IngressDNSRecord
+          properties:
+            hosts:
+              description: Host from the IngressRule in Cluster Ingress Spec
+              items:
+                type: string
+              type: array
+            recordTTL:
+              description: RecordTTL is the TTL in seconds for DNS records created
+                for the Ingress, if omitted a default would be used
+              format: int64
+              type: integer
+          type: object
+        status:
+          description: IngressDNSRecordStatus defines the observed state of IngressDNSRecord
+          properties:
+            dns:
+              description: Array of Ingress Controller LoadBalancers
+              items:
+                description: ClusterIngressDNS defines the observed status of Ingress
+                  within a cluster.
+                properties:
+                  cluster:
+                    description: Cluster name
+                    type: string
+                  loadBalancer:
+                    description: LoadBalancer for the corresponding ingress controller
+                    properties:
+                      ingress:
+                        description: Ingress is a list containing ingress points for
+                          the load-balancer. Traffic intended for the service should
+                          be sent to these ingress points.
+                        items:
+                          description: 'LoadBalancerIngress represents the status
+                            of a load-balancer ingress point: traffic intended for
+                            the service should be sent to an ingress point.'
+                          properties:
+                            hostname:
+                              description: Hostname is set for load-balancer ingress
+                                points that are DNS based (typically AWS load-balancers)
+                              type: string
+                            ip:
+                              description: IP is set for load-balancer ingress points
+                                that are IP based (typically GCE or OpenStack load-balancers)
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              type: array
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---

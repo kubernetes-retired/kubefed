@@ -1,0 +1,107 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: replicaschedulingpreferences.scheduling.kubefed.io
+spec:
+  group: scheduling.kubefed.io
+  names:
+    kind: ReplicaSchedulingPreference
+    listKind: ReplicaSchedulingPreferenceList
+    plural: replicaschedulingpreferences
+    singular: replicaschedulingpreference
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ReplicaSchedulingPreferenceSpec defines the desired state of
+            ReplicaSchedulingPreference
+          properties:
+            clusters:
+              additionalProperties:
+                description: Preferences regarding number of replicas assigned to
+                  a cluster workload object (dep, rs, ..) within a federated workload
+                  object.
+                properties:
+                  maxReplicas:
+                    description: Maximum number of replicas that should be assigned
+                      to this cluster workload object. Unbounded if no value provided
+                      (default).
+                    format: int64
+                    type: integer
+                  minReplicas:
+                    description: Minimum number of replicas that should be assigned
+                      to this cluster workload object. 0 by default.
+                    format: int64
+                    type: integer
+                  weight:
+                    description: A number expressing the preference to put an additional
+                      replica to this cluster workload object. 0 by default.
+                    format: int64
+                    type: integer
+                type: object
+              description: A mapping between cluster names and preferences regarding
+                a local workload object (dep, rs, .. ) in these clusters. "*" (if
+                provided) applies to all clusters if an explicit mapping is not provided.
+                If omitted, clusters without explicit preferences should not have
+                any replicas scheduled.
+              type: object
+            rebalance:
+              description: If set to true then already scheduled and running replicas
+                may be moved to other clusters in order to match current state to
+                the specified preferences. Otherwise, if set to false, up and running
+                replicas will not be moved.
+              type: boolean
+            targetKind:
+              description: TODO (@irfanurrehman); upgrade this to label selector only
+                if need be. The idea of this API is to have a a set of preferences
+                which can be used for a target FederatedDeployment or FederatedReplicaset.
+                Although the set of preferences in question can be applied to multiple
+                target objects using label selectors, but there are no clear advantages
+                of doing that as of now. To keep the implementation and usage simple,
+                matching ns/name of RSP resource to the target resource is sufficient
+                and only additional information needed in RSP resource is a target
+                kind (FederatedDeployment or FederatedReplicaset).
+              type: string
+            totalReplicas:
+              description: Total number of pods desired across federated clusters.
+                Replicas specified in the spec for target deployment template or replicaset
+                template will be discarded/overridden when scheduling preferences
+                are specified.
+              format: int32
+              type: integer
+          required:
+          - targetKind
+          - totalReplicas
+          type: object
+        status:
+          description: ReplicaSchedulingPreferenceStatus defines the observed state
+            of ReplicaSchedulingPreference
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---

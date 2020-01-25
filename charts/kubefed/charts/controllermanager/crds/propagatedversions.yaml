@@ -1,0 +1,81 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: propagatedversions.core.kubefed.io
+spec:
+  group: core.kubefed.io
+  names:
+    kind: PropagatedVersion
+    listKind: PropagatedVersionList
+    plural: propagatedversions
+    singular: propagatedversion
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: PropagatedVersion holds version information about the state propagated
+        from KubeFed APIs (configured by FederatedTypeConfig resources) to member
+        clusters. The name of a PropagatedVersion encodes the kind and name of the
+        resource it stores information for (i.e. <lower-case kind>-<resource name>).
+        If a target resource has a populated metadata.Generation field, the generation
+        will be stored with a prefix of `gen:` as the version for the cluster.  If
+        metadata.Generation is not available, metadata.ResourceVersion will be stored
+        with a prefix of `rv:` as the version for the cluster.
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        status:
+          description: PropagatedVersionStatus defines the observed state of PropagatedVersion
+          properties:
+            clusterVersions:
+              description: The last versions produced in each cluster for this resource.
+              items:
+                properties:
+                  clusterName:
+                    description: The name of the cluster the version is for.
+                    type: string
+                  version:
+                    description: The last version produced for the resource by a KubeFed
+                      operation.
+                    type: string
+                required:
+                - clusterName
+                - version
+                type: object
+              type: array
+            overridesVersion:
+              description: The observed version of the overrides for this resource.
+              type: string
+            templateVersion:
+              description: The observed version of the template for this resource.
+              type: string
+          required:
+          - overridesVersion
+          - templateVersion
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---

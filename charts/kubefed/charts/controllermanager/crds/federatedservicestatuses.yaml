@@ -1,0 +1,82 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: federatedservicestatuses.core.kubefed.io
+spec:
+  group: core.kubefed.io
+  names:
+    kind: FederatedServiceStatus
+    listKind: FederatedServiceStatusList
+    plural: federatedservicestatuses
+    singular: federatedservicestatus
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        clusterStatus:
+          items:
+            description: FederatedServiceClusterStatus is the observed status of the
+              resource for a named cluster
+            properties:
+              clusterName:
+                type: string
+              status:
+                description: ServiceStatus represents the current status of a service.
+                properties:
+                  loadBalancer:
+                    description: LoadBalancer contains the current status of the load-balancer,
+                      if one is present.
+                    properties:
+                      ingress:
+                        description: Ingress is a list containing ingress points for
+                          the load-balancer. Traffic intended for the service should
+                          be sent to these ingress points.
+                        items:
+                          description: 'LoadBalancerIngress represents the status
+                            of a load-balancer ingress point: traffic intended for
+                            the service should be sent to an ingress point.'
+                          properties:
+                            hostname:
+                              description: Hostname is set for load-balancer ingress
+                                points that are DNS based (typically AWS load-balancers)
+                              type: string
+                            ip:
+                              description: IP is set for load-balancer ingress points
+                                that are IP based (typically GCE or OpenStack load-balancers)
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                type: object
+            required:
+            - clusterName
+            - status
+            type: object
+          type: array
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
