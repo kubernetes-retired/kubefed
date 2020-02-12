@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"os"
 	"testing"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, etc
@@ -24,8 +25,9 @@ import (
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 )
 
-func init() {
+func TestMain(m *testing.M) {
 	framework.ParseFlags()
+	os.Exit(m.Run())
 }
 
 func TestE2E(t *testing.T) {
