@@ -17,7 +17,7 @@
 set -euo pipefail
 
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_ROOT}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_ROOT}/.." && pwd)"
 pushd ${REPO_ROOT} > /dev/null
 
 find_files() {
