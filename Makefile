@@ -127,11 +127,11 @@ webhook: $(WEBHOOK_TARGET)
 e2e: $(E2E_BINARY_TARGET)
 
 # Generate code
-generate-code:
+generate-code: controller-gen
 ifndef GOPATH
 	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
 endif
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths="./..."
+	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./..."
 
 generate: generate-code kubefedctl
 	./scripts/sync-up-helm-chart.sh
@@ -163,3 +163,6 @@ push: container
 clean:
 	rm -f $(ALL_BINS)
 	$(DOCKER) rmi $(IMAGE):$(GIT_VERSION) || true
+
+controller-gen:
+	command -v controller-gen &> /dev/null || (cd tools && go install sigs.k8s.io/controller-tools/cmd/controller-gen)
