@@ -124,7 +124,7 @@ echo "Verifying Gofmt"
 ./hack/go-tools/verify-gofmt.sh
 
 echo "Checking boilerplate text"
-./repo-infra/verify/verify-boilerplate.sh --rootdir="${ROOT_DIR}" -v
+./vendor/repo-infra/verify/verify-boilerplate.sh --rootdir="${ROOT_DIR}" -v
 
 echo "Linting"
 golangci-lint run

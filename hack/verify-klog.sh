@@ -23,7 +23,8 @@ pushd ${REPO_ROOT} > /dev/null
 find_files() {
   find . -not \( \
       \( \
-        -wholename '*/pkg/client/*' \
+        -wholename '*/vendor/*' \
+        -o -wholename '*/pkg/client/*' \
         -o -wholename '*/doc.go' \
       \) -prune \
     \) -name '*.go'
