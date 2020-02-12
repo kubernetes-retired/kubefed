@@ -127,7 +127,7 @@ echo "Checking boilerplate text"
 ./vendor/repo-infra/verify/verify-boilerplate.sh --rootdir="${ROOT_DIR}" -v
 
 echo "Linting"
-golangci-lint run
+golangci-lint run --timeout=5m
 
 echo "Checking that correct Error Package is used."
 ./hack/verify-errpkg.sh
