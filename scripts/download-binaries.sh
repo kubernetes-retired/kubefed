@@ -22,10 +22,10 @@ set -o nounset
 set -o pipefail
 
 # Use DEBUG=1 ./scripts/download-binaries.sh to get debug output
-curl_args="-Ls"
+curl_args="-fsSL"
 [[ -z "${DEBUG:-""}" ]] || {
   set -x
-  curl_args="-L"
+  curl_args="-fL"
 }
 
 logEnd() {
@@ -59,7 +59,7 @@ curl "${curl_args}O" "${helm_url}" \
 
 # TODO(marun) Update to newer version of golangci-lint when
 # https://github.com/golangci/golangci-lint/issues/483 is fixed.
-golint_version="1.15.0"
+golint_version="1.23.6"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"
 golint_url="https://github.com/golangci/golangci-lint/releases/download/v${golint_version}/${golint_tgz}"
@@ -69,14 +69,10 @@ curl "${curl_args}O" "${golint_url}" \
 
 # Install go-bindata tool
 GOBIN="$(go env GOPATH)/bin"
-gobindata_version="v3.1.2"
-go get -d github.com/go-bindata/go-bindata/...
-pushd ${GOPATH}/src/github.com/go-bindata/go-bindata
-git checkout ${gobindata_version}
-go install github.com/go-bindata/go-bindata/...
-ln -s ${GOBIN}/go-bindata ${dest_dir}/go-bindata
+pushd ${root_dir}/tools
+go install github.com/go-bindata/go-bindata/go-bindata
 popd
-
+ln -s ${GOBIN}/go-bindata ${dest_dir}/go-bindata
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"

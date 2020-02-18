@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/util/proto"
-	"k8s.io/kubectl/pkg/framework/openapi"
+	"k8s.io/kubectl/pkg/util/openapi"
 )
 
 type schemaAccessor interface {
