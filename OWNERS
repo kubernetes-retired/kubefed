@@ -1,4 +1,5 @@
 reviewers:
+  - jimmidyson
   - font
   - gyliu513
   - irfanurrehman
@@ -6,6 +7,7 @@ reviewers:
   - shashidharatd
   - xunpan
 approvers:
+  - jimmidyson
   - font
   - irfanurrehman
   - pmorie
