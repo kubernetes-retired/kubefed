@@ -17,7 +17,7 @@ spec:
         kubefed-control-plane: controller-manager
     spec:
       securityContext:
-        runAsUser: 1001
+        runAsUser: 65534
       serviceAccountName: kubefed-controller
       containers:
       - command:
@@ -56,7 +56,7 @@ spec:
         kubefed-admission-webhook: "true"
     spec:
       securityContext:
-        runAsUser: 1001
+        runAsUser: 65534
       serviceAccountName: kubefed-admission-webhook
       containers:
       - name: admission-webhook
@@ -64,6 +64,7 @@ spec:
         imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         command:
         - "/hyperfed/webhook"
+        args:
         - "--secure-port=8443"
         - "--audit-log-path=-"
         - "--tls-cert-file=/var/serving-cert/tls.crt"

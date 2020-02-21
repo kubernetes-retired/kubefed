@@ -6,3 +6,5 @@
 # Ignore binaries built by the makefile to avoid accidentally committing them
 /images/kubefed/hyperfed
 /images/kubefed/controller-manager
+/images/kubefed/kubefedctl
+/images/kubefed/webhook

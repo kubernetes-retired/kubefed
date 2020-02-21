@@ -12,20 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Use latest distroless non-root image.
+FROM gcr.io/distroless/static@sha256:23aa732bba4c8618c0d97c26a72a32997363d591807b0d4c31b0bbc8a774bddf
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-RUN adduser -D -g hyperfed -u 1001 hyperfed
+COPY /hyperfed /controller-manager /kubefedctl /webhook /hyperfed/
 
-RUN mkdir -p /hyperfed
-     
-WORKDIR /hyperfed/
-COPY /hyperfed .
-RUN ln -s hyperfed controller-manager \
- && ln -s hyperfed kubefedctl \
- && ln -s hyperfed webhook
-
-RUN chown -R hyperfed:hyperfed /hyperfed
-
-USER hyperfed
-ENTRYPOINT ["./controller-manager"]
+# Run as nobody.
+USER 65534
+ENTRYPOINT ["/hyperfed/hyperfed"]

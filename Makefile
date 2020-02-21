@@ -84,6 +84,10 @@ fmt:
 
 container: $(HYPERFED_TARGET)-linux-$(HOST_ARCH)
 	cp -f $(HYPERFED_TARGET)-linux-$(HOST_ARCH) images/kubefed/hyperfed
+	cd images/kubefed && \
+		ln -sf hyperfed controller-manager && \
+		ln -sf hyperfed kubefedctl && \
+		ln -sf hyperfed webhook
 	$(DOCKER) build images/kubefed -t $(IMAGE_NAME)
 	rm -f images/kubefed/hyperfed
 
