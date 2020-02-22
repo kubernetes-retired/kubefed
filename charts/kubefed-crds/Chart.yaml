@@ -1,0 +1,4 @@
+apiVersion: v2
+description: Custom resources definitions for KubeFed helm chart
+name: kubefed-crds
+version: 0.0.2
