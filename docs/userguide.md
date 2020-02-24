@@ -34,6 +34,7 @@
     - [`spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty](#specplacementclusters-is-not-provided-specplacementclusterselector-is-provided-but-empty)
     - [`spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided and not empty](#specplacementclusters-is-not-provided-specplacementclusterselector-is-provided-and-not-empty)
   - [Troubleshooting](#troubleshooting)
+  - [Profiling](#profiling)
   - [Cleanup](#cleanup)
     - [Deployment Cleanup](#deployment-cleanup)
   - [Namespace-scoped control plane](#namespace-scoped-control-plane)
@@ -813,6 +814,40 @@ It may also be useful to inspect the KubeFed controller log as follows:
 
 ```bash
 kubectl logs deployment/kubefed-controller-manager -n kube-federation-system
+```
+
+## Profiling
+
+[pprof](https://golang.org/pkg/net/http/pprof/) is a tool for visualization and
+analysis of profiling data.
+
+To gather kubefed profiling data you need to access the kubefed
+controller-manager at port 8080. You can  setup port forward to access the pprof
+debug endpoints of that pod.
+
+```bash
+kubectl -n kube-federation-system port-forward pod/kubefed-controller-manager-XXXXX 8080:8080
+```
+
+In another terminal you can collect the pprof profiles using curl.
+
+Collect goroutine pprof as well as stack trace report and full stack traces.
+```bash
+
+curl localhost:8080/debug/pprof/goroutine -o goroutine.pprof
+curl localhost:8080/debug/pprof/goroutine?debug=1 -o goroutine-debug-1.pprof
+curl localhost:8080/debug/pprof/goroutine?debug=2 -o goroutine-debug-2.pprof
+```
+
+
+Collect 30s cpu profile
+```bash
+curl localhost:8080/debug/pprof/profile -o cpu-profile.pprof
+```
+
+Collect memory heap profile
+```bash
+curl localhost:8080/debug/pprof/heap -o heap.pprof
 ```
 
 ## Cleanup
