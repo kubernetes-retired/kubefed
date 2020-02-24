@@ -26,6 +26,9 @@ import (
 	"os"
 	"strings"
 
+	// Installs pprof profiling debug endpoints at /debug/pprof.
+	_ "net/http/pprof"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
