@@ -34,6 +34,7 @@ import (
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -128,10 +129,13 @@ func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStat
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", self.clusterName))
 		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
+		metrics.RegisterKubefedClusterOfflineCount(self.clusterName)
 	} else {
 		if !strings.EqualFold(string(body), "ok") {
+			metrics.RegisterKubefedClusterNotReadyCount(self.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterNotReadyCondition, newClusterNotOfflineCondition)
 		} else {
+			metrics.RegisterKubefedClusterReadyCount(self.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
 		}
 	}
