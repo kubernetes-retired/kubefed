@@ -168,15 +168,17 @@ Install the chart and specify the version to install with the
 ```bash
 helm install kubefed-crds kubefed-charts/kubefed-crds --version=<x.x.x> --namespace kube-federation-system
 ```
-> this will yield an error "Error: no objects visited" that you can safely ignore
-> see: https://github.com/helm/helm/issues/4670
+This will yield an error "Error: no objects visited" that you can safely ignore
+
+see: https://github.com/helm/helm/issues/4670
 
 
 ```bash
 helm install kubefed kubefed-charts/kubefed --version=<x.x.x> --namespace kube-federation-system
 ```
-> You will see info messages "manifest_sorter.go:192: info: skipping unknown hook: "crd-install" "
-> crd-install hook have been deprecated in favour of crds folders. You can ignore these messages.
+You will see info messages "manifest_sorter.go:192: info: skipping unknown hook: "crd-install" "
+
+crd-install hook have been deprecated in favour of crds folders. You can ignore these messages.
 
 ### Uninstalling the Chart
 
@@ -206,8 +208,9 @@ you will have to delete kubefed-crd as well
 ```bash
 $ helm delete kubefed-crds --namespace kube-federation-system
 ```
-> this will yield an error "Error: uninstallation completed with 1 error(s): object not found, skipping delete" that you can safely ignore
-> see: https://github.com/helm/helm/issues/4670
+this will yield an error "Error: uninstallation completed with 1 error(s): object not found, skipping delete" that you can safely ignore
+
+see: https://github.com/helm/helm/issues/4670
 
 The command above removes all the Kubernetes components associated with the chart
 and deletes the release.
