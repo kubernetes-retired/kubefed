@@ -25,6 +25,9 @@ spec:
         image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
         imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         name: controller-manager
+        ports:
+        - containerPort: 9090
+          name: metrics
         livenessProbe:
           httpGet:
             path: /healthz

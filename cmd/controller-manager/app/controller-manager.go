@@ -29,6 +29,7 @@ import (
 	// Installs pprof profiling debug endpoints at /debug/pprof.
 	_ "net/http/pprof"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -41,6 +42,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/leaderelection"
 	"sigs.k8s.io/kubefed/cmd/controller-manager/app/options"
@@ -58,8 +60,13 @@ import (
 	"sigs.k8s.io/kubefed/pkg/version"
 )
 
+const (
+	metricsDefaultBindAddress = ":9090"
+	healthzDefaultBindAddress = ":8080"
+)
+
 var (
-	kubeconfig, kubeFedConfig, masterURL string
+	kubeconfig, kubeFedConfig, masterURL, metricsAddr, healthzAddr string
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -90,7 +97,9 @@ member clusters and do the necessary reconciliation`,
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	opts.AddFlags(cmd.Flags())
-	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager")
+	cmd.Flags().StringVar(&healthzAddr, "healthz-addr", healthzDefaultBindAddress, "The address the healthz endpoint binds to.")
+	cmd.Flags().StringVar(&metricsAddr, "metrics-addr", metricsDefaultBindAddress, "The address the metric endpoint binds to.")
+	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager.")
 	cmd.Flags().StringVar(&kubeFedConfig, "kubefed-config", "", "Path to a KubeFedConfig yaml file. Test only.")
 	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
@@ -103,8 +112,8 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	// TODO: Make healthz endpoint configurable
-	go serveHealthz(":8080")
+	go serveHealthz(healthzAddr)
+	go serveMetrics(metricsAddr, stopChan)
 
 	var err error
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
@@ -397,4 +406,36 @@ func serveHealthz(address string) {
 	})
 
 	klog.Fatal(http.ListenAndServe(address, nil))
+}
+
+func serveMetrics(address string, stop <-chan struct{}) {
+	listener, err := metrics.NewListener(address)
+	if err != nil {
+		klog.Errorf("error creating the new metrics listener")
+		klog.Fatal(err)
+	}
+	var metricsPath = "/metrics"
+	handler := promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{
+		ErrorHandling: promhttp.HTTPErrorOnError,
+	})
+	mux := http.NewServeMux()
+	mux.Handle(metricsPath, handler)
+	server := http.Server{
+		Handler: mux,
+	}
+	// Run the server
+	go func() {
+		klog.V(1).Infof("starting metrics server path %s", metricsPath)
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			klog.Errorf("error starting the mertrics server")
+			klog.Fatal(err)
+		}
+	}()
+
+	// Shutdown the server when stop is closed
+	<-stop
+	if err := server.Shutdown(context.Background()); err != nil {
+		klog.Errorf("error shutting down the server")
+		klog.Fatal(err)
+	}
 }
