@@ -47,7 +47,6 @@ func newResourceInformer(client ResourceClient, namespace string, apiResource *m
 	if apiResource != nil {
 		gvk := schema.GroupVersionKind{Group: apiResource.Group, Version: apiResource.Version, Kind: apiResource.Kind}
 		obj.SetGroupVersionKind(gvk)
-		obj.SetNamespace(namespace)
 	}
 	return cache.NewInformer(
 		&cache.ListWatch{
@@ -60,7 +59,7 @@ func newResourceInformer(client ResourceClient, namespace string, apiResource *m
 				return client.Resources(namespace).Watch(options)
 			},
 		},
-		obj, // use a unstructured type with apiVersion / Kind populated for informer logging purposes
+		obj, // use an unstructured type with apiVersion / kind populated for informer logging purposes
 		NoResyncPeriod,
 		NewTriggerOnAllChanges(triggerFunc),
 	)
