@@ -1,4 +1,6 @@
 # Unreleased
+
+# v0.2.0-alpha.1
 -  [#1129](https://github.com/kubernetes-sigs/kubefed/pull/1129)
    An empty `spec.placement.clusters` field will now always result in
    no clusters being selected. Previously an empty `clusters` field
@@ -12,6 +14,10 @@
    of `-e` to avoid confusing error message when only one dash is accidentally
    used e.g. `-enable-type`, resulting in a valid parsing of flags but
    erroneous use of the option.
+-  [#1184](https://github.com/kubernetes-sigs/kubefed/pull/1184) Update dependencies to controller-runtime v0.5.0 and Kubernetes 1.17.3 
+-  [#1195](https://github.com/kubernetes-sigs/kubefed/pull/1195) Use unstructured runtime.Object for more detailed reflector logging
+-  [#1193](https://github.com/kubernetes-sigs/kubefed/pull/1193) Serve controller default metrics
+-  [#1192](https://github.com/kubernetes-sigs/kubefed/pull/1192) Add pprof profiling support
 
 # v0.1.0-rc6
 -  [#1099](https://github.com/kubernetes-sigs/kubefed/pull/1099)
