@@ -46,7 +46,7 @@ function build-release-artifacts() {
 function create-and-push-tag() {
   # Use the upstream git remote convention name used by hub.
 
-  if git ls-remote --tags "${GITHUB_REMOTE_UPSTREAM_NAME}" refs/tags/"${RELEASE_TAG}" &> /dev/null; then
+  if git ls-remote --tags "${GITHUB_REMOTE_UPSTREAM_NAME}" refs/tags/"${RELEASE_TAG}" | grep -E refs/tags/"${RELEASE_TAG}" &> /dev/null; then
     echo "git tag ${RELEASE_TAG} already exists in ${GITHUB_REMOTE_UPSTREAM_NAME} remote. Continuing..."
     return 0
   fi
@@ -56,7 +56,7 @@ function create-and-push-tag() {
 
   # This creates an annotated tag required to ensure that the KubeFed binaries
   # are versioned correctly.
-  git tag -a "${RELEASE_TAG}" "${GITHUB_REMOTE_UPSTREAM_NAME}/master" -m "Creating release tag ${RELEASE_TAG}"
+  git tag -s -a "${RELEASE_TAG}" "${GITHUB_REMOTE_UPSTREAM_NAME}/master" -m "Creating release tag ${RELEASE_TAG}"
   git push "${GITHUB_REMOTE_UPSTREAM_NAME}" "${RELEASE_TAG}"
 }
 
@@ -127,8 +127,8 @@ function verify-continuous-integration() {
 }
 
 function quay-image-status() {
-  local quayImagesApi="https://quay.io/api/v1/repository/${QUAY_REPO}/image/"
-  curl -s ${quayImagesApi} | grep "${RELEASE_TAG}" &> /dev/null
+  local quayImagesApi="https://quay.io/api/v1/repository/${QUAY_REPO}/tag/${RELEASE_TAG}/images"
+  curl -fsSL ${quayImagesApi} &> /dev/null
 }
 
 function verify-container-image() {
@@ -142,7 +142,7 @@ function update-changelog() {
 }
 
 if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
-  >&2 echo "usage: $0 <release tag of the form v[0-9]+.[0-9]+.[0-9]+(-rc[0-9]+)?>"
+  >&2 echo "usage: $0 <release tag of the form v[0-9]+.[0-9]+.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?>"
   exit 1
 fi
 
@@ -152,7 +152,7 @@ verify-command-installed
 util::log "Building release artifacts first to make sure build succeeds"
 build-release-artifacts
 
-util::log "Creating local git annotated tag and pushing tag to kick off build process"
+util::log "Creating local git signed and annotated tag and pushing tag to kick off build process"
 create-and-push-tag
 
 util::log "Verifying image builds and completes successfully in Travis. This can take a while (~1 hour)"
