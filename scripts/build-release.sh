@@ -46,7 +46,7 @@ function build-release-artifacts() {
 function create-and-push-tag() {
   # Use the upstream git remote convention name used by hub.
 
-  if git ls-remote --tags "${GITHUB_REMOTE_UPSTREAM_NAME}" refs/tags/"${RELEASE_TAG}" &> /dev/null; then
+  if git ls-remote --tags "${GITHUB_REMOTE_UPSTREAM_NAME}" refs/tags/"${RELEASE_TAG}" | grep -E refs/tags/"${RELEASE_TAG}" &> /dev/null; then
     echo "git tag ${RELEASE_TAG} already exists in ${GITHUB_REMOTE_UPSTREAM_NAME} remote. Continuing..."
     return 0
   fi
