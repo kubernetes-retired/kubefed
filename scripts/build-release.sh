@@ -56,7 +56,7 @@ function create-and-push-tag() {
 
   # This creates an annotated tag required to ensure that the KubeFed binaries
   # are versioned correctly.
-  git tag -a "${RELEASE_TAG}" "${GITHUB_REMOTE_UPSTREAM_NAME}/master" -m "Creating release tag ${RELEASE_TAG}"
+  git tag -s -a "${RELEASE_TAG}" "${GITHUB_REMOTE_UPSTREAM_NAME}/master" -m "Creating release tag ${RELEASE_TAG}"
   git push "${GITHUB_REMOTE_UPSTREAM_NAME}" "${RELEASE_TAG}"
 }
 
@@ -152,7 +152,7 @@ verify-command-installed
 util::log "Building release artifacts first to make sure build succeeds"
 build-release-artifacts
 
-util::log "Creating local git annotated tag and pushing tag to kick off build process"
+util::log "Creating local git signed and annotated tag and pushing tag to kick off build process"
 create-and-push-tag
 
 util::log "Verifying image builds and completes successfully in Travis. This can take a while (~1 hour)"
