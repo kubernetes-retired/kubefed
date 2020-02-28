@@ -127,8 +127,8 @@ function verify-continuous-integration() {
 }
 
 function quay-image-status() {
-  local quayImagesApi="https://quay.io/api/v1/repository/${QUAY_REPO}/image/"
-  curl -s ${quayImagesApi} | grep "${RELEASE_TAG}" &> /dev/null
+  local quayImagesApi="https://quay.io/api/v1/repository/${QUAY_REPO}/tag/${RELEASE_TAG}/images"
+  curl -fsSL ${quayImagesApi} &> /dev/null
 }
 
 function verify-container-image() {
