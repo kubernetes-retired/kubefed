@@ -21,7 +21,7 @@
 #
 # RELEASE_TAG_REGEX contains the regular expression used to validate a semantic
 # version.
-export RELEASE_TAG_REGEX="^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$"
+export RELEASE_TAG_REGEX="^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?$"
 
 
 # Utility Functions

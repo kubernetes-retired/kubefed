@@ -109,7 +109,7 @@ function create-release-pr() {
 }
 
 if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
-  >&2 echo "usage: $0 <release tag of the form v[0-9]+.[0-9]+.[0-9]+(-rc[0-9]+)?>"
+  >&2 echo "usage: $0 <release tag of the form v[0-9]+.[0-9]+.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?>"
   exit 1
 fi
 

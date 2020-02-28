@@ -56,7 +56,7 @@ prereqs:
 
 Creating a KubeFed release involves the following steps:
 
-1. Locally create an annotated tag in the format `v[0-9]+.[0-9]+.[0-9]+`
+1. Locally create an annotated tag in the format `v[0-9]+.[0-9]+.[0-9]+(-(alpha|beta|rc)\.?[0-9]+)?`
    - `git tag -a <tag> -m "Creating release tag <tag>"`
    - An annotated tag is required to ensure that the `kubefedctl` and
      `controller-manager` binaries are versioned correctly.
