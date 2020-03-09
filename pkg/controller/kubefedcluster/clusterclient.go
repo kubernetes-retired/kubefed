@@ -129,13 +129,13 @@ func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStat
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", self.clusterName))
 		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
-		metrics.RegisterKubefedClusterOfflineCount(self.clusterName)
+		metrics.RegisterKubefedClusterTotal(metrics.ClusterOffline, self.clusterName)
 	} else {
 		if !strings.EqualFold(string(body), "ok") {
-			metrics.RegisterKubefedClusterNotReadyCount(self.clusterName)
+			metrics.RegisterKubefedClusterTotal(metrics.ClusterNotReady, self.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterNotReadyCondition, newClusterNotOfflineCondition)
 		} else {
-			metrics.RegisterKubefedClusterReadyCount(self.clusterName)
+			metrics.RegisterKubefedClusterTotal(metrics.ClusterReady, self.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
 		}
 	}

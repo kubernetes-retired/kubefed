@@ -43,6 +43,7 @@ import (
 	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -218,6 +219,7 @@ func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	joiningNamespace, hostClusterName, joiningClusterName, secretName string,
 	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
+	start := time.Now()
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
@@ -280,6 +282,8 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	}
 
 	klog.V(2).Info("Created federated cluster resource")
+	metrics.JoinedClusterTotalInc()
+	metrics.JoinedClusterDurationFromStart(start)
 	return kubefedCluster, nil
 }
 

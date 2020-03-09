@@ -21,6 +21,7 @@ import (
 	goerrors "errors"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -37,6 +38,7 @@ import (
 	controllerutil "sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 var (
@@ -172,6 +174,7 @@ func (j *unjoinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 // required set of parameters are passed in.
 func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName,
 	unjoiningClusterContext, unjoiningClusterName string, forceDeletion, dryRun bool) error {
+	start := time.Now()
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
@@ -215,7 +218,13 @@ func UnjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hos
 	}
 
 	// deletionSucceeded when all operations in deleteRBACResources and deleteFedNSFromUnjoinCluster succeed.
-	return deleteFederatedClusterAndSecret(hostClientset, client, kubefedNamespace, unjoiningClusterName, forceDeletion, dryRun)
+	err = deleteFederatedClusterAndSecret(hostClientset, client, kubefedNamespace, unjoiningClusterName, forceDeletion, dryRun)
+	if err != nil {
+		return err
+	}
+	metrics.JoinedClusterTotalDec()
+	metrics.UnjoinedClusterDurationFromStart(start)
+	return nil
 }
 
 // deleteKubeFedClusterAndSecret deletes a federated cluster resource that associates

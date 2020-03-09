@@ -341,7 +341,7 @@ func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic
 	}
 	f.clusterClients[clusterName] = client
 
-	metrics.UpdateDurationFromStart(metrics.ClusterClientConnection, clientConnectionStart)
+	metrics.ClusterClientConnectionDurationFromStart(clientConnectionStart)
 	return client, nil
 }
 

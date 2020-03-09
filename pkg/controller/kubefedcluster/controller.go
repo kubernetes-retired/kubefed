@@ -261,7 +261,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
 	}
 
-	metrics.UpdateDurationFromStart(metrics.ClusterHealthStatus, clusterHealthStatusStart)
+	metrics.ClusterHealthStatusDurationFromStart(clusterHealthStatusStart)
 
 	wg.Done()
 }
