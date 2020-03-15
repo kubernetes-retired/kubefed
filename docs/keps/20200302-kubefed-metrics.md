@@ -44,7 +44,7 @@ and consumed from Kubefed to create dashboards and better understand this engine
 ## Motivation
 
 We aim to define a generic strategy on how to identify, consume and expose
-metrics from our core components in Kommander.
+custom Kubefed metrics.
 
 
 ### Goals
@@ -115,7 +115,7 @@ of the different propagated resources. The label `action` will hold the `create`
 
 Regarding cluster join/unjoin operations, these metrics are also convenient to register:
 
-* `joinedcluster_total`: a gauge metric that holds the number joined clusters.
+* `joined_cluster_total`: a gauge metric that holds the number joined clusters.
 
 * `join_cluster_duration_seconds`: this `histogram` metric holds the duration in seconds of the join cluster action.
 

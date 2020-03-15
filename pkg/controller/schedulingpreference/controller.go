@@ -35,6 +35,7 @@ import (
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
 )
 
@@ -191,6 +192,8 @@ func (s *SchedulingPreferenceController) reconcileOnClusterChange() {
 }
 
 func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+	defer metrics.UpdateControllerReconcileDurationFromStart("schedulingpreferencecontroller", time.Now())
+
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}

@@ -241,9 +241,10 @@ func (cc *ClusterController) updateClusterStatus() error {
 
 func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.KubeFedCluster,
 	storedData *ClusterData, wg *sync.WaitGroup) {
+	defer metrics.ClusterHealthStatusDurationFromStart(time.Now())
+
 	clusterClient := storedData.clusterKubeClient
 
-	clusterHealthStatusStart := time.Now()
 	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
 	if err != nil {
 		cc.RecordError(cluster, "RetrievingClusterHealthFailed", errors.Wrap(err, "Failed to retrieve health of the cluster"))
@@ -260,8 +261,6 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
 		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
 	}
-
-	metrics.ClusterHealthStatusDurationFromStart(clusterHealthStatusStart)
 
 	wg.Done()
 }

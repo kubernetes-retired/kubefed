@@ -34,7 +34,7 @@ var (
 
 	joinedClusterTotal = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "joinedcluster_total",
+			Name: "joined_cluster_total",
 			Help: "Number of total joined clusters.",
 		},
 	)

@@ -322,10 +322,9 @@ func (f *federatedInformerImpl) Start() {
 
 // GetClientForCluster returns a client for the cluster, if present.
 func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic.Client, error) {
+	defer metrics.ClusterClientConnectionDurationFromStart(time.Now())
 	f.Lock()
 	defer f.Unlock()
-
-	clientConnectionStart := time.Now()
 
 	// return cached client if one exists (to prevent frequent secret retrieval and rest discovery)
 	if client, ok := f.clusterClients[clusterName]; ok {
@@ -341,7 +340,6 @@ func (f *federatedInformerImpl) GetClientForCluster(clusterName string) (generic
 	}
 	f.clusterClients[clusterName] = client
 
-	metrics.ClusterClientConnectionDurationFromStart(clientConnectionStart)
 	return client, nil
 }
 
