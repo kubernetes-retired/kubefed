@@ -57,6 +57,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/servicedns"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
+	kubefedmetrics "sigs.k8s.io/kubefed/pkg/metrics"
 	"sigs.k8s.io/kubefed/pkg/version"
 )
 
@@ -114,6 +115,8 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 
 	go serveHealthz(healthzAddr)
 	go serveMetrics(metricsAddr, stopChan)
+	// Register kubefed custom metrics
+	kubefedmetrics.RegisterAll()
 
 	var err error
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)

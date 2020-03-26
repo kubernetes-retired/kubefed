@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	finalizersutil "sigs.k8s.io/kubefed/pkg/controller/util/finalizers"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -266,6 +267,7 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 	startTime := time.Now()
 	defer func() {
 		klog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
+		metrics.ReconcileFederatedResourcesDurationFromStart(startTime)
 	}()
 
 	if fedResource.Object().GetDeletionTimestamp() != nil {

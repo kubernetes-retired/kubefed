@@ -17,6 +17,8 @@ limitations under the License.
 package schedulingmanager
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -27,6 +29,7 @@ import (
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingpreference"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
 )
 
@@ -141,6 +144,8 @@ func (c *SchedulingManager) shutdown() {
 }
 
 func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+	defer metrics.UpdateControllerReconcileDurationFromStart("schedulingmanagercontroller", time.Now())
+
 	key := qualifiedName.String()
 
 	klog.V(3).Infof("Running reconcile FederatedTypeConfig %q in scheduling manager", key)

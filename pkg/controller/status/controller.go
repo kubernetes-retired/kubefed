@@ -37,6 +37,7 @@ import (
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -230,6 +231,8 @@ func (s *KubeFedStatusController) reconcileOnClusterChange() {
 }
 
 func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+	defer metrics.UpdateControllerReconcileDurationFromStart("statuscontroller", time.Now())
+
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}

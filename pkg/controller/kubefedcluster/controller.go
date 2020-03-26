@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +42,7 @@ import (
 	genscheme "sigs.k8s.io/kubefed/pkg/client/generic/scheme"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 // ClusterData stores cluster client and previous health check probe results of individual cluster.
@@ -239,6 +241,8 @@ func (cc *ClusterController) updateClusterStatus() error {
 
 func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.KubeFedCluster,
 	storedData *ClusterData, wg *sync.WaitGroup) {
+	defer metrics.ClusterHealthStatusDurationFromStart(time.Now())
+
 	clusterClient := storedData.clusterKubeClient
 
 	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
@@ -257,6 +261,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
 		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
 	}
+
 	wg.Done()
 }
 
