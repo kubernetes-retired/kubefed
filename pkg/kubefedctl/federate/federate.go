@@ -247,7 +247,7 @@ func FederateResources(resources []*unstructured.Unstructured) ([]*unstructured.
 			Version:      gvk.Version,
 			Kind:         gvk.Kind,
 		}
-		apiResource.Namespaced = targetResource.GetNamespace() == ""
+		apiResource.Namespaced = targetResource.GetNamespace() != ""
 
 		qualifiedName := ctlutil.NewQualifiedName(targetResource)
 		typeConfig := enable.GenerateTypeConfigForTarget(apiResource, enable.NewEnableTypeDirective())
