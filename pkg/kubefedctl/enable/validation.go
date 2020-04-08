@@ -18,6 +18,7 @@ package enable
 
 import (
 	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -119,23 +120,7 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 												// precludes up-front validation.  Errors in
 												// the definition of override values will need to
 												// be caught during propagation.
-												AnyOf: []v1beta1.JSONSchemaProps{
-													{
-														Type: "string",
-													},
-													{
-														Type: "integer",
-													},
-													{
-														Type: "boolean",
-													},
-													{
-														Type: "object",
-													},
-													{
-														Type: "array",
-													},
-												},
+												XPreserveUnknownFields: pointer.BoolPtr(true),
 											},
 										},
 										Required: []string{
@@ -175,6 +160,7 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
 	return &v1beta1.CustomResourceValidation{
 		OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+			Type: "object",
 			Properties: map[string]v1beta1.JSONSchemaProps{
 				"apiVersion": {
 					Type: "string",
