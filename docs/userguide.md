@@ -111,11 +111,12 @@ See the [Cluster Registration documentation](./cluster-registration.md) for more
 You can enable federation of any Kubernetes API type (including CRDs) by using the
 `kubefedctl` command as follows.
 
-**NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
-the CRD is not installed on a member cluster, propagation to that cluster will fail.
+**NOTE:** Federation of a CRD requires that the CRD Kubernetes type (`customresourcedefinitions`) to be enabled, to then 
+federate any custom CRD on the member clusters. If the CRD Kubernetes type is not enabled and its Federated equivalent CRD is not federated, the propagation to that cluster will fail.
 
 ```bash
-kubefedctl enable <target kubernetes API type>
+kubefedctl enable customresourcedefinitions
+kubefedctl federate crd <target kubernetes API type>  # <target kubernetes API type> = mytype.mygroup.mydomain.io
 ```
 
 The `<target kubernetes API type>` can be any of the following

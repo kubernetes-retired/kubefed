@@ -189,7 +189,8 @@ func (v *jsonSchemaVistor) VisitReference(r proto.Reference) {
 	// Short-circuit the recursive definition of JSONSchemaProps (used for CRD validation)
 	//
 	// TODO(marun) Implement proper support for recursive schema
-	if r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps" {
+	if r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps" ||
+		r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps" {
 		v.collect(apiextv1b1.JSONSchemaProps{Type: "object"})
 		return
 	}
