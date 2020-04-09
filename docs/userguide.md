@@ -322,7 +322,7 @@ kubefedctl federate configmap my-configmap --enable-type
 ```
 
 ### Federate resources from input file and stdin
-In addition to supporting conversion of resources in a Kubernetes API, `kubefedctl federeate`
+In addition to supporting conversion of resources in a Kubernetes API, `kubefedctl federate`
 supports converting resources to `stdout` from resources read from a local file. API resources can
 be read in yaml format via the `--filename` argument. The command currently does not look up
 for an already enabled type to use the type configuration values while translating yaml resources
