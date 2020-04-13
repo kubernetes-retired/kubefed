@@ -57,7 +57,7 @@ function download-dependencies() {
 }
 
 function run-unit-tests() {
-  ${MAKE_CMD} test
+  KUBEBUILDER_ASSETS=${ROOT_DIR}/bin ${MAKE_CMD} test
 }
 
 function join-cluster-list() {
