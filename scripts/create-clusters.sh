@@ -114,9 +114,18 @@ function create-clusters() {
     image_arg="--image=kindest/node:${KIND_TAG}"
   fi
   for i in $(seq ${num_clusters}); do
-    kind create cluster --name "cluster${i}" ${image_arg}
-    # TODO(font): remove once all workarounds are addressed.
-    fixup-cluster ${i}
+      if [[ "${CONFIGURE_INSECURE_REGISTRY_CLUSTER}" ]]; then
+      cat <<EOF | kind create cluster --name "cluster${i}" ${image_arg} --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."${CONTAINER_REGISTRY_HOST}"]
+    endpoint = ["http://${CONTAINER_REGISTRY_HOST}"]
+EOF
+    else
+      kind create cluster --name "cluster${i}" ${image_arg}
+    fi
     echo
   done
 
@@ -138,30 +147,10 @@ function create-clusters() {
   fi
 }
 
-function fixup-cluster() {
-  local i=${1} # cluster num
-
-  local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
-  export KUBECONFIG="${KUBECONFIG:-}:${kubeconfig_path}"
-
-  if [ "$OS" != "Darwin" ];then
-    # Set container IP address as kube API endpoint in order for clusters to reach kube API servers in other clusters.
-    kind get kubeconfig --name "cluster${i}" --internal >${kubeconfig_path}
-  fi
-
-  # Simplify context name
-  kubectl config rename-context "kubernetes-admin@cluster${i}" "cluster${i}"
-
-  # TODO(font): Need to rename auth user name to avoid conflicts when using
-  # multiple cluster kubeconfigs. Remove once
-  # https://github.com/kubernetes-sigs/kind/issues/112 is resolved.
-  sed -i.bak "s/kubernetes-admin/kubernetes-cluster${i}-admin/" ${kubeconfig_path} && rm -rf ${kubeconfig_path}.bak
-}
-
 function check-clusters-ready() {
   for i in $(seq ${1}); do
     local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
-    util::wait-for-condition 'ok' "kubectl --kubeconfig ${kubeconfig_path} --context cluster${i} get --raw=/healthz &> /dev/null" 120
+    util::wait-for-condition 'ok' "kubectl --kubeconfig ${kubeconfig_path} --context kind-cluster${i} get --raw=/healthz &> /dev/null" 120
   done
 }
 
