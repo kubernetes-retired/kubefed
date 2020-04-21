@@ -19,7 +19,7 @@ package util
 import (
 	"encoding/json"
 
-	"github.com/evanphx/json-patch"
+	"github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
