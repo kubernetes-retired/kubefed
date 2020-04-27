@@ -18,12 +18,6 @@ services:
 before_install:
 - bash ./hack/verify-docfiles.sh && DOC_ONLY=true && echo "Only doc files have changed!" || test true
 
-# Install must be set to prevent default `go get` to run.
-# The dependencies have already been vendored by `dep` so
-# we don't need to fetch them.
-install:
-  -
-
 script:
   - test $DOC_ONLY && echo "Skipped!" || DOWNLOAD_BINARIES=y bash -x ./scripts/pre-commit.sh
 
