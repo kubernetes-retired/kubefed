@@ -1,5 +1,22 @@
 # Unreleased
 
+# v0.3.0
+-  [#1218](https://github.com/kubernetes-sigs/kubefed/pull/1218)
+   chore: Cleanup travis config about dep
+-  [#1216](https://github.com/kubernetes-sigs/kubefed/pull/1216)
+   fix: We shouldn't expect invidual error msg printed from std packages
+-  [#1212](https://github.com/kubernetes-sigs/kubefed/pull/1212)
+   test: add test to validate the controller actions to keep the cluster data 
+-  [#1209](https://github.com/kubernetes-sigs/kubefed/pull/1209)
+   typo: changing 'federeate' for 'federate
+-  [#1207](https://github.com/kubernetes-sigs/kubefed/pull/1207)
+   fix: enable command for crd resources
+-  [#1200](https://github.com/kubernetes-sigs/kubefed/pull/1200)
+   Bump Helm version to 2.16.3
+-  [#1196](https://github.com/kubernetes-sigs/kubefed/pull/1196)
+   feat: add custom kubefed metrics
+-  [#1181](https://github.com/kubernetes-sigs/kubefed/issues/1181)
+   fix: namespaced condition for api resource  
 # v0.2.0-alpha.1
 -  [#1129](https://github.com/kubernetes-sigs/kubefed/pull/1129)
    An empty `spec.placement.clusters` field will now always result in
