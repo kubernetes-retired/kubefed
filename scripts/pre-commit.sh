@@ -150,8 +150,8 @@ run-unit-tests
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
-CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY_HOST=y OVERWRITE_KUBECONFIG=y \
-    KIND_TAG="v1.15.0" ./scripts/create-clusters.sh
+CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY_HOST=y \
+    KIND_TAG="v1.17.5" ./scripts/create-clusters.sh
 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null
