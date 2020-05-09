@@ -145,7 +145,7 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 		&targetAPIResource,
 		func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
-			s.worker.EnqueueForRetry(qualifiedName)
+			s.worker.Enqueue(qualifiedName)
 		},
 		&util.ClusterLifecycleHandlerFuncs{
 			ClusterAvailable: func(cluster *fedv1b1.KubeFedCluster) {

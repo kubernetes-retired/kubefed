@@ -112,7 +112,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 		KubeFedEventHandler: s.worker.EnqueueObject,
 		ClusterEventHandler: func(obj pkgruntime.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
-			s.worker.EnqueueForRetry(qualifiedName)
+			s.worker.Enqueue(qualifiedName)
 		},
 		ClusterLifecycleHandlers: &util.ClusterLifecycleHandlerFuncs{
 			ClusterAvailable: func(cluster *fedv1b1.KubeFedCluster) {
