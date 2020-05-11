@@ -163,12 +163,12 @@ EOF
 ### Enable the ingress controller
 
 ```bash
-$ kubectl --context cluster1 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
-$ kubectl --context cluster1 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/provider/baremetal/service-nodeport.yaml
+$ kubectl --context cluster1 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.22.0/deploy/mandatory.yaml
+$ kubectl --context cluster1 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.22.0/deploy/provider/baremetal/service-nodeport.yaml
 $ kubectl --context cluster1 patch svc ingress-nginx -n ingress-nginx -p '{"spec": {"type": "LoadBalancer"}}'
 
-$ kubectl --context cluster2 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
-$ kubectl --context cluster2 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/provider/baremetal/service-nodeport.yaml
+$ kubectl --context cluster2 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.22.0/deploy/mandatory.yaml
+$ kubectl --context cluster2 apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.22.0/deploy/provider/baremetal/service-nodeport.yaml
 $ kubectl --context cluster2 patch svc ingress-nginx -n ingress-nginx -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
