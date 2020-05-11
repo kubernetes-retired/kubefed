@@ -180,8 +180,8 @@ func (a *resourceAccessor) HasSynced() bool {
 }
 
 func (a *resourceAccessor) FederatedResource(eventSource util.QualifiedName) (FederatedResource, bool, error) {
-	if a.targetIsNamespace && a.isSystemNamespace(eventSource.Namespace) {
-		klog.V(7).Infof("Ignoring system namespace %q", eventSource.Namespace)
+	if a.targetIsNamespace && a.isSystemNamespace(eventSource.Name) {
+		klog.V(7).Infof("Ignoring system namespace %q", eventSource.Name)
 		return nil, false, nil
 	}
 
