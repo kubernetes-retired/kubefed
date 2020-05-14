@@ -11,6 +11,7 @@ spec:
   names:
     kind: FederatedClusterRole
     plural: federatedclusterroles
+  preserveUnknownFields: false
   scope: Cluster
   subresources:
     status: {}
@@ -143,6 +144,7 @@ spec:
     plural: federatedconfigmaps
     shortNames:
     - fcm
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -275,6 +277,7 @@ spec:
     plural: federateddeployments
     shortNames:
     - fdeploy
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -409,6 +412,7 @@ spec:
     plural: federatedingresses
     shortNames:
     - fing
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -539,6 +543,7 @@ spec:
   names:
     kind: FederatedJob
     plural: federatedjobs
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -671,6 +676,7 @@ spec:
     plural: federatednamespaces
     shortNames:
     - fns
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -803,6 +809,7 @@ spec:
     plural: federatedreplicasets
     shortNames:
     - frs
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -935,6 +942,7 @@ spec:
   names:
     kind: FederatedSecret
     plural: federatedsecrets
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -1067,6 +1075,7 @@ spec:
     plural: federatedserviceaccounts
     shortNames:
     - fsa
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
@@ -1199,6 +1208,7 @@ spec:
     plural: federatedservices
     shortNames:
     - fsvc
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
