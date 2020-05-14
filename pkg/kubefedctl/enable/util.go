@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
@@ -66,9 +67,10 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.Cu
 			Name: typeconfig.GroupQualifiedName(apiResource),
 		},
 		Spec: apiextv1b1.CustomResourceDefinitionSpec{
-			Group:   apiResource.Group,
-			Version: apiResource.Version,
-			Scope:   scope,
+			Group:                 apiResource.Group,
+			Version:               apiResource.Version,
+			Scope:                 scope,
+			PreserveUnknownFields: pointer.BoolPtr(false),
 			Names: apiextv1b1.CustomResourceDefinitionNames{
 				Plural:     apiResource.Name,
 				Kind:       apiResource.Kind,
