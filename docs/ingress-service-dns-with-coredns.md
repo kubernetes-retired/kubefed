@@ -16,18 +16,26 @@
 
 # KubeFed DNS for Ingress and Service
 
-This tutorial describes how to set up a KubeFed cluster DNS with [ExternalDNS](https://github.com/kubernetes-incubator/external-dns/) based on [CoreDNS](https://github.com/coredns/coredns) in [minikube](https://github.com/kubernetes/minikube) clusters. It provides guidance for the following steps:
+This tutorial describes how to set up a KubeFed cluster DNS with [ExternalDNS](https://github.com/kubernetes-incubator/external-dns/) based on [CoreDNS](https://github.com/coredns/coredns) in [kind](https://github.com/kubernetes-sigs/kind) clusters. It provides guidance for the following steps:
 
 - Install ExternalDNS with etcd enabled CoreDNS as a provider
-- Install [ingress controller](https://github.com/kubernetes/ingress-nginx) for your minikube clusters to enable Ingress resource
-- Install [metallb](https://github.com/google/metallb) for your minikube clusters to enable LoadBalancer Service
+- Install [ingress controller](https://github.com/kubernetes/ingress-nginx) for your `kind` clusters to enable Ingress resource
+- Install [metallb](https://github.com/google/metallb) for your `kind` clusters to enable LoadBalancer Service
 
 You can use either Loadbalancer Service or Ingress resource or both in your environment, this tutorial includes guidance for both Loadbalancer Service and Ingress resource.
 For related conceptions of Muilti-cluster Ingress and Service, you can refer to [ingressdns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) and [servicedns-with-externaldns.md](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md).
 
 ## Creating KubeFed cluster
 
-Install KubeFed with minikube in [User Guide](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md).
+Install KubeFed with `kind` in [User Guide](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md).
+
+Add region and zone labels to hosts of all member clusters.
+```bash
+$ kubectl label node --context cluster1 cluster1-control-plane failure-domain.beta.kubernetes.io/region=r1
+$ kubectl label node --context cluster1 cluster1-control-plane failure-domain.beta.kubernetes.io/zone=z1
+$ kubectl label node --context cluster2 cluster2-control-plane failure-domain.beta.kubernetes.io/region=r2
+$ kubectl label node --context cluster2 cluster2-control-plane failure-domain.beta.kubernetes.io/zone=z2
+```
 
 ## Installing ExternalDNS
 
@@ -73,12 +81,28 @@ spec:
 EOF
 ```
 
+Add RBAC permission to external-dns clusterrole.
+```bash
+kubectl patch clusterrole external-dns --type='json' -p='[{"op": "add", "path": "/rules/1", "value": {
+        "apiGroups": [
+            "multiclusterdns.kubefed.io"
+        ],
+        "resources": [
+            "*"
+        ],
+        "verbs": [
+            "*"
+        ]
+    }
+}]'
+```
+
 ## Enable DNS for KubeFed resources
 
 ### Installing MetalLB for LoadBalancer Service
 
 Install metallb in each member cluster to make LoadBalancer type Service work.
-For related conceptions of metallb, you can refer to [BGP on Minikube](https://metallb.universe.tf/tutorial/minikube/).
+For related conceptions of metallb, you can refer to [metallb in BGP mode](https://metallb.universe.tf/concepts/bgp/).
 
 ```bash
 $ helm --kube-context cluster1 install --name metallb stable/metallb
