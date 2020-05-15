@@ -688,6 +688,11 @@ spec:
         # Ensure an annotation with key "foo" does not exist
         - path: "/metadata/annotations/foo"
           op: "remove"
+        # Adds an argument `-q` at index 0 of the args list
+        # this will obviously shift the existing arguments, if any
+        - path: "/spec/template/spec/containers/0/args/0"
+          op: "add"
+          value: "-q"
 ```
 
 ### Overriding retained fields
