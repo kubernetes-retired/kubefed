@@ -29,12 +29,11 @@ status: provisional
   - [Goals](#goals)
   - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
-  - [Risks and Mitigations](#risks-and-mitigations)
-- [Graduation Criteria](#graduation-criteria)
-- [Implementation History](#implementation-history)
-- [Drawbacks](#drawbacks)
+  - [Kubefed Daemon](#kubefed-daemon)
+  - [Kubefed Control-Plane](#kubefed-control-plane)
+  - [Controller Resource Propagation Status](#controller-resource-propagation-status)
+  - [Kubefed Security Concerns](#kubefed-security-concerns)
 - [Alternatives](#alternatives)
-- [Infrastructure Needed](#infrastructure-needed)
 <!-- /toc -->
 
 ## Summary
@@ -92,7 +91,7 @@ the communication between the control-plane and the daemons, and viceversa.
 
 In the following we explain how this bi-directional communication occurs:
 
-* `control-plane --> kubefed daemon`: the control-plane reads the status of the cluster
+* `control-plane --> kubefed daemon`: the control-plane polls the status of the cluster
 and federated resources in the kubefed clusters.
 This operation is important to determine the status of the propagation of resources.
 
@@ -105,6 +104,13 @@ defined in the control-plane.
 
 This new component, named `kubefed daemon`, exposes certain endpoints to report
 the cluster health and the federated resources.
+The main intentions why `kubefed daemons` expose certain functionalities as endpoints
+are:
+
+* Follow a similar approach to the `virtual-kubelet` where the main functionalities are exposed as endpoints (`runningpods`, `containerlogs`, etc...).
+  In our scenario, the `kubefed daemon` exposes them for the federated resources.
+* The list of available functionalities to perform on kubefed clusters could be easily extended in the future when using endpoints.
+  For instance, new endpoints could be exposed to get the logs of federated resources, e.g. `kubectl logs federatedpod mypod --placement=cluster=a`.
 
 Initially the kubefed daemon exposes the following endpoints:
 
@@ -159,6 +165,8 @@ type KubefedAgentHandlerConfig struct {
 }
 ```
 
+
+
 #### Collect the Resource Status
 
 The kubefed daemons have to periodically collect the status of the federated resources in each
@@ -171,9 +179,8 @@ The list of `FederatedTypeConfig` available resources is defined in the control 
 There is no need to create an `Informer` per kind of resource type in the Kubernetes cluster.
 The `Informer` populates the cache with the status of the federated resources.
 
-In order to know the `TargetType` of the federated resources, the control-plane exposes an endpoint to know which type of resources are federated:
-
-* `/federatedtypeconfigs`: This endpoint returns the list of the `FederatedTypeConfig` resources at any time.
+In order to know the `TargetType` of the federated resources, the control-plane allows daemons
+to `get` the list of federated types.
 
 
 #### Desired State Reconciliation
@@ -209,69 +216,13 @@ works as a centralized system where the customer defines what and where a federa
 is created.
 Keeping the desired state synced with the state of the clusters would define the success of this new architecture.
 
-A common operation that would be consumed by the daemons consists on an endpoint to list the available federated types:
+A common operation that would be consumed by the daemons consists on getting the list of the available federated types.
+The daemons would be able to `get` the `FederatedTypeConfig` resources, so they
+are aware of the types of resources federated at any time.
 
-* `/federatedtypeconfigs`: This endpoint returns the list of the `FederatedTypeConfig` resources.
-To avoid creating `Informers` in all the kubefed clusters against all the resources, the ideal approach
-is to be aware of the types of resources federated at any time.
+Next we present the proposed model to keep the desired state synced across all the cluters.
 
-Next we present four alternatives or models to keep the desired state synced
-across all the cluters.
-
-#### Option 1 - Desired State Reconciliation - Subscriber/Publisher
-
-This approach follows a subscriber/publisher model where the desired state
-is published to the different kubefed clusters in the shape of events (distributed messaging).
-These events represent the create/update/delete actions triggered against the federated
-resources in the control-plane cluster.
-In other words, any action triggered in a federated resource action forwards the respective event
-to the kubefed member clusters defined in the `placement` property of the resource.
-
-A creation of a federated resource publishes a `CreateEvent` similar to the `request.Reconcile` objects
-in the controller-runtime (including the object itself).
-This `CreateEvent` contains the object and would be published to the queue of the respective kubefed clusters.
-There is a queue per kubefed cluster where to publish the events.
-Once a message is published into the queue, the kubefed daemon receives it and
-process the event which creates a new resource in the cluster.
-Then the daemon is responsible of applying this new event to ensure the desired state.
-
-If we compare this mechanism with how a controller works where an internal queue is created,
-it is similar but in this case the controller does not ensures the desired state in the remote
-clusters.
-It forwards the events to the target kubefed clusters for them to reach the defined state.
-If the event failed or could not be forwarded, then the event is re-queued.
-This model presents a level triggered reconciliation which differs from Kubernetes
-native edge triggered reconciliation.
-To avoid all the out-of-sync problems of level triggered reconciliation, a full periodic
-reconciliation should be required to pull the desired state from the control-plane cluster
-and enforce that desired state.
-
-With this model the reconciliation of the desired state is a job of the daemons.
-This new mechanism decentralized the reconciliation of the desired state and reliefs
-the control plane of all this workload.
-
-Likewise the kubefed daemons are the responsible to listen on the channels to compute
-coming events, and perform a full periodic reconciliation.
-
-Note that the mechanism of creation of a publisher and subscribe to a specific queue takes place
-when a kubefed cluster joins the federation.
-
-##### Analysis
-
-Obviously this new approach requires of a third party software (e.g. nats-server, nsq).
-Likewise daemons need to perform a full periodic reconciliation and request to the
-control plane the desired state. So the daemons need to be able to talk to the control plane
-to do this full reconciliation.
-
-In this approach the networking and computation load is minimal.
-The data exchanged is equal to the amount of events triggered against the federated resources.
-
-This pub/sub eliminates the need of the daemon to constantly ask for the desired state,
-the control-plane publishes the events, and the daemon applies it.
-
-The security of this communication would rely on the features of the used third party.
-
-#### Option 2 - Desired State Reconciliation - Watch Federated types
+#### Desired State Reconciliation - Watch Federated types
 
 Every kubefed daemon has to create a remote informer to watch any changes in the federated
 types which all belong to the same group `types.kubefed.io`.
@@ -282,7 +233,7 @@ desired state of the kubefed cluster.
 
 The main challenge of this approach is filtering what federated resources a kubefed
 daemon should be able to watch.
-In other words, a watch should be only aware of changes in the resources assigned to this
+In other words, a watch should be only aware of changes in the resources assigned to its
 cluster.
 This could be done adding labels to the federated resources in addition to RBAC
 settings in the control plane cluster to only allow `get` to the resources that
@@ -295,76 +246,27 @@ to be able to reach the desired state.
 
 The main challenge is an ideal filtering of the resources that each cluster should view.
 
+#### Other Main Reconciliation Loops
 
-#### Option 3 - Desired State Reconciliation - Crossed endpoints
+As part of this new reconciliation pull mode, there are certain controllers that
+could become deprecated or removed.
 
-In this approach, the kubefed daemon constantly fetches the list of federated resources
-that represents the desired state.
+For the `ServiceDNSRecord` controller, Kubefed `v2` should omit this functionality and rely on
+other solutions such as service meshes.
+The purpose of Kubefed should be to ultimately federate resources across clusters.
+Another option is to expose an additional endpoint in the daemons to be aware of the
+`serviceDNS`, therefore the control-plane does not need to create remote `Informer` against
+all the kubefed clusters.
 
-To do so, the control-plane should exposes a specific endpoint per cluster:
+The future of `ServiceDNSRecord` controller is something to decide with the community.
+It goes one step beyond by dealing with networking considerations when talking to apps deployed across clusters.
 
-* `/federatedresources/{cluster}`: this endpoint returns the list of all the federated
-resources allocated to that cluster.
+On the other hand, the controllers in charge of the scheduler preferences remains as part of the control-plane.
+The enforcement of these preferences rely on the control-plane and daemons, so nothing would change there.
 
-Obviously a cache should be used to reduce the response times and certain reconcile
-loops should watch on changes in the federated types to keep these lists up-to-date
-for each cluster.
+The rest of kubefed cluster related operations would be managed by controllers in the control-plane.
 
-Once the daemon queries that endpoint with the desired state, it compares
-it with the current (local) state, and applies the desired changes such as resource deletion, updates
-or creations.
-
-As a possible modification to this alternative, a more efficient protocol can be defined
-to reduce the amount of data exchange:
-
-* The `control-plane` exposes two endpoints: one to define a `versionID` per cluster to report changes in the
-state.
-A `versionID` defines a current state. For instance, if new federated resources are created
-or updated, the `versionID` should change.
-
-* The `daemon` periodically asks if there is anything new for him to the control-plane.
-The daemon has to store a `versionID` that represents the current (local) state for comparison with
-the desired state defined for the cluster in the control-plane.
-If the `versionID` differs then the daemon requests the desired state from the control-plane
-`/federatedresources/{cluster}`.
-Finally, the kubefed daemon needs to reconcile the desired state with the local state.
-
-##### Analysis
-
-This model is a bit more expensive in terms of computation and networking data exchanged.
-The daemon has to collect all the federated resources and compute the list
-to determine if a resource changed or not.
-
-The computation of ensuring the desired state in comparison with the expected list of
-resources brings more workload than necessary with other approaches to the daemons.
-
-In addition, this solution requires to maintain all these API endpoints which is
-tedious and hard to maintain.
-
-#### Option 4 -- Centralized Resource Management -- GitOps
-
-In order to avoid the `kubefed daemon --> control-plane` communication, I thought
-about using a centralized component where the federated resources could be created
-to be consumed by all the kubefed clusters.
-
-This centralized component represents a hybrid approach of using the federation api to define configuration, and then generating a canonical form into a git repository for gitOps.
-This alternative solution might represent a good solution for some use cases.
-
-##### Analysis
-
-As an administrator, the admins prefer to have the RBAC rules in the cluster,
-and not outsourced to a git repository with rules about who gets to push what where.
-
-With this alternative, the communication flow goes against the gitOps repository or
-centralized datastore where the desired state is stored.
-
-Analogously to the `Option 1`, this alternative adds a new third party in the game
-which might increase the complexity of the whole architecture.
-
-In terms of security, the system should rely on what each cluster is allowed to view,
-likewise it is hard to understand how `overwrites` would work in a per cluster level.
-
-### Controller Resource Propagation Status - creation/update/creation
+### Controller Resource Propagation Status
 
 The creation of a federated resource triggers an asynchronous process that updates
 the state of the operation once applied to all the Kubefed clusters.
@@ -386,44 +288,24 @@ A similar process applies to deletion and update operations on the federated res
 However, in a deletion of a federated resource, this operation is considered completed when the resource
 does not exist on any of the allocated clusters.
 
-### Controller Resource Status
-
-The control-plane periodically queries the kubefed cluster daemons to be aware of the
-status of the federated resources on each cluster.
-Note that this status differs from the propagation status and is oriented to report
-issues on the federated resources.
-
-To reduce the load of this periodic reconcile loop that updates the status of the federated
-resources, the control-plane requests from the daemons the `notready` resources.
-
-### Other Main Reconciliation Loops
-
-For the `ServiceDNSRecord` controller, Kubefed `v2` should omit this functionality and rely on
-other solutions such as service meshes.
-The purpose of Kubefed should be to ultimately federate resources across clusters.
-Another option is to expose an additional endpoint in the daemons to be aware of the
-`serviceDNS`, therefore the control-plane does not need to create remote `Informer` against
-all the kubefed clusters.
-
-The future of `ServiceDNSRecord` controller is something to decide with the community.
-It goes one step beyond by dealing with networking considerations when talking to apps deployed across clusters.
-
-On the other hand, the controllers in charge of the scheduler preferences remains as part of the control-plane.
-The enforcement of these preferences rely on the control-plane and daemons, so nothing would change there.
-
-The rest of kubefed cluster related operations would be managed by controllers in the control-plane.
+This approach assumes the control-plane polls the status of the `notready` federated
+resources from the kubefed clusters using an endpoint exposed by the daemons.
+However there is another alternative that was not presented yet in this document.
+The daemons could alternatively have `write` permissions to save the status of their federated resources to
+keep the state up-to-date for each resource.
 
 ### Kubefed Security Concerns
 
 With this new approach, the kubefed daemon only exposes read permissions to ensure
 the reconciliation of the current status of the federated resources.
+Likewise the daemons require a read access to the federated types in the control-plane cluster to list the available
+federated types and watch the resources that have to be federated on each cluster.
 This differs from the current architecture where the control-plane has write access
 to the kubefed clusters.
 
-A difference is the `control-plane` and `kubefed daemons` which need to communicate between themselves.
-We need to define which kind of the communication is necessary based on the chosen option among
-the defined alternatives.
-However, if a bi-directional communication is required, I believe a good approach would be to follow the [SPIFEE Trust domain federation](https://docs.google.com/document/d/1OC9nI2W04oghhbEDJpKdIUIw-G23YzWeHZxwGLIkB8k/edit) approach.
+Consequently the `control-plane` and `kubefed daemons` need to communicate between themselves.
+A bi-directional communication is required, consequently a secure trust communication should
+be established between the control-plane and daemons. In the future, a good solution would be to follow the [SPIFEE Trust domain federation](https://docs.google.com/document/d/1OC9nI2W04oghhbEDJpKdIUIw-G23YzWeHZxwGLIkB8k/edit) approach.
 To federate identity and trust, you must exchange the trust bundles between the `control-plane`
 and `kubefed daemon` of each cluster.
 
@@ -454,3 +336,27 @@ some NAT gateways, and consequently the control-plane cannot reach the kubefed c
 
 With this new approach, the kubefed daemon can register with the control plane and sets up
 a bi-directional tunnel.
+
+## Alternatives
+
+### Centralized Resource Management -- GitOps
+
+In order to avoid the `kubefed daemon --> control-plane` communication, I thought
+about using a centralized component where the federated resources could be created
+to be consumed by all the kubefed clusters.
+
+This centralized component represents a hybrid approach of using the federation api to define configuration, and then generating a canonical form into a git repository for gitOps.
+This alternative solution might represent a good solution for some use cases.
+
+#### Analysis
+
+As an administrator, the admins prefer to have the RBAC rules in the cluster,
+and not outsourced to a git repository with rules about who gets to push what where.
+
+With this alternative, the communication flow goes against the gitOps repository or
+centralized datastore where the desired state is stored.
+
+This alternative adds a new third party in the game which might increase the complexity of the whole architecture.
+
+In terms of security, the system should rely on what each cluster is allowed to view,
+likewise it is hard to understand how `overwrites` would work in a per cluster level.
