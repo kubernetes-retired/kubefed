@@ -73,9 +73,9 @@ curl "${curl_args}O" "${golint_url}" \
 # Install go-bindata tool
 GOBIN="$(go env GOPATH)/bin"
 pushd ${root_dir}/tools
-go install github.com/go-bindata/go-bindata/go-bindata
+go install github.com/go-bindata/go-bindata/v3/go-bindata
 popd
-ln -s ${GOBIN}/go-bindata ${dest_dir}/go-bindata
+ln -sf ${GOBIN}/go-bindata ${dest_dir}/go-bindata
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"
