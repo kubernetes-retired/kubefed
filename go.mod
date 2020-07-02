@@ -6,8 +6,8 @@ require (
 	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/json-iterator/go v1.1.9
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/onsi/ginkgo v1.13.0
+	github.com/onsi/gomega v1.10.1
 	github.com/openshift/generic-admission-server v1.14.0
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
