@@ -64,7 +64,7 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
-DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
+DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
 .PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook e2e
