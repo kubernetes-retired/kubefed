@@ -60,8 +60,6 @@ curl "${curl_args}O" "${helm_url}" \
     && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
     && rm "${helm_tgz}"
 
-# TODO(marun) Update to newer version of golangci-lint when
-# https://github.com/golangci/golangci-lint/issues/483 is fixed.
 golint_version="1.27.0"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"

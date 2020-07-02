@@ -78,7 +78,7 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	klog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
+	klog.Infof("Starting replicaschedulingpreferences controller")
 	controller.Run(stopChannel)
 	return controller.scheduler, nil
 }
@@ -95,7 +95,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
+	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "replicaschedulingpreference-controller"})
 
 	s := &SchedulingPreferenceController{
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
