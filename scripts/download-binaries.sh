@@ -62,7 +62,7 @@ curl "${curl_args}O" "${helm_url}" \
 
 # TODO(marun) Update to newer version of golangci-lint when
 # https://github.com/golangci/golangci-lint/issues/483 is fixed.
-golint_version="1.23.6"
+golint_version="1.27.0"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"
 golint_url="https://github.com/golangci/golangci-lint/releases/download/v${golint_version}/${golint_tgz}"
