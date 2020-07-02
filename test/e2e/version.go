@@ -67,15 +67,15 @@ type testNamespacedVersionAdapter struct {
 
 func (a *testNamespacedVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	configMap := obj.(*corev1.ConfigMap)
-	return a.kubeClient.CoreV1().ConfigMaps(configMap.Namespace).Create(configMap)
+	return a.kubeClient.CoreV1().ConfigMaps(configMap.Namespace).Create(context.Background(), configMap, metav1.CreateOptions{})
 }
 
 func (a *testNamespacedVersionAdapter) DeleteFederatedObject(qualifiedName util.QualifiedName) error {
-	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Delete(qualifiedName.Name, nil)
+	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Delete(context.Background(), qualifiedName.Name, metav1.DeleteOptions{})
 }
 
 func (a *testNamespacedVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
-	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 }
 
 func (a *testNamespacedVersionAdapter) FederatedType() string {
@@ -104,15 +104,15 @@ type testClusterVersionAdapter struct {
 
 func (a *testClusterVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
 	role := obj.(*rbacv1.ClusterRole)
-	return a.kubeClient.RbacV1().ClusterRoles().Create(role)
+	return a.kubeClient.RbacV1().ClusterRoles().Create(context.Background(), role, metav1.CreateOptions{})
 }
 
 func (a *testClusterVersionAdapter) DeleteFederatedObject(qualifiedName util.QualifiedName) error {
-	return a.kubeClient.RbacV1().ClusterRoles().Delete(qualifiedName.String(), nil)
+	return a.kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), qualifiedName.String(), metav1.DeleteOptions{})
 }
 
 func (a *testClusterVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
-	return a.kubeClient.RbacV1().ClusterRoles().Get(qualifiedName.String(), metav1.GetOptions{})
+	return a.kubeClient.RbacV1().ClusterRoles().Get(context.Background(), qualifiedName.String(), metav1.GetOptions{})
 }
 
 func (a *testClusterVersionAdapter) FederatedType() string {

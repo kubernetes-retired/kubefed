@@ -17,6 +17,7 @@ limitations under the License.
 package enable
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -63,7 +64,7 @@ func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (
 		return nil, errors.Wrap(err, "Failed to create crd clientset")
 	}
 	crdName := fmt.Sprintf("%s.%s", apiResource.Name, apiResource.Group)
-	crd, err := crdClient.CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -267,7 +267,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 			var err error
 			if fedObject == nil {
-				fedObject, err = client.Resources(namespace).Get(name, metav1.GetOptions{})
+				fedObject, err = client.Resources(namespace).Get(context.Background(), name, metav1.GetOptions{})
 				if err != nil {
 					c.tl.Logf("Error retrieving %s %q to add the %q annotation: %v", federatedKind, qualifiedName, orphanKey, err)
 					return false, nil
@@ -277,7 +277,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 				return true, nil
 			}
 			util.EnableOrphaning(fedObject)
-			fedObject, err = client.Resources(namespace).Update(fedObject, metav1.UpdateOptions{})
+			fedObject, err = client.Resources(namespace).Update(context.Background(), fedObject, metav1.UpdateOptions{})
 			if err == nil {
 				return true, nil
 			}
@@ -292,7 +292,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	}
 
 	c.tl.Logf("Deleting %s %q", federatedKind, qualifiedName)
-	err := client.Resources(namespace).Delete(name, nil)
+	err := client.Resources(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil {
 		c.tl.Fatalf("Error deleting %s %q: %v", federatedKind, qualifiedName, err)
 	}
@@ -308,7 +308,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	// Wait for deletion.  The federated resource will only be removed once managed resources have
 	// been deleted or orphaned.
 	err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
-		_, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
+		_, err := client.Resources(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
@@ -333,7 +333,7 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	for clusterName, testCluster := range c.testClusters {
 		namespace = util.QualifiedNameForCluster(clusterName, qualifiedName).Namespace
 		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
-			obj, err := testCluster.Client.Resources(namespace).Get(name, metav1.GetOptions{})
+			obj, err := testCluster.Client.Resources(namespace).Get(context.Background(), name, metav1.GetOptions{})
 			switch {
 			case !deletingInCluster && apierrors.IsNotFound(err):
 				return false, errors.Errorf("%s %q was unexpectedly deleted from cluster %q", targetKind, qualifiedName, clusterName)
@@ -526,7 +526,7 @@ func (c *FederatedTypeCrudTester) checkHostNamespaceUnlabeled(client util.Resour
 	// deleted when it is not targeted by placement.
 
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-		hostNamespace, err := client.Resources("").Get(qualifiedName.Name, metav1.GetOptions{})
+		hostNamespace, err := client.Resources("").Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 		if err != nil {
 			c.tl.Errorf("Error retrieving %s %q in host cluster %q: %v", targetKind, qualifiedName, clusterName, err)
 			return false, nil
@@ -546,7 +546,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			return false, nil
 		}
 
-		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+		clusterObj, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 		if err == nil && util.ObjectVersion(clusterObj) == expectedVersion {
 			// Validate that the resource has been labeled properly,
 			// indicating creation or adoption by the sync controller.  This
@@ -597,7 +597,7 @@ func (c *FederatedTypeCrudTester) TestClusters() map[string]TestCluster {
 
 func (c *FederatedTypeCrudTester) waitForResourceDeletion(client util.ResourceClient, qualifiedName util.QualifiedName, versionRemoved func() bool) error {
 	err := wait.PollImmediate(c.waitInterval, c.clusterWaitTimeout, func() (bool, error) {
-		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+		_, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			if !versionRemoved() {
 				c.tl.Logf("Removal of %q %s successful, but propagated version still exists", c.typeConfig.GetTargetType().Kind, qualifiedName)
@@ -620,11 +620,11 @@ func (c *FederatedTypeCrudTester) updateObject(apiResource metav1.APIResource, o
 		mutateResourceFunc(obj)
 
 		var err error
-		updatedObj, err = client.Resources(obj.GetNamespace()).Update(obj, metav1.UpdateOptions{})
+		updatedObj, err = client.Resources(obj.GetNamespace()).Update(context.Background(), obj, metav1.UpdateOptions{})
 		if apierrors.IsConflict(err) {
 			// The resource was updated by the KubeFed controller.
 			// Get the latest version and retry.
-			obj, err = client.Resources(obj.GetNamespace()).Get(obj.GetName(), metav1.GetOptions{})
+			obj, err = client.Resources(obj.GetNamespace()).Get(context.Background(), obj.GetName(), metav1.GetOptions{})
 			return false, err
 		}
 		// Be tolerant of a slow server
@@ -725,7 +725,7 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 
 	client := c.resourceClient(*statusAPIResource)
 	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
-		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+		_, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			c.tl.Errorf("An unexpected error occurred while polling for desired status: %v", err)
 		}

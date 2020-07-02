@@ -17,6 +17,7 @@ limitations under the License.
 package schedulingtypes
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -133,7 +134,7 @@ func (p *Plugin) FederatedTypeExists(key string) bool {
 }
 
 func (p *Plugin) Reconcile(qualifiedName util.QualifiedName, result map[string]int64) error {
-	fedObject, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	fedObject, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 	if err != nil && apierrors.IsNotFound(err) {
 		// Federated resource has been deleted - no further action required
 		return nil
@@ -173,7 +174,7 @@ func (p *Plugin) Reconcile(qualifiedName util.QualifiedName, result map[string]i
 	}
 
 	if isDirty {
-		_, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Update(fedObject, metav1.UpdateOptions{})
+		_, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Update(context.Background(), fedObject, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

@@ -155,7 +155,7 @@ func createClusterIngress(f framework.KubeFedFramework, name, namespace string, 
 		common.WaitForNamespaceOrDie(framework.NewE2ELogger(), client, clusterName, namespace,
 			framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
-		createdIngress, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(ingress)
+		createdIngress, err := client.ExtensionsV1beta1().Ingresses(namespace).Create(context.Background(), ingress, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "Error creating ingress in cluster %q", clusterName)
 
 		createdIngress.Status = extv1b1.IngressStatus{
@@ -163,7 +163,7 @@ func createClusterIngress(f framework.KubeFedFramework, name, namespace string, 
 		}
 
 		// Fake out provisioning LoadBalancer by updating the ingress status in member cluster.
-		_, err = client.ExtensionsV1beta1().Ingresses(namespace).UpdateStatus(createdIngress)
+		_, err = client.ExtensionsV1beta1().Ingresses(namespace).UpdateStatus(context.Background(), createdIngress, metav1.UpdateOptions{})
 		framework.ExpectNoError(err, "Error updating ingress status in cluster %q", clusterName)
 	}
 

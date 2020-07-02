@@ -348,7 +348,7 @@ func getTargetResource(hostConfig *rest.Config, typeConfig typeconfig.Interface,
 	}
 
 	kind := targetAPIResource.Kind
-	resource, err := targetClient.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	resource, err := targetClient.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error retrieving target %s %q", kind, qualifiedName)
 	}
@@ -486,7 +486,7 @@ func CreateFederatedResource(hostConfig *rest.Config, typeConfig typeconfig.Inte
 		// It might take a little while for the federated type to appear if the
 		// same is being enabled while or immediately before federating the resource.
 		err = wait.PollImmediate(createResourceRetryInterval, createResourceRetryTimeout, func() (bool, error) {
-			_, err := fedClient.Resources(federatedResource.GetNamespace()).Create(federatedResource, metav1.CreateOptions{})
+			_, err := fedClient.Resources(federatedResource.GetNamespace()).Create(context.Background(), federatedResource, metav1.CreateOptions{})
 			if apierrors.IsNotFound(err) {
 				return false, nil
 			}

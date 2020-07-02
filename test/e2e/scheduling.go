@@ -206,7 +206,7 @@ func createTestObjs(tl common.TestLogger, client genericclient.Client, typeConfi
 	if err != nil {
 		return "", err
 	}
-	createdFedObject, err := federatedTypeClient.Resources(namespace).Create(fedObject, metav1.CreateOptions{})
+	createdFedObject, err := federatedTypeClient.Resources(namespace).Create(context.Background(), fedObject, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -234,7 +234,7 @@ func deleteTestObj(typeConfig typeconfig.Interface, kubeConfig *restclient.Confi
 		return err
 	}
 
-	err = federatedTypeClient.Resources(namespace).Delete(name, &metav1.DeleteOptions{})
+	err = federatedTypeClient.Resources(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func waitForMatchingFederatedObject(tl common.TestLogger, typeConfig typeconfig.
 	expected64 := int32MapToInt64(expected32)
 
 	return wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		fedObject, err := client.Resources(namespace).Get(name, metav1.GetOptions{})
+		fedObject, err := client.Resources(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				tl.Errorf("An error occurred while polling for %s %s/%s: %v", kind, namespace, name, err)

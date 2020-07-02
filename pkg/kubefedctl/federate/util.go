@@ -18,6 +18,7 @@ package federate
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"os"
 
@@ -191,7 +192,7 @@ func getResourcesInNamespace(config *rest.Config, namespace string, skipAPIResou
 			return nil, errors.Wrapf(err, "Error creating client for %s", apiResource.Kind)
 		}
 
-		resourceList, err := client.Resources(namespace).List(metav1.ListOptions{})
+		resourceList, err := client.Resources(namespace).List(context.Background(), metav1.ListOptions{})
 		if apierrors.IsNotFound(err) || resourceList == nil {
 			continue
 		}
