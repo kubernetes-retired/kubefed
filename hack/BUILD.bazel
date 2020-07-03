@@ -1,0 +1,166 @@
+package(default_visibility = ["//visibility:public"])
+
+test_suite(
+    name = "verify-all",
+    tags = ["lint"],  # picks up all non-manual targets with this tag
+)
+
+_BUILDIFIER = "@com_github_bazelbuild_buildtools//buildifier"
+
+_GAZELLE = "@bazel_gazelle//cmd/gazelle"
+
+_GO = "@go_sdk//:bin/go"
+
+_KAZEL = "@io_k8s_repo_infra//cmd/kazel"
+
+_GOLANGCI_LINT = "@com_github_golangci_golangci_lint//cmd/golangci-lint"
+
+sh_binary(
+    name = "update-bazel",
+    srcs = ["update-bazel.sh"],
+    args = [
+        "$(location %s)" % _BUILDIFIER,
+        "$(location %s)" % _GAZELLE,
+        "$(location %s)" % _KAZEL,
+    ],
+    data = [
+        _BUILDIFIER,
+        _GAZELLE,
+        _KAZEL,
+    ],
+)
+
+sh_binary(
+    name = "update-deps",
+    srcs = ["update-deps.sh"],
+    args = [
+        "$(location %s)" % _GO,
+        "$(location :update-bazel)",
+        "$(location %s)" % _BUILDIFIER,
+        "$(location %s)" % _GAZELLE,
+        "$(location %s)" % _KAZEL,
+    ],
+    data = [
+        _BUILDIFIER,
+        _GAZELLE,
+        _GO,
+        _KAZEL,
+        ":update-bazel",
+    ],
+)
+
+sh_binary(
+    name = "update-gofmt",
+    srcs = ["update-gofmt.sh"],
+    args = ["$(location @go_sdk//:bin/gofmt)"],
+    data = ["@go_sdk//:bin/gofmt"],
+)
+
+sh_test(
+    name = "verify-bazel",
+    srcs = ["verify-bazel.sh"],
+    args = [
+        "$(location %s)" % _BUILDIFIER,
+        "$(location %s)" % _GAZELLE,
+        "$(location %s)" % _KAZEL,
+    ],
+    data = [
+        "@//:all-srcs",
+        _BUILDIFIER,
+        _GAZELLE,
+        _KAZEL,
+    ],
+    tags = ["lint"],
+)
+
+# TODO(fejta): refactor this some more
+py_test(
+    name = "verify-boilerplate",
+    srcs = ["verify_boilerplate.py"],
+    args = ["--boilerplate-dir=$(location //verify/boilerplate:boilerplate.go.txt)"],
+    data = [
+        "//verify/boilerplate:boilerplate.go.txt",
+        "//verify/boilerplate:templates",
+        "@//:all-srcs",
+    ],
+    main = "verify_boilerplate.py",
+    python_version = "PY3",
+    tags = ["lint"],
+)
+
+py_test(
+    name = "verify_boilerplate_test",
+    srcs = [
+        "verify_boilerplate.py",
+        "verify_boilerplate_test.py",
+    ],
+    data = [
+        "//verify/boilerplate:templates",
+        "//verify/boilerplate:testdata",
+    ],
+    python_version = "PY3",
+)
+
+sh_test(
+    name = "verify-deps",
+    srcs = ["verify-deps.sh"],
+    args = [
+        "$(location :update-deps)",
+        "$(location %s)" % _GO,
+        "$(location :update-bazel)",
+        "$(location %s)" % _BUILDIFIER,
+        "$(location %s)" % _GAZELLE,
+        "$(location %s)" % _KAZEL,
+    ],
+    data = [
+        _BUILDIFIER,
+        _GAZELLE,
+        _GO,
+        _KAZEL,
+        ":update-bazel",
+        ":update-deps",
+        "@//:all-srcs",
+    ],
+    tags = ["lint"],
+)
+
+sh_test(
+    name = "verify-gofmt",
+    srcs = ["verify-gofmt.sh"],
+    args = ["$(location @go_sdk//:bin/gofmt)"],
+    data = [
+        "@//:all-srcs",
+        "@go_sdk//:bin/gofmt",
+    ],
+    tags = ["lint"],
+)
+
+sh_test(
+    name = "verify-golangci-lint",
+    srcs = ["verify-golangci-lint.sh"],
+    args = [
+        "$(location %s)" % _GO,
+        "$(location %s)" % _GOLANGCI_LINT,
+    ],
+    data = [
+        "@//:all-srcs",
+        _GO,
+        _GOLANGCI_LINT,
+        "@go_sdk//:files",
+    ],
+    tags = ["lint"],
+)
+
+filegroup(
+    name = "package-srcs",
+    srcs = glob(["**"]),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = [":package-srcs"],
+    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
+)
