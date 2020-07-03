@@ -124,7 +124,7 @@ echo "Verifying Gofmt"
 ./hack/go-tools/verify-gofmt.sh
 
 echo "Checking boilerplate text"
-./vendor/repo-infra/hack/verify_boilerplate.py --rootdir="${ROOT_DIR}"
+./vendor/k8s.io/repo-infra/hack/verify_boilerplate.py --rootdir="${ROOT_DIR}"
 
 echo "Linting"
 golangci-lint run --timeout=5m
