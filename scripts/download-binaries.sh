@@ -43,7 +43,7 @@ mkdir -p "${dest_dir}"
 
 platform=$(uname -s|tr A-Z a-z)
 
-kb_version="2.0.0"
+kb_version="2.3.1"
 kb_tgz="kubebuilder_${kb_version}_${platform}_amd64.tar.gz"
 kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_version}/${kb_tgz}"
 curl "${curl_args}O" "${kb_url}" \
@@ -53,16 +53,14 @@ curl "${curl_args}O" "${kb_url}" \
 export KUBEBUILDER_ASSETS="${dest_dir}"
 echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
 
-helm_version="2.16.3"
+helm_version="2.16.9"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://storage.googleapis.com/kubernetes-helm/$helm_tgz"
 curl "${curl_args}O" "${helm_url}" \
     && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
     && rm "${helm_tgz}"
 
-# TODO(marun) Update to newer version of golangci-lint when
-# https://github.com/golangci/golangci-lint/issues/483 is fixed.
-golint_version="1.23.6"
+golint_version="1.27.0"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"
 golint_url="https://github.com/golangci/golangci-lint/releases/download/v${golint_version}/${golint_tgz}"
@@ -73,9 +71,9 @@ curl "${curl_args}O" "${golint_url}" \
 # Install go-bindata tool
 GOBIN="$(go env GOPATH)/bin"
 pushd ${root_dir}/tools
-go install github.com/go-bindata/go-bindata/go-bindata
+go install github.com/go-bindata/go-bindata/v3/go-bindata
 popd
-ln -s ${GOBIN}/go-bindata ${dest_dir}/go-bindata
+ln -sf ${GOBIN}/go-bindata ${dest_dir}/go-bindata
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"

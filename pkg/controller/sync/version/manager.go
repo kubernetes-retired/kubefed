@@ -88,10 +88,7 @@ func (m *VersionManager) Sync(stopChan <-chan struct{}) {
 	if !ok {
 		return
 	}
-	ok = m.load(versionList, stopChan)
-	if !ok {
-		return
-	}
+	m.load(versionList, stopChan)
 }
 
 // HasSynced indicates whether the manager's in-memory state has been

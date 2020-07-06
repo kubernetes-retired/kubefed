@@ -86,7 +86,7 @@ var _ = Describe("FTC controller", func() {
 		waitForGenerationSynced(tl, client, objectMeta.Namespace, objectMeta.Name)
 
 		By("Upgrading the CRD version from v1 to v2")
-		existingCrd, err := crdClient.CustomResourceDefinitions().Get(objectMeta.Name, metav1.GetOptions{})
+		existingCrd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), objectMeta.Name, metav1.GetOptions{})
 		if err != nil {
 			tl.Fatalf("Error retrieving target CRD %q: %v", objectMeta.Name, err)
 		}
@@ -103,7 +103,7 @@ var _ = Describe("FTC controller", func() {
 				Storage: false,
 			},
 		}
-		_, err = crdClient.CustomResourceDefinitions().Update(existingCrd)
+		_, err = crdClient.CustomResourceDefinitions().Update(context.Background(), existingCrd, metav1.UpdateOptions{})
 		if err != nil {
 			tl.Fatalf("Error updating target CRD version %q: %v", existingCrd.Spec.Version, err)
 		}

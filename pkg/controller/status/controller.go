@@ -17,6 +17,7 @@ limitations under the License.
 package status
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -302,7 +303,7 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 	}
 
 	if existingStatus == nil {
-		_, err = s.statusClient.Resources(qualifiedName.Namespace).Create(status, metav1.CreateOptions{})
+		_, err = s.statusClient.Resources(qualifiedName.Namespace).Create(context.Background(), status, metav1.CreateOptions{})
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to create status object for federated type %s %q", statusKind, key))
 			return util.StatusNeedsRecheck
@@ -312,7 +313,7 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 			status.Object["clusterStatus"] = make([]util.ResourceClusterStatus, 0)
 		}
 		existingStatus.Object["clusterStatus"] = status.Object["clusterStatus"]
-		_, err = s.statusClient.Resources(qualifiedName.Namespace).Update(existingStatus, metav1.UpdateOptions{})
+		_, err = s.statusClient.Resources(qualifiedName.Namespace).Update(context.Background(), existingStatus, metav1.UpdateOptions{})
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to update status object for federated type %s %q", statusKind, key))
 			return util.StatusNeedsRecheck

@@ -1,0 +1,55 @@
+build --verbose_failures
+test --test_output=errors
+
+# TODO(fejta): figure out why this causes problems
+#test --features=race # enable data race detection
+
+# Note needs an instance name
+# https://github.com/bazelbuild/bazel-toolchains/blob/master/bazelrc/bazel-0.27.0.bazelrc
+build:remote --jobs=500
+build:remote --host_javabase=@rbe_default//java:jdk
+build:remote --javabase=@rbe_default//java:jdk
+build:remote --host_java_toolchain=@bazel_tools//tools/jdk:toolchain_hostjdk8
+build:remote --java_toolchain=@bazel_tools//tools/jdk:toolchain_hostjdk8
+build:remote --crosstool_top=@rbe_default//cc:toolchain
+build:remote --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+
+build:remote --extra_toolchains=@rbe_default//config:cc-toolchain
+build:remote --extra_execution_platforms=@io_k8s_repo_infra//:rbe_with_network
+build:remote --host_platform=@io_k8s_repo_infra//:rbe_with_network
+build:remote --platforms=@io_k8s_repo_infra//:rbe_with_network
+
+build:remote --define=EXECUTOR=remote
+build:remote --remote_executor=grpcs://remotebuildexecution.googleapis.com
+build:remote --remote_timeout=3600
+
+# Alt: --google_credentials=some_file.json
+build:remote --google_default_credentials=true
+
+# Improve cache hit rate
+build:remote --incompatible_strict_action_env=true
+
+# Minimize what is downloaded
+build:inmemory --experimental_inmemory_jdeps_files
+build:inmemory --experimental_inmemory_dotd_files
+
+# Minimize what is downloaded
+build:toplevel --config=inmemory
+build:toplevel --experimental_remote_download_outputs=toplevel
+
+build:minimal --config=inmemory
+build:minimal --experimental_remote_download_outputs=minimal
+
+build:remote --config=toplevel
+
+run:remote --experimental_remote_download_outputs=all --noexperimental_inmemory_jdeps_files --noexperimental_inmemory_dotd_files
+
+# Compose the remote configs with an instance name
+# A couple examples below:
+
+# --config=ci-instance adds the instance name
+build:ci-instance --remote_instance_name=projects/k8s-prow-builds/instances/default_instance
+
+# Config we want to use in ci
+build:ci --config=remote --config=ci-instance
+build:ci --noshow_progress

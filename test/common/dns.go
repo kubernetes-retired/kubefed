@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -137,7 +138,7 @@ func Equivalent(actual, desired pkgruntime.Object) bool {
 // WaitForNamespace waits for namespace to be created in a cluster.
 func WaitForNamespaceOrDie(tl TestLogger, client kubeclientset.Interface, clusterName, namespace string, interval, timeout time.Duration) {
 	err := wait.PollImmediate(interval, timeout, func() (exist bool, err error) {
-		_, err = client.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+		_, err = client.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return false, nil
 		}

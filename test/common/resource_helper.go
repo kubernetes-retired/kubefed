@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,7 +41,7 @@ func CreateResource(kubeconfig *restclient.Config, apiResource metav1.APIResourc
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error creating resource client")
 	}
-	obj, err := client.Resources(namespace).Create(desiredObj, metav1.CreateOptions{})
+	obj, err := client.Resources(namespace).Create(context.Background(), desiredObj, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error creating %s", resourceMsg)
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package orphaning
 
 import (
+	"context"
 	"io"
 
 	"github.com/pkg/errors"
@@ -89,7 +90,7 @@ func (o *orphanResource) RunDisable(cmdOut io.Writer, config util.FedConfig) err
 		return nil
 	}
 	ctlutil.DisableOrphaning(fedResource)
-	_, err = resourceClient.Update(fedResource, metav1.UpdateOptions{})
+	_, err = resourceClient.Update(context.Background(), fedResource, metav1.UpdateOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "Failed to update resource %s %q", fedResource.GetKind(),
 			ctlutil.QualifiedName{Name: fedResource.GetName(), Namespace: fedResource.GetNamespace()})

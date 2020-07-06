@@ -17,6 +17,7 @@ limitations under the License.
 package orphaning
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -131,7 +132,7 @@ func (o *orphanResource) GetResourceClient(config util.FedConfig, cmdOut io.Writ
 
 // Returns the Federated resource where the orphaning-deletion will be managed
 func (o *orphanResource) GetFederatedResource(resourceClient dynamic.ResourceInterface) (*unstructured.Unstructured, error) {
-	resource, err := resourceClient.Get(o.resourceName, metav1.GetOptions{})
+	resource, err := resourceClient.Get(context.Background(), o.resourceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to retrieve resource: %q",
 			ctlutil.QualifiedName{Name: o.resourceName, Namespace: o.resourceNamespace})

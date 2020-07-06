@@ -18,7 +18,6 @@ package kubefedcluster
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -111,7 +110,7 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 	kubeClient := kubeclient.NewForConfigOrDie(kubeConfig)
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(genscheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("kubefedcluster-controller")})
+	recorder := broadcaster.NewRecorder(genscheme.Scheme, corev1.EventSource{Component: "kubefedcluster-controller"})
 	cc.eventRecorder = recorder
 
 	var err error

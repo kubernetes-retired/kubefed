@@ -79,6 +79,17 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
+	_, err = clientset.CoreV1().Namespaces().Create(
+		context.Background(),
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: util.DefaultKubeFedSystemNamespace,
+			},
+		},
+		metav1.CreateOptions{},
+	)
+	Expect(err).ToNot(HaveOccurred())
+
 	config = &util.ClusterHealthCheckConfig{
 		Period:           10 * time.Second,
 		FailureThreshold: 3,
@@ -121,7 +132,9 @@ var _ = Describe("TestKubefedClusterController", func() {
 			},
 		}
 
-		_, err := clientset.CoreV1().Secrets(util.DefaultKubeFedSystemNamespace).Create(kubefedClusterSecret)
+		_, err := clientset.CoreV1().Secrets(util.DefaultKubeFedSystemNamespace).Create(
+			context.Background(), kubefedClusterSecret, metav1.CreateOptions{},
+		)
 		Expect(err).ToNot(HaveOccurred())
 
 		kc := &fedv1b1.KubeFedCluster{

@@ -47,7 +47,7 @@ kubectl apply -n ${TEST_NS} -f example/sample1/service.yaml
 # Federate kubernetes resources to member clusters
 echo
 echo "Federating resources in namespace ${TEST_NS} to member clusters."
-kubefedctl federate ns ${TEST_NS} --contents --skip-api-resources 'pods,secrets,serviceaccount,replicaset'
+kubefedctl federate ns ${TEST_NS} --contents --skip-api-resources 'pods,secrets,serviceaccounts,replicasets,endpointslices'
 
 echo
 echo "Checking status of federated resources."
