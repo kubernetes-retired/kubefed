@@ -777,8 +777,6 @@ spec:
 
 ### `spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty
 
-In this case, `spec.placement.clusters` will be ignored, since only
-`spec.placement.clusterSelector` is provided.
 
 ```yaml
 spec:
