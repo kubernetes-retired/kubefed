@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 // FederatedResourceForDispatch is the subset of the FederatedResource
@@ -130,7 +132,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 	// operation timed out.  The timeout status will be cleared by
 	// Wait() if a timeout does not occur.
 	d.RecordStatus(clusterName, status.CreationTimedOut)
-
+	start := time.Now()
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "create"
 	go d.dispatcher.clusterOperation(clusterName, op, func(client generic.Client) util.ReconciliationStatus {
@@ -150,6 +152,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 		if err == nil {
 			version := util.ObjectVersion(obj)
 			d.recordVersion(clusterName, version)
+			metrics.DispatchOperationDurationFromStart("create", start)
 			return util.StatusAllOK
 		}
 
@@ -175,6 +178,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 
 		d.recordError(clusterName, op, errors.Errorf("An update will be attempted instead of a creation due to an existing resource"))
 		d.Update(clusterName, obj)
+		metrics.DispatchOperationDurationFromStart("update", start)
 		return util.StatusAllOK
 	})
 }

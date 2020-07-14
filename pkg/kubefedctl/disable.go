@@ -351,7 +351,7 @@ func customResourcesExist(config *rest.Config, resource *metav1.APIResource) (bo
 	}
 
 	options := metav1.ListOptions{}
-	objList, err := client.Resources("").List(options)
+	objList, err := client.Resources("").List(context.Background(), options)
 	if apierrors.IsNotFound(err) {
 		return false, nil
 	} else if err != nil {
@@ -366,7 +366,7 @@ func deleteFederatedCRD(config *rest.Config, crdName string, write func(string))
 		return errors.Wrap(err, "Error creating crd client")
 	}
 
-	err = client.CustomResourceDefinitions().Delete(crdName, nil)
+	err = client.CustomResourceDefinitions().Delete(context.Background(), crdName, metav1.DeleteOptions{})
 	if apierrors.IsNotFound(err) {
 		write(fmt.Sprintf("customresourcedefinition %q does not exist\n", crdName))
 	} else if err != nil {

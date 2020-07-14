@@ -129,7 +129,7 @@ var _ = Describe("Placement", func() {
 				tl.Fatalf("Error creating resource client for %q: %v", targetKind, err)
 			}
 			err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-				_, err := client.Resources(namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+				_, err := client.Resources(namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 				if errors.IsNotFound(err) {
 					return true, nil
 				}

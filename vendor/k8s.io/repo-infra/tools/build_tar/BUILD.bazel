@@ -1,0 +1,32 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["buildtar.go"],
+    importpath = "k8s.io/repo-infra/tools/build_tar",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@io_k8s_klog_v2//:go_default_library",
+        "@org_golang_x_build//pargzip:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "build_tar",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "package-srcs",
+    srcs = glob(["**"]),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = [":package-srcs"],
+    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
+)

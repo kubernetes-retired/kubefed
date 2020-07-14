@@ -233,7 +233,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	if err != nil {
 		return errors.Wrap(err, "Failed to create host clientset")
 	}
-	_, err = hostClientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
+	_, err = hostClientset.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "KubeFed system namespace %q does not exist", namespace)
 	} else if err != nil {
@@ -268,10 +268,10 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		return errors.Wrap(err, "Failed to create crd clientset")
 	}
 
-	existingCRD, err := crdClient.CustomResourceDefinitions().Get(resources.CRD.Name, metav1.GetOptions{})
+	existingCRD, err := crdClient.CustomResourceDefinitions().Get(context.Background(), resources.CRD.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		if !dryRun {
-			_, err = crdClient.CustomResourceDefinitions().Create(resources.CRD)
+			_, err = crdClient.CustomResourceDefinitions().Create(context.Background(), resources.CRD, metav1.CreateOptions{})
 			if err != nil {
 				return errors.Wrapf(err, "Error creating CRD %q", resources.CRD.Name)
 			}
@@ -315,7 +315,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 
 		existingCRD.Spec = resources.CRD.Spec
 		if !dryRun {
-			_, err = crdClient.CustomResourceDefinitions().Update(existingCRD)
+			_, err = crdClient.CustomResourceDefinitions().Update(context.Background(), existingCRD, metav1.UpdateOptions{})
 			if err != nil {
 				return errors.Wrapf(err, "Error updating CRD %q", resources.CRD.Name)
 			}

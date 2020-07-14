@@ -17,6 +17,7 @@ limitations under the License.
 package enable
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -63,7 +64,7 @@ func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (
 		return nil, errors.Wrap(err, "Failed to create crd clientset")
 	}
 	crdName := fmt.Sprintf("%s.%s", apiResource.Name, apiResource.Group)
-	crd, err := crdClient.CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	crd, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crdName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return nil, nil
 	}
@@ -189,7 +190,8 @@ func (v *jsonSchemaVistor) VisitReference(r proto.Reference) {
 	// Short-circuit the recursive definition of JSONSchemaProps (used for CRD validation)
 	//
 	// TODO(marun) Implement proper support for recursive schema
-	if r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps" {
+	if r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps" ||
+		r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps" {
 		v.collect(apiextv1b1.JSONSchemaProps{Type: "object"})
 		return
 	}

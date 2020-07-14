@@ -312,7 +312,7 @@ func CreateNamespace(client kubeclientset.Interface, generateName string) (strin
 	// TODO(marun) should all api calls be made 'robustly'?
 	var namespaceName string
 	if err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
-		namespace, err := client.CoreV1().Namespaces().Create(namespaceObj)
+		namespace, err := client.CoreV1().Namespaces().Create(context.Background(), namespaceObj, metav1.CreateOptions{})
 		if err != nil {
 			Logf("Unexpected error while creating namespace: %v", err)
 			return false, nil

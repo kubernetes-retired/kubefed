@@ -35,6 +35,7 @@ import (
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 	"sigs.k8s.io/kubefed/pkg/schedulingtypes"
 )
 
@@ -77,7 +78,7 @@ func StartSchedulingPreferenceController(config *util.ControllerConfig, scheduli
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	klog.Infof(fmt.Sprintf("Starting replicaschedulingpreferences controller"))
+	klog.Infof("Starting replicaschedulingpreferences controller")
 	controller.Run(stopChannel)
 	return controller.scheduler, nil
 }
@@ -94,7 +95,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("replicaschedulingpreference-controller")})
+	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "replicaschedulingpreference-controller"})
 
 	s := &SchedulingPreferenceController{
 		clusterAvailableDelay:   config.ClusterAvailableDelay,
@@ -191,6 +192,8 @@ func (s *SchedulingPreferenceController) reconcileOnClusterChange() {
 }
 
 func (s *SchedulingPreferenceController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+	defer metrics.UpdateControllerReconcileDurationFromStart("schedulingpreferencecontroller", time.Now())
+
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}

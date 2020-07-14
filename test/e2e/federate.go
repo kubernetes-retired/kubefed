@@ -295,13 +295,13 @@ func deleteResources(f framework.KubeFedFramework, tl common.TestLogger, typeCon
 
 func deleteResource(tl common.TestLogger, client util.ResourceClient, qualifiedName util.QualifiedName, kind string) {
 	tl.Logf("Deleting %s %q", kind, qualifiedName)
-	err := client.Resources(qualifiedName.Namespace).Delete(qualifiedName.Name, &metav1.DeleteOptions{})
+	err := client.Resources(qualifiedName.Namespace).Delete(context.Background(), qualifiedName.Name, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		tl.Fatalf("Error deleting %s %q: %v", kind, qualifiedName, err)
 	}
 
 	err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		_, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+		_, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
@@ -314,7 +314,7 @@ func deleteResource(tl common.TestLogger, client util.ResourceClient, qualifiedN
 
 func fedResourceFromAPI(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, qualifiedName util.QualifiedName) *unstructured.Unstructured {
 	client := getFedClient(tl, typeConfig, kubeConfig)
-	fedResource, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	fedResource, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		tl.Fatalf("Federated resource %q not found: %v", qualifiedName, err)
 	}
@@ -323,7 +323,7 @@ func fedResourceFromAPI(tl common.TestLogger, typeConfig typeconfig.Interface, k
 
 func targetResourceFromAPI(tl common.TestLogger, typeConfig typeconfig.Interface, kubeConfig *restclient.Config, qualifiedName util.QualifiedName) *unstructured.Unstructured {
 	client := getTargetClient(tl, typeConfig, kubeConfig)
-	targetResource, err := client.Resources(qualifiedName.Namespace).Get(qualifiedName.Name, metav1.GetOptions{})
+	targetResource, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 	if err != nil {
 		tl.Fatalf("Test resource %q not found: %v", qualifiedName, err)
 	}

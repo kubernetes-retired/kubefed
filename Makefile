@@ -43,7 +43,7 @@ endif
 BUILDMNT = /go/src/$(GOTARGET)
 # The version here should match the version of go configured in
 # .travis.yml
-BUILD_IMAGE ?= golang:1.13.7
+BUILD_IMAGE ?= golang:1.14.4
 
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
@@ -56,6 +56,7 @@ LDFLAG_OPTIONS = -ldflags "-X sigs.k8s.io/kubefed/pkg/version.version=$(GIT_VERS
                       -X sigs.k8s.io/kubefed/pkg/version.gitTreeState=$(GIT_TREESTATE) \
                       -X sigs.k8s.io/kubefed/pkg/version.buildDate=$(BUILDDATE)"
 
+export GOPATH ?= $(shell go env GOPATH)
 GO_BUILDCMD = CGO_ENABLED=0 go build $(VERBOSE_FLAG) $(LDFLAG_OPTIONS)
 
 TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
@@ -63,7 +64,7 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
-DOCKER_BUILD ?= $(DOCKER) run --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
+DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
 .PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook e2e
@@ -128,9 +129,6 @@ e2e: $(E2E_BINARY_TARGET)
 
 # Generate code
 generate-code: controller-gen
-ifndef GOPATH
-	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
-endif
 	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./..."
 
 generate: generate-code kubefedctl

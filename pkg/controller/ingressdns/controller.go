@@ -38,6 +38,7 @@ import (
 	dnsv1a1 "sigs.k8s.io/kubefed/pkg/apis/multiclusterdns/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -201,6 +202,8 @@ func (c *Controller) reconcileOnClusterChange() {
 }
 
 func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+	defer metrics.UpdateControllerReconcileDurationFromStart("ingressdnscontroller", time.Now())
+
 	if !c.isSynced() {
 		return util.StatusNotSynced
 	}

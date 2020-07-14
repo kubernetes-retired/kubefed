@@ -195,7 +195,7 @@ func createClusterServiceAndEndpoints(f framework.KubeFedFramework, name, namesp
 		common.WaitForNamespaceOrDie(framework.NewE2ELogger(), client, clusterName, namespace,
 			framework.PollInterval, framework.TestContext.SingleCallTimeout)
 
-		createdService, err := client.CoreV1().Services(namespace).Create(service)
+		createdService, err := client.CoreV1().Services(namespace).Create(context.Background(), service, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "Error creating service in cluster %q", clusterName)
 
 		createdService.Status = apiv1.ServiceStatus{
@@ -203,11 +203,11 @@ func createClusterServiceAndEndpoints(f framework.KubeFedFramework, name, namesp
 		}
 
 		// Fake out provisioning LoadBalancer by updating the service status in member cluster.
-		_, err = client.CoreV1().Services(namespace).UpdateStatus(createdService)
+		_, err = client.CoreV1().Services(namespace).UpdateStatus(context.Background(), createdService, metav1.UpdateOptions{})
 		framework.ExpectNoError(err, "Error updating service status in cluster %q", clusterName)
 
 		// Fake out pods backing service by creating endpoint in member cluster.
-		_, err = client.CoreV1().Endpoints(namespace).Create(endpoint)
+		_, err = client.CoreV1().Endpoints(namespace).Create(context.Background(), endpoint, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "Error creating endpoint in cluster %q", clusterName)
 	}
 

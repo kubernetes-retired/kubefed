@@ -18,6 +18,7 @@ package dispatch
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -30,6 +31,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const eventTemplate = "%s %s %q in cluster %q"
@@ -71,6 +73,7 @@ func (d *unmanagedDispatcherImpl) Wait() (bool, error) {
 }
 
 func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
+	start := time.Now()
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "delete"
 	const opContinuous = "Deleting"
@@ -97,6 +100,7 @@ func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
 			}
 			return util.StatusError
 		}
+		metrics.DispatchOperationDurationFromStart("delete", start)
 		return util.StatusAllOK
 	})
 }

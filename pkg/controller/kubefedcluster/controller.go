@@ -18,8 +18,8 @@ package kubefedcluster
 
 import (
 	"context"
-	"fmt"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +41,7 @@ import (
 	genscheme "sigs.k8s.io/kubefed/pkg/client/generic/scheme"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 // ClusterData stores cluster client and previous health check probe results of individual cluster.
@@ -109,7 +110,7 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 	kubeClient := kubeclient.NewForConfigOrDie(kubeConfig)
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(genscheme.Scheme, corev1.EventSource{Component: fmt.Sprintf("kubefedcluster-controller")})
+	recorder := broadcaster.NewRecorder(genscheme.Scheme, corev1.EventSource{Component: "kubefedcluster-controller"})
 	cc.eventRecorder = recorder
 
 	var err error
@@ -145,8 +146,8 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 				cc.mu.Lock()
 				clusterData, ok := cc.clusterDataMap[cluster.Name]
 
-				if ok && !equality.Semantic.DeepEqual(clusterData.cachedObj.Spec, cluster.Spec) &&
-					!equality.Semantic.DeepEqual(clusterData.cachedObj.ObjectMeta.Annotations, cluster.ObjectMeta.Annotations) &&
+				if !ok || !equality.Semantic.DeepEqual(clusterData.cachedObj.Spec, cluster.Spec) ||
+					!equality.Semantic.DeepEqual(clusterData.cachedObj.ObjectMeta.Annotations, cluster.ObjectMeta.Annotations) ||
 					!equality.Semantic.DeepEqual(clusterData.cachedObj.ObjectMeta.Labels, cluster.ObjectMeta.Labels) {
 					clusterChanged = true
 				}
@@ -239,6 +240,8 @@ func (cc *ClusterController) updateClusterStatus() error {
 
 func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.KubeFedCluster,
 	storedData *ClusterData, wg *sync.WaitGroup) {
+	defer metrics.ClusterHealthStatusDurationFromStart(time.Now())
+
 	clusterClient := storedData.clusterKubeClient
 
 	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
@@ -257,6 +260,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
 		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
 	}
+
 	wg.Done()
 }
 

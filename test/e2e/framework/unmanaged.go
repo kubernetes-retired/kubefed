@@ -162,7 +162,7 @@ func (f *UnmanagedFramework) AfterEach() {
 	if CurrentGinkgoTestDescription().Failed && f.testNamespaceName != "" {
 		kubeClient := f.KubeClient(userAgent)
 		DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
-			return kubeClient.CoreV1().Events(ns).List(opts)
+			return kubeClient.CoreV1().Events(ns).List(context.Background(), opts)
 		}, f.testNamespaceName)
 	}
 }
@@ -315,7 +315,9 @@ func (f *UnmanagedFramework) setUpSyncControllerFixture(typeConfig typeconfig.In
 
 func DeleteNamespace(client kubeclientset.Interface, namespaceName string) {
 	orphanDependents := false
-	if err := client.CoreV1().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
+	if err := client.CoreV1().Namespaces().Delete(
+		context.Background(), namespaceName, metav1.DeleteOptions{OrphanDependents: &orphanDependents},
+	); err != nil {
 		if !apierrors.IsNotFound(err) {
 			Failf("Error while deleting namespace %s: %s", namespaceName, err)
 		}
@@ -348,7 +350,7 @@ func DeleteNamespace(client kubeclientset.Interface, namespaceName string) {
 
 func waitForNamespaceDeletion(client kubeclientset.Interface, namespace string) error {
 	err := wait.PollImmediate(PollInterval, TestContext.SingleCallTimeout, func() (bool, error) {
-		if _, err := client.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{}); err != nil {
+		if _, err := client.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true, nil
 			}

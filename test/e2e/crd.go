@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -233,7 +234,7 @@ func waitForCrd(config *rest.Config, tl common.TestLogger, apiResource metav1.AP
 		tl.Fatalf("Error creating client for crd %q: %v", apiResource.Kind, err)
 	}
 	err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
-		_, err := client.Resources("invalid").Get("invalid", metav1.GetOptions{})
+		_, err := client.Resources("invalid").Get(context.Background(), "invalid", metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
@@ -249,7 +250,7 @@ func createCrdForHost(tl common.TestLogger, client *apiextv1b1client.Apiextensio
 }
 
 func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition, clusterName string) *apiextv1b1.CustomResourceDefinition {
-	createdCrd, err := client.CustomResourceDefinitions().Create(crd)
+	createdCrd, err := client.CustomResourceDefinitions().Create(context.Background(), crd, metav1.CreateOptions{})
 	if err != nil {
 		tl.Fatalf("Error creating crd %s in %s: %v", crd.Name, clusterMsg(clusterName), err)
 	}
@@ -259,7 +260,7 @@ func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1bet
 
 func ensureCRDRemoval(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crdName, clusterName string) {
 	framework.AddCleanupAction(func() {
-		err := client.CustomResourceDefinitions().Delete(crdName, nil)
+		err := client.CustomResourceDefinitions().Delete(context.Background(), crdName, metav1.DeleteOptions{})
 		if err != nil {
 			tl.Errorf("Error deleting crd %q in %s: %v", crdName, clusterMsg(clusterName), err)
 		}

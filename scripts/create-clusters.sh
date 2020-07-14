@@ -27,12 +27,10 @@ CONFIGURE_INSECURE_REGISTRY_HOST="${CONFIGURE_INSECURE_REGISTRY_HOST:-}"
 CONFIGURE_INSECURE_REGISTRY_CLUSTER="${CONFIGURE_INSECURE_REGISTRY_CLUSTER-y}"
 CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
-OVERWRITE_KUBECONFIG="${OVERWRITE_KUBECONFIG:-}"
 KIND_IMAGE="${KIND_IMAGE:-}"
 KIND_TAG="${KIND_TAG:-}"
 docker_daemon_config="/etc/docker/daemon.json"
 containerd_config="/etc/containerd/config.toml"
-kubeconfig="${HOME}/.kube/config"
 OS=`uname`
 
 function create-insecure-registry() {
@@ -92,7 +90,7 @@ EOF
 "
       ;;
     $containerd_config)
-     echo "sed -i '/\[plugins.cri.registry.mirrors\]/a [plugins.cri.registry.mirrors."\"${CONTAINER_REGISTRY_HOST}\""]\nendpoint = ["\"http://${CONTAINER_REGISTRY_HOST}\""]' ${containerd_config}"
+     echo 'echo -e "[plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"'${CONTAINER_REGISTRY_HOST}'\"]\n  endpoint = [\"http://'${CONTAINER_REGISTRY_HOST}'\"]\n" >> '${containerd_config}
      ;;
     *)
      echo "Sorry, config insecure registy is not supported for $config_file"
@@ -123,13 +121,6 @@ function create-clusters() {
   echo "Waiting for clusters to be ready"
   check-clusters-ready ${num_clusters}
 
-  # TODO(font): kind will create separate kubeconfig files for each cluster.
-  # Remove once https://github.com/kubernetes-sigs/kind/issues/113 is resolved.
-  if [[ "${OVERWRITE_KUBECONFIG}" ]]; then
-    kubectl config view --flatten > ${kubeconfig}
-    unset KUBECONFIG
-  fi
-
   if [[ "${CONFIGURE_INSECURE_REGISTRY_CLUSTER}" ]]; then
     # TODO(font): Configure insecure registry on kind host cluster. Remove once
     # https://github.com/kubernetes-sigs/kind/issues/110 is resolved.
@@ -141,27 +132,23 @@ function create-clusters() {
 function fixup-cluster() {
   local i=${1} # cluster num
 
-  local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
-  export KUBECONFIG="${KUBECONFIG:-}:${kubeconfig_path}"
-
   if [ "$OS" != "Darwin" ];then
     # Set container IP address as kube API endpoint in order for clusters to reach kube API servers in other clusters.
-    kind get kubeconfig --name "cluster${i}" --internal >${kubeconfig_path}
+    OLD_KUBECONFIG=${KUBECONFIG:-}
+    export KUBECONFIG=$(mktemp)
+    kind get kubeconfig --name "cluster${i}" --internal > ${KUBECONFIG}
+    SERVER=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
+    rm ${KUBECONFIG}
+    KUBECONFIG=${OLD_KUBECONFIG}
+    kubectl config set-cluster kind-cluster${i} --server=${SERVER}
   fi
-
   # Simplify context name
-  kubectl config rename-context "kubernetes-admin@cluster${i}" "cluster${i}"
-
-  # TODO(font): Need to rename auth user name to avoid conflicts when using
-  # multiple cluster kubeconfigs. Remove once
-  # https://github.com/kubernetes-sigs/kind/issues/112 is resolved.
-  sed -i.bak "s/kubernetes-admin/kubernetes-cluster${i}-admin/" ${kubeconfig_path} && rm -rf ${kubeconfig_path}.bak
+  kubectl config rename-context "kind-cluster${i}" "cluster${i}"
 }
 
 function check-clusters-ready() {
   for i in $(seq ${1}); do
-    local kubeconfig_path="$(kind get kubeconfig-path --name cluster${i})"
-    util::wait-for-condition 'ok' "kubectl --kubeconfig ${kubeconfig_path} --context cluster${i} get --raw=/healthz &> /dev/null" 120
+    util::wait-for-condition 'ok' "kubectl --context cluster${i} get --raw=/healthz &> /dev/null" 120
   done
 }
 
@@ -184,19 +171,6 @@ fi
 
 echo "Creating ${NUM_CLUSTERS} clusters"
 create-clusters ${NUM_CLUSTERS}
+kubectl config use-context cluster1
 
 echo "Complete"
-
-if [[ ! "${OVERWRITE_KUBECONFIG}" ]]; then
-    echo <<EOF "OVERWRITE_KUBECONFIG was not set so ${kubeconfig} was not modified. \
-You can access your clusters by setting your KUBECONFIG environment variable using:
-
-export KUBECONFIG=\"${KUBECONFIG}\"
-
-Then you can overwrite ${kubeconfig} if you prefer using:
-
-kubectl config view --flatten > ${kubeconfig}
-unset KUBECONFIG
-"
-EOF
-fi

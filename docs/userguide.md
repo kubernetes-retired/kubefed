@@ -111,11 +111,12 @@ See the [Cluster Registration documentation](./cluster-registration.md) for more
 You can enable federation of any Kubernetes API type (including CRDs) by using the
 `kubefedctl` command as follows.
 
-**NOTE:** Federation of a CRD requires that the CRD be installed on all member clusters.  If
-the CRD is not installed on a member cluster, propagation to that cluster will fail.
+**NOTE:** Federation of a CRD requires that the CRD Kubernetes type (`customresourcedefinitions`) to be enabled, to then 
+federate any custom CRD on the member clusters. If the CRD Kubernetes type is not enabled and its Federated equivalent CRD is not federated, the propagation to that cluster will fail.
 
 ```bash
-kubefedctl enable <target kubernetes API type>
+kubefedctl enable customresourcedefinitions
+kubefedctl federate crd <target kubernetes API type>  # <target kubernetes API type> = mytype.mygroup.mydomain.io
 ```
 
 The `<target kubernetes API type>` can be any of the following
@@ -321,7 +322,7 @@ kubefedctl federate configmap my-configmap --enable-type
 ```
 
 ### Federate resources from input file and stdin
-In addition to supporting conversion of resources in a Kubernetes API, `kubefedctl federeate`
+In addition to supporting conversion of resources in a Kubernetes API, `kubefedctl federate`
 supports converting resources to `stdout` from resources read from a local file. API resources can
 be read in yaml format via the `--filename` argument. The command currently does not look up
 for an already enabled type to use the type configuration values while translating yaml resources
@@ -687,6 +688,11 @@ spec:
         # Ensure an annotation with key "foo" does not exist
         - path: "/metadata/annotations/foo"
           op: "remove"
+        # Adds an argument `-q` at index 0 of the args list
+        # this will obviously shift the existing arguments, if any
+        - path: "/spec/template/spec/containers/0/args/0"
+          op: "add"
+          value: "-q"
 ```
 
 ### Overriding retained fields

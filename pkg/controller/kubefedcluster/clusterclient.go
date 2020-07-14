@@ -17,6 +17,7 @@ limitations under the License.
 package kubefedcluster
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -69,7 +71,7 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 	if err != nil {
 		return nil, err
 	}
-	clusterConfig.Timeout = timeout
+	clusterConfig.Timeout = timeout //nolint:staticcheck
 	var clusterClientSet = ClusterClient{clusterName: c.Name}
 	if clusterConfig != nil {
 		clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
@@ -124,14 +126,17 @@ func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStat
 		LastProbeTime:      currentTime,
 		LastTransitionTime: &currentTime,
 	}
-	body, err := self.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do().Raw()
+	body, err := self.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do(context.Background()).Raw()
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", self.clusterName))
 		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
+		metrics.RegisterKubefedClusterTotal(metrics.ClusterOffline, self.clusterName)
 	} else {
 		if !strings.EqualFold(string(body), "ok") {
+			metrics.RegisterKubefedClusterTotal(metrics.ClusterNotReady, self.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterNotReadyCondition, newClusterNotOfflineCondition)
 		} else {
+			metrics.RegisterKubefedClusterTotal(metrics.ClusterReady, self.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
 		}
 	}
@@ -141,7 +146,7 @@ func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStat
 
 // GetClusterZones gets the kubernetes cluster zones and region by inspecting labels on nodes in the cluster.
 func (self *ClusterClient) GetClusterZones() ([]string, string, error) {
-	nodes, err := self.kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := self.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("Failed to list nodes while getting zone names: %v", err)
 		return nil, "", err

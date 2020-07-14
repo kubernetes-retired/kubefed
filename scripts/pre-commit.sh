@@ -57,7 +57,7 @@ function download-dependencies() {
 }
 
 function run-unit-tests() {
-  ${MAKE_CMD} test
+  KUBEBUILDER_ASSETS=${ROOT_DIR}/bin ${MAKE_CMD} test
 }
 
 function join-cluster-list() {
@@ -124,7 +124,7 @@ echo "Verifying Gofmt"
 ./hack/go-tools/verify-gofmt.sh
 
 echo "Checking boilerplate text"
-./vendor/repo-infra/verify/verify-boilerplate.sh --rootdir="${ROOT_DIR}" -v
+./vendor/k8s.io/repo-infra/hack/verify_boilerplate.py --rootdir="${ROOT_DIR}"
 
 echo "Linting"
 golangci-lint run --timeout=5m
@@ -150,8 +150,8 @@ run-unit-tests
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
-CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY_HOST=y OVERWRITE_KUBECONFIG=y \
-    KIND_TAG="v1.15.0" ./scripts/create-clusters.sh
+CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY_HOST=y \
+    KIND_TAG="v1.18.4" ./scripts/create-clusters.sh
 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null

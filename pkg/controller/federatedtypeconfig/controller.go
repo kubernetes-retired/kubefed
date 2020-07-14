@@ -19,6 +19,7 @@ package federatedtypeconfig
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -36,6 +37,7 @@ import (
 	statuscontroller "sigs.k8s.io/kubefed/pkg/controller/status"
 	synccontroller "sigs.k8s.io/kubefed/pkg/controller/sync"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const finalizer string = "core.kubefed.io/federated-type-config"
@@ -128,6 +130,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 
 func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
 	key := qualifiedName.String()
+	defer metrics.UpdateControllerReconcileDurationFromStart("federatedtypeconfigcontroller", time.Now())
 
 	klog.V(3).Infof("Running reconcile FederatedTypeConfig for %q", key)
 

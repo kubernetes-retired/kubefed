@@ -17,6 +17,7 @@ limitations under the License.
 package status
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -37,6 +38,7 @@ import (
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
 const (
@@ -230,6 +232,8 @@ func (s *KubeFedStatusController) reconcileOnClusterChange() {
 }
 
 func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
+	defer metrics.UpdateControllerReconcileDurationFromStart("statuscontroller", time.Now())
+
 	if !s.isSynced() {
 		return util.StatusNotSynced
 	}
@@ -299,7 +303,7 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 	}
 
 	if existingStatus == nil {
-		_, err = s.statusClient.Resources(qualifiedName.Namespace).Create(status, metav1.CreateOptions{})
+		_, err = s.statusClient.Resources(qualifiedName.Namespace).Create(context.Background(), status, metav1.CreateOptions{})
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to create status object for federated type %s %q", statusKind, key))
 			return util.StatusNeedsRecheck
@@ -309,7 +313,7 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 			status.Object["clusterStatus"] = make([]util.ResourceClusterStatus, 0)
 		}
 		existingStatus.Object["clusterStatus"] = status.Object["clusterStatus"]
-		_, err = s.statusClient.Resources(qualifiedName.Namespace).Update(existingStatus, metav1.UpdateOptions{})
+		_, err = s.statusClient.Resources(qualifiedName.Namespace).Update(context.Background(), existingStatus, metav1.UpdateOptions{})
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to update status object for federated type %s %q", statusKind, key))
 			return util.StatusNeedsRecheck
