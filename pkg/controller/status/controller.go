@@ -136,7 +136,7 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 	targetNamespace := controllerConfig.TargetNamespace
 
 	targetAPIResource := typeConfig.GetTargetType()
-	s.federatedStore, s.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, &targetAPIResource, enqueueObj)
+	s.federatedStore, s.federatedController = util.NewResourceInformer(federatedTypeClient, targetNamespace, &federatedAPIResource, enqueueObj)
 	s.statusStore, s.statusController = util.NewResourceInformer(statusClient, targetNamespace, statusAPIResource, enqueueObj)
 
 	// Federated informer for resources in member clusters
