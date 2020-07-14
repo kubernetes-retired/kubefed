@@ -362,7 +362,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 			dispatcher.Update(clusterName, clusterObj)
 		}
 	}
-	_, timeoutErr := dispatcher.Wait()
+	ok, timeoutErr := dispatcher.Wait()
 	if timeoutErr != nil {
 		fedResource.RecordError("OperationTimeoutError", timeoutErr)
 	}
@@ -378,7 +378,11 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	}
 
 	collectedStatus := dispatcher.CollectedStatus()
-	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus)
+	status := s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus)
+	if !ok {
+		return util.StatusNeedsRecheck
+	}
+	return status
 }
 
 func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource,
