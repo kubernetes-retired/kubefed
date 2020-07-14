@@ -777,9 +777,6 @@ spec:
 
 ### `spec.placement.clusters` is not provided, `spec.placement.clusterSelector` is provided but empty
 
-In this case, `spec.placement.clusterSelector` will be ignored, since
-`spec.placement.clusters` is provided. This ensures that the results of runtime
-scheduling have priority over manual definition of a cluster selector.
 
 ```yaml
 spec:
