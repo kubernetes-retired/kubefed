@@ -95,6 +95,32 @@ const (
 	ControllerStatusNotRunning ControllerStatus = "NotRunning"
 )
 
+// TargetTypeOverallStatus defines the status of if a specific target type present in all member clusters.
+type TargetTypeOverallStatus string
+
+const (
+	// TargetTypeOverallStatusPresentInAllClusters means target type present in all member clusters.
+	TargetTypeOverallStatusPresentInAllClusters TargetTypeOverallStatus = "PresentInAllClusters"
+	// TargetTypeOverallStatusNotPresentInAllClusters means target type not present in all member clusters.
+	TargetTypeOverallStatusNotPresentInAllClusters TargetTypeOverallStatus = "NotPresentInAllClusters"
+)
+
+// TargetTypeClusterStatus holds the status of if target type present in the cluster.
+type TargetTypeClusterStatus struct {
+	ClusterName string           `json:"clusterName"`
+	Status      TargetTypeStatus `json:"status"`
+}
+
+// TargetTypeStatus defines the status of if a specific target type present in a member cluster.
+type TargetTypeStatus string
+
+const (
+	// TargetTypeStatusPresent means target type present in specific cluster.
+	TargetTypeStatusPresent TargetTypeStatus = "Present"
+	// TargetTypeStatusNotPresent means target type not present in specific cluster.
+	TargetTypeStatusNotPresent TargetTypeStatus = "NotPresent"
+)
+
 // FederatedTypeConfigStatus defines the observed state of FederatedTypeConfig
 type FederatedTypeConfigStatus struct {
 	// ObservedGeneration is the generation as observed by the controller consuming the FederatedTypeConfig.
@@ -104,6 +130,12 @@ type FederatedTypeConfigStatus struct {
 	// StatusController tracks the status of the status controller.
 	// +optional
 	StatusController *ControllerStatus `json:"statusController,omitempty"`
+	// TargetTypeStatus tracks the status of if target type present in all member clusters.
+	// +optional
+	TargetTypeStatus TargetTypeOverallStatus `json:"targetTypeOverallStatus,omitempty"`
+	// TargetTypeClusterStatus tracks the details status of target type in all member clusters.
+	// +optional
+	TargetTypeClusterStatus []TargetTypeClusterStatus `json:"targetTypeClusterStatus,omitempty"`
 }
 
 // +kubebuilder:object:root=true
