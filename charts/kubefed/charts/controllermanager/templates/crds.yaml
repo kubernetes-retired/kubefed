@@ -326,6 +326,28 @@ spec:
             statusController:
               description: StatusController tracks the status of the status controller.
               type: string
+            targetTypeClusterStatus:
+              description: TargetTypeClusterStatus tracks the details status of target
+                type in all member clusters.
+              items:
+                description: TargetTypeClusterStatus holds the status of if target
+                  type present in the cluster.
+                properties:
+                  clusterName:
+                    type: string
+                  status:
+                    description: TargetTypeStatus defines the status of if a specific
+                      target type present in a member cluster.
+                    type: string
+                required:
+                - clusterName
+                - status
+                type: object
+              type: array
+            targetTypeOverallStatus:
+              description: TargetTypeStatus tracks the status of if target type present
+                in all member clusters.
+              type: string
           required:
           - observedGeneration
           - propagationController
