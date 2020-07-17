@@ -11,6 +11,7 @@ controllermanager:
   image: kubefed
   tag: canary
   imagePullPolicy: IfNotPresent
+  logLevel: 2
   resources:
     limits:
       cpu: 500m
