@@ -1,5 +1,28 @@
 # Unreleased
 
+# v0.3.1
+-  [#1251](https://github.com/kubernetes-sigs/kubefed/pull/1251)
+   Update dependency to kubernetes 1.18.6.
+-  [#1248](https://github.com/kubernetes-sigs/kubefed/pull/1248)
+   Fix service status not working issue.
+-  [#1245](https://github.com/kubernetes-sigs/kubefed/pull/1245)
+   Set default log level for kubefed controller manager.
+-  [#1244](https://github.com/kubernetes-sigs/kubefed/pull/1244)
+   Kubernetes 1.18.5 dependency 1.18.5 and other upgrades.
+-  [#1239](https://github.com/kubernetes-sigs/kubefed/pull/1239)
+   Correct docs for a Cluster Selector case.
+-  [#1236](https://github.com/kubernetes-sigs/kubefed/pull/1236)
+   Increase resource limits for kubefed controller.
+-  [#1232](https://github.com/kubernetes-sigs/kubefed/pull/1232)
+   Docs: adding documentation to add an array element using overrides.
+-  [#1231](https://github.com/kubernetes-sigs/kubefed/pull/1231)
+   Cleanup legacy context after delete cluster.
+-  [#1229](https://github.com/kubernetes-sigs/kubefed/pull/1229)
+   Correct steps in ingress and service with coredns document.
+-  [#1228](https://github.com/kubernetes-sigs/kubefed/pull/1228)
+   Upgrage ingress to 0.32.
+-  [#1221](https://github.com/kubernetes-sigs/kubefed/pull/1221)
+   Chore: make cluster creation work with kind v0.7.0.
 # v0.3.0
 -  [#1218](https://github.com/kubernetes-sigs/kubefed/pull/1218)
    chore: Cleanup travis config about dep
