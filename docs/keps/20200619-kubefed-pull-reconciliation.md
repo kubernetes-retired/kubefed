@@ -38,27 +38,31 @@ status: provisional
 
 ## Summary
 
-Design the new kubefed architecture to improve scalability and performance of
-kubefed on large scale scenarios.
+Design the new kubefed architecture to provide an alternative resource propagation model
+that would eventually improve the scalability and performance of kubefed at scale.
 
 ## Motivation
 
-All Kubefed logic is computed in the control-plane, that can represents a bottleneck
+All kubefed resource propagation logic is computed in the control-plane, that can become a bottleneck
 whenever the amount of clusters and/or federated resources increases.
-The community has shared their intention to transition from a push-reconciler
-to a pull-reconciler approach.
 Scalability is important but also performance to avoid high response times when
 managing the lifecycle of certain federated resources.
+The community has shared their desire to have an alternative resource propagation model
+than the current `push-reconciler` mechanism.
 Additionally, users prefer to avoid giving write permissions of their clusters to
 store them in the control-plane cluster.
+
+The motivation is to provide two propagation models: `push` (using the current model) and `pull`. Users would be able to choose
+the desired propagation logic for their setup.
 
 ### Goals
 
 * Design a pull-based reconciliation.
 * Scale kubefed to manage thousands of resources without major penalties.
 * Design a new architecture that could easily be extended to add new functionalities in the future.
-* Promote towards a more decentralized computation model.
-* The management of what is federated and where must remain centralized to the control-plane cluster.
+* Promote towards a decentralized propagation and reconciliation model.
+* The new pull reconciliation model won't change where the federated resource definition lives. All the logic would remain
+in the kubefed control plane cluster, as until now.
 
 ## Non Goals
 
@@ -69,14 +73,35 @@ the resources and not the propagation status only.
 
 ## Proposal
 
-This approach aims to split the current kubefed architecture into two parts: agents (aka kubefed daemons) and a control-plane.
+This approach splits the current kubefed architecture into two parts: agents (aka kubefed daemons) and a control-plane.
+It aims to decentralize the propagation and reconciliation towards the daemons.
 
-The kubefed agents are daemons running in the registered/joined kubefed clusters.
-The control-plane logic changes to use a pull-based reconciliation and rely on
-the kubefed daemons running on the target clusters to perform most of the computation.
-The federated resource management controllers remain in the cluster where the control-plane is deployed.
+Users can choose the propagation and reconciliation model via a feature gate.
+With that, it supports backwards compatibility with the existing push model.
+
+In this pull-reconciler approach, the kubefed agents are daemons running in the registered/joined kubefed clusters.
+The control-plane logic changes to use a pull-based reconciliation and to rely on
+the kubefed daemons running on the target clusters handling most of the computation.
+The management of federated resources remains in the cluster where the control-plane is deployed.
+The control-plane still handles the create, update, deletion of federated resources.
 
 <img src="./images/kubefedArch.jpg">
+
+The kubefed daemons are responsible of reconciling the cluster to the desired state
+and updating the status of the federated resources.
+
+This proposal is divided into two iterations to get this new model as soon as possible:
+
+1) Initially, kubefed daemons have no restrictions to watch, list the federated resources and write the status of any federated resources.
+   Any daemon could view which resources are scheduled on any kubefed cluster, even if these federated resources are not placed in
+   its own cluster.
+   Kubefed daemons have to update the status of the kubefed cluster resources. A periodically operation updates the
+   health status of each kubefed cluster.
+
+2) Add a shim API server to the kubefed control-plane components that sits between the Kubernetes API server and kubefed daemons.
+This solution provides a security middleware to control which resources can be viewed and accessed by each kubefed agent.
+Additionally, this new daemon increases the scalability of the control plane by reducing each daemon's impact on the Kubernetes API server.
+It watches events from the federated resources and does a fan-out to the kubefed daemon's.
 
 ### Kubefed Daemon
 
@@ -87,87 +112,22 @@ reconcile the desired state to create/delete/update the federated resources.
 As done in the past, the `kubefedctl join` command creates a kubefed cluster in
 the control-plane cluster, and now deploys the kubefed daemon in the target cluster.
 This operation also exchanges the required permissions (tokens, kubeconfigs) and url to enable
-the communication between the control-plane and the daemons, and viceversa.
+the communication between the daemons and the control-plane.
 
-In the following we explain how this bi-directional communication occurs:
-
-* `control-plane --> kubefed daemon`: the control-plane polls the status of the cluster
-and federated resources in the kubefed clusters.
-This operation is important to determine the status of the propagation of resources.
+In the following we explain how this uni-directional communication occurs:
 
 * `kubefed daemon --> control-plane`: the daemon needs to reconcile with the control-plane
 to be synced with the federated resources to create/update/delete.
-This is crucial to keep the kubefed clusters in sync with the desired state
-defined in the control-plane.
+This is crucial to keep the kubefed clusters in sync with the desired state defined in the control-plane.
+Likewise, the kubefed daemon periodically updates the status of the federated resources and cluster
+status on the control-plane cluster.
 
-#### Kubefed Daemon Handler
+#### Collect the Cluster and Resource Status
 
-This new component, named `kubefed daemon`, exposes certain endpoints to report
-the cluster health and the federated resources.
-The main intentions why `kubefed daemons` expose certain functionalities as endpoints
-are:
-
-* Follow a similar approach to the `virtual-kubelet` where the main functionalities are exposed as endpoints (`runningpods`, `containerlogs`, etc...).
-  In our scenario, the `kubefed daemon` exposes them for the federated resources.
-* The list of available functionalities to perform on kubefed clusters could be easily extended in the future when using endpoints.
-  For instance, new endpoints could be exposed to get the logs of federated resources, e.g. `kubectl logs federatedpod mypod --placement=cluster=a`.
-
-Initially the kubefed daemon exposes the following endpoints:
-
-* `/healthz`: This endpoint returns information about the health of the kubefed cluster.
-This health is defined by the healthz of the kubefed daemon and cluster Kubernetes healthz
-API endpoints.
-
-* `/federatedresources/notready`: This endpoint returns all the federated resources
-that crashed or have an unknown status.
-By default, the federated resource without status, are considered as `ready` whenever their creation/update succeeded, otherwise they are not ready.
-The intention of this endpoint is to filter the chunk of data periodically exchanged with the
-control-plane to report the status of the resources.
-The data returned is compared with the expected resources that should be ready.
-To determine the `Readiness` of a resource, kubefed daemon will perform a `best-effort` approach that varies based on the
-status schema of each resource. To reduce the complexity, resources with a custom
-schema in their status are considered `ready` if none error is detected.
-
-* `/federatedresources/ready`: (optional...) This endpoint returns all the federated
-`ready` resources.
-This endpoint might not be useful due to the amount of data exchange with the control-plane
-it can be unmanageable for all the clusters.
-
-* `/federatedresources/{resource}/{namespace}/{name}`: This endpoint returns a specific
-federated namespaced resource.
-
-* `/federatedresources/{resource}/{name}`: This endpoint returns a specific
-federated non-namespaced resource.
-
-* `/federatedresources`: This endpoint returns the list of federated resources that
-are currently allocated in this kubefed cluster.
-The daemon creates a `Lister` per `FederatedTypeConfig`, and in particular per `TargetType`, to track the federated resources.
-The `Lister` filters all the resources in the cluster from those with a label selector `kubefed.io/managed=true`, so the `Lister` only contains federated resources.
-
-A cache should be used to reduce the response times of these operations.
-
-The daemon creates two servers one to serve the mentioned endpoints and another server
-to expose custom metrics.
-
-The `KubefedAgentHandlerConfig` represents a draft of a handler with the different
-functions used to expose the aforementioned routes.
-
-```go
-type KubefedAgentHandlerConfig struct {
-	GetHealthz   HealthzHandlerFunc
-  GetFederatedResource GetFederatedResourceHandlerFunc
-  GetFederatedResources GetFederatedResourcesHandlerFunc
-  // GetNotReadyFederatedResources is meant to enumerate the non-ready federated resources
-  GetNotReadyFederatedResources NotReadyFederatedResourcesListerFunc
-  GetReadyFederatedResources ReadyFederatedResourcesListerFunc
-  StreamIdleTimeout     time.Duration
-  StreamCreationTimeout time.Duration
-}
-```
-
-
-
-#### Collect the Resource Status
+The daemon is in charge of updating the status of the federated resources in the control plane cluster.
+Likewise it has to update the status of the kubefed cluster to report its status as `ClusterOffline`, `ClusterReady`.
+The update follows a heartbeat mechanism analogously to the kubelet-apiserver model where the control-plane sets
+as `ClusterNotReady` whenever a kubefed daemon skips a heartbeat.
 
 The kubefed daemons have to periodically collect the status of the federated resources in each
 cluster.
@@ -175,12 +135,14 @@ cluster.
 The resources can be filtered by the label `kubefed.io/managed=true` to exclude them from the rest of Kubernetes resources.
 In addition to that, the kubefed daemon periodically checks the type of the federated
 resources and create an `Informer` per `FederatedTypeConfig`.
-The list of `FederatedTypeConfig` available resources is defined in the control plane cluster.
-There is no need to create an `Informer` per kind of resource type in the Kubernetes cluster.
+The list of `FederatedTypeConfig` available resources is defined in the control-plane cluster.
+There is no need to create an `Informer` per kind of resource type in the kubefed cluster.
 The `Informer` populates the cache with the status of the federated resources.
+The daemon then updates the status of the federated resources in the control-plane cluster,
+so the control-plane has to grant update permissions to modify the status of a federated resource for a cluster.
 
-In order to know the `TargetType` of the federated resources, the control-plane allows daemons
-to `get` the list of federated types.
+In order to know the `TargetType` of the federated resources, the control-plane grants access to daemons
+to `watch` and `get` the list of federated types.
 
 
 #### Desired State Reconciliation
@@ -190,61 +152,67 @@ in its managed cluster.
 
 To do so, the kubefed talks to the control-plane to be informed of which resources
 need to be federated in the cluster.
-
-Likewise this reconciliation loop is in charge of reverting any local changes done in a cluster to
-a federated resource.
-This ensures that the desired state defined in the control-plane cluster is enforced
-in the target clusters.
-
-In the `kubefed control-plane` section, we present the alternative pull-based reconciliation models
-and how the daemon and control-plane work together to enforce the desired state at any time.
-
-### Kubefed control-plane
-
-The control-plane watches the kubefed clusters consuming the exposed endpoints to be aware
-of issues in relation to the clusters and the federated resources.
-
-A critical operation is to constantly watch the status of the federated resources.
-
-<img src="./images/kubefedv2Example.jpg">
-
-When requesting the status of a federated resource, the result needs to report the status
-of the propagation and its own current state.
-
-Another crucial operation is the reconciliation of the desired state, the control-plane
-works as a centralized system where the customer defines what and where a federated resource
-is created.
-Keeping the desired state synced with the state of the clusters would define the success of this new architecture.
-
-A common operation that would be consumed by the daemons consists on getting the list of the available federated types.
-The daemons would be able to `get` the `FederatedTypeConfig` resources, so they
-are aware of the types of resources federated at any time.
-
-Next we present the proposed model to keep the desired state synced across all the cluters.
-
-#### Desired State Reconciliation - Watch Federated types
-
 Every kubefed daemon has to create a remote informer to watch any changes in the federated
 types which all belong to the same group `types.kubefed.io`.
 This remote informer is created against the control-plane cluster, so a kubeconfig
 and the required permissions should be granted to all the kubefed clusters.
 A controller uses that `Informer` and trigger the respective operations to reach the
 desired state of the kubefed cluster.
+This operation might change when building the **second iteration** where the daemon interacts with the shim API server
+which watches the list of resources per cluster.
 
-The main challenge of this approach is filtering what federated resources a kubefed
-daemon should be able to watch.
-In other words, a watch should be only aware of changes in the resources assigned to its
-cluster.
-This could be done adding labels to the federated resources in addition to RBAC
-settings in the control plane cluster to only allow `get` to the resources that
-are to be federated out.
+<img src="./images/kubefedv2Example.jpg">
 
-##### Analysis
+Likewise this reconciliation loop is in charge of reverting any local changes done in a cluster to
+a federated resource.
+This ensures that the desired state defined in the control-plane cluster is enforced
+in the target clusters.
 
-This approach requires of a constant bi-directional net-link between control-plane and kubefed
-to be able to reach the desired state.
+### Kubefed control-plane
 
-The main challenge is an ideal filtering of the resources that each cluster should view.
+The control-plane exposes a feature gate to choose a reconciliation model: `pull` or `push`.
+
+Analogously to the `push` model, the definition of federated resources is done in the control-plane cluster.
+
+Keeping the desired state synced with the state of the clusters would define the success of this new architecture.
+
+#### First iteration
+
+As part of the **first iteration**, each daemon gets a service account to talk to the Kubernetes API of the control-plane cluster.
+This service account defines the appropriated set of RBAC rules to watch, list and write the status of the federated resources for a kubefed cluster.
+The creation of this account and the respective RBAC rules takes place whenever a kubefed cluster successfully joins the federation.
+A controller would keep up-to-date each account with the respective RBAC rules to match the available
+federated types at any time for each kubefed cluster.
+This limits which operations a kubefed cluster can do over other resource types in the control-plane cluster.
+
+This first iteration provides a decentralized reconciliation and propagation where the daemons directly talk to
+the Kubernetes API server to ensure the desired state.
+
+However this iteration does not filter which federated resources can be viewed or accessed by each kubefed cluster. This would be addressed as
+part of the second iteration.
+
+
+#### Second iteration
+
+During the **second iteration**, the kubefed control-plane deploys an additional component.
+This component works as a shim API server to which the kubefed daemons talk to perform
+all the operations done via the Kubernetes API server in the **first iteration**.
+The shim API server limits what each daemon can view or access and reduces the load of the daemons on the Kubernetes API server.
+
+The main challenge of this shim API server is filtering which federated resources a kubefed
+daemon should be able to get, watch, list and update their status.
+
+This server watches for changes in the federated resources, and does a fan-out to it's daemons.
+This also reduces the load on the Kubernetes API server significantly cause kubefed daemons are talking to this server.
+All the kubefed daemon operations on federated resources are handled by the shim API server that works similarly to an authorizers and an aggregated API.
+A daemon should be only aware of changes in the resources assigned to its own cluster.
+
+Without this new control-plane component, every kubefed daemon would have to perform any operations and register its own watch with API Server.
+Consequently the load on Kubernetes API server would multiply as you scale up the number of kubefed daemons.
+
+<img src="./images/kubefedv2_seconditeration.jpg">
+
+By having this API server, all the watch events are off-loaded to the server which filters the visibility of resources from the Kubernetes API server.
 
 #### Other Main Reconciliation Loops
 
@@ -266,49 +234,17 @@ The enforcement of these preferences rely on the control-plane and daemons, so n
 
 The rest of kubefed cluster related operations would be managed by controllers in the control-plane.
 
-### Controller Resource Propagation Status
-
-The creation of a federated resource triggers an asynchronous process that updates
-the state of the operation once applied to all the Kubefed clusters.
-
-These actions trigger operations in the control-plane and kubefed clusters.
-
-The following list represents the different steps when creating a resource:
-
-1. Create federated resource.
-2. Update status of the federated resource to reflect the initiation of the propagation (e.g. `Propagating`).
-3. A propagation reconcile loop is triggered to update the the status of this resource until the completion of this operation.
-4. As part of the reconciliation loop, the system checks which kubefed clusters
-are specified as part of the `placement` for this resource. Next, the system verifies
-if the federated resource exists, if it does the new status is changed to `Propagated`, and the
-reconciliation loop ends successfully. Otherwise the reconcile request is re-queue
-until the resource is created in the target cluster or an error is reported (`CreationTimedOut` or so).
-
-A similar process applies to deletion and update operations on the federated resources.
-However, in a deletion of a federated resource, this operation is considered completed when the resource
-does not exist on any of the allocated clusters.
-
-This approach assumes the control-plane polls the status of the `notready` federated
-resources from the kubefed clusters using an endpoint exposed by the daemons.
-However there is another alternative that was not presented yet in this document.
-The daemons could alternatively have `write` permissions to save the status of their federated resources to
-keep the state up-to-date for each resource.
-
 ### Kubefed Security Concerns
 
-With this new approach, the kubefed daemon only exposes read permissions to ensure
-the reconciliation of the current status of the federated resources.
-Likewise the daemons require a read access to the federated types in the control-plane cluster to list the available
-federated types and watch the resources that have to be federated on each cluster.
-This differs from the current architecture where the control-plane has write access
-to the kubefed clusters.
+As detailed above, the **first iteration** is more naive allowing all the daemons to
+view and access all federated resources independently of the placement constraints.
+Thus a kubefed daemon could view and update the status of federated resources whose placement
+constraints are not assigned to the daemon's cluster.
 
-Consequently the `control-plane` and `kubefed daemons` need to communicate between themselves.
-A bi-directional communication is required, consequently a secure trust communication should
-be established between the control-plane and daemons. In the future, a good solution would be to follow the [SPIFEE Trust domain federation](https://docs.google.com/document/d/1OC9nI2W04oghhbEDJpKdIUIw-G23YzWeHZxwGLIkB8k/edit) approach.
-To federate identity and trust, you must exchange the trust bundles between the `control-plane`
-and `kubefed daemon` of each cluster.
-
+With the **second iteration**, the system transitions to a different model where
+the shim API server filters which resources and what operations a daemon can perform over a federated resource.
+The system consumes the placement properties to identify what a daemons can watch, get, list
+and update the status of a specific federated resource.
 
 ### User Stories
 
