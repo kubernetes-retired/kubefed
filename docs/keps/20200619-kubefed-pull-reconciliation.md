@@ -40,20 +40,24 @@ status: provisional
 
 Design the new kubefed architecture to provide an alternative resource propagation model
 that would eventually improve the scalability and performance of kubefed at scale.
+Additionally, this new model aims to satisfy other infrastructure configurations where the control-plane
+cluster cannot reach the kubefed clusters.
 
 ## Motivation
 
-All kubefed resource propagation logic is computed in the control-plane, that can become a bottleneck
+Nowadays, all kubefed resource propagation logic is computed in the control-plane, that can become a bottleneck
 whenever the amount of clusters and/or federated resources increases.
 Scalability is important but also performance to avoid high response times when
 managing the lifecycle of certain federated resources.
 The community has shared their desire to have an alternative resource propagation model
 than the current `push-reconciler` mechanism.
-Additionally, users prefer to avoid giving write permissions of their clusters to
+This could solve situations where the customers might have an infrastructure setup
+where the kubefed clusters are behind some NAT gateways.
+Additionally, customers also prefer to avoid giving write permissions of their clusters to
 store them in the control-plane cluster.
 
-The motivation is to provide two propagation models: `push` (using the current model) and `pull`. Users would be able to choose
-the desired propagation logic for their setup.
+The motivation is to provide two propagation models: `push` (keeping the support of the current model) and `pull`.
+Users would be able to choose the desired propagation logic for their setup.
 
 ### Goals
 
@@ -77,12 +81,14 @@ This approach splits the current kubefed architecture into two parts: agents (ak
 It aims to decentralize the propagation and reconciliation towards the daemons.
 
 Users can choose the propagation and reconciliation model via a feature gate.
-With that, it supports backwards compatibility with the existing push model.
+With that, this approach provides backwards compatibility with the existing push model while enabling the users to choose this new model.
 
-In this pull-reconciler approach, the kubefed agents are daemons running in the registered/joined kubefed clusters.
-The control-plane logic changes to use a pull-based reconciliation and to rely on
+In this pull-reconciler approach, we could highlight certain aspects that change in comparison with the pull-reconciler:
+
+* The kubefed agents are daemons running in the registered/joined kubefed clusters.
+* The control-plane logic changes to use a pull-based reconciliation and to rely on
 the kubefed daemons running on the target clusters handling most of the computation.
-The management of federated resources remains in the cluster where the control-plane is deployed.
+* The management of federated resources remains in the cluster where the control-plane is deployed.
 The control-plane still handles the create, update, deletion of federated resources.
 
 <img src="./images/kubefedArch.jpg">
@@ -90,17 +96,17 @@ The control-plane still handles the create, update, deletion of federated resour
 The kubefed daemons are responsible of reconciling the cluster to the desired state
 and updating the status of the federated resources.
 
-This proposal is divided into two iterations to get this new model as soon as possible:
+This proposal is divided into two iterations in order to provide an experimental version of this new model as soon as possible:
 
-1) Initially, kubefed daemons have no restrictions to watch, list the federated resources and write the status of any federated resources.
-   Any daemon could view which resources are scheduled on any kubefed cluster, even if these federated resources are not placed in
+1) Initially, kubefed daemons have no restrictions to `watch`, `list` any federated resources and `write` the status of any federated resource.
+   Any daemon can view which resources are scheduled on any kubefed cluster, even if these federated resources are not placed in
    its own cluster.
-   Kubefed daemons have to update the status of the kubefed cluster resources. A periodically operation updates the
-   health status of each kubefed cluster.
+   Kubefed daemons have to update the status of the kubefed cluster resources.
+   A periodically operation updates the health status of each kubefed cluster.
 
-2) Add a shim API server to the kubefed control-plane components that sits between the Kubernetes API server and kubefed daemons.
-This solution provides a security middleware to control which resources can be viewed and accessed by each kubefed agent.
-Additionally, this new daemon increases the scalability of the control plane by reducing each daemon's impact on the Kubernetes API server.
+2) The second iteration adds a shim API server to the kubefed control-plane components that sits between the Kubernetes API server and kubefed daemons.
+This solution provides a security middleware to control which resources can be viewed and accessed by each kubefed daemon.
+Additionally, this new daemon (the shim API server) increases the scalability of the control plane by reducing each daemon's impact on the Kubernetes API server.
 It watches events from the federated resources and does a fan-out to the kubefed daemon's.
 
 ### Kubefed Daemon
@@ -113,6 +119,16 @@ As done in the past, the `kubefedctl join` command creates a kubefed cluster in
 the control-plane cluster, and now deploys the kubefed daemon in the target cluster.
 This operation also exchanges the required permissions (tokens, kubeconfigs) and url to enable
 the communication between the daemons and the control-plane.
+
+The installation of the kubefed daemon depends on whether there is access from the control-plane cluster
+to the kubefed cluster:
+
+* If the control-plane cluster can access the kubefed cluster, the deployment could be easily done by consuming the
+kubefed cluster's kubeconfig file when running the `kubefedctl join` command.
+
+* A manual deployment where the operator create the required Kubernetes resources to deploy the daemons.
+
+In both solutions, the kubefed daemon registers itself using a token, analogously to how it happens today with the bootstrapping of kubelets.
 
 In the following we explain how this uni-directional communication occurs:
 
@@ -129,7 +145,7 @@ Likewise it has to update the status of the kubefed cluster to report its status
 The update follows a heartbeat mechanism analogously to the kubelet-apiserver model where the control-plane sets
 as `ClusterNotReady` whenever a kubefed daemon skips a heartbeat.
 
-The kubefed daemons have to periodically collect the status of the federated resources in each
+As mentioned above, the kubefed daemons have to periodically collect the status of the federated resources in each
 cluster.
 
 The resources can be filtered by the label `kubefed.io/managed=true` to exclude them from the rest of Kubernetes resources.
@@ -163,7 +179,7 @@ which watches the list of resources per cluster.
 
 <img src="./images/kubefedv2Example.jpg">
 
-Likewise this reconciliation loop is in charge of reverting any local changes done in a cluster to
+Likewise this reconciliation loop is in charge of reverting any local changes done in a kubefed cluster to
 a federated resource.
 This ensures that the desired state defined in the control-plane cluster is enforced
 in the target clusters.
@@ -179,7 +195,7 @@ Keeping the desired state synced with the state of the clusters would define the
 #### First iteration
 
 As part of the **first iteration**, each daemon gets a service account to talk to the Kubernetes API of the control-plane cluster.
-This service account defines the appropriated set of RBAC rules to watch, list and write the status of the federated resources for a kubefed cluster.
+This service account defines the appropriated set of RBAC rules to `watch`, `list` and `write` the status of the federated resources for a kubefed cluster.
 The creation of this account and the respective RBAC rules takes place whenever a kubefed cluster successfully joins the federation.
 A controller would keep up-to-date each account with the respective RBAC rules to match the available
 federated types at any time for each kubefed cluster.
@@ -200,19 +216,19 @@ all the operations done via the Kubernetes API server in the **first iteration**
 The shim API server limits what each daemon can view or access and reduces the load of the daemons on the Kubernetes API server.
 
 The main challenge of this shim API server is filtering which federated resources a kubefed
-daemon should be able to get, watch, list and update their status.
+daemon should be able to `get`, `watch`, `list` and `update` their status.
 
 This server watches for changes in the federated resources, and does a fan-out to it's daemons.
 This also reduces the load on the Kubernetes API server significantly cause kubefed daemons are talking to this server.
-All the kubefed daemon operations on federated resources are handled by the shim API server that works similarly to an authorizers and an aggregated API.
+All the kubefed daemon operations on federated resources are handled by the shim API server that works **similarly** to an authorizers and an aggregated API combined.
 A daemon should be only aware of changes in the resources assigned to its own cluster.
 
-Without this new control-plane component, every kubefed daemon would have to perform any operations and register its own watch with API Server.
-Consequently the load on Kubernetes API server would multiply as you scale up the number of kubefed daemons.
+Without this new control-plane component, every kubefed daemon would have to perform any operations and register its own watch via the Kubernetes API Server.
+Consequently the load on API server would multiply as you scale up the number of kubefed daemons, and the system would lack of a proper secure layer to limit what each daemon can access or do.
 
 <img src="./images/kubefedv2_seconditeration.jpg">
 
-By having this API server, all the watch events are off-loaded to the server which filters the visibility of resources from the Kubernetes API server.
+By having this API server, all the watch events are off-loaded to this component which filters the visibility of resources from the Kubernetes API server.
 
 #### Other Main Reconciliation Loops
 
