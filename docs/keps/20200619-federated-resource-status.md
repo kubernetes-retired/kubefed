@@ -15,7 +15,7 @@ approvers:
 - "@pmorie"
 editor: TBD
 creation-date: 2020-06-19
-last-updated: 2020-06-19
+last-updated: 2020-07-28
 status: provisional
 ---
 
@@ -29,6 +29,7 @@ status: provisional
   - [Goals](#goals)
   - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
+- [Alternatives](#alternatives)
 <!-- /toc -->
 
 ## Summary
@@ -50,14 +51,38 @@ resources are healthy or not across clusters.
 
 * Quickly identify unhealthy federated resources by relying on the status of the federated resources.
 * Improve the troubleshooting of failures when propagating resources.
+* Define a new api version potentially `v1beta2` to include these new fields.
 
+### Non Goals
+
+* Set the resource status for all the federated resources and clusters whenever a federated resource satisfies the condition `Ready=True`.
+Addition of feature flags to control plane components to limit or throttle requests made to Kubernetes API servers akin to kube-api-qps or kube-api-burst in kubelet.
 
 ## Proposal
 
-Kubefed reports a limited set of states for the federation of resources.
+Kubefed reports a limited set of states related to the state of the federation of resources themselves.
 
 
 ```go
+ClusterPropagationOK PropagationStatus = ""
+WaitingForRemoval    PropagationStatus = "WaitingForRemoval"
+
+// Cluster-specific errors
+ClusterNotReady        PropagationStatus = "ClusterNotReady"
+CachedRetrievalFailed  PropagationStatus = "CachedRetrievalFailed"
+ComputeResourceFailed  PropagationStatus = "ComputeResourceFailed"
+ApplyOverridesFailed   PropagationStatus = "ApplyOverridesFailed"
+CreationFailed         PropagationStatus = "CreationFailed"
+UpdateFailed           PropagationStatus = "UpdateFailed"
+DeletionFailed         PropagationStatus = "DeletionFailed"
+LabelRemovalFailed     PropagationStatus = "LabelRemovalFailed"
+RetrievalFailed        PropagationStatus = "RetrievalFailed"
+AlreadyExists          PropagationStatus = "AlreadyExists"
+FieldRetentionFailed   PropagationStatus = "FieldRetentionFailed"
+VersionRetrievalFailed PropagationStatus = "VersionRetrievalFailed"
+ClientRetrievalFailed  PropagationStatus = "ClientRetrievalFailed"
+ManagedLabelFalse      PropagationStatus = "ManagedLabelFalse"
+
 CreationTimedOut     PropagationStatus = "CreationTimedOut"
 UpdateTimedOut       PropagationStatus = "UpdateTimedOut"
 DeletionTimedOut     PropagationStatus = "DeletionTimedOut"
@@ -70,9 +95,9 @@ NamespaceNotFederated  AggregateReason = "NamespaceNotFederated"
 PropagationConditionType ConditionType = "Propagation"
 ```
 
-However the current federated resource properties don't help to track the status of the deployed resources in the kubefed clusters.
+The current federated resource properties don't help to track the status of the deployed resources in the kubefed clusters.
 
-The idea is to extend current GenericFederatedStatus with the Status of the resources:
+The idea is to extend current `GenericFederatedStatus/Clusters` with the Status of the resources per cluster:
 
 ```go
 
@@ -89,9 +114,49 @@ type GenericFederatedResource struct {
 	Status *GenericFederatedStatus `json:"status,omitempty"`
 }
 
+type GenericClusterStatus struct {
+	Name   string            `json:"name"`
+	Status PropagationStatus `json:"status,omitempty"`
+
+  Conditions []*metav1.Condition `json:"conditions,omitempty"`
+}
+
 ```
 
-Nowadays `Conditions` hold the status of the federated actions (aka propagation status).
+The idea is to use the type `k8s.io/apimachinery/pkg/apis/meta/v1` for `Condition` that looks like:
+
+```go
+type Condition struct {
+	// Type of condition in CamelCase or in foo.example.com/CamelCase.
+	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+	// useful (see .node.status.conditions), the ability to deconflict is important.
+	// +required
+	Type string `json:"type" protobuf:"bytes,1,opt,name=type"`
+	// Status of the condition, one of True, False, Unknown.
+	// +required
+	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
+	// If set, this represents the .metadata.generation that the condition was set based upon.
+	// For instance, if .metadata.generation is currently 12, but the .status.condition[x].observedGeneration is 9, the condition is out of date
+	// with respect to the current state of the instance.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,3,opt,name=observedGeneration"`
+	// Last time the condition transitioned from one status to another.
+	// This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+	// +required
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	// The reason for the condition's last transition in CamelCase.
+	// The specific API may choose whether or not this field is considered a guaranteed API.
+	// This field may not be empty.
+	// +required
+	Reason string `json:"reason" protobuf:"bytes,5,opt,name=reason"`
+	// A human readable message indicating details about the transition.
+	// This field may be empty.
+	// +required
+	Message string `json:"message" protobuf:"bytes,6,opt,name=message"`
+}
+```
+
+As of now `Conditions` field of a federated resource holds the status of the federated actions (aka propagation status).
 In other words, it defines the conditions of the propagation status for a resource.
 
 ```yaml
@@ -136,10 +201,14 @@ In other words, it defines the conditions of the propagation status for a resour
 ```
 
 `status.conditions` reports the latest status which defines the state of the propagation.
-Obviously it is not necessary to report all the clusters for which the propagation when
-successful.
+Obviously it is not necessary to report all the clusters for which the propagation was completed
+successfully.
+In relation to this, this approach does not change the initial implementation where
+the status is only collected for the services and in case of an error during the propagation.
+Therefore the proposed solution updates the `status/conditions` and `clusters/conditions` to
+identify the state of a federated resource in case of failure or non-ready state.
 
-The intention in this proposal is to extend the current available `Conditions` to
+The intention in this proposal is to extend the current available `Clusters` status with an additional field `Conditions` to
 hold the status of the federated resources, e.g Ready, NotReady.
 
 The status of the federated resources should determine whether the resources satisfy
@@ -148,11 +217,12 @@ To do so, this property reports the status of the federated resources in their
 target clusters whenever a `ReadyCondition` is not satisfied.
 This condition would need to be identified per type or by the usage of an interface
 `IsReady` that determines this value per type of resource.
-By doing so, we ensure the `Conditions` property shows the status of only unhealthy
-resources.
+By doing so, we ensure the `Clusters/Conditions` property shows the status of only unhealthy
+resources for the respective clusters.
 
 If we re-use the example from above and imagine a scenario where this `FederatedDeployment` resource remained `Ready=True` in two clusters, but crashed in `cluster3`.
-The value of `status.conditions` should reflect the new state for that specific cluster.
+The value of `status.clusters[<index>].conditions` should reflect the new state for that specific cluster.
+The value of `status.conditions` defines the aggregated condition of the Federated resource itself.
 
 ```yaml
 - apiVersion: types.kubefed.io/v1beta1
@@ -169,6 +239,7 @@ The value of `status.conditions` should reflect the new state for that specific 
       clusters:
       - name: cluster2
       - name: cluster1
+      - name: cluster3
     template:
       metadata:
         labels:
@@ -189,21 +260,34 @@ The value of `status.conditions` should reflect the new state for that specific 
   status:
     clusters:
     - name: "cluster3"
-      status: "ReplicaFailure"
+      status: "CreationFailed"
+      conditions:
+      - lastTransitionTime: "2020-05-25T20:23:59Z"
+        lastUpdateTime: "2020-05-25T20:23:59Z"
+        status: "True"
+        type: "NotReady"
+        reason: "ReplicaFailure"
+        message: "1 Replica is not ready, you don't have enough resources"
     conditions:
     - lastTransitionTime: "2020-05-25T20:23:59Z"
       lastUpdateTime: "2020-05-25T20:23:59Z"
-      status: "True"
-      type: "NotReady"
+      status: "False"
+      type: "Propagation"
 ```
 
-The value of `spec.conditions` contains a `NotReady` condition type, that is the
-result of checking the status of that remote `Deployment` in the target clusters.
-The value of `status.clusters.status` can be extracted from the `"ReplicaFailure"`
-status of the `Deployment` and so reused for visibility.
+The value of `status.conditions` describes the propagation error that happened to `cluster3`
+while `clusters[0].conditions` for `name=cluster3` contains a `NotReady` condition type with a detailed
+description of the state of the federated resource in `cluster3`.
+The value of `status.clusters[0].status` reuses the current set of available status types, e.g. `"CreationFailed"`, which identifies the current problem during the propagation.
 
-Likewise, the status of the `FederatedDeployment` remains `Ready=True` in the rest
+
+The status of the `FederatedDeployment` remains `Ready=True` in the rest
 of clusters: `cluster1` and `cluster2`.
+However as you can see, the `clusters[<index>].conditions` does not contain values with the `IsReady` condition for `cluster2` and `cluster1`.
+The system omits the reporting of these `Ready=True` status due two reasons:
+
+* easily decipher the propagation and other failures.
+* reduce load on etcd, which goes directly proportional to all resources in all clusters.
 
 If a federated resource does not have a status field, a successful creation/update would
 reflect its readiness. Then the `ReadyCondition` would be satisfied by its creation.
@@ -282,6 +366,22 @@ By following this approach, kubefed would be able to properly consume and report
 of any federated resource by checking the `status.conditions` (e.g `Ready=True`) fields.
 
 
+**Note that**, this proposed solution might include additional flags to the kubefed control-plane
+components to avoid blowing out the control-plane due to frequent and concurrent API calls to
+update the status of the federated resources.
+
+Obviously users might want to be able to enable/disable the definition of:
+
+* Which condition to look for each federated resource to determine its readiness, e.g. `Ready=True`, `Deployed=True`.
+This might be especially useful for custom resource types without a `IsReady` standard condition.
+
+* When to show up the raw status of the resources or just the failed status (as today).
+By raw status, the system understand to show the status of all the federated resources `Ready` and not `Ready`.
+This can have an impact in the performance, so this should be configured with precautions.
+
+To do so, the system exposes properties as part of each `FederatedTypeConfig` to define
+the desired behavior at federated resource type.
+
 ### User Stories
 
 #### Story 1
@@ -344,7 +444,7 @@ status:
 ```
 
 At any specific time, this `FederatedAddon` crashed on three clusters.
-As a consequence, the value of its status should look similar to this:
+As a consequence, the value of its `status` should look similar to this:
 
 ```yaml
 ---
@@ -392,11 +492,26 @@ status:
   status:
     clusters:
     - name: "cluster1"
-      status: "Failed"
+      conditions:
+      - lastTransitionTime: "2020-05-25T20:23:59Z"
+        lastUpdateTime: "2020-05-25T20:23:59Z"
+        status: "True"
+        type: "NotReady"
+        reason: "Failed"
     - name: "cluster2"
-      status: "Failed"               
+      conditions:
+      - lastTransitionTime: "2020-05-25T20:23:59Z"
+        lastUpdateTime: "2020-05-25T20:23:59Z"
+        status: "True"
+        type: "NotReady"
+        reason: "Failed"
     - name: "cluster3"
-      status: "Failed"  
+      conditions:
+      - lastTransitionTime: "2020-05-25T20:23:59Z"
+        lastUpdateTime: "2020-05-25T20:23:59Z"
+        status: "True"
+        type: "NotReady"
+        reason: "Failed"
   conditions:
   - lastTransitionTime: "2020-05-25T19:47:59Z"
     lastUpdateTime: "2020-05-25T19:47:59Z"
@@ -404,5 +519,18 @@ status:
     type: NotReady
 ```
 
-`Failed` could be extracted from the status of an addon whose `status.stage` is `Failed` and
+The value of `status.clusters[<index>].conditions` could be extracted from the status of an addon whose `status.stage` is `Failed` and
 `status.ready` value is `false`.
+The ideal scenario would assume `message` and `reason` are available fields in a `conditions` property of the addon resource, so a detailed description
+of the problem can be shared with the users.
+
+
+## Alternatives
+
+Another approach consists on segregating the propagation status and individual cluster resource status as two separate sub status fields in the status resource.
+
+This approach would provide an option to define which status to show up between the propagation and cluster resource status.
+This option could be added to the `FederatedTypeConfig` API type to specify which status to show/fetch at resource level.
+
+Likewise, as mentioned above, the system only stores the failure status of the federated resources.
+However a feature gate could enable in the control-plane for the collection of the raw status of all the resources side by side with the propagation status.
