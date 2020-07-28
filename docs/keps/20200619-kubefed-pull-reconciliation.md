@@ -67,6 +67,8 @@ Users would be able to choose the desired propagation logic for their setup.
 * Promote towards a decentralized propagation and reconciliation model.
 * The new pull reconciliation model won't change where the federated resource definition lives. All the logic would remain
 in the kubefed control plane cluster, as until now.
+* Define an upgrade path from a push to a pull model, and thereby facilitate the adoption of this new model on running clusters.
+* Make usage of the server-side apply approach as a way to simplify the update logic of the new controllers used in the kubefed daemons.
 
 ## Non Goals
 
