@@ -6,7 +6,7 @@ metadata:
   labels:
     kubefed-control-plane: controller-manager
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.controller.replicaCount }}
   selector:
     matchLabels:
       kubefed-control-plane: controller-manager
@@ -22,10 +22,17 @@ spec:
       containers:
       - command:
         - /hyperfed/controller-manager
-        - "--v={{ .Values.logLevel }}"
-        image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
-        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
+        - "--v={{ .Values.controller.logLevel }}"
+        image: "{{ .Values.controller.repository }}/{{ .Values.controller.image }}:{{ .Values.controller.tag }}"
+        imagePullPolicy: "{{ .Values.controller.imagePullPolicy }}"
         name: controller-manager
+{{- if .Values.controller.env }}
+        env:
+{{- range $key, $value := .Values.controller.env }}
+        - name: "{{ $key }}"
+          value: "{{ $value }}"
+{{- end }}
+{{- end }}
         ports:
         - containerPort: 9090
           name: metrics
@@ -37,8 +44,8 @@ spec:
           periodSeconds: 3
           timeoutSeconds: 3
         resources:
-{{- if .Values.resources }}
-{{ toYaml .Values.resources | indent 12 }}
+{{- if .Values.controller.resources }}
+{{ toYaml .Values.controller.resources | indent 12 }}
 {{- end }}
       terminationGracePeriodSeconds: 10
 ---
@@ -64,15 +71,22 @@ spec:
       serviceAccountName: kubefed-admission-webhook
       containers:
       - name: admission-webhook
-        image: "{{ .Values.repository }}/{{ .Values.image }}:{{ .Values.tag }}"
-        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
+        image: "{{ .Values.webhook.repository }}/{{ .Values.webhook.image }}:{{ .Values.webhook.tag }}"
+        imagePullPolicy: "{{ .Values.webhook.imagePullPolicy }}"
+{{- if .Values.webhook.env }}
+        env:
+{{- range $key, $value := .Values.webhook.env }}
+        - name: "{{ $key }}"
+          value: "{{ $value }}"
+{{- end }}
+{{- end }}
         command:
         - "/hyperfed/webhook"
         - "--secure-port=8443"
         - "--audit-log-path=-"
         - "--tls-cert-file=/var/serving-cert/tls.crt"
         - "--tls-private-key-file=/var/serving-cert/tls.key"
-        - "--v=8"
+        - "--v={{ .Values.webhook.logLevel }}"
         ports:
         - containerPort: 8443
         volumeMounts:
@@ -83,6 +97,10 @@ spec:
             path: /healthz
             port: 8443
             scheme: HTTPS
+        resources:
+{{- if .Values.webhook.resources }}
+{{ toYaml .Values.webhook.resources | indent 12 }}
+{{- end }}
       volumes:
       - name: serving-cert
         secret:
