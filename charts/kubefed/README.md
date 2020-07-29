@@ -25,38 +25,8 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 ## Prerequisites
 
 - Kubernetes 1.13+
-- Helm 2.10+
+- Helm 3.1.2+
 
-## Configuring RBAC for Helm (Optional)
-
-If your Kubernetes cluster has RBAC enabled, it will be necessary to
-ensure that helm is deployed with a service account with the
-permissions necessary to deploy KubeFed:
-
-```bash
-$ cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tiller
-  namespace: kube-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tiller
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-  - kind: ServiceAccount
-    name: tiller
-    namespace: kube-system
-EOF
-
-$ helm init --service-account tiller
-```
 
 ## Installing the Chart
 
@@ -71,13 +41,14 @@ kubefed-charts   https://raw.githubusercontent.com/kubernetes-sigs/kubefed/maste
 
 With the repo added, available charts and versions can be viewed.
 ```bash
-$ helm search kubefed --devel
+$ helm search repo kubefed
 ```
 
 Install the chart and specify the version to install with the
 `--version` argument. Replace `<x.x.x>` with your desired version.
 ```bash
-$ helm install kubefed-charts/kubefed --name kubefed --version=<x.x.x> --namespace kube-federation-system --devel
+$ kubectl create namespace kube-federation-system
+$ helm --namespace kube-federation-system install kubefed kubefed-charts/kubefed --version=<x.x.x>
 ```
 
 **NOTE:** For **namespace-scoped deployments** (configured with the `--set
@@ -95,26 +66,16 @@ namespace with this label by default.
 
 ## Uninstalling the Chart
 
-Due to this helm [issue](https://github.com/helm/helm/issues/4440), the CRDs cannot be deleted
-when delete helm release, so before delete the helm release, we need first delete all
-of the CR and CRDs for KubeFed release.
-
 Delete all KubeFed `FederatedTypeConfig`:
 
 ```bash
 $ kubectl -n kube-federation-system delete FederatedTypeConfig --all
 ```
 
-Delete all KubeFed CRDs:
-
-```bash
-$ kubectl delete crd $(kubectl get crd | grep -E 'kubefed.io' | awk '{print $1}')
-```
-
 Then you can uninstall/delete the `kubefed` release:
 
 ```bash
-$ helm delete --purge kubefed
+$ helm --namespace kube-federation-system uninstall kubefed
 ```
 
 The command above removes all the Kubernetes components associated with the chart

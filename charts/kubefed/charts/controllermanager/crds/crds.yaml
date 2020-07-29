@@ -1,12 +1,8 @@
-{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.io/v1beta1"))) }}
----
-
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: clusterpropagatedversions.core.kubefed.io
 spec:
@@ -90,7 +86,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: federatedservicestatuses.core.kubefed.io
 spec:
@@ -175,7 +170,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: federatedtypeconfigs.core.kubefed.io
 spec:
@@ -351,7 +345,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: kubefedclusters.core.kubefed.io
 spec:
@@ -493,7 +486,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: kubefedconfigs.core.kubefed.io
 spec:
@@ -626,7 +618,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: propagatedversions.core.kubefed.io
 spec:
@@ -710,7 +701,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: dnsendpoints.multiclusterdns.kubefed.io
 spec:
@@ -800,7 +790,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: domains.multiclusterdns.kubefed.io
 spec:
@@ -855,7 +844,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: ingressdnsrecords.multiclusterdns.kubefed.io
 spec:
@@ -954,7 +942,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: servicednsrecords.multiclusterdns.kubefed.io
 spec:
@@ -1091,7 +1078,6 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    "helm.sh/hook": crd-install
   creationTimestamp: null
   name: replicaschedulingpreferences.scheduling.kubefed.io
 spec:
@@ -1195,4 +1181,3 @@ status:
   conditions: []
   storedVersions: []
 ---
-{{ end }}
