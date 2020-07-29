@@ -38,34 +38,6 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function deploy-with-helm() {
-  # Don't install tiller if we already have a working install.
-  if ! helm version --server 2>/dev/null; then
-    # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
-    cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tiller
-  namespace: kube-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tiller
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-  - kind: ServiceAccount
-    name: tiller
-    namespace: kube-system
-EOF
-
-    helm init --service-account tiller
-    util::wait-for-condition "Tiller to become ready" "helm version --server &> /dev/null" 120
-  fi
-
   local repository=${IMAGE_NAME%/*}
   local image_tag=${IMAGE_NAME##*/}
   local image=${image_tag%:*}
