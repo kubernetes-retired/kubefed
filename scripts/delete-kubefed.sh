@@ -64,6 +64,8 @@ delete-helm-deployment
 
 ${KCD} ns "${NS}"
 
+exit 0
+
 # Wait for the namespaces to be removed
 function ns-deleted() {
   kubectl get ns "${1}" &> /dev/null
