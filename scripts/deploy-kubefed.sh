@@ -58,6 +58,13 @@ function deploy-with-helm() {
   ${cmd}
 }
 
+function create-namespace {
+  # Required arguments
+  local ns="${1}"
+  echo "kubectl create namespace ${ns}" 
+  kubectl create namespace ${ns}
+}
+
 function helm-deploy-cmd {
   # Required arguments
   local name="${1}"
@@ -144,6 +151,9 @@ fi
 cd "$(dirname "$0")/.."
 make kubefedctl
 cd -
+
+# Create namespace first before deploy with helm
+create-namespace ${NS}
 
 # Deploy KubeFed resources
 deploy-with-helm
