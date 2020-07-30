@@ -68,6 +68,8 @@ ${KCD} ns "${NS}" -v8
 echo "Helm uninstall finished"
 exit 0
 
+exit 0
+
 # Wait for the namespaces to be removed
 function ns-deleted() {
   kubectl get ns "${1}" &> /dev/null
