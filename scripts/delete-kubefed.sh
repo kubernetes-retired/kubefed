@@ -31,9 +31,9 @@ function delete-helm-deployment() {
   fi
 
   if [[ "${NAMESPACED}" ]]; then
-    helm delete --purge kubefed-${NS}
+    helm -n ${NS} uninstall kubefed-${NS}
   else
-    helm delete --purge kubefed
+    helm -n ${NS} uninstall kubefed
   fi
 }
 
