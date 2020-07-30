@@ -61,12 +61,12 @@ done
 
 # "diff -U 4" will take 1 as return code which will cause the script failed to execute, here
 # I was force returning true to get a return code as 0.
-crd_diff=`(diff -U 4 ${TEMP_CRDS_YAML} ${CHART_FEDERATED_CRD_DIR}/crds/crds.yaml; true;)`
-if [ -n "${crd_diff}" ]; then
-  cp -f ${TEMP_CRDS_YAML} $CHART_FEDERATED_CRD_DIR/crds/crds.yaml
-  $SED -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.io\/v1beta1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds/crds.yaml
-  $SED -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds/crds.yaml
-fi
+#crd_diff=`(diff -U 4 ${TEMP_CRDS_YAML} ${CHART_FEDERATED_CRD_DIR}/crds/crds.yaml; true;)`
+#if [ -n "${crd_diff}" ]; then
+#  cp -f ${TEMP_CRDS_YAML} $CHART_FEDERATED_CRD_DIR/crds/crds.yaml
+#  $SED -i '1i{{ if (or (or (not .Values.global.scope) (eq .Values.global.scope "Cluster")) (not (.Capabilities.APIVersions.Has "core.kubefed.io\/v1beta1"))) }}' ${CHART_FEDERATED_CRD_DIR}/crds/crds.yaml
+#  $SED -i '$a{{ end }}' ${CHART_FEDERATED_CRD_DIR}/crds/crds.yaml
+#fi
 
 # Generate kubeconfig to access kube-apiserver. It is cleaned when script is done.
 cat <<EOF > ${WORKDIR}/kubeconfig
