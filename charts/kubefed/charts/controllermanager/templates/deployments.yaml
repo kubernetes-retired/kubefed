@@ -83,9 +83,7 @@ spec:
         command:
         - "/hyperfed/webhook"
         - "--secure-port=8443"
-        - "--audit-log-path=-"
-        - "--tls-cert-file=/var/serving-cert/tls.crt"
-        - "--tls-private-key-file=/var/serving-cert/tls.key"
+        - "--cert-dir=/var/serving-cert/"
         - "--v={{ .Values.webhook.logLevel }}"
         ports:
         - containerPort: 8443
@@ -94,7 +92,7 @@ spec:
           name: serving-cert
         readinessProbe:
           httpGet:
-            path: /healthz
+            path: /readyz
             port: 8443
             scheme: HTTPS
         resources:

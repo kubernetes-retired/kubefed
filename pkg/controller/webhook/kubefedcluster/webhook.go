@@ -17,15 +17,11 @@ limitations under the License.
 package kubefedcluster
 
 import (
-	"strings"
-	"sync"
+	"context"
 
-	"github.com/openshift/generic-admission-server/pkg/apiserver"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -38,52 +34,34 @@ const (
 	resourcePluralName = "kubefedclusters"
 )
 
-type KubeFedClusterAdmissionHook struct {
-	client dynamic.ResourceInterface
+type KubeFedClusterAdmissionHook struct{}
 
-	lock        sync.RWMutex
-	initialized bool
-}
+var _ admission.Handler = &KubeFedClusterAdmissionHook{}
 
-var _ apiserver.ValidatingAdmissionHook = &KubeFedClusterAdmissionHook{}
-
-func (a *KubeFedClusterAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
-	klog.Infof("New ValidatingResource for %q", ResourceName)
-	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(ResourceName)
-}
-
-func (a *KubeFedClusterAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
-	status := &admissionv1beta1.AdmissionResponse{}
+func (a *KubeFedClusterAdmissionHook) Handle(ctx context.Context, admissionSpec admission.Request) admission.Response {
+	status := admission.Response{}
 
 	klog.V(4).Infof("Validating %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not FederatedTypeConfigs
-	if webhook.Allowed(admissionSpec, resourcePluralName, status) {
+	if webhook.Allowed(admissionSpec, resourcePluralName, &status) {
 		return status
 	}
 
 	admittingObject := &v1beta1.KubeFedCluster{}
-	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, &status)
 	if err != nil {
-		return status
-	}
-
-	if !webhook.Initialized(&a.initialized, &a.lock, status) {
 		return status
 	}
 
 	klog.V(4).Infof("Validating %q = %+v", ResourceName, *admittingObject)
 
 	isStatusSubResource := admissionSpec.SubResource == "status"
-	webhook.Validate(status, func() field.ErrorList {
+	webhook.Validate(&status, func() field.ErrorList {
 		return validation.ValidateKubeFedCluster(admittingObject, isStatusSubResource)
 	})
 
 	return status
-}
-
-func (a *KubeFedClusterAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, ResourceName)
 }
