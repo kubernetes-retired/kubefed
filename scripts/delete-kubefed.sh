@@ -64,6 +64,7 @@ delete-helm-deployment
 
 ${KCD} ns "${NS}"
 
+echo "Helm uninstall finished"
 exit 0
 
 # Wait for the namespaces to be removed
