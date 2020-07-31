@@ -6,19 +6,6 @@
 ##
 controllermanager:
   enabled: true
-  replicaCount: 2
-  repository: quay.io/kubernetes-multicluster
-  image: kubefed
-  tag: canary
-  imagePullPolicy: IfNotPresent
-  logLevel: 2
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 64Mi
   clusterAvailableDelay:
   clusterUnavailableDelay:
   leaderElectLeaseDuration:
@@ -38,6 +25,37 @@ controllermanager:
     SchedulerPreferences:
     CrossClusterServiceDiscovery:
     FederatedIngress:
+  
+  controller:
+    replicaCount: 2
+    repository: quay.io/kubernetes-multicluster
+    image: kubefed
+    tag: canary
+    imagePullPolicy: IfNotPresent
+    logLevel: 2
+    env: {}
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+  webhook:
+    repository: quay.io/kubernetes-multicluster
+    image: kubefed
+    tag: canary
+    imagePullPolicy: IfNotPresent
+    logLevel: 8
+    env: {}
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+
 
 ## Configuration global values for all charts
 ##
