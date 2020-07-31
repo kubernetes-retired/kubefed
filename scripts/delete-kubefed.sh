@@ -62,7 +62,7 @@ done
 # Deploy kubefed resources
 delete-helm-deployment
 
-${KCD} ns "${NS}"
+${KCD} ns "${NS}" -v8
 
 echo "Helm uninstall finished"
 exit 0
