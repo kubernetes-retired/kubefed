@@ -72,7 +72,7 @@ function helm-deploy-cmd {
       --set controllermanager.controller.tag=${tag} \
       --set controllermanager.webhook.repository=${repo} \
       --set controllermanager.webhook.image=${image} \
-      --set controllermanager.webhook.tag=${tag} --create-namespace"
+      --set controllermanager.webhook.tag=${tag}"
 }
 
 function kubefed-admission-webhook-ready() {
