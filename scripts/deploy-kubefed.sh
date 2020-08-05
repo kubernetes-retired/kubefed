@@ -95,8 +95,12 @@ function helm-deploy-cmd {
   local tag="${5}"
 
   echo "helm install charts/kubefed --name ${name} --namespace ${ns} \
-      --set controllermanager.repository=${repo} --set controllermanager.image=${image} \
-      --set controllermanager.tag=${tag}"
+      --set controllermanager.controller.repository=${repo} \
+      --set controllermanager.controller.image=${image} \
+      --set controllermanager.controller.tag=${tag} \
+      --set controllermanager.webhook.repository=${repo} \
+      --set controllermanager.webhook.image=${image} \
+      --set controllermanager.webhook.tag=${tag}"
 }
 
 function kubefed-admission-webhook-ready() {
