@@ -17,21 +17,17 @@ limitations under the License.
 package kubefedconfig
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
-	"sync"
 
-	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
@@ -44,31 +40,21 @@ const (
 	resourcePluralName = "kubefedconfigs"
 )
 
-type KubeFedConfigAdmissionHook struct {
-	client dynamic.ResourceInterface
+type KubeFedConfigValidator struct{}
 
-	lock        sync.RWMutex
-	initialized bool
-}
+var _ admission.Handler = &KubeFedConfigValidator{}
 
-var _ apiserver.ValidatingAdmissionHook = &KubeFedConfigAdmissionHook{}
-
-func (a *KubeFedConfigAdmissionHook) ValidatingResource() (plural schema.GroupVersionResource, singular string) {
-	klog.Infof("New ValidatingResource for %q", ResourceName)
-	return webhook.NewValidatingResource(resourcePluralName), strings.ToLower(ResourceName)
-}
-
-func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
-	status := &admissionv1beta1.AdmissionResponse{}
+func (a *KubeFedConfigValidator) Handle(ctx context.Context, admissionSpec admission.Request) admission.Response {
+	status := admission.Response{}
 
 	klog.V(4).Infof("Validating %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
-	if webhook.Allowed(admissionSpec, resourcePluralName, status) {
+	if webhook.Allowed(admissionSpec, resourcePluralName, &status) {
 		return status
 	}
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, &status)
 	if err != nil {
 		return status
 	}
@@ -76,47 +62,36 @@ func (a *KubeFedConfigAdmissionHook) Validate(admissionSpec *admissionv1beta1.Ad
 	var oldObject *v1beta1.KubeFedConfig
 	if admissionSpec.Operation == admissionv1beta1.Update {
 		oldObject = &v1beta1.KubeFedConfig{}
-		err = webhook.Unmarshal(&admissionSpec.OldObject, oldObject, status)
+		err = webhook.Unmarshal(&admissionSpec.OldObject, oldObject, &status)
 		if err != nil {
 			return status
 		}
 	}
 
-	if !webhook.Initialized(&a.initialized, &a.lock, status) {
-		return status
-	}
-
 	klog.V(4).Infof("Validating %q = %+v", ResourceName, *admittingObject)
 
-	webhook.Validate(status, func() field.ErrorList {
+	webhook.Validate(&status, func() field.ErrorList {
 		return validation.ValidateKubeFedConfig(admittingObject, oldObject)
 	})
 
 	return status
 }
 
-var _ apiserver.MutatingAdmissionHook = &KubeFedConfigAdmissionHook{}
+type KubeFedConfigDefaulter struct{}
 
-func (a *KubeFedConfigAdmissionHook) MutatingResource() (plural schema.GroupVersionResource, singular string) {
-	klog.Infof("New MutatingResource for %q", ResourceName)
-	return webhook.NewMutatingResource(resourcePluralName), strings.ToLower(ResourceName)
-}
+var _ admission.Handler = &KubeFedConfigDefaulter{}
 
-func (a *KubeFedConfigAdmissionHook) Admit(admissionSpec *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
-	status := &admissionv1beta1.AdmissionResponse{}
+func (a *KubeFedConfigDefaulter) Handle(ctx context.Context, admissionSpec admission.Request) admission.Response {
+	status := admission.Response{}
 	klog.V(4).Infof("Admitting %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, status)
+	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, &status)
 	if err != nil {
 		return status
 	}
 
 	klog.V(4).Infof("Admitting %q = %+v", ResourceName, *admittingObject)
-
-	if !webhook.Initialized(&a.initialized, &a.lock, status) {
-		return status
-	}
 
 	defaultedObject := admittingObject.DeepCopyObject().(*v1beta1.KubeFedConfig)
 	defaults.SetDefaultKubeFedConfig(defaultedObject)
@@ -152,10 +127,6 @@ func (a *KubeFedConfigAdmissionHook) Admit(admissionSpec *admissionv1beta1.Admis
 	status.Patch = patchBytes
 	status.Allowed = true
 	return status
-}
-
-func (a *KubeFedConfigAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	return webhook.Initialize(kubeClientConfig, &a.client, &a.lock, &a.initialized, ResourceName)
 }
 
 type patchOperation struct {

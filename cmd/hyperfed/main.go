@@ -37,9 +37,9 @@ import (
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 
-	"sigs.k8s.io/kubefed/cmd/controller-manager/app"
+	ctrlapp "sigs.k8s.io/kubefed/cmd/controller-manager/app"
+	webhookapp "sigs.k8s.io/kubefed/cmd/webhook/app"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
-	"sigs.k8s.io/kubefed/pkg/webhook"
 )
 
 func main() {
@@ -80,9 +80,9 @@ func commandFor(basename string, defaultCommand *cobra.Command, commands []func(
 func NewHyperFedCommand() (*cobra.Command, []func() *cobra.Command) {
 	stopChan := genericapiserver.SetupSignalHandler()
 
-	controller := func() *cobra.Command { return app.NewControllerManagerCommand(stopChan) }
+	controller := func() *cobra.Command { return ctrlapp.NewControllerManagerCommand(stopChan) }
 	kubefedctlCmd := func() *cobra.Command { return kubefedctl.NewKubeFedCtlCommand(os.Stdout) }
-	webhookCmd := func() *cobra.Command { return webhook.NewWebhookCommand(stopChan) }
+	webhookCmd := func() *cobra.Command { return webhookapp.NewWebhookCommand(stopChan) }
 
 	commandFns := []func() *cobra.Command{
 		controller,

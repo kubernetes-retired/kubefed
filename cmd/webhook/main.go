@@ -17,25 +17,21 @@ limitations under the License.
 package main
 
 import (
-	"flag"
+	"fmt"
+	"os"
 
-	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
-	"sigs.k8s.io/kubefed/pkg/webhook"
+	"sigs.k8s.io/kubefed/cmd/webhook/app"
 )
 
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	stopChan := genericapiserver.SetupSignalHandler()
-
-	cmd := webhook.NewWebhookCommand(stopChan)
-	cmd.Flags().AddGoFlagSet(flag.CommandLine)
-
-	if err := cmd.Execute(); err != nil {
-		klog.Fatal(err)
+	if err := app.NewWebhookCommand(signals.SetupSignalHandler()); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 }

@@ -19,7 +19,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/validation.core.kubefed.io/v1beta1/federatedtypeconfigs
+      path: /validate-federatedtypeconfigs
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -49,7 +49,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/validation.core.kubefed.io/v1beta1/kubefedclusters
+      path: /validate-kubefedcluster
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -74,7 +74,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/validation.core.kubefed.io/v1beta1/kubefedconfigs
+      path: /validate-kubefedconfig
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:
@@ -110,7 +110,7 @@ webhooks:
     service:
       namespace: {{ .Release.Namespace | quote }}
       name: kubefed-admission-webhook
-      path: /apis/mutation.core.kubefed.io/v1beta1/kubefedconfigs
+      path: /default-kubefedconfig
     caBundle: {{ b64enc $ca.Cert | quote }}
   rules:
   - operations:

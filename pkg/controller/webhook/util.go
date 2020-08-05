@@ -20,16 +20,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
+
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
@@ -58,7 +56,7 @@ func NewValidatingResource(resourcePluralName string) schema.GroupVersionResourc
 
 // Allowed returns true if the admission request for the plural name of the
 // resource passed in should be allowed to pass through, false otherwise.
-func Allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string, status *admissionv1beta1.AdmissionResponse) bool {
+func Allowed(a admission.Request, pluralResourceName string, status *admission.Response) bool {
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not <pluralResourceName>
@@ -71,7 +69,7 @@ func Allowed(a *admissionv1beta1.AdmissionRequest, pluralResourceName string, st
 	return false
 }
 
-func Unmarshal(rawExt *runtime.RawExtension, object interface{}, status *admissionv1beta1.AdmissionResponse) error {
+func Unmarshal(rawExt *runtime.RawExtension, object interface{}, status *admission.Response) error {
 	err := json.Unmarshal(rawExt.Raw, object)
 	if err != nil {
 		status.Allowed = false
@@ -84,22 +82,7 @@ func Unmarshal(rawExt *runtime.RawExtension, object interface{}, status *admissi
 	return err
 }
 
-func Initialized(initialized *bool, lock *sync.RWMutex, status *admissionv1beta1.AdmissionResponse) bool {
-	lock.RLock()
-	defer lock.RUnlock()
-
-	if !*initialized {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusInternalServerError, Reason: metav1.StatusReasonInternalError,
-			Message: "not initialized",
-		}
-	}
-
-	return *initialized
-}
-
-func Validate(status *admissionv1beta1.AdmissionResponse, validateFn func() field.ErrorList) {
+func Validate(status *admission.Response, validateFn func() field.ErrorList) {
 	errs := validateFn()
 	if len(errs) != 0 {
 		status.Allowed = false
@@ -112,35 +95,7 @@ func Validate(status *admissionv1beta1.AdmissionResponse, validateFn func() fiel
 	}
 }
 
-func Initialize(kubeClientConfig *rest.Config, client *dynamic.ResourceInterface, lock *sync.RWMutex, initialized *bool, resourceName string) error {
-	lock.Lock()
-	defer lock.Unlock()
-
-	*initialized = true
-
-	shallowClientConfigCopy := *kubeClientConfig
-	shallowClientConfigCopy.GroupVersion = &schema.GroupVersion{
-		Group:   v1beta1.SchemeGroupVersion.Group,
-		Version: v1beta1.SchemeGroupVersion.Version,
-	}
-
-	shallowClientConfigCopy.APIPath = "/apis"
-	dynamicClient, err := dynamic.NewForConfig(&shallowClientConfigCopy)
-	if err != nil {
-		return err
-	}
-
-	*client = dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    v1beta1.SchemeGroupVersion.Group,
-		Version:  v1beta1.SchemeGroupVersion.Version,
-		Resource: resourceName,
-	})
-
-	klog.Infof("Initialized admission webhook for %q", resourceName)
-	return nil
-}
-
-func AdmissionRequestDebugString(a *admissionv1beta1.AdmissionRequest) string {
+func AdmissionRequestDebugString(a admission.Request) string {
 	return fmt.Sprintf("UID=%v Kind={%v} Resource=%+v SubResource=%v Name=%v Namespace=%v Operation=%v UserInfo=%+v DryRun=%v",
 		a.UID, a.Kind, a.Resource, a.SubResource, a.Name, a.Namespace, a.Operation, a.UserInfo, *a.DryRun)
 }

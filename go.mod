@@ -8,7 +8,6 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/onsi/ginkgo v1.13.0
 	github.com/onsi/gomega v1.10.1
-	github.com/openshift/generic-admission-server v1.14.0
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
