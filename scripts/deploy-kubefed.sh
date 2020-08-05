@@ -97,7 +97,7 @@ function helm-deploy-cmd {
   echo "helm install charts/kubefed --name ${name} --namespace ${ns} \
       --set controllermanager.controller.repository=${repo} \
       --set controllermanager.controller.image=${image} \
-      --set controllermanager.controller.tag=${tag}" \
+      --set controllermanager.controller.tag=${tag} \
       --set controllermanager.webhook.repository=${repo} \
       --set controllermanager.webhook.image=${image} \
       --set controllermanager.webhook.tag=${tag}"
