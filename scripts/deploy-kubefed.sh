@@ -45,10 +45,10 @@ function deploy-with-helm() {
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag}) --create-namespace"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag}) --create-namespace"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -56,13 +56,6 @@ function deploy-with-helm() {
   fi
 
   ${cmd}
-}
-
-function create-namespace {
-  # Required arguments
-  local ns="${1}"
-  echo "kubectl create namespace ${ns}" 
-  kubectl create namespace ${ns}
 }
 
 function helm-deploy-cmd {
@@ -75,7 +68,7 @@ function helm-deploy-cmd {
 
   echo "helm --namespace ${ns} install ${name} charts/kubefed \
       --set controllermanager.repository=${repo} --set controllermanager.image=${image} \
-      --set controllermanager.tag=${tag}"
+      --set controllermanager.tag=${tag} --create-namespace"
 }
 
 function kubefed-admission-webhook-ready() {
@@ -151,9 +144,6 @@ fi
 cd "$(dirname "$0")/.."
 make kubefedctl
 cd -
-
-# Create namespace first before deploy with helm
-create-namespace ${NS}
 
 # Deploy KubeFed resources
 deploy-with-helm
