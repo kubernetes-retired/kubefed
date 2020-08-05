@@ -25,7 +25,8 @@ source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function delete-helm-deployment() {
   # Clean kubefed resources
-  # ${KCD} -n "${NS}" FederatedTypeConfig --all
+  echo "Delete FederatedTypeConfigs"
+  ${KCD} -n "${NS}" FederatedTypeConfig --all
   # if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
   #   ${KCD} crd $(kubectl get crd | grep -E 'kubefed.io' | awk '{print $1}')
   # fi
