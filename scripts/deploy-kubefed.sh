@@ -45,10 +45,10 @@ function deploy-with-helm() {
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag}) --create-namespace"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag}) --create-namespace"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -59,13 +59,6 @@ function deploy-with-helm() {
 
   deployment-image-as-expected ${NS} kubefed-admission-webhook admission-webhook ${repository}/${image}:${tag}
   deployment-image-as-expected ${NS} kubefed-controller-manager controller-manager ${repository}/${image}:${tag}
-}
-
-function create-namespace {
-  # Required arguments
-  local ns="${1}"
-  echo "kubectl create namespace ${ns}" 
-  kubectl create namespace ${ns}
 }
 
 function helm-deploy-cmd {
@@ -168,9 +161,6 @@ fi
 cd "$(dirname "$0")/.."
 make kubefedctl
 cd -
-
-# Create namespace first before deploy with helm
-create-namespace ${NS}
 
 # Deploy KubeFed resources
 deploy-with-helm
