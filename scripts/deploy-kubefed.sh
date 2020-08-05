@@ -85,8 +85,8 @@ EOF
 
   ${cmd}
 
-  deployment-image-as-expected ${NS} kubefed-admission-webhook ${repository}/${image}:${tag}
-  deployment-image-as-expected ${NS} kubefed-controller-manager ${repository}/${image}:${tag}
+  deployment-image-as-expected ${NS} kubefed-admission-webhook admission-webhook ${repository}/${image}:${tag}
+  deployment-image-as-expected ${NS} kubefed-controller-manager controller-manager ${repository}/${image}:${tag}
 }
 
 function helm-deploy-cmd {
@@ -114,9 +114,10 @@ function kubefed-admission-webhook-ready() {
 function deployment-image-as-expected() {
   local namespace="${1}"
   local deployment="${2}"
-  local expected_image="${3}"
+  local container="${3}"
+  local expected_image="${4}"
 
-  local deployed_image="$(kubectl -n ${namespace} get deployment ${deployment} -o jsonpath={.spec.template.spec.containers[0].image})"
+  local deployed_image="$(kubectl -n ${namespace} get deployment ${deployment} -o jsonpath='{.spec.template.spec.containers[?(@.name=="'"${container}"'")].image}')"
   [[ "${deployed_image}" == "${expected_image}" ]]
 }
 
