@@ -25,7 +25,7 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 ## Prerequisites
 
 - Kubernetes 1.13+
-- Helm 3.1.2+
+- Helm 3.2+
 
 
 ## Installing the Chart
@@ -46,10 +46,12 @@ $ helm search repo kubefed
 
 Install the chart and specify the version to install with the
 `--version` argument. Replace `<x.x.x>` with your desired version.
+If you don't want to install CRDs, add a `--skip-crds` at the end of the line:
+
 ```bash
-$ kubectl create namespace kube-federation-system
-$ helm --namespace kube-federation-system install kubefed kubefed-charts/kubefed --version=<x.x.x>
+$ helm --namespace kube-federation-system upgrade -i kubefed kubefed-charts/kubefed --version=<x.x.x> --create-namespace
 ```
+
 
 **NOTE:** For **namespace-scoped deployments** (configured with the `--set
 global.scope=Namespaced` option in the `helm install` command): if you created
@@ -63,6 +65,19 @@ kubectl label namespaces <namespace> name=<namespace>
 This label is necessary to get proper validation for KubeFed core APIs. If the
 namespace does not already exist, the `helm install` command will create the
 namespace with this label by default.
+
+output:
+
+```bash
+Release "kubefed" does not exist. Installing it now.
+NAME: kubefed
+LAST DEPLOYED: Wed Aug  5 16:03:46 2020
+NAMESPACE: kube-federation-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+
+```
 
 ## Uninstalling the Chart
 
