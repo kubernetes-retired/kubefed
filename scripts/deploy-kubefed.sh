@@ -173,6 +173,13 @@ if [[ ! "${USE_LATEST}" ]]; then
   cd -
   ${DOCKER_PUSH_CMD}
 fi
+
+# Use KIND_LOAD_IMAGE=y DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to load
+# the built docker image into kind before deploying.
+if [[ "${KIND_LOAD_IMAGE:-}" == "y" ]]; then
+    kind load docker-image ${IMAGE_NAME}
+fi
+
 cd "$(dirname "$0")/.."
 make kubefedctl
 cd -
