@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"os"
 
-	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-	"sigs.k8s.io/kubefed/cmd/webhook/app"
-
 	"k8s.io/component-base/logs"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	"sigs.k8s.io/kubefed/cmd/webhook/app"
 )
 
 func main() {

@@ -6,29 +6,24 @@ import (
 	"net/http"
 	"os"
 
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	ctrwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
+
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/federatedtypeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/webhook/kubefedconfig"
 	"sigs.k8s.io/kubefed/pkg/version"
 )
 
-const (
-	defaultPort = 443
-)
-
 var (
 	certDir, kubeconfig, masterURL string
-	port                           int
+	port                           = 8443
 )
 
 // NewWebhookCommand creates a *cobra.Command object with default parameters
@@ -59,7 +54,7 @@ func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&certDir, "cert-dir", "", "The directory where the TLS certs are located.")
-	cmd.Flags().IntVar(&port, "secure-port", defaultPort, "The port on which to serve HTTPS.")
+	cmd.Flags().IntVar(&port, "secure-port", port, "The port on which to serve HTTPS.")
 
 	return cmd
 }
@@ -87,15 +82,7 @@ func Run(stopChan <-chan struct{}) error {
 	hookServer.Register("/validate-kubefedconfig", &ctrwebhook.Admission{Handler: &kubefedconfig.KubeFedConfigValidator{}})
 	hookServer.Register("/default-kubefedconfig", &ctrwebhook.Admission{Handler: &kubefedconfig.KubeFedConfigDefaulter{}})
 
-	if err != nil {
-		klog.Fatalf("error getting clientset: %s", err)
-	}
-
-	hookServer.WebhookMux.Handle("/readyz", http.StripPrefix("/readyz", &healthz.Handler{
-		Checks: map[string]healthz.Checker{
-			"ping": healthz.Ping,
-		},
-	}))
+	hookServer.WebhookMux.Handle("/readyz/", http.StripPrefix("/readyz/", &healthz.Handler{}))
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("unable to run manager: %s", err)

@@ -19,10 +19,9 @@ package kubefedcluster
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
