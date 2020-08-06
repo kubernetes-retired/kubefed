@@ -67,7 +67,7 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook e2e
+.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook e2e deploy.kind
 
 all: container hyperfed controller kubefedctl webhook e2e
 
@@ -164,3 +164,6 @@ clean:
 
 controller-gen:
 	command -v controller-gen &> /dev/null || (cd tools && go install sigs.k8s.io/controller-tools/cmd/controller-gen)
+
+deploy.kind:
+	DOCKER_PUSH= KIND_LOAD_IMAGE=y ./scripts/deploy-kubefed.sh $(IMAGE_NAME)

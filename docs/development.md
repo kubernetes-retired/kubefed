@@ -247,6 +247,16 @@ the steps [documented
 above](#setup-clusters-and-deploy-the-kubefed-control-plane)
 to create your clusters.
 
+As a convenience, when deploying the kubefed control plane on a kind cluster
+without pushing the Docker images, you can also run:
+
+```bash
+make deploy.kind
+```
+
+This command can be run multiple times to redeploy kubefed when any code changes
+have been made.
+
 ## Test Latest Master Changes (`canary`)
 
 In order to test the latest master changes (tagged as `canary`) on your

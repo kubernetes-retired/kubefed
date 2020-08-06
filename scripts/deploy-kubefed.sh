@@ -96,14 +96,18 @@ function helm-deploy-cmd {
   local repo="${3}"
   local image="${4}"
   local tag="${5}"
-
-  echo "helm install charts/kubefed --name ${name} --namespace ${ns} \
-      --set controllermanager.controller.repository=${repo} \
-      --set controllermanager.controller.image=${image} \
-      --set controllermanager.controller.tag=${tag} \
-      --set controllermanager.webhook.repository=${repo} \
-      --set controllermanager.webhook.image=${image} \
-      --set controllermanager.webhook.tag=${tag}"
+  local commonFlags="--namespace ${ns} \
+                     --set controllermanager.controller.repository=${repo} \
+                     --set controllermanager.controller.image=${image} \
+                     --set controllermanager.controller.tag=${tag} \
+                     --set controllermanager.webhook.repository=${repo} \
+                     --set controllermanager.webhook.image=${image} \
+                     --set controllermanager.webhook.tag=${tag}"
+  if [ -z "$(helm list ${name} --deployed -q)" ]; then
+    echo "helm install charts/kubefed --name ${name} ${commonFlags}"
+  else
+    echo "helm upgrade ${name} charts/kubefed --recreate-pods ${commonFlags}"
+  fi
 }
 
 function kubefed-admission-webhook-ready() {
@@ -186,6 +190,13 @@ if [[ ! "${USE_LATEST}" ]]; then
   cd -
   ${DOCKER_PUSH_CMD}
 fi
+
+# Use KIND_LOAD_IMAGE=y DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to load
+# the built docker image into kind before deploying.
+if [[ "${KIND_LOAD_IMAGE:-}" == "y" ]]; then
+    kind load docker-image ${IMAGE_NAME}
+fi
+
 cd "$(dirname "$0")/.."
 make kubefedctl
 cd -
@@ -198,8 +209,8 @@ util::wait-for-condition "kubefed admission webhook to be ready" "kubefed-admiss
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
-./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS}
+./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS} --error-on-existing=false
 
 for c in ${JOIN_CLUSTERS}; do
-  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS}
+  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS} --error-on-existing=false
 done
