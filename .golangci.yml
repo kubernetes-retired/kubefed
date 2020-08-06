@@ -1,12 +1,30 @@
-issues:
-  exclude-rules:
-    - path: pkg/kubefedctl/enable/enable.go
-      linters:
-        - unused
-        - structcheck
-    - path: pkg/kubefedctl/join.go
-      linters:
-        - structcheck
-    - path: pkg/kubefedctl/disable.go
-      linters:
-        - structcheck
+run:
+  timeout: 5m
+  skip-dirs:
+    - third-party
+
+linters:
+  disable-all: true
+  enable:
+  - deadcode
+  - errcheck
+  - goconst
+  - gocritic
+  - goimports
+  - gosimple
+  - govet
+  - ineffassign
+  - nolintlint
+  - prealloc
+  - staticcheck
+  - structcheck
+  - stylecheck
+  - typecheck
+  - unparam
+  - unused
+  - varcheck
+  - whitespace
+
+linters-settings:
+  goimports:
+    local-prefixes: sigs.k8s.io/kubefed

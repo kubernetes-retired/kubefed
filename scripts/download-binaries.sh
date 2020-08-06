@@ -60,7 +60,7 @@ curl "${curl_args}O" "${helm_url}" \
     && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
     && rm "${helm_tgz}"
 
-golint_version="1.27.0"
+golint_version="1.30.0"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"
 golint_url="https://github.com/golangci/golangci-lint/releases/download/v${golint_version}/${golint_tgz}"

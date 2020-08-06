@@ -67,7 +67,7 @@ TEST = $(TEST_CMD) $(TEST_PKGS)
 DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
-.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet fmt build bindir generate webhook e2e deploy.kind
+.PHONY: all container push clean hyperfed controller kubefedctl test local-test vet lint build bindir generate webhook e2e deploy.kind
 
 all: container hyperfed controller kubefedctl webhook e2e
 
@@ -80,8 +80,8 @@ build: hyperfed controller kubefedctl webhook
 vet:
 	go vet $(TEST_PKGS)
 
-fmt:
-	$(shell ./hack/update-gofmt.sh)
+lint:
+	golangci-lint run -c .golangci.yml --fix
 
 container: $(HYPERFED_TARGET)-linux-$(HOST_ARCH)
 	cp -f $(HYPERFED_TARGET)-linux-$(HOST_ARCH) images/kubefed/hyperfed
