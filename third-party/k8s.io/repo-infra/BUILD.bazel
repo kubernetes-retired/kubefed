@@ -1,0 +1,83 @@
+# gazelle:prefix k8s.io/repo-infra
+# gazelle:exclude hack
+# gazelle:proto disable
+
+# Use the Bazel-vendored protobuf library since we use go_proto_library
+# gazelle:resolve go github.com/golang/protobuf/proto @com_github_golang_protobuf//proto:go_default_library
+
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+load("//defs:run_in_workspace.bzl", "workspace_binary")
+
+workspace_binary(
+    name = "gofmt",
+    cmd = "@go_sdk//:bin/gofmt",
+)
+
+workspace_binary(
+    name = "go",
+    cmd = "@go_sdk//:bin/go",
+)
+
+workspace_binary(
+    name = "kazel",
+    cmd = "//cmd/kazel",
+)
+
+workspace_binary(
+    name = "golangci-lint",
+    cmd = "@com_github_golangci_golangci_lint//cmd/golangci-lint",
+)
+
+workspace_binary(
+    name = "buildifier",
+    cmd = "@com_github_bazelbuild_buildtools//buildifier",
+)
+
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+gazelle(name = "gazelle")
+
+exports_files([".kazelcfg.json"])
+
+filegroup(
+    name = "package-srcs",
+    srcs = glob(
+        ["**"],
+        exclude = [
+            "bazel-*/**",
+            ".git/**",
+        ],
+    ),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = [
+        ":package-srcs",
+        "//cmd/kazel:all-srcs",
+        "//defs:all-srcs",
+        "//go:all-srcs",
+        "//hack:all-srcs",
+        "//tools/build_tar:all-srcs",
+        "//verify:all-srcs",
+    ],
+    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "rbe_with_network",
+    parents = ["@rbe_default//config:platform"],
+    remote_execution_properties = """
+      properties: {
+        name: "dockerNetwork"
+        value: "standard"
+      }
+      {PARENT_REMOTE_EXECUTION_PROPERTIES}
+    """,
+)

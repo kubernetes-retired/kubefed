@@ -1,0 +1,12 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+/bazel-*
+/_output
+
+# Vim-related files               
+[._]*.s[a-w][a-z]                                                           
+[._]s[a-w][a-z] 
+*.un~  

@@ -1,0 +1,21 @@
+approvers:
+- BenTheElder
+- clarketm
+- fejta
+- justaugustus
+- mikedanese
+
+reviewers:
+- BenTheElder
+- clarketm
+- fejta
+- justaugustus
+- mikedanese
+- Verolop
+
+emeritus_approvers:
+- ixdy
+
+labels:
+- sig/release
+- area/release-eng
