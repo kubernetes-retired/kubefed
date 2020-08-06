@@ -45,10 +45,10 @@ function deploy-with-helm() {
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag}) --create-namespace"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag}) --create-namespace"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -76,7 +76,7 @@ function helm-deploy-cmd {
                      --set controllermanager.webhook.image=${image} \
                      --set controllermanager.webhook.tag=${tag}"
   if [ -z "$(helm list ${name} --deployed -q)" ]; then
-    echo "helm install charts/kubefed --name ${name} ${commonFlags}"
+    echo "helm install ${name} charts/kubefed ${commonFlags} --create-namespace"
   else
     echo "helm upgrade ${name} charts/kubefed --recreate-pods ${commonFlags}"
   fi
