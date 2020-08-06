@@ -1,0 +1,38 @@
+load("//defs:go.bzl", "go_genrule")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "ok.go",
+        "pkg.go",
+    ],
+    importpath = "k8s.io/repo-infra/defs/testpkg",
+    visibility = ["//visibility:public"],
+)
+
+go_genrule(
+    name = "go_genrule_test",
+    srcs = [
+        "pkg.go",
+    ],
+    outs = [
+        "ok.go",
+    ],
+    cmd = "$(location //defs/testgen) -in=$< -out=$@ -pkg k8s.io/repo-infra/defs/testpkg",
+    tools = ["//defs/testgen"],
+)
+
+filegroup(
+    name = "package-srcs",
+    srcs = glob(["**"]),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = [":package-srcs"],
+    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
+)

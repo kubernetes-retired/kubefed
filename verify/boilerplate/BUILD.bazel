@@ -1,0 +1,29 @@
+# gazelle:exclude test
+# gazelle:exclude verify/boilerplate/test
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(["*.txt"]))
+
+filegroup(
+    name = "package-srcs",
+    srcs = glob(["**"]),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = [":package-srcs"],
+    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "templates",
+    srcs = glob(["boilerplate.*.txt"]),
+)
+
+filegroup(
+    name = "testdata",
+    srcs = glob(["test/**"]),
+)
