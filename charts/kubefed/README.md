@@ -27,7 +27,6 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 - Kubernetes 1.13+
 - Helm 3.2+
 
-
 ## Installing the Chart
 
 First, add the KubeFed chart repo to your local repository.
@@ -134,4 +133,33 @@ provided while installing the chart. For example:
 
 ```bash
 $ helm install kubefed-charts/kubefed --name kubefed --namespace kube-federation-system --values values.yaml --devel
+```
+
+## Migration from Helm v2 to v3
+
+Helm v3 has a built-in migration feature which can easy move your current Helm v2 installation to Helm v3.
+
+Download Helm v3 CLI from [Release Page](https://github.com/helm/helm/releases).
+
+Convert your kubefed installation to Helm v3:
+
+
+```bash
+$ helm 2to3 convert kubefed
+2020/08/06 18:50:57 Release "kubefed" will be converted from Helm v2 to Helm v3.
+2020/08/06 18:50:57 [Helm 3] Release "kubefed" will be created.
+2020/08/06 18:50:57 [Helm 3] ReleaseVersion "kubefed.v1" will be created.
+2020/08/06 18:50:58 [Helm 3] ReleaseVersion "kubefed.v1" created.
+2020/08/06 18:50:58 [Helm 3] Release "kubefed" created.
+2020/08/06 18:50:58 Release "kubefed" was converted successfully from Helm v2 to Helm v3.
+2020/08/06 18:50:58 Note: The v2 release information still remains and should be removed to avoid conflicts with the migrated v3 release.
+2020/08/06 18:50:58 v2 release information should only be removed using `helm 2to3` cleanup and when all releases have been migrated over.
+```
+
+Check your successful migration:
+
+```bash
+$ helm -n kube-federation-system list
+NAME    NAMESPACE               REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+kubefed kube-federation-system  1               2020-08-06 16:49:41.593438079 +0000 UTC deployed        kubefed-0.3.1
 ```
