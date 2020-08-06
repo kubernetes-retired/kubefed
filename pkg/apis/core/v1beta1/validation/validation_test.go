@@ -254,7 +254,6 @@ func TestValidateFederatedTypeConfigStatus(t *testing.T) {
 			t.Errorf("unexpected error: %q, expected: %q", errs[0].Error(), test.expectedErrMsg)
 		}
 	}
-
 }
 
 func successCasesForFederatedTypeConfig() []*v1beta1.FederatedTypeConfig {

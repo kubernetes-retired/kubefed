@@ -278,13 +278,11 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 		allErrs = append(allErrs, validateDurationGreaterThan0(electPath.Child("retryPeriod"), elect.RetryPeriod)...)
 		if elect.LeaseDuration != nil && elect.RenewDeadline != nil &&
 			elect.LeaseDuration.Duration <= elect.RenewDeadline.Duration {
-
 			allErrs = append(allErrs, field.Invalid(electPath.Child("leaseDuration"), elect.LeaseDuration,
 				"leaseDuration must be greater than renewDeadline"))
 		}
 		if elect.RenewDeadline != nil && elect.RetryPeriod != nil &&
 			elect.RenewDeadline.Duration <= time.Duration(float64(elect.RetryPeriod.Duration)*leaderelection.JitterFactor) {
-
 			allErrs = append(allErrs, field.Invalid(electPath.Child("renewDeadline"), elect.RenewDeadline,
 				fmt.Sprintf("renewDeadline must be greater than retryPeriod*JitterFactor(%.1f)", leaderelection.JitterFactor)))
 		}
@@ -334,11 +332,12 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 	sync := spec.SyncController
 	syncPath := specPath.Child("syncController")
 	adoptPath := syncPath.Child("adoptResources")
-	if sync == nil {
+	switch {
+	case sync == nil:
 		allErrs = append(allErrs, field.Required(syncPath, ""))
-	} else if sync.AdoptResources == nil {
+	case sync.AdoptResources == nil:
 		allErrs = append(allErrs, field.Required(adoptPath, ""))
-	} else {
+	default:
 		allErrs = append(allErrs, validateEnumStrings(adoptPath, string(*sync.AdoptResources),
 			[]string{string(v1beta1.AdoptResourcesEnabled), string(v1beta1.AdoptResourcesDisabled)})...)
 	}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 	apiv1 "k8s.io/api/core/v1"
 	extv1b1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,8 +32,6 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
-
-	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("IngressDNS", func() {

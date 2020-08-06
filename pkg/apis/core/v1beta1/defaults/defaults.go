@@ -120,7 +120,7 @@ func setDefaultKubeFedFeatureGates(fgc []v1beta1.FeatureGatesConfig) []v1beta1.F
 	// Since we iterated over a map of default feature gates, this code
 	// sets the default features in a deterministic order within the
 	// FeatureGatesConfig slice.
-	sort.Slice(fgc[:], func(i, j int) bool {
+	sort.Slice(fgc, func(i, j int) bool {
 		return fgc[i].Name < fgc[j].Name
 	})
 

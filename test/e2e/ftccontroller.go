@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 	"github.com/pborman/uuid"
-
 	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +37,6 @@ import (
 	kfenableopts "sigs.k8s.io/kubefed/pkg/kubefedctl/options"
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
-
-	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("FTC controller", func() {

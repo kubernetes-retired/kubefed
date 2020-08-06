@@ -304,7 +304,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		return util.StatusError
 	}
 
-	var fedDNSStatus []dnsv1a1.ClusterDNS
+	fedDNSStatus := make([]dnsv1a1.ClusterDNS, 0, len(clusters))
 	// Iterate through all ready clusters and aggregate the service status for the key
 	for _, cluster := range clusters {
 		if cluster.Status.Region == nil || *cluster.Status.Region == "" || len(cluster.Status.Zones) == 0 {

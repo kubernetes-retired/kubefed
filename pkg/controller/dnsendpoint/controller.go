@@ -155,14 +155,15 @@ func (d *controller) processNextItem() bool {
 
 	err := d.processItem(key.(string))
 
-	if err == nil {
+	switch {
+	case err == nil:
 		// No error, tell the queue to stop tracking history
 		d.queue.Forget(key)
-	} else if d.queue.NumRequeues(key) < maxRetries {
+	case d.queue.NumRequeues(key) < maxRetries:
 		klog.Errorf("Error processing %s (will retry): %v", key, err)
 		// requeue the item to work on later
 		d.queue.AddRateLimited(key)
-	} else {
+	default:
 		// err != nil and too many retries
 		klog.Errorf("Error processing %s (giving up): %v", key, err)
 		d.queue.Forget(key)

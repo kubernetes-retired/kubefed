@@ -20,7 +20,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	. "sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type Scheduler interface {
@@ -30,7 +30,7 @@ type Scheduler interface {
 	Start()
 	HasSynced() bool
 	Stop()
-	Reconcile(obj pkgruntime.Object, qualifiedName QualifiedName) ReconciliationStatus
+	Reconcile(obj pkgruntime.Object, qualifiedName util.QualifiedName) util.ReconciliationStatus
 
 	StartPlugin(typeConfig typeconfig.Interface) error
 	StopPlugin(kind string)
@@ -39,7 +39,7 @@ type Scheduler interface {
 type SchedulerEventHandlers struct {
 	KubeFedEventHandler      func(pkgruntime.Object)
 	ClusterEventHandler      func(pkgruntime.Object)
-	ClusterLifecycleHandlers *ClusterLifecycleHandlerFuncs
+	ClusterLifecycleHandlers *util.ClusterLifecycleHandlerFuncs
 }
 
-type SchedulerFactory func(controllerConfig *ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error)
+type SchedulerFactory func(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers) (Scheduler, error)

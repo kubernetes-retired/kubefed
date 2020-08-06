@@ -66,7 +66,6 @@ func NewPlanner(preferences *fedschedulingv1a1.ReplicaSchedulingPreference) *Pla
 //   if by chance, they are scheduled we will be closer to the desired replicas layout.
 func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[string]int64,
 	estimatedCapacity map[string]int64, replicaSetKey string) (map[string]int64, map[string]int64, error) {
-
 	preferences := make([]*namedClusterPreferences, 0, len(availableClusters))
 	plan := make(map[string]int64, len(preferences))
 	overflow := make(map[string]int64, len(preferences))
@@ -167,7 +166,6 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 	// TODO: This algorithm is O(clusterCount^2 * log(replicas)) which is good for up to 100 clusters.
 	// Find something faster.
 	for trial := 0; modified && remainingReplicas > 0; trial++ {
-
 		modified = false
 		weightSum := int64(0)
 		for _, preference := range preferences {
@@ -188,7 +186,7 @@ func (p *Planner) Plan(availableClusters []string, currentReplicaCount map[strin
 				prealloc := preallocated[preference.clusterName]
 				usedPrealloc := minInt64(extra, prealloc)
 				preallocated[preference.clusterName] = prealloc - usedPrealloc
-				extra = extra - usedPrealloc
+				extra -= usedPrealloc
 				if usedPrealloc > 0 {
 					modified = true
 				}

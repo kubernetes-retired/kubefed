@@ -110,13 +110,14 @@ func (d *managedDispatcherImpl) Wait() (bool, error) {
 	)
 	for key, value := range d.statusMap {
 		propStatus := string(value)
-		if okTimedOut.Has(propStatus) {
+		switch {
+		case okTimedOut.Has(propStatus):
 			d.statusMap[key] = status.ClusterPropagationOK
-		} else if propStatus == string(status.DeletionTimedOut) {
+		case propStatus == string(status.DeletionTimedOut):
 			// If deletion was successful, then assume the resource is
 			// pending garbage collection.
 			d.statusMap[key] = status.WaitingForRemoval
-		} else if propStatus == string(status.LabelRemovalTimedOut) {
+		case propStatus == string(status.LabelRemovalTimedOut):
 			// If label removal was successful, the resource is
 			// effectively unmanaged for the cluster even though it
 			// still may be cached.

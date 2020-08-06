@@ -25,7 +25,6 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -40,7 +39,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 type testResources struct {
@@ -351,7 +350,7 @@ func getTargetClient(tl common.TestLogger, typeConfig typeconfig.Interface, kube
 }
 
 func namedTestTargetResources(testResources []testResources) []*unstructured.Unstructured {
-	var resources []*unstructured.Unstructured
+	resources := make([]*unstructured.Unstructured, 0, len(testResources))
 	for _, t := range testResources {
 		r := t.targetResource
 		// In some tests name is never populated as the resource is

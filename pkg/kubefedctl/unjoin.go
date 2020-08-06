@@ -42,13 +42,13 @@ import (
 )
 
 var (
-	unjoin_long = `
+	unjoinLong = `
 		Unjoin removes the registration of a Kubernetes cluster
 		from a KubeFed control plane. Current context is assumed
 		to be a Kubernetes cluster hosting a KubeFed control
 		plane. Please use the --host-cluster-context flag
 		otherwise.`
-	unjoin_example = `
+	unjoinExample = `
 		# Remove the registration of a Kubernetes cluster
 		# from a KubeFed control plane by specifying the
 		# cluster name and the context name of the control
@@ -84,8 +84,8 @@ func NewCmdUnjoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "unjoin CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
 		Short:   "Remove the registration of a cluster from a KubeFed control plane",
-		Long:    unjoin_long,
-		Example: unjoin_example,
+		Long:    unjoinLong,
+		Example: unjoinExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -247,29 +247,31 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 	err = hostClientset.CoreV1().Secrets(kubefedNamespace).Delete(
 		context.Background(), fedCluster.Spec.SecretRef.Name, metav1.DeleteOptions{},
 	)
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		klog.V(2).Infof("Secret \"%s/%s\" does not exist in the host cluster.", kubefedNamespace, fedCluster.Spec.SecretRef.Name)
-	} else if err != nil {
+	case err != nil:
 		wrappedErr := errors.Wrapf(err, "Failed to delete secret \"%s/%s\" for unjoin cluster %q",
 			kubefedNamespace, fedCluster.Spec.SecretRef.Name, unjoiningClusterName)
 		if !forceDeletion {
 			return wrappedErr
 		}
 		klog.V(2).Infof("%v", wrappedErr)
-	} else {
+	default:
 		klog.V(2).Infof("Deleted secret \"%s/%s\" for unjoin cluster %q", kubefedNamespace, fedCluster.Spec.SecretRef.Name, unjoiningClusterName)
 	}
 
 	err = client.Delete(context.TODO(), fedCluster, fedCluster.Namespace, fedCluster.Name)
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		klog.V(2).Infof("KubeFed cluster \"%s/%s\" does not exist in the host cluster.", fedCluster.Namespace, fedCluster.Name)
-	} else if err != nil {
+	case err != nil:
 		wrappedErr := errors.Wrapf(err, "Failed to delete kubefed cluster \"%s/%s\" for unjoin cluster %q", fedCluster.Namespace, fedCluster.Name, unjoiningClusterName)
 		if !forceDeletion {
 			return wrappedErr
 		}
 		klog.V(2).Infof("%v", wrappedErr)
-	} else {
+	default:
 		klog.V(2).Infof("Deleted kubefed cluster \"%s/%s\" for unjoin cluster %q.", fedCluster.Namespace, fedCluster.Name, unjoiningClusterName)
 	}
 
@@ -280,7 +282,6 @@ func deleteFederatedClusterAndSecret(hostClientset kubeclient.Interface, client 
 // from the unjoining cluster.
 func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
 	namespace, unjoiningClusterName, hostClusterName string, forceDeletion, dryRun bool) error {
-
 	saName := util.ClusterServiceAccountName(unjoiningClusterName, hostClusterName)
 
 	err := deleteClusterRoleAndBinding(unjoiningClusterClientset, saName, namespace, unjoiningClusterName, forceDeletion, dryRun)
@@ -301,7 +302,6 @@ func deleteRBACResources(unjoiningClusterClientset kubeclient.Interface,
 // host cluster.
 func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset kubeclient.Interface,
 	kubefedNamespace, unjoiningClusterName string, dryRun bool) error {
-
 	if dryRun {
 		return nil
 	}
@@ -323,12 +323,13 @@ func deleteFedNSFromUnjoinCluster(hostClientset, unjoiningClusterClientset kubec
 
 	klog.V(2).Infof("Deleting kubefed namespace %q from unjoining cluster %q.", kubefedNamespace, unjoiningClusterName)
 	err = unjoiningClusterClientset.CoreV1().Namespaces().Delete(context.Background(), kubefedNamespace, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		klog.V(2).Infof("The kubefed namespace %q no longer exists in unjoining cluster %q.", kubefedNamespace, unjoiningClusterName)
 		return nil
-	} else if err != nil {
+	case err != nil:
 		return errors.Wrapf(err, "Could not delete kubefed namespace %q from unjoining cluster %q", kubefedNamespace, unjoiningClusterName)
-	} else {
+	default:
 		klog.V(2).Infof("Deleted kubefed namespace %q from unjoining cluster %q.", kubefedNamespace, unjoiningClusterName)
 	}
 
@@ -350,11 +351,12 @@ func deleteServiceAccount(clusterClientset kubeclient.Interface, saName,
 	err := clusterClientset.CoreV1().ServiceAccounts(namespace).Delete(
 		context.Background(), saName, metav1.DeleteOptions{},
 	)
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		klog.V(2).Infof("Service account \"%s/%s\" does not exist.", namespace, saName)
-	} else if err != nil {
+	case err != nil:
 		return errors.Wrapf(err, "Could not delete service account \"%s/%s\"", namespace, saName)
-	} else {
+	default:
 		klog.V(2).Infof("Deleted service account \"%s/%s\" in unjoining cluster %q.", namespace, saName, unjoiningClusterName)
 	}
 
@@ -379,17 +381,18 @@ func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface,
 			name, saName, unjoiningClusterName)
 
 		err := clusterClientset.RbacV1().ClusterRoleBindings().Delete(context.Background(), name, metav1.DeleteOptions{})
-		if apierrors.IsNotFound(err) {
+		switch {
+		case apierrors.IsNotFound(err):
 			klog.V(2).Infof("Cluster role binding %q for service account %q does not exist in unjoining cluster %q.",
 				name, saName, unjoiningClusterName)
-		} else if err != nil {
+		case err != nil:
 			wrappedErr := errors.Wrapf(err, "Could not delete cluster role binding %q for service account %q in unjoining cluster %q",
 				name, saName, unjoiningClusterName)
 			if !forceDeletion {
 				return wrappedErr
 			}
 			klog.V(2).Infof("%v", wrappedErr)
-		} else {
+		default:
 			klog.V(2).Infof("Deleted cluster role binding %q for service account %q in unjoining cluster %q.",
 				name, saName, unjoiningClusterName)
 		}
@@ -397,17 +400,18 @@ func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface,
 		klog.V(2).Infof("Deleting cluster role %q for service account %q in unjoining cluster %q.",
 			name, saName, unjoiningClusterName)
 		err = clusterClientset.RbacV1().ClusterRoles().Delete(context.Background(), name, metav1.DeleteOptions{})
-		if apierrors.IsNotFound(err) {
+		switch {
+		case apierrors.IsNotFound(err):
 			klog.V(2).Infof("Cluster role %q for service account %q does not exist in unjoining cluster %q.",
 				name, saName, unjoiningClusterName)
-		} else if err != nil {
+		case err != nil:
 			wrappedErr := errors.Wrapf(err, "Could not delete cluster role %q for service account %q in unjoining cluster %q",
 				name, saName, unjoiningClusterName)
 			if !forceDeletion {
 				return wrappedErr
 			}
 			klog.V(2).Infof("%v", wrappedErr)
-		} else {
+		default:
 			klog.V(2).Infof("Deleted cluster role %q for service account %q in unjoining cluster %q.",
 				name, saName, unjoiningClusterName)
 		}
@@ -416,17 +420,18 @@ func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface,
 	klog.V(2).Infof("Deleting role binding \"%s/%s\" for service account %q in unjoining cluster %q.",
 		namespace, roleName, saName, unjoiningClusterName)
 	err := clusterClientset.RbacV1().RoleBindings(namespace).Delete(context.Background(), roleName, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		klog.V(2).Infof("Role binding \"%s/%s\" for service account %q does not exist in unjoining cluster %q.",
 			namespace, roleName, saName, unjoiningClusterName)
-	} else if err != nil {
+	case err != nil:
 		wrappedErr := errors.Wrapf(err, "Could not delete role binding \"%s/%s\" for service account %q in unjoining cluster %q",
 			namespace, roleName, saName, unjoiningClusterName)
 		if !forceDeletion {
 			return wrappedErr
 		}
 		klog.V(2).Infof("%v", wrappedErr)
-	} else {
+	default:
 		klog.V(2).Infof("Deleted role binding \"%s/%s\" for service account %q in unjoining cluster %q.",
 			namespace, roleName, saName, unjoiningClusterName)
 	}
@@ -434,17 +439,18 @@ func deleteClusterRoleAndBinding(clusterClientset kubeclient.Interface,
 	klog.V(2).Infof("Deleting role \"%s/%s\" for service account %q in unjoining cluster %q.",
 		namespace, roleName, saName, unjoiningClusterName)
 	err = clusterClientset.RbacV1().Roles(namespace).Delete(context.Background(), roleName, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		klog.V(2).Infof("Role \"%s/%s\" for service account %q does not exist in unjoining cluster %q.",
 			namespace, roleName, saName, unjoiningClusterName)
-	} else if err != nil {
+	case err != nil:
 		wrappedErr := errors.Wrapf(err, "Could not delete role \"%s/%s\" for service account %q in unjoining cluster %q",
 			namespace, roleName, saName, unjoiningClusterName)
 		if !forceDeletion {
 			return wrappedErr
 		}
 		klog.V(2).Infof("%v", wrappedErr)
-	} else {
+	default:
 		klog.V(2).Infof("Deleting Role \"%s/%s\" for service account %q in unjoining cluster %q.",
 			namespace, roleName, saName, unjoiningClusterName)
 	}

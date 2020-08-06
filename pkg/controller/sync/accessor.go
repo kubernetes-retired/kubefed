@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
+
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/version"
@@ -78,7 +79,6 @@ func NewFederatedResourceAccessor(
 	client genericclient.Client,
 	enqueueObj func(pkgruntime.Object),
 	eventRecorder record.EventRecorder) (FederatedResourceAccessor, error) {
-
 	a := &resourceAccessor{
 		limitedScope:            controllerConfig.LimitedScope(),
 		typeConfig:              typeConfig,

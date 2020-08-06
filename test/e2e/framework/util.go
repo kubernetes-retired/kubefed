@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
+	. "github.com/onsi/gomega" //nolint:stylecheck
+	"github.com/pborman/uuid"
+
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework/ginkgowrapper"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
 )
 
 const (
@@ -37,8 +37,8 @@ const (
 	DefaultSingleCallTimeout = 30 * time.Second
 )
 
-// unique identifier of the e2e run
-var RunId = uuid.NewUUID()
+// RunID is unique identifier of the e2e run.
+var RunID = uuid.NewUUID()
 
 func nowStamp() string {
 	return time.Now().Format(time.StampMilli)

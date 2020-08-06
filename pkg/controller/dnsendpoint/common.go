@@ -29,7 +29,7 @@ import (
 
 const (
 	// defaultDNSTTL is the default DNS record TTL value to use (in seconds) when user has not provided specific value.
-	defaultDNSTTL = 180
+	defaultDNSTTL feddnsv1a1.TTL = 180
 
 	// RecordTypeA is a RecordType enum value
 	RecordTypeA = "A"

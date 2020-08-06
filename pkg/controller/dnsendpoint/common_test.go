@@ -37,7 +37,6 @@ type NetWrapperMock struct {
 }
 
 func (mock *NetWrapperMock) LookupHost(host string) (addrs []string, err error) {
-
 	// If nothing to return, return empty list
 	if mock.result == nil || len(mock.result) == 0 {
 		return make([]string, 0), errors.New("Mock error response")

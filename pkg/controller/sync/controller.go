@@ -383,7 +383,6 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 
 func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource,
 	reason status.AggregateReason, collectedStatus *status.CollectedPropagationStatus) util.ReconciliationStatus {
-
 	if collectedStatus == nil {
 		collectedStatus = &status.CollectedPropagationStatus{}
 	}
@@ -591,7 +590,6 @@ func (s *KubeFedSyncController) ensureRemovedOrUnmanaged(fedResource FederatedRe
 // each managed resource in member clusters.
 func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersionKind, qualifiedName util.QualifiedName,
 	deletionFunc func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured)) (bool, error) {
-
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get a list of clusters")

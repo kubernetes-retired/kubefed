@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 var _ = Describe("Scheduler", func() {
@@ -79,7 +79,7 @@ var _ = Describe("Scheduler", func() {
 				}
 
 				By("Waiting for scheduler/plugin controllers are destroyed in scheduling manager")
-				waitForSchedulerDeleted(tl, controller, schedulingTypes)
+				waitForSchedulerDeleted(tl, controller)
 
 				By("Enabling federatedtypeconfig resources again for scheduler/plugin controllers")
 				for targetTypeName := range schedulingTypes {
@@ -109,7 +109,7 @@ func GetSchedulingTypes(tl common.TestLogger) map[string]schedulingtypes.Schedul
 	return schedulingTypes
 }
 
-func waitForSchedulerDeleted(tl common.TestLogger, controller *schedulingmanager.SchedulingManager, schedulingTypes map[string]schedulingtypes.SchedulerFactory) {
+func waitForSchedulerDeleted(tl common.TestLogger, controller *schedulingmanager.SchedulingManager) {
 	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
 		scheduler := controller.GetScheduler(schedulingtypes.RSPKind)
 		if scheduler != nil {

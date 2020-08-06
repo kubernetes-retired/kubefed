@@ -30,7 +30,6 @@ import (
 )
 
 func TestThresholdCheckedClusterStatus(t *testing.T) {
-
 	epoch := metav1.Now()
 	t1 := metav1.Time{Time: epoch.Add(1 * time.Second)}
 	t2 := metav1.Time{Time: epoch.Add(2 * time.Second)}
@@ -101,7 +100,6 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func clusterStatus(status corev1.ConditionStatus, lastProbeTime, lastTransitionTime metav1.Time) *fedv1b1.KubeFedClusterStatus {

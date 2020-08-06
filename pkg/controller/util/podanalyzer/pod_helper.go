@@ -54,7 +54,6 @@ func AnalyzePods(podList *api_v1.PodList, currentTime time.Time) PodAnalysisResu
 				condition.Status == api_v1.ConditionFalse &&
 				condition.Reason == api_v1.PodReasonUnschedulable &&
 				condition.LastTransitionTime.Add(UnschedulableThreshold).Before(currentTime) {
-
 				result.Unschedulable++
 			}
 		}

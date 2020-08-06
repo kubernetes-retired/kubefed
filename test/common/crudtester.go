@@ -402,7 +402,8 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 		}
 		c.tl.Logf("Waiting for %s %q %s cluster %q", targetKind, targetName, operation, clusterName)
 
-		if objExpected {
+		switch {
+		case objExpected:
 			err := c.waitForResource(testCluster.Client, targetName, overridesMap[clusterName], func() string {
 				version, _ := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
 				return version
@@ -413,9 +414,9 @@ func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstr
 			case err != nil:
 				c.tl.Fatalf("Failed to verify %s %q in cluster %q: %v", targetKind, targetName, clusterName, err)
 			}
-		} else if c.targetIsNamespace && clusterName == primaryClusterName {
+		case c.targetIsNamespace && clusterName == primaryClusterName:
 			c.checkHostNamespaceUnlabeled(testCluster.Client, targetName, targetKind, clusterName)
-		} else {
+		default:
 			err := c.waitForResourceDeletion(testCluster.Client, targetName, func() bool {
 				version, ok := c.expectedVersion(qualifiedName, templateVersion, overrideVersion, clusterName)
 				return version == "" && ok
@@ -561,7 +562,7 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 			if len(expectedOverrides) > 0 {
 				expectedClusterObject := clusterObj.DeepCopy()
 				// Applying overrides on copy of received cluster object should not change the cluster object if the overrides are properly applied.
-				if err := util.ApplyJsonPatch(expectedClusterObject, expectedOverrides); err != nil {
+				if err := util.ApplyJSONPatch(expectedClusterObject, expectedOverrides); err != nil {
 					c.tl.Fatalf("Failed to apply json patch: %v", err)
 				}
 
@@ -741,7 +742,6 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 // the generic resource struct.
 func GetGenericResource(client genericclient.Client, gvk schema.GroupVersionKind,
 	qualifiedName util.QualifiedName) (*status.GenericFederatedResource, error) {
-
 	fedObject := &unstructured.Unstructured{}
 	fedObject.SetGroupVersionKind(gvk)
 	err := client.Get(context.TODO(), fedObject, qualifiedName.Namespace, qualifiedName.Name)

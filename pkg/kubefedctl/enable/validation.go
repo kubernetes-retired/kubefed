@@ -167,7 +167,6 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 				}
 			}
 		}
-
 	}
 	return schema
 }

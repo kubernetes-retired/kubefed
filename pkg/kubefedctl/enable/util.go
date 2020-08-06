@@ -110,7 +110,6 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 				matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
 			}
 		}
-
 	}
 	if len(matchedResources) > 1 {
 		return nil, errors.Errorf("Multiple resources are matched by %q: %s. A group-qualified plural name must be provided.", key, strings.Join(matchedResources, ", "))

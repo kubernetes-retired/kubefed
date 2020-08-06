@@ -26,9 +26,9 @@ import (
 )
 
 var (
-	version_long = `
+	versionLong = `
 		Version prints the version info of this command.`
-	version_example = `
+	versionExample = `
 		# Print kubefed command version
 		kubefed version`
 )
@@ -38,8 +38,8 @@ func NewCmdVersion(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "version",
 		Short:   "Print the version info",
-		Long:    version_long,
-		Example: version_example,
+		Long:    versionLong,
+		Example: versionExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(out, "kubefedctl version: %s\n", fmt.Sprintf("%#v", version.Get()))
 		},
