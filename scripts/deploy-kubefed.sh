@@ -34,6 +34,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -x
 
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
@@ -45,10 +46,10 @@ function deploy-with-helm() {
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag}) --create-namespace"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag}) --create-namespace"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
