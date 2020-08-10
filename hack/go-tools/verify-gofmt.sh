@@ -22,7 +22,7 @@ pushd ${REPO_ROOT} > /dev/null
 find_files() {
   find . -not \( \
       \( \
-        -wholename '*/vendor/*' \
+        -wholename '*/third-party/*' \
         -o -wholename '*/*deepcopy.go' \
         -o -wholename '*/test/common/bindata.go' \
         -o -wholename '*/doc.go' \
