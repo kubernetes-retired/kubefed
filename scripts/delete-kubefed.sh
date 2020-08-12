@@ -27,9 +27,6 @@ function delete-helm-deployment() {
   # Clean kubefed resources
   echo "Delete FederatedTypeConfigs"
   ${KCD} -n "${NS}" FederatedTypeConfig --all
-  # if [[ ! "${NAMESPACED}" || "${DELETE_CLUSTER_RESOURCE}" ]]; then
-  #   ${KCD} crd $(kubectl get crd | grep -E 'kubefed.io' | awk '{print $1}')
-  # fi
 
   if [[ "${NAMESPACED}" ]]; then
     helm -n ${NS} uninstall kubefed-${NS}
