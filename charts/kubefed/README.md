@@ -49,6 +49,14 @@ If you don't want to install CRDs, add a `--skip-crds` at the end of the line:
 
 ```bash
 $ helm --namespace kube-federation-system upgrade -i kubefed kubefed-charts/kubefed --version=<x.x.x> --create-namespace
+
+Release "kubefed" does not exist. Installing it now.
+NAME: kubefed
+LAST DEPLOYED: Wed Aug  5 16:03:46 2020
+NAMESPACE: kube-federation-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
 ```
 
 
@@ -64,19 +72,6 @@ kubectl label namespaces <namespace> name=<namespace>
 This label is necessary to get proper validation for KubeFed core APIs. If the
 namespace does not already exist, the `helm install` command will create the
 namespace with this label by default.
-
-output:
-
-```bash
-Release "kubefed" does not exist. Installing it now.
-NAME: kubefed
-LAST DEPLOYED: Wed Aug  5 16:03:46 2020
-NAMESPACE: kube-federation-system
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-
-```
 
 ## Uninstalling the Chart
 
