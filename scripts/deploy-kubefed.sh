@@ -38,34 +38,6 @@ set -o pipefail
 source "$(dirname "${BASH_SOURCE}")/util.sh"
 
 function deploy-with-helm() {
-  # Don't install tiller if we already have a working install.
-  if ! helm version --server 2>/dev/null; then
-    # RBAC should be enabled to avoid CI fail because CI K8s uses RBAC for Tiller
-    cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tiller
-  namespace: kube-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tiller
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-  - kind: ServiceAccount
-    name: tiller
-    namespace: kube-system
-EOF
-
-    helm init --service-account tiller
-    util::wait-for-condition "Tiller to become ready" "helm version --server &> /dev/null" 120
-  fi
-
   local repository=${IMAGE_NAME%/*}
   local image_tag=${IMAGE_NAME##*/}
   local image=${image_tag%:*}
@@ -73,10 +45,10 @@ EOF
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag}) --create-namespace"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag}) --create-namespace"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -104,7 +76,7 @@ function helm-deploy-cmd {
                      --set controllermanager.webhook.image=${image} \
                      --set controllermanager.webhook.tag=${tag}"
   if [ -z "$(helm list ${name} --deployed -q)" ]; then
-    echo "helm install charts/kubefed --name ${name} ${commonFlags}"
+    echo "helm install ${name} charts/kubefed ${commonFlags} --create-namespace"
   else
     echo "helm upgrade ${name} charts/kubefed --recreate-pods ${commonFlags}"
   fi

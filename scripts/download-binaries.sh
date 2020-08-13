@@ -53,9 +53,9 @@ curl "${curl_args}O" "${kb_url}" \
 export KUBEBUILDER_ASSETS="${dest_dir}"
 echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
 
-helm_version="2.16.9"
+helm_version="3.3.0"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
-helm_url="https://storage.googleapis.com/kubernetes-helm/$helm_tgz"
+helm_url="https://get.helm.sh/$helm_tgz"
 curl "${curl_args}O" "${helm_url}" \
     && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
     && rm "${helm_tgz}"

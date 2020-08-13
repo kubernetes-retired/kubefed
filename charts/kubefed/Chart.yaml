@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: v2
 description: KubeFed helm chart
 name: kubefed
-version: 0.0.2
+version: 0.0.3
