@@ -45,10 +45,10 @@ function deploy-with-helm() {
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag}) --create-namespace"
+    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag}) --create-namespace"
+    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -114,7 +114,7 @@ IMAGE_NAME="${1:-}"
 NAMESPACED="${NAMESPACED:-}"
 
 LATEST_IMAGE_NAME=quay.io/kubernetes-multicluster/kubefed:latest
-if [[ "${IMAGE_NAME}" == "$LATEST_IMAGE_NAME" ]]; then
+if [[ "${IMAGE_NAME}" == "${LATEST_IMAGE_NAME}" ]]; then
   USE_LATEST=y
 else
   USE_LATEST=
@@ -149,20 +149,16 @@ JOIN_CLUSTERS="${*-}"
 check-command-installed kubectl
 check-command-installed helm
 
-# Use DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to skip docker
-# push on container image when not using latest image.
-DOCKER_PUSH="${DOCKER_PUSH-y}"
-DOCKER_PUSH_CMD="docker push ${IMAGE_NAME}"
-if [[ ! "${DOCKER_PUSH}" ]]; then
-    DOCKER_PUSH_CMD=
-fi
-
 # Build KubeFed binaries and image
-if [[ ! "${USE_LATEST}" ]]; then
+if [[ "${USE_LATEST:-}" != "y" ]]; then
   cd "$(dirname "$0")/.."
   make container IMAGE_NAME=${IMAGE_NAME}
   cd -
-  ${DOCKER_PUSH_CMD}
+  # Use DOCKER_PUSH=n ./scripts/deploy-kubefed.sh <image> to skip docker
+  # push on container image when not using latest image.
+  if [[ "${DOCKER_PUSH:-y}" == "y" ]]; then
+    docker push ${IMAGE_NAME}
+  fi
 fi
 
 # Use KIND_LOAD_IMAGE=y DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to load
@@ -177,9 +173,6 @@ cd -
 
 # Deploy KubeFed resources
 deploy-with-helm
-
-# Wait for admission webhook server to be ready
-util::wait-for-condition "kubefed admission webhook to be ready" "kubefed-admission-webhook-ready ${NS}" 120
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
