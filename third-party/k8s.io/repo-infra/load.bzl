@@ -38,11 +38,11 @@ def repositories():
     if not native.existing_rule("bazel_toolchains"):
         http_archive(
             name = "bazel_toolchains",
-            sha256 = "a802b753e127a6f73f3f300db5dd83fb618cd798bc880b6a87db9a8777b7939f",
-            strip_prefix = "bazel-toolchains-3.3.0",
+            sha256 = "882fecfc88d3dc528f5c5681d95d730e213e39099abff2e637688a91a9619395",
+            strip_prefix = "bazel-toolchains-3.4.0",
             urls = [
-                "https://github.com/bazelbuild/bazel-toolchains/releases/download/3.3.0/bazel-toolchains-3.3.0.tar.gz",
-                "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/archive/3.3.0.tar.gz",
+                "https://github.com/bazelbuild/bazel-toolchains/releases/download/3.4.0/bazel-toolchains-3.4.0.tar.gz",
+                "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/archive/3.4.0.tar.gz",
             ],
         )
 
@@ -58,14 +58,15 @@ def repositories():
         )
 
     # Check https://github.com/bazelbuild/rules_go/releases for new releases
-    # 0.22.6 supports Golang 1.14.4 and 1.13.12
+    # v0.22.9 supports Golang 1.14.6 and 1.13.14
+    # If this is updated, please ensure that bazel-toolchains is also updated
     if not native.existing_rule("io_bazel_rules_go"):
         http_archive(
             name = "io_bazel_rules_go",
-            sha256 = "e0d2e3d92ef8b3704f26ac19231ef9aba66c8a3bdec4aca91a22ad7d6e6f3ef7",
+            sha256 = "ae6814b6a8e09e7a9f5b20c1add51ada6a2cc664d4659aeca2921c10674e24e3",
             urls = [
-                "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.22.6/rules_go-v0.22.6.tar.gz",
-                "https://github.com/bazelbuild/rules_go/releases/download/v0.22.6/rules_go-v0.22.6.tar.gz",
+                "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.22.9/rules_go-v0.22.9.tar.gz",
+                "https://github.com/bazelbuild/rules_go/releases/download/v0.22.9/rules_go-v0.22.9.tar.gz",
             ],
         )
 

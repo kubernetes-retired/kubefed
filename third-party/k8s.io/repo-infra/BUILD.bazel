@@ -61,6 +61,7 @@ filegroup(
         ":package-srcs",
         "//cmd/kazel:all-srcs",
         "//defs:all-srcs",
+        "//go:all-srcs",
         "//hack:all-srcs",
         "//tools/build_tar:all-srcs",
         "//verify:all-srcs",
