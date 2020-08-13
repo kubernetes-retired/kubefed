@@ -68,18 +68,20 @@ function helm-deploy-cmd {
   local repo="${3}"
   local image="${4}"
   local tag="${5}"
-  local commonFlags="--namespace ${ns} \
-                     --set controllermanager.controller.repository=${repo} \
-                     --set controllermanager.controller.image=${image} \
-                     --set controllermanager.controller.tag=${tag} \
-                     --set controllermanager.webhook.repository=${repo} \
-                     --set controllermanager.webhook.image=${image} \
-                     --set controllermanager.webhook.tag=${tag}"
-  if [ -z "$(helm list ${name} --deployed -q)" ]; then
-    echo "helm install ${name} charts/kubefed ${commonFlags} --create-namespace"
-  else
-    echo "helm upgrade ${name} charts/kubefed --recreate-pods ${commonFlags}"
+  if [[ "${FORCE_REDEPLOY:-}" == "y" ]]; then
+    local force_redeploy_values="--set controllermanager.controller.forceRedeployment=true --set controllermanager.webhook.forceRedeployment=true"
   fi
+  echo "helm upgrade -i ${name} charts/kubefed \
+        --namespace ${ns} \
+        --set controllermanager.controller.repository=${repo} \
+        --set controllermanager.controller.image=${image} \
+        --set controllermanager.controller.tag=${tag} \
+        --set controllermanager.webhook.repository=${repo} \
+        --set controllermanager.webhook.image=${image} \
+        --set controllermanager.webhook.tag=${tag} \
+        ${force_redeploy_values:-} \
+        --create-namespace \
+        --wait"
 }
 
 function kubefed-admission-webhook-ready() {
