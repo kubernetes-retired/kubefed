@@ -27,6 +27,7 @@ controllermanager:
     FederatedIngress:
   
   controller:
+    annotations: {}
     replicaCount: 2
     repository: quay.io/kubernetes-multicluster
     image: kubefed
@@ -43,6 +44,7 @@ controllermanager:
         cpu: 100m
         memory: 64Mi
   webhook:
+    annotations: {}
     repository: quay.io/kubernetes-multicluster
     image: kubefed
     tag: canary
@@ -57,6 +59,9 @@ controllermanager:
       requests:
         cpu: 100m
         memory: 64Mi
+
+  certManager:
+    enabled: false
 
 
 ## Configuration global values for all charts

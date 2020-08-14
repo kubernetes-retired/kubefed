@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     kubefed-control-plane: controller-manager
+{{- if .Values.controller.annotations }}
+  annotations:
+{{ toYaml .Values.controller.annotations | indent 4 }}
+{{- end }}
 spec:
   replicas: {{ .Values.controller.replicaCount }}
   selector:
@@ -60,6 +64,10 @@ metadata:
   name: kubefed-admission-webhook
   labels:
     kubefed-admission-webhook: "true"
+{{- if .Values.webhook.annotations }}
+  annotations:
+{{ toYaml .Values.webhook.annotations | indent 4 }}
+{{- end }}
 spec:
   replicas: 1
   selector:
