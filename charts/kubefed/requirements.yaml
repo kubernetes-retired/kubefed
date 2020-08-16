@@ -1,4 +1,0 @@
-dependencies:
-- name: controllermanager
-  version: 0.0.2
-  condition: controllermanager.enabled

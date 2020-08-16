@@ -33,6 +33,7 @@ controllermanager:
     tag: canary
     imagePullPolicy: IfNotPresent
     logLevel: 2
+    forceRedeployment: false
     env: {}
     resources:
       limits:
@@ -47,6 +48,7 @@ controllermanager:
     tag: canary
     imagePullPolicy: IfNotPresent
     logLevel: 8
+    forceRedeployment: false
     env: {}
     resources:
       limits:

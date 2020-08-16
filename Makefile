@@ -166,4 +166,4 @@ controller-gen:
 	command -v controller-gen &> /dev/null || (cd tools && go install sigs.k8s.io/controller-tools/cmd/controller-gen)
 
 deploy.kind:
-	DOCKER_PUSH= KIND_LOAD_IMAGE=y ./scripts/deploy-kubefed.sh $(IMAGE_NAME)
+	DOCKER_PUSH=n KIND_LOAD_IMAGE=y FORCE_REDEPLOY=y ./scripts/deploy-kubefed.sh $(IMAGE_NAME)

@@ -15,6 +15,10 @@ spec:
     metadata:
       labels:
         kubefed-control-plane: controller-manager
+      {{- if .Values.controller.forceRedeployment }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{- end }}
     spec:
       securityContext:
         runAsUser: 1001
@@ -65,6 +69,10 @@ spec:
     metadata:
       labels:
         kubefed-admission-webhook: "true"
+      {{- if .Values.webhook.forceRedeployment }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      {{- end }}
     spec:
       securityContext:
         runAsUser: 1001
