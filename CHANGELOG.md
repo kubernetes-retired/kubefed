@@ -1,5 +1,14 @@
 # Unreleased
 
+# v0.4.0
+- [#1260](https://github.com/kubernetes-sigs/kubefed/pull/1260)
+  Helm 3 chart migration.
+- [#1269](https://github.com/kubernetes-sigs/kubefed/pull/1270)
+  Go 1.14.7 and dependency updates.
+- [#1263](https://github.com/kubernetes-sigs/kubefed/pull/1263)
+  Migrate to controller-runtime webhook server from unmaintained /openshift generic-admission-server.
+- [#1261](https://github.com/kubernetes-sigs/kubefed/pull/1261)
+  Split helm chart values for webhook and controller-manager deployments.
 # v0.3.1
 -  [#1251](https://github.com/kubernetes-sigs/kubefed/pull/1251)
    Update dependency to kubernetes 1.18.6.
