@@ -26,6 +26,19 @@ entries:
     - https://github.com/kubernetes-sigs/federation-v2/releases/download/v0.0.8/federation-v2-0.0.8.tgz
     version: 0.0.8
   kubefed:
+  - apiVersion: v2
+    created: "2020-08-17T17:14:21.241083506+01:00"
+    dependencies:
+    - condition: controllermanager.enabled
+      name: controllermanager
+      repository: https://localhost/
+      version: 0.4.0
+    description: KubeFed helm chart
+    digest: 1586cd3ca8db92de43dec66b12fde528d935fb378b991576d27d845da610bb8d
+    name: kubefed
+    urls:
+    - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.4.0/kubefed-0.4.0.tgz
+    version: 0.4.0
   - apiVersion: v1
     created: "2020-07-21T17:54:21.098851805+02:00"
     dependencies:
@@ -103,4 +116,4 @@ entries:
     urls:
     - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.1.0-rc1/kubefed-0.1.0-rc1.tgz
     version: 0.1.0-rc1
-generated: "2020-07-21T17:54:21.074082084+02:00"
+generated: "2020-08-17T17:14:21.238786027+01:00"
