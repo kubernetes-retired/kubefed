@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 var _ = Describe("Federated CRD resources", func() {
@@ -107,9 +107,10 @@ func validateCrdCrud(f framework.KubeFedFramework, targetCrdKind string, namespa
 	userAgent := fmt.Sprintf("test-%s-crud", strings.ToLower(targetCrdKind))
 
 	// Create the target crd in all clusters
-	var configs []*rest.Config
+	clusterConfigs := f.ClusterConfigs(userAgent)
+	configs := make([]*rest.Config, 0, len(clusterConfigs))
 	var hostConfig *rest.Config
-	for clusterName, clusterConfig := range f.ClusterConfigs(userAgent) {
+	for clusterName, clusterConfig := range clusterConfigs {
 		configs = append(configs, clusterConfig.Config)
 		crdClient := apiextv1b1client.NewForConfigOrDie(clusterConfig.Config)
 		if clusterConfig.IsPrimary {
@@ -245,17 +246,16 @@ func waitForCrd(config *rest.Config, tl common.TestLogger, apiResource metav1.AP
 	}
 }
 
-func createCrdForHost(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition) *apiextv1b1.CustomResourceDefinition {
-	return createCrd(tl, client, crd, "")
+func createCrdForHost(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition) {
+	createCrd(tl, client, crd, "")
 }
 
-func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition, clusterName string) *apiextv1b1.CustomResourceDefinition {
+func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition, clusterName string) {
 	createdCrd, err := client.CustomResourceDefinitions().Create(context.Background(), crd, metav1.CreateOptions{})
 	if err != nil {
 		tl.Fatalf("Error creating crd %s in %s: %v", crd.Name, clusterMsg(clusterName), err)
 	}
 	ensureCRDRemoval(tl, client, createdCrd.Name, clusterName)
-	return createdCrd
 }
 
 func ensureCRDRemoval(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crdName, clusterName string) {

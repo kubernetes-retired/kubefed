@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 var _ = Describe("ServiceDNS", func() {
@@ -172,7 +172,6 @@ var _ = Describe("ServiceDNS", func() {
 
 func createClusterServiceAndEndpoints(f framework.KubeFedFramework, name, namespace string, domain string,
 	clusterRegionZones map[string]fedv1b1.KubeFedClusterStatus) *dnsv1a1.ServiceDNSRecordStatus {
-
 	const userAgent = "test-service-dns"
 
 	service := common.NewServiceObject(name, namespace)

@@ -197,13 +197,13 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 		namespace := util.NamespaceForCluster(clusterName, r.federatedResource.GetNamespace())
 		obj.SetNamespace(namespace)
 	}
-	targetApiResource := r.typeConfig.GetTargetType()
-	obj.SetKind(targetApiResource.Kind)
+	targetAPIResource := r.typeConfig.GetTargetType()
+	obj.SetKind(targetAPIResource.Kind)
 
 	// If the template does not specify an api version, default it to
 	// the one configured for the target type in the FTC.
 	if len(obj.GetAPIVersion()) == 0 {
-		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetApiResource.Group, targetApiResource.Version))
+		obj.SetAPIVersion(fmt.Sprintf("%s/%s", targetAPIResource.Group, targetAPIResource.Version))
 	}
 
 	return obj, nil
@@ -218,7 +218,7 @@ func (r *federatedResource) ApplyOverrides(obj *unstructured.Unstructured, clust
 		return err
 	}
 	if overrides != nil {
-		if err := util.ApplyJsonPatch(obj, overrides); err != nil {
+		if err := util.ApplyJSONPatch(obj, overrides); err != nil {
 			return err
 		}
 	}

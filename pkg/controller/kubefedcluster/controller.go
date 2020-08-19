@@ -270,7 +270,6 @@ func (cc *ClusterController) RecordError(cluster runtime.Object, errorCode strin
 
 func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus, storedData *ClusterData,
 	clusterHealthCheckConfig *util.ClusterHealthCheckConfig) *fedv1b1.KubeFedClusterStatus {
-
 	if storedData.clusterStatus == nil {
 		storedData.resultRun = 1
 		return clusterStatus
@@ -286,11 +285,9 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 		probeTime := clusterStatus.Conditions[0].LastProbeTime
 		clusterStatus = storedData.clusterStatus
 		setProbeTime(clusterStatus, probeTime)
-	} else {
-		if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
-			// preserve the last transition time
-			setTransitionTime(clusterStatus, *storedData.clusterStatus.Conditions[0].LastTransitionTime)
-		}
+	} else if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
+		// preserve the last transition time
+		setTransitionTime(clusterStatus, *storedData.clusterStatus.Conditions[0].LastTransitionTime)
 	}
 
 	if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
@@ -306,7 +303,6 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 
 func (cc *ClusterController) updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cluster *fedv1b1.KubeFedCluster,
 	clusterClient *ClusterClient) *fedv1b1.KubeFedClusterStatus {
-
 	if !util.IsClusterReady(clusterStatus) {
 		return clusterStatus
 	}

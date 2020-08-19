@@ -83,7 +83,7 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 }
 
 // GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus, error) {
+func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus, error) {
 	clusterStatus := fedv1b1.KubeFedClusterStatus{}
 	currentTime := metav1.Now()
 	clusterReady := ClusterReady
@@ -126,17 +126,17 @@ func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStat
 		LastProbeTime:      currentTime,
 		LastTransitionTime: &currentTime,
 	}
-	body, err := self.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do(context.Background()).Raw()
+	body, err := c.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do(context.Background()).Raw()
 	if err != nil {
-		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", self.clusterName))
+		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", c.clusterName))
 		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
-		metrics.RegisterKubefedClusterTotal(metrics.ClusterOffline, self.clusterName)
+		metrics.RegisterKubefedClusterTotal(metrics.ClusterOffline, c.clusterName)
 	} else {
 		if !strings.EqualFold(string(body), "ok") {
-			metrics.RegisterKubefedClusterTotal(metrics.ClusterNotReady, self.clusterName)
+			metrics.RegisterKubefedClusterTotal(metrics.ClusterNotReady, c.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterNotReadyCondition, newClusterNotOfflineCondition)
 		} else {
-			metrics.RegisterKubefedClusterTotal(metrics.ClusterReady, self.clusterName)
+			metrics.RegisterKubefedClusterTotal(metrics.ClusterReady, c.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
 		}
 	}
@@ -145,8 +145,8 @@ func (self *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStat
 }
 
 // GetClusterZones gets the kubernetes cluster zones and region by inspecting labels on nodes in the cluster.
-func (self *ClusterClient) GetClusterZones() ([]string, string, error) {
-	nodes, err := self.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+func (c *ClusterClient) GetClusterZones() ([]string, string, error) {
+	nodes, err := c.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("Failed to list nodes while getting zone names: %v", err)
 		return nil, "", err

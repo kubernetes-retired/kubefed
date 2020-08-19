@@ -51,14 +51,14 @@ const (
 )
 
 var (
-	join_long = `
+	joinLong = `
 		Join registers a Kubernetes cluster with a KubeFed control
 		plane.
 
 		Current context is assumed to be a Kubernetes cluster
 		hosting a KubeFed control plane. Please use the
 		--host-cluster-context flag otherwise.`
-	join_example = `
+	joinExample = `
 		# Register a cluster with a KubeFed control plane by
 		# specifying the cluster name and the context name of
 		# the control plane's host cluster. Cluster name must
@@ -114,8 +114,8 @@ func NewCmdJoin(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "join CLUSTER_NAME --host-cluster-context=HOST_CONTEXT",
 		Short:   "Register a cluster with a KubeFed control plane",
-		Long:    join_long,
-		Example: join_example,
+		Long:    joinLong,
+		Example: joinExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -179,7 +179,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return err
 	}
 
-	j.scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
+	j.joinFederationOptions.scope, err = options.GetScopeFromKubeFedConfig(hostConfig, j.KubeFedNamespace)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 	}
 
 	_, err = JoinCluster(hostConfig, clusterConfig, j.KubeFedNamespace,
-		hostClusterName, j.ClusterName, j.secretName, j.scope, j.DryRun, j.errorOnExisting)
+		hostClusterName, j.ClusterName, j.secretName, j.joinFederationOptions.scope, j.DryRun, j.errorOnExisting)
 
 	return err
 }
@@ -207,7 +207,6 @@ func (j *joinFederation) Run(cmdOut io.Writer, config util.FedConfig) error {
 func JoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace,
 	hostClusterName, joiningClusterName, secretName string,
 	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
-
 	return joinClusterForNamespace(hostConfig, clusterConfig, kubefedNamespace,
 		kubefedNamespace, hostClusterName, joiningClusterName, secretName,
 		scope, dryRun, errorOnExisting)
@@ -246,8 +245,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	}
 
 	klog.V(2).Infof("Creating %s namespace in joining cluster", joiningNamespace)
-	_, err = createKubeFedNamespace(clusterClientset, joiningNamespace,
-		joiningClusterName, dryRun)
+	_, err = createKubeFedNamespace(clusterClientset, joiningNamespace, dryRun)
 	if err != nil {
 		klog.V(2).Infof("Error creating %s namespace in joining cluster: %v",
 			joiningNamespace, err)
@@ -287,8 +285,8 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	return kubefedCluster, nil
 }
 
-// This function is exported for testing purposes only.
-var TestOnly_JoinClusterForNamespace = joinClusterForNamespace
+// TestOnlyJoinClusterForNamespace is exported for testing purposes only.
+var TestOnlyJoinClusterForNamespace = joinClusterForNamespace
 
 // performPreflightChecks checks that the host and joining clusters are in
 // a consistent state.
@@ -365,8 +363,7 @@ func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEn
 
 // createKubeFedNamespace creates the kubefed namespace in the cluster
 // associated with clusterClientset, if it doesn't already exist.
-func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamespace,
-	joiningClusterName string, dryRun bool) (*corev1.Namespace, error) {
+func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamespace string, dryRun bool) (*corev1.Namespace, error) {
 	fedNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: kubefedNamespace,
@@ -408,7 +405,6 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface,
 	namespace, joiningClusterName, hostClusterName string,
 	scope apiextv1b1.ResourceScope, dryRun, errorOnExisting bool) (string, error) {
-
 	klog.V(2).Infof("Creating service account in joining cluster: %s", joiningClusterName)
 
 	saName, err := createServiceAccount(joiningClusterClientset, namespace,
@@ -445,7 +441,6 @@ func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface
 
 		klog.V(2).Infof("Created health check cluster role and binding for service account: %s in joining cluster: %s",
 			saName, joiningClusterName)
-
 	} else {
 		klog.V(2).Infof("Creating cluster role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
 
@@ -816,7 +811,6 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Interface,
 	saName, hostNamespace, joiningNamespace, joiningClusterName, secretName string,
 	dryRun bool) (*corev1.Secret, []byte, error) {
-
 	klog.V(2).Infof("Creating cluster credentials secret in host cluster")
 
 	if dryRun {

@@ -41,36 +41,34 @@ func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <
 
 // getServiceDNSEndpoints returns endpoint objects for each ServiceDNSRecord object that should be processed.
 func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
-	var endpoints []*feddnsv1a1.Endpoint
-	var commonPrefix string
-	labels := make(map[string]string)
-
 	dnsObject, ok := obj.(*feddnsv1a1.ServiceDNSRecord)
 	if !ok {
 		return nil, errors.Errorf("received event for unknown object %v", obj)
 	}
 
+	commonPrefix := strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
+	var labels map[string]string
 	if dnsObject.Spec.ExternalName != "" {
 		commonPrefix = strings.Join([]string{dnsObject.Spec.ExternalName, dnsObject.Namespace, dnsObject.Spec.DomainRef,
 			"svc"}, ".")
+		labels = make(map[string]string, 1)
 		labels["serviceName"] = dnsObject.Name
-	} else {
-		commonPrefix = strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
 	}
 
-	ttl := dnsObject.Spec.RecordTTL
-	if ttl == 0 {
-		ttl = defaultDNSTTL
+	ttl := defaultDNSTTL
+	if dnsObject.Spec.RecordTTL != 0 {
+		ttl = dnsObject.Spec.RecordTTL
 	}
+
+	var endpoints []*feddnsv1a1.Endpoint //nolint:prealloc
 
 	for _, clusterDNS := range dnsObject.Status.DNS {
-		var zoneDNSName string
 		regionDNSName := strings.Join([]string{commonPrefix, clusterDNS.Region, dnsObject.Status.Domain}, ".") // region level, one up from zone level
 		globalDNSName := strings.Join([]string{commonPrefix, dnsObject.Status.Domain}, ".")                    // global level, one up from region level
 
 		// Zone endpoints
 		for _, zone := range clusterDNS.Zones {
-			zoneDNSName = strings.Join([]string{commonPrefix, zone, clusterDNS.Region, dnsObject.Status.Domain}, ".")
+			zoneDNSName := strings.Join([]string{commonPrefix, zone, clusterDNS.Region, dnsObject.Status.Domain}, ".")
 			zoneTargets := ExtractLoadBalancerTargets(clusterDNS.LoadBalancer)
 			zoneEndpoint, err := generateEndpointForServiceDNSObject(zoneDNSName, zoneTargets, regionDNSName, ttl, labels)
 			if err != nil {

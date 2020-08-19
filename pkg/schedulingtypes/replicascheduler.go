@@ -312,7 +312,6 @@ func clustersReplicaState(
 	key string,
 	objectGetter func(clusterName string, key string) (interface{}, bool, error),
 	podsGetter func(clusterName string, obj *unstructured.Unstructured) (*corev1.PodList, error)) (currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64, err error) {
-
 	currentReplicasPerCluster = make(map[string]int64)
 	estimatedCapacity = make(map[string]int64)
 

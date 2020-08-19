@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 var _ = Describe("Placement", func() {

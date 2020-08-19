@@ -28,7 +28,7 @@ import (
 
 func TestAnalyze(t *testing.T) {
 	now := time.Now()
-	podRunning := newPod(t, "p1",
+	podRunning := newPod("p1",
 		api_v1.PodStatus{
 			Phase: api_v1.PodRunning,
 			Conditions: []api_v1.PodCondition{
@@ -38,7 +38,7 @@ func TestAnalyze(t *testing.T) {
 				},
 			},
 		})
-	podUnschedulable := newPod(t, "pU",
+	podUnschedulable := newPod("pU",
 		api_v1.PodStatus{
 			Phase: api_v1.PodPending,
 			Conditions: []api_v1.PodCondition{
@@ -50,7 +50,7 @@ func TestAnalyze(t *testing.T) {
 				},
 			},
 		})
-	podOther := newPod(t, "pO",
+	podOther := newPod("pO",
 		api_v1.PodStatus{
 			Phase:      api_v1.PodPending,
 			Conditions: []api_v1.PodCondition{},
@@ -71,7 +71,7 @@ func TestAnalyze(t *testing.T) {
 	}, result)
 }
 
-func newPod(t *testing.T, name string, status api_v1.PodStatus) *api_v1.Pod {
+func newPod(name string, status api_v1.PodStatus) *api_v1.Pod {
 	return &api_v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "pod",

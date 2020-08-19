@@ -149,7 +149,6 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 // status has been changed.
 func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason,
 	collectedStatus CollectedPropagationStatus) bool {
-
 	generationUpdated := s.ObservedGeneration != generation
 	if generationUpdated {
 		s.ObservedGeneration = generation

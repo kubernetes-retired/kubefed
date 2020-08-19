@@ -38,8 +38,8 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/test/common"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
+	. "github.com/onsi/gomega" //nolint:stylecheck
 )
 
 const (
@@ -197,12 +197,12 @@ func (f *UnmanagedFramework) Client(userAgent string) genericclient.Client {
 }
 
 func (f *UnmanagedFramework) ClusterNames(userAgent string) []string {
-	var clusters []string
 	client := f.Client(userAgent)
 	clusterList := &fedv1b1.KubeFedClusterList{}
 	err := client.List(context.TODO(), clusterList, TestContext.KubeFedSystemNamespace)
 	ExpectNoError(err, fmt.Sprintf("Error retrieving list of federated clusters: %+v", err))
 
+	clusters := make([]string, 0, len(clusterList.Items))
 	for _, cluster := range clusterList.Items {
 		clusters = append(clusters, cluster.Name)
 	}

@@ -49,7 +49,7 @@ const (
 )
 
 var (
-	disable_long = `
+	disableLong = `
 		Disables propagation of a Kubernetes API type.  This command
 		can also optionally delete the API resources added by the enable
 		command.
@@ -58,7 +58,7 @@ var (
 		the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
-	disable_example = `
+	disableExample = `
 		# Disable propagation of the kubernetes API type 'Deployment', named
 		in FederatedTypeConfig as 'deployments.apps'
 		kubefedctl disable deployments.apps
@@ -94,8 +94,8 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "disable NAME",
 		Short:   "Disables propagation of a Kubernetes API type",
-		Long:    disable_long,
-		Example: disable_example,
+		Long:    disableLong,
+		Example: disableExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -119,8 +119,8 @@ func NewCmdTypeDisable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *disableType) Complete(args []string) error {
-	j.enableTypeDirective = enable.NewEnableTypeDirective()
-	directive := j.enableTypeDirective
+	j.disableTypeOptions.enableTypeDirective = enable.NewEnableTypeDirective()
+	directive := j.disableTypeOptions.enableTypeDirective
 
 	if err := j.SetName(args); err != nil {
 		return err
@@ -167,8 +167,8 @@ func (j *disableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		Namespace: j.KubeFedNamespace,
 		Name:      name,
 	}
-	j.enableTypeDirective.Name = typeConfigName.Name
-	return DisableFederation(cmdOut, hostConfig, j.enableTypeDirective, typeConfigName, j.deleteCRD, j.DryRun, true)
+	j.disableTypeOptions.enableTypeDirective.Name = typeConfigName.Name
+	return DisableFederation(cmdOut, hostConfig, j.disableTypeOptions.enableTypeDirective, typeConfigName, j.deleteCRD, j.DryRun, true)
 }
 
 func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirective *enable.EnableTypeDirective,
@@ -204,7 +204,7 @@ func DisableFederation(cmdOut io.Writer, config *rest.Config, enableTypeDirectiv
 	// reestablished.
 	if ftcExists {
 		if deleteCRD {
-			err = checkFederatedTypeCustomResourcesExist(config, typeConfig, write)
+			err = checkFederatedTypeCustomResourcesExist(config, typeConfig)
 			if err != nil {
 				return err
 			}
@@ -318,7 +318,7 @@ func generatedFederatedTypeConfig(config *rest.Config, enableTypeDirective *enab
 }
 
 func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
-	err := checkFederatedTypeCustomResourcesExist(config, typeConfig, write)
+	err := checkFederatedTypeCustomResourcesExist(config, typeConfig)
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func deleteFederatedType(config *rest.Config, typeConfig typeconfig.Interface, w
 	return nil
 }
 
-func checkFederatedTypeCustomResourcesExist(config *rest.Config, typeConfig typeconfig.Interface, write func(string)) error {
+func checkFederatedTypeCustomResourcesExist(config *rest.Config, typeConfig typeconfig.Interface) error {
 	federatedTypeAPIResource := typeConfig.GetFederatedType()
 	crdName := typeconfig.GroupQualifiedName(federatedTypeAPIResource)
 	exists, err := customResourcesExist(config, &federatedTypeAPIResource)
@@ -367,11 +367,12 @@ func deleteFederatedCRD(config *rest.Config, crdName string, write func(string))
 	}
 
 	err = client.CustomResourceDefinitions().Delete(context.Background(), crdName, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		write(fmt.Sprintf("customresourcedefinition %q does not exist\n", crdName))
-	} else if err != nil {
+	case err != nil:
 		return errors.Wrapf(err, "Error deleting crd %q", crdName)
-	} else {
+	default:
 		write(fmt.Sprintf("customresourcedefinition %q deleted\n", crdName))
 	}
 	return nil

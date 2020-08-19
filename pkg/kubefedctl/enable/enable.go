@@ -49,7 +49,7 @@ const (
 )
 
 var (
-	enable_long = `
+	enableLong = `
 		Enables a Kubernetes API type (including a CRD) to be propagated
 		to clusters registered with a KubeFed control plane.  A CRD for
 		the federated type will be generated and a FederatedTypeConfig will
@@ -59,7 +59,7 @@ var (
 		the kubefed control plane. Please use the
 		--host-cluster-context flag otherwise.`
 
-	enable_example = `
+	enableExample = `
 		# Enable federation of Deployments
 		kubefedctl enable deployments.apps --host-cluster-context=cluster1
 
@@ -98,8 +98,8 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "enable (NAME | -f FILENAME)",
 		Short:   "Enables propagation of a Kubernetes API type",
-		Long:    enable_long,
-		Example: enable_example,
+		Long:    enableLong,
+		Example: enableExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(args)
 			if err != nil {
@@ -123,11 +123,11 @@ func NewCmdTypeEnable(cmdOut io.Writer, config util.FedConfig) *cobra.Command {
 
 // Complete ensures that options are valid and marshals them if necessary.
 func (j *enableType) Complete(args []string) error {
-	j.enableTypeDirective = NewEnableTypeDirective()
-	fd := j.enableTypeDirective
+	j.enableTypeOptions.enableTypeDirective = NewEnableTypeDirective()
+	fd := j.enableTypeOptions.enableTypeDirective
 
 	if j.output == "yaml" {
-		j.outputYAML = true
+		j.enableTypeOptions.outputYAML = true
 	} else if len(j.output) > 0 {
 		return errors.Errorf("Invalid value for --output: %s", j.output)
 	}
@@ -166,12 +166,12 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 		return errors.Wrap(err, "Failed to get host cluster config")
 	}
 
-	resources, err := GetResources(hostConfig, j.enableTypeDirective)
+	resources, err := GetResources(hostConfig, j.enableTypeOptions.enableTypeDirective)
 	if err != nil {
 		return err
 	}
 
-	if j.outputYAML {
+	if j.enableTypeOptions.outputYAML {
 		concreteTypeConfig := resources.TypeConfig.(*fedv1b1.FederatedTypeConfig)
 		objects := []pkgruntime.Object{concreteTypeConfig, resources.CRD}
 		err := writeObjectsToYAML(objects, cmdOut)
@@ -269,7 +269,8 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 	}
 
 	existingCRD, err := crdClient.CustomResourceDefinitions().Get(context.Background(), resources.CRD.Name, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
+	switch {
+	case apierrors.IsNotFound(err):
 		if !dryRun {
 			_, err = crdClient.CustomResourceDefinitions().Create(context.Background(), resources.CRD, metav1.CreateOptions{})
 			if err != nil {
@@ -277,9 +278,9 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 			}
 		}
 		write(fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io/%s created\n", resources.CRD.Name))
-	} else if err != nil {
+	case err != nil:
 		return errors.Wrapf(err, "Error getting CRD %q", resources.CRD.Name)
-	} else {
+	default:
 		ftcs := &fedv1b1.FederatedTypeConfigList{}
 		err := client.List(context.TODO(), ftcs, namespace)
 		if err != nil {

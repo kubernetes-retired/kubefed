@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 type testObjectsAccessor func(namespace string, clusterNames []string) (targetObject *unstructured.Unstructured, overrides []interface{}, err error)
@@ -238,7 +238,6 @@ var _ = Describe("Federated", func() {
 func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 	typeConfigName string, fixture *unstructured.Unstructured) (
 	typeconfig.Interface, testObjectsAccessor) {
-
 	// Lookup the type config from the api
 	client, err := genericclient.New(f.KubeConfig())
 	if err != nil {
@@ -275,7 +274,6 @@ func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 func initCrudTest(f framework.KubeFedFramework, tl common.TestLogger,
 	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) (
 	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
-
 	return initCrudTestWithPropagation(f, tl, typeConfig, testObjectsFunc, true)
 }
 
@@ -283,7 +281,6 @@ func initCrudTestWithPropagation(f framework.KubeFedFramework, tl common.TestLog
 	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor,
 	ensureNamespacePropagation bool) (
 	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
-
 	// Initialize in-memory controllers if configuration requires
 	fixture := f.SetUpSyncControllerFixture(typeConfig)
 	f.RegisterFixture(fixture)

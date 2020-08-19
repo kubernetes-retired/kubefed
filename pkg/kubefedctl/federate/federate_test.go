@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
 )
 
@@ -77,5 +78,4 @@ func TestFederateResources(t *testing.T) {
 		federatedSpec := federatedResource.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"]
 		assert.Equal(t, resource.Object["spec"], federatedSpec)
 	})
-
 }

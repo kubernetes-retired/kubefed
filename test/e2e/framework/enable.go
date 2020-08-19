@@ -32,7 +32,6 @@ func LoadEnableTypeDirectives(tl common.TestLogger) []*kfenable.EnableTypeDirect
 		if len(filename) != 0 {
 			enableTypeDirectives = append(enableTypeDirectives, obj)
 		}
-
 	}
 	return enableTypeDirectives
 }

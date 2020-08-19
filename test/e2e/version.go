@@ -45,7 +45,7 @@ import (
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
 
 type testVersionAdapter interface {
@@ -154,7 +154,7 @@ func (r *testVersionedResource) OverrideVersion() (string, error) {
 	return r.overrideVersion, nil
 }
 
-func newTestVersionAdapter(client genericclient.Client, kubeClient kubeclientset.Interface, namespaced bool) testVersionAdapter {
+func newTestVersionAdapter(kubeClient kubeclientset.Interface, namespaced bool) testVersionAdapter {
 	adapter := version.NewVersionAdapter(namespaced)
 	if namespaced {
 		return &testNamespacedVersionAdapter{adapter, kubeClient}
@@ -220,7 +220,7 @@ var _ = Describe("VersionManager", func() {
 				client = f.Client(userAgent)
 
 				kubeClient := f.KubeClient(userAgent)
-				adapter = newTestVersionAdapter(client, kubeClient, namespaced)
+				adapter = newTestVersionAdapter(kubeClient, namespaced)
 				versionType = adapter.TypeName()
 
 				// Use a non-federated type as the federated object to

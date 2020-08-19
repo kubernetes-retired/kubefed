@@ -136,7 +136,6 @@ func (m *VersionManager) Get(resource VersionedResource) (map[string]string, err
 // resource is recorded.
 func (m *VersionManager) Update(resource VersionedResource,
 	selectedClusters []string, versionMap map[string]string) error {
-
 	templateVersion, err := resource.TemplateVersion()
 	if err != nil {
 		return errors.Wrap(err, "Failed to determine template version")
@@ -428,7 +427,6 @@ func ownerReferenceForUnstructured(obj *unstructured.Unstructured) metav1.OwnerR
 
 func updateClusterVersions(oldVersions []fedv1a1.ClusterObjectVersion,
 	newVersions map[string]string, selectedClusters []string) []fedv1a1.ClusterObjectVersion {
-
 	// Retain versions for selected clusters that were not changed
 	selectedClusterSet := sets.NewString(selectedClusters...)
 	for _, oldVersion := range oldVersions {
