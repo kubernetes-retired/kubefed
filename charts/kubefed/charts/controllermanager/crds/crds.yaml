@@ -1076,6 +1076,8 @@ spec:
     listKind: ReplicaSchedulingPreferenceList
     plural: replicaschedulingpreferences
     singular: replicaschedulingpreference
+    shortNames:
+    - rsp
   scope: Namespaced
   validation:
     openAPIV3Schema:

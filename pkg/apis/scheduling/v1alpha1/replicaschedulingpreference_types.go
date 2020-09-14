@@ -75,7 +75,7 @@ type ReplicaSchedulingPreferenceStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=replicaschedulingpreferences
+// +kubebuilder:resource:path=replicaschedulingpreferences,shortName=rsp
 
 type ReplicaSchedulingPreference struct {
 	metav1.TypeMeta   `json:",inline"`
