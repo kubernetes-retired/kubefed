@@ -69,7 +69,7 @@ higher-level APIs:
    ```
    git clone https://github.com/kubernetes-sigs/kubefed.git
    ```
-1. Start a kind cluster:
+1. Start a [kind](https://kind.sigs.k8s.io/) cluster:
    ```
    kind create cluster
    ```
