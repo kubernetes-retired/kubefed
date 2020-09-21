@@ -63,6 +63,52 @@ higher-level APIs:
 
 ## Guides
 
+### Quickstart
+
+1. Clone this repo:
+   ```
+   git clone https://github.com/kubernetes-sigs/kubefed.git
+   ```
+1. Start a kind cluster:
+   ```
+   kind create cluster
+   ```
+1. Deploy kubefed:
+   ```
+   make deploy.kind
+   ```
+
+You now have a Kubernetes cluster with kubefed up and running. The cluster has been joined to itself and you can test federation of resources like this:
+
+1. Verify the `KubeFedCluster` exists and is ready:
+   ```
+   kubectl -n kube-federation-system get kubefedcluster
+   ```
+   **If you're on macOS** the cluster will not immediately show as ready. You need to [change the API endpoint's URL first](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/cluster-registration.md#joining-kind-clusters-on-macos):
+   ```
+   ./scripts/fix-joined-kind-clusters.sh
+   ```
+1. Create a namespace to be federated:
+   ```
+   kubectl create ns federate-me
+   ```
+1. Tell kubefed to federate that namespace (and the resources in it):
+   ```
+   ./bin/kubefedctl federate ns federate-me
+   ```
+1. Create a `ConfigMap` to be federated:
+   ```
+   kubectl -n federate-me create cm federated-cm
+   ```
+1. Tell kubefed to federate that `ConfigMap`:
+   ```
+   ./bin/kubefedctl -n federate-me federate configmap federated-cm
+   ```
+1. Verify the `FederatedConfigMap` has been created and propagates properly:
+   ```
+   kubectl -n federate-me describe federatedconfigmap federated-cm
+   ```
+
 ### User Guide
 
 Take a look at our [user guide](docs/userguide.md) if you are interested in
