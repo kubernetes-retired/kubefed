@@ -390,6 +390,8 @@ spec:
   featureGates:
   - name: PushReconciler
     configuration: "Enabled"
+  - name: RawResourceStatusCollection
+    configuration: "Enabled"
   - name: SchedulerPreferences
     configuration: "Enabled"
   - name: CrossClusterServiceDiscovery

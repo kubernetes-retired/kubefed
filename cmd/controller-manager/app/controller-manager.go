@@ -213,7 +213,11 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.PushReconciler) {
-		if err := federatedtypeconfig.StartController(opts.Config, stopChan); err != nil {
+		if utilfeature.DefaultFeatureGate.Enabled(features.RawResourceStatusCollection) {
+			klog.Info("Enabling RawResourceStatusCollection for all the enabled federated resources")
+		}
+
+		if err := federatedtypeconfig.StartController(opts.Config, opts.FeatureGates, stopChan); err != nil {
 			klog.Fatalf("Error starting federated type config controller: %v", err)
 		}
 	}

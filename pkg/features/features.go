@@ -53,6 +53,12 @@ const (
 	//
 	// DNS based federated ingress feature.
 	FederatedIngress featuregate.Feature = "FederatedIngress"
+
+	// owner: @hectorj2f
+	// beta: v0.5
+	//
+	// RawResourceStatusCollection enables the collection of the status of target types when enabled
+	RawResourceStatusCollection featuregate.Feature = "RawResourceStatusCollection"
 )
 
 func init() {
@@ -69,4 +75,5 @@ var DefaultKubeFedFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec
 	PushReconciler:               {Default: true, PreRelease: featuregate.Beta},
 	CrossClusterServiceDiscovery: {Default: false, PreRelease: featuregate.Alpha},
 	FederatedIngress:             {Default: false, PreRelease: featuregate.Alpha},
+	RawResourceStatusCollection:  {Default: false, PreRelease: featuregate.Beta},
 }
