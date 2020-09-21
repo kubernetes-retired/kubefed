@@ -157,12 +157,11 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	syncEnabled := typeConfig.GetPropagationEnabled()
 	// TODO (hectorj2f): Disabled by default the collection of the resource status following
-	// the old approach.
-	// statusEnabled := typeConfig.GetStatusEnabled()
-	statusEnabled := false
-	if !c.enableRawResourceStatusCollection {
+	// the NEW approach.
+	statusEnabled := typeConfig.GetStatusEnabled()
+	if c.enableRawResourceStatusCollection {
 		// If Feature RawResourceStatusCollection is enabled then disable the old mechanism
-		statusEnabled = true
+		statusEnabled = false
 	}
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
