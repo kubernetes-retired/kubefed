@@ -18,7 +18,11 @@ package kubefedcluster
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -38,29 +42,36 @@ type KubeFedClusterAdmissionHook struct{}
 var _ admission.Handler = &KubeFedClusterAdmissionHook{}
 
 func (a *KubeFedClusterAdmissionHook) Handle(ctx context.Context, admissionSpec admission.Request) admission.Response {
-	status := admission.Response{}
-
 	klog.V(4).Infof("Validating %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not FederatedTypeConfigs
-	if webhook.Allowed(admissionSpec, resourcePluralName, &status) {
-		return status
+	if webhook.Allowed(admissionSpec, resourcePluralName) {
+		return admission.Response{
+			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				Allowed: true,
+			},
+		}
 	}
 
 	admittingObject := &v1beta1.KubeFedCluster{}
-	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, &status)
-	if err != nil {
-		return status
+	if err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject); err != nil {
+		return admission.Response{
+			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+					Message: err.Error(),
+				},
+			},
+		}
 	}
 
 	klog.V(4).Infof("Validating %q = %+v", ResourceName, *admittingObject)
 
 	isStatusSubResource := admissionSpec.SubResource == "status"
-	webhook.Validate(&status, func() field.ErrorList {
+	return webhook.Validate(func() field.ErrorList {
 		return validation.ValidateKubeFedCluster(admittingObject, isStatusSubResource)
 	})
-
-	return status
 }

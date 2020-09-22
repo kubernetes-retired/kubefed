@@ -45,36 +45,50 @@ type KubeFedConfigValidator struct{}
 var _ admission.Handler = &KubeFedConfigValidator{}
 
 func (a *KubeFedConfigValidator) Handle(ctx context.Context, admissionSpec admission.Request) admission.Response {
-	status := admission.Response{}
-
 	klog.V(4).Infof("Validating %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
-	if webhook.Allowed(admissionSpec, resourcePluralName, &status) {
-		return status
+	if webhook.Allowed(admissionSpec, resourcePluralName) {
+		return admission.Response{
+			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				Allowed: true,
+			},
+		}
 	}
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, &status)
-	if err != nil {
-		return status
+	if err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject); err != nil {
+		return admission.Response{
+			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+					Message: err.Error(),
+				},
+			},
+		}
 	}
 
 	var oldObject *v1beta1.KubeFedConfig
 	if admissionSpec.Operation == admissionv1beta1.Update {
 		oldObject = &v1beta1.KubeFedConfig{}
-		err = webhook.Unmarshal(&admissionSpec.OldObject, oldObject, &status)
-		if err != nil {
-			return status
+		if err := json.Unmarshal(admissionSpec.OldObject.Raw, oldObject); err != nil {
+			return admission.Response{
+				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+					Allowed: false,
+					Result: &metav1.Status{
+						Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+						Message: err.Error(),
+					},
+				},
+			}
 		}
 	}
 
 	klog.V(4).Infof("Validating %q = %+v", ResourceName, *admittingObject)
 
-	webhook.Validate(&status, func() field.ErrorList {
+	return webhook.Validate(func() field.ErrorList {
 		return validation.ValidateKubeFedConfig(admittingObject, oldObject)
 	})
-
-	return status
 }
 
 type KubeFedConfigDefaulter struct{}
@@ -86,9 +100,16 @@ func (a *KubeFedConfigDefaulter) Handle(ctx context.Context, admissionSpec admis
 	klog.V(4).Infof("Admitting %q AdmissionRequest = %s", ResourceName, webhook.AdmissionRequestDebugString(admissionSpec))
 
 	admittingObject := &v1beta1.KubeFedConfig{}
-	err := webhook.Unmarshal(&admissionSpec.Object, admittingObject, &status)
-	if err != nil {
-		return status
+	if err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject); err != nil {
+		return admission.Response{
+			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+					Message: err.Error(),
+				},
+			},
+		}
 	}
 
 	klog.V(4).Infof("Admitting %q = %+v", ResourceName, *admittingObject)
