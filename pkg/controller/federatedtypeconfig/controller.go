@@ -18,7 +18,6 @@ package federatedtypeconfig
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -38,7 +37,6 @@ import (
 	statuscontroller "sigs.k8s.io/kubefed/pkg/controller/status"
 	synccontroller "sigs.k8s.io/kubefed/pkg/controller/sync"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
-	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
@@ -63,13 +61,11 @@ type Controller struct {
 	controller cache.Controller
 
 	worker util.ReconcileWorker
-	// Enable to collect the remote cluster object status and store it in the federated resource
-	enableRawResourceStatusCollection bool
 }
 
 // StartController starts the Controller for managing FederatedTypeConfig objects.
-func StartController(config *util.ControllerConfig, featureGates map[string]bool, stopChan <-chan struct{}) error {
-	controller, err := newController(config, featureGates)
+func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) error {
+	controller, err := newController(config)
 	if err != nil {
 		return err
 	}
@@ -79,7 +75,7 @@ func StartController(config *util.ControllerConfig, featureGates map[string]bool
 }
 
 // newController returns a new controller to manage FederatedTypeConfig objects.
-func newController(config *util.ControllerConfig, featureGates map[string]bool) (*Controller, error) {
+func newController(config *util.ControllerConfig) (*Controller, error) {
 	userAgent := "FederatedTypeConfig"
 	kubeConfig := restclient.CopyConfig(config.KubeConfig)
 	restclient.AddUserAgent(kubeConfig, userAgent)
@@ -88,14 +84,10 @@ func newController(config *util.ControllerConfig, featureGates map[string]bool) 
 		return nil, err
 	}
 
-	rawStringFeatureValue := fmt.Sprintf("%v", features.RawResourceStatusCollection)
-	enableRawResourceStatusCollection, _ := featureGates[rawStringFeatureValue]
-
 	c := &Controller{
-		controllerConfig:                  config,
-		client:                            genericclient,
-		stopChannels:                      make(map[string]chan struct{}),
-		enableRawResourceStatusCollection: enableRawResourceStatusCollection,
+		controllerConfig: config,
+		client:           genericclient,
+		stopChannels:     make(map[string]chan struct{}),
 	}
 
 	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
@@ -158,10 +150,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	syncEnabled := typeConfig.GetPropagationEnabled()
 	// TODO (hectorj2f): Disabled by default the collection of the resource status following
 	// the NEW approach.
-	statusEnabled := typeConfig.GetStatusEnabled()
-	if c.enableRawResourceStatusCollection {
+	statusControllerEnabled := typeConfig.GetStatusEnabled() && typeConfig.Name == "services"
+	if c.controllerConfig.RawResourceStatusCollection {
 		// If Feature RawResourceStatusCollection is enabled then disable the old mechanism
-		statusEnabled = false
+		statusControllerEnabled = false
 	}
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
@@ -239,8 +231,8 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		c.stopController(typeConfig.Name, syncStopChan)
 	}
 
-	startNewStatusController := !statusRunning && statusEnabled
-	stopStatusController := statusRunning && !statusEnabled
+	startNewStatusController := !statusRunning && statusControllerEnabled
+	stopStatusController := statusRunning && !statusControllerEnabled
 	if startNewStatusController {
 		if err := c.startStatusController(statusKey, typeConfig); err != nil {
 			runtime.HandleError(err)

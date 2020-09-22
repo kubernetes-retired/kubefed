@@ -24,20 +24,29 @@ import (
 
 func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 	testCases := map[string]struct {
-		generation       int64
-		reason           AggregateReason
-		statusMap        PropagationStatusMap
-		resourcesUpdated bool
-		expectedChanged  bool
+		generation        int64
+		reason            AggregateReason
+		statusMap         PropagationStatusMap
+		resourceStatusMap map[string]interface{}
+		resourcesUpdated  bool
+		expectedChanged   bool
 	}{
 		"No change in clusters indicates unchanged": {
 			statusMap: PropagationStatusMap{
 				"cluster1": ClusterPropagationOK,
 			},
+			resourceStatusMap: map[string]interface{}{
+				"ready": false,
+				"stage": "absent",
+			},
 		},
 		"No change in clusters with update indicates changed": {
 			statusMap: PropagationStatusMap{
 				"cluster1": ClusterPropagationOK,
+			},
+			resourceStatusMap: map[string]interface{}{
+				"ready": true,
+				"stage": "deployed",
 			},
 			resourcesUpdated: true,
 			expectedChanged:  true,
@@ -73,7 +82,11 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				StatusMap:        tc.statusMap,
 				ResourcesUpdated: tc.resourcesUpdated,
 			}
-			changed := propStatus.update(tc.generation, tc.reason, collectedStatus)
+			collectedResourceStatus := CollectedResourceStatus{
+				StatusMap:        tc.resourceStatusMap,
+				ResourcesUpdated: tc.resourcesUpdated,
+			}
+			changed := propStatus.update(tc.generation, tc.reason, collectedStatus, collectedResourceStatus)
 			if tc.expectedChanged != changed {
 				t.Fatalf("Expected changed to be %v, got %v", tc.expectedChanged, changed)
 			}

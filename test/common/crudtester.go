@@ -720,21 +720,27 @@ func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.Qualifie
 	}
 
 	statusAPIResource := c.typeConfig.GetStatusType()
-	statusKind := statusAPIResource.Kind
+	// TODO (hectorj2f): To be deprecated.
+	// I added a check to support current FederatedServiceStatus and new remote resource
+	// status. The new mechanism reuses the statusCollection flag but it does not define
+	// a StatusType type.
+	if statusAPIResource != nil {
+		statusKind := statusAPIResource.Kind
 
-	c.tl.Logf("Checking creation of %s %q", statusKind, qualifiedName)
+		c.tl.Logf("Checking creation of %s %q", statusKind, qualifiedName)
 
-	client := c.resourceClient(*statusAPIResource)
-	err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
-		_, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
-			c.tl.Errorf("An unexpected error occurred while polling for desired status: %v", err)
+		client := c.resourceClient(*statusAPIResource)
+		err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+			_, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
+			if err != nil && !apierrors.IsNotFound(err) {
+				c.tl.Errorf("An unexpected error occurred while polling for desired status: %v", err)
+			}
+			return (err == nil), nil
+		})
+
+		if err != nil {
+			c.tl.Fatalf("Timed out waiting for %s %q", statusKind, qualifiedName)
 		}
-		return (err == nil), nil
-	})
-
-	if err != nil {
-		c.tl.Fatalf("Timed out waiting for %s %q", statusKind, qualifiedName)
 	}
 }
 

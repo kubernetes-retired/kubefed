@@ -30,6 +30,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
@@ -60,10 +61,10 @@ type ManagedDispatcher interface {
 	Create(clusterName string)
 	Update(clusterName string, clusterObj *unstructured.Unstructured)
 	VersionMap() map[string]string
-	CollectedStatus() status.CollectedPropagationStatus
+	CollectedStatus() (status.CollectedPropagationStatus, status.CollectedResourceStatus)
 
 	RecordClusterError(propStatus status.PropagationStatus, clusterName string, err error)
-	RecordStatus(clusterName string, propStatus status.PropagationStatus)
+	RecordStatus(clusterName string, propStatus status.PropagationStatus, resourceStatus interface{})
 }
 
 type managedDispatcherImpl struct {
@@ -74,19 +75,24 @@ type managedDispatcherImpl struct {
 	fedResource           FederatedResourceForDispatch
 	versionMap            map[string]string
 	statusMap             status.PropagationStatusMap
+	resourceStatusMap     map[string]interface{}
 	skipAdoptingResources bool
 
 	// Track when resource updates are performed to allow indicating
 	// when a change was last propagated to member clusters.
 	resourcesUpdated bool
+
+	rawResourceStatusCollection bool
 }
 
-func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource FederatedResourceForDispatch, skipAdoptingResources bool) ManagedDispatcher {
+func NewManagedDispatcher(clientAccessor clientAccessorFunc, fedResource FederatedResourceForDispatch, skipAdoptingResources, rawResourceStatusCollection bool) ManagedDispatcher {
 	d := &managedDispatcherImpl{
-		fedResource:           fedResource,
-		versionMap:            make(map[string]string),
-		statusMap:             make(status.PropagationStatusMap),
-		skipAdoptingResources: skipAdoptingResources,
+		fedResource:                 fedResource,
+		versionMap:                  make(map[string]string),
+		statusMap:                   make(status.PropagationStatusMap),
+		resourceStatusMap:           make(map[string]interface{}),
+		skipAdoptingResources:       skipAdoptingResources,
+		rawResourceStatusCollection: rawResourceStatusCollection,
 	}
 	d.dispatcher = newOperationDispatcher(clientAccessor, d)
 	d.unmanagedDispatcher = newUnmanagedDispatcher(d.dispatcher, d, fedResource.TargetGVK(), fedResource.TargetName())
@@ -132,7 +138,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 	// when a timeout occurs it won't be possible to determine which
 	// operation timed out.  The timeout status will be cleared by
 	// Wait() if a timeout does not occur.
-	d.RecordStatus(clusterName, status.CreationTimedOut)
+	d.RecordStatus(clusterName, status.CreationTimedOut, nil)
 	start := time.Now()
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "create"
@@ -153,6 +159,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 		if err == nil {
 			version := util.ObjectVersion(obj)
 			d.recordVersion(clusterName, version)
+			d.RecordStatus(clusterName, status.ClusterPropagationOK, obj.Object[util.StatusField])
 			metrics.DispatchOperationDurationFromStart("create", start)
 			return util.StatusAllOK
 		}
@@ -172,6 +179,8 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 			return d.recordOperationError(status.RetrievalFailed, clusterName, op, wrappedErr)
 		}
 
+		d.RecordStatus(clusterName, status.ClusterPropagationOK, obj.Object[util.StatusField])
+
 		if d.skipAdoptingResources && !d.fedResource.IsNamespaceInHostCluster(obj) {
 			_ = d.recordOperationError(status.AlreadyExists, clusterName, op, errors.Errorf("Resource pre-exist in cluster"))
 			return util.StatusAllOK
@@ -185,7 +194,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 }
 
 func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructured.Unstructured) {
-	d.RecordStatus(clusterName, status.UpdateTimedOut)
+	d.RecordStatus(clusterName, status.UpdateTimedOut, clusterObj.Object[util.StatusField])
 
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "update"
@@ -217,6 +226,7 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 		}
 		if !util.ObjectNeedsUpdate(obj, clusterObj, version) {
 			// Resource is current
+			d.RecordStatus(clusterName, status.ClusterPropagationOK, clusterObj.Object[util.StatusField])
 			return util.StatusAllOK
 		}
 
@@ -227,6 +237,7 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 		if err != nil {
 			return d.recordOperationError(status.UpdateFailed, clusterName, op, err)
 		}
+		d.RecordStatus(clusterName, status.ClusterPropagationOK, obj.Object[util.StatusField])
 		d.setResourcesUpdated()
 		version = util.ObjectVersion(obj)
 		d.recordVersion(clusterName, version)
@@ -235,31 +246,36 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 }
 
 func (d *managedDispatcherImpl) Delete(clusterName string) {
-	d.RecordStatus(clusterName, status.DeletionTimedOut)
+	d.RecordStatus(clusterName, status.DeletionTimedOut, nil)
 
 	d.unmanagedDispatcher.Delete(clusterName)
 }
 
 func (d *managedDispatcherImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {
-	d.RecordStatus(clusterName, status.LabelRemovalTimedOut)
+	d.RecordStatus(clusterName, status.LabelRemovalTimedOut, clusterObj.Object[util.StatusField])
 
 	d.unmanagedDispatcher.RemoveManagedLabel(clusterName, clusterObj)
 }
 
 func (d *managedDispatcherImpl) RecordClusterError(propStatus status.PropagationStatus, clusterName string, err error) {
 	d.fedResource.RecordError(string(propStatus), err)
-	d.RecordStatus(clusterName, propStatus)
+	d.RecordStatus(clusterName, propStatus, "UnknownClusterError")
 }
 
-func (d *managedDispatcherImpl) RecordStatus(clusterName string, propStatus status.PropagationStatus) {
+func (d *managedDispatcherImpl) RecordStatus(clusterName string, propStatus status.PropagationStatus, resourceStatus interface{}) {
 	d.Lock()
 	defer d.Unlock()
 	d.statusMap[clusterName] = propStatus
+
+	if d.rawResourceStatusCollection && resourceStatus != nil {
+		klog.Infof("Recording resource status %v", resourceStatus)
+		d.resourceStatusMap[clusterName] = resourceStatus
+	}
 }
 
 func (d *managedDispatcherImpl) recordOperationError(propStatus status.PropagationStatus, clusterName, operation string, err error) util.ReconciliationStatus {
 	d.recordError(clusterName, operation, err)
-	d.RecordStatus(clusterName, propStatus)
+	d.RecordStatus(clusterName, propStatus, "UnknownOperationError")
 	return util.StatusError
 }
 
@@ -299,15 +315,23 @@ func (d *managedDispatcherImpl) setResourcesUpdated() {
 	d.resourcesUpdated = true
 }
 
-func (d *managedDispatcherImpl) CollectedStatus() status.CollectedPropagationStatus {
+func (d *managedDispatcherImpl) CollectedStatus() (status.CollectedPropagationStatus, status.CollectedResourceStatus) {
 	d.RLock()
 	defer d.RUnlock()
 	statusMap := make(status.PropagationStatusMap)
+	resourceStatusMap := make(map[string]interface{})
 	for key, value := range d.statusMap {
 		statusMap[key] = value
 	}
-	return status.CollectedPropagationStatus{
-		StatusMap:        statusMap,
-		ResourcesUpdated: d.resourcesUpdated,
+
+	for key, value := range d.resourceStatusMap {
+		resourceStatusMap[key] = value
 	}
+	return status.CollectedPropagationStatus{
+			StatusMap:        statusMap,
+			ResourcesUpdated: d.resourcesUpdated,
+		}, status.CollectedResourceStatus{
+			StatusMap:        resourceStatusMap,
+			ResourcesUpdated: d.resourcesUpdated,
+		}
 }

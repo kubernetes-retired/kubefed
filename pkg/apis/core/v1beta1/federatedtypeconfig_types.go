@@ -207,18 +207,20 @@ func (f *FederatedTypeConfig) GetFederatedType() metav1.APIResource {
 	return apiResourceToMeta(f.Spec.FederatedType, f.GetFederatedNamespaced())
 }
 
+// TODO (hectorj2f): It should get deprecated once we move to the new status approach
+// because the type is the same than the target type.
 func (f *FederatedTypeConfig) GetStatusType() *metav1.APIResource {
 	if f.Spec.StatusType == nil {
 		return nil
 	}
+	// Return the original target type
 	metaAPIResource := apiResourceToMeta(*f.Spec.StatusType, f.Spec.StatusType.Namespaced())
 	return &metaAPIResource
 }
 
 func (f *FederatedTypeConfig) GetStatusEnabled() bool {
 	return f.Spec.StatusCollection != nil &&
-		*f.Spec.StatusCollection == StatusCollectionEnabled &&
-		f.Name == "services"
+		*f.Spec.StatusCollection == StatusCollectionEnabled
 }
 
 // TODO(font): This method should be removed from the interface i.e. remove

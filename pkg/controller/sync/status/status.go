@@ -18,6 +18,7 @@ package status
 
 import (
 	"encoding/json"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -71,8 +73,10 @@ const (
 )
 
 type GenericClusterStatus struct {
-	Name   string            `json:"name"`
-	Status PropagationStatus `json:"status,omitempty"`
+	Name         string            `json:"name"`
+	Status       PropagationStatus `json:"status,omitempty"`
+	RemoteStatus interface{}       `json:"remoteStatus,omitempty"`
+	//	Conditions []*metav1.Condition `json:"conditions,omitempty"`
 }
 
 type GenericCondition struct {
@@ -112,10 +116,15 @@ type CollectedPropagationStatus struct {
 	ResourcesUpdated bool
 }
 
+type CollectedResourceStatus struct {
+	StatusMap        map[string]interface{}
+	ResourcesUpdated bool
+}
+
 // SetFederatedStatus sets the conditions and clusters fields of the
 // federated resource's object map. Returns a boolean indication of
 // whether status should be written to the API.
-func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus) (bool, error) {
+func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus) (bool, error) {
 	resource := &GenericFederatedResource{}
 	err := util.UnstructuredToInterface(fedObject, resource)
 	if err != nil {
@@ -125,7 +134,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 		resource.Status = &GenericFederatedStatus{}
 	}
 
-	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus)
+	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus)
 	if !changed {
 		return false, nil
 	}
@@ -139,6 +148,8 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 	if err != nil {
 		return false, errors.Wrapf(err, "Failed to marshall generic resource json to unstructured")
 	}
+
+	klog.Infof("Setting the status of federated object '%v' and resource object '%v'", fedObject.GetName(), resourceObj.GetName())
 	fedObject.Object[util.StatusField] = resourceObj.Object[util.StatusField]
 
 	return true, nil
@@ -148,7 +159,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 // and collected status. Returns a boolean indication of whether the
 // status has been changed.
 func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason,
-	collectedStatus CollectedPropagationStatus) bool {
+	collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus) bool {
 	generationUpdated := s.ObservedGeneration != generation
 	if generationUpdated {
 		s.ObservedGeneration = generation
@@ -157,39 +168,46 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 	// Identify whether one or more clusters could not be reconciled
 	// successfully.
 	if reason == AggregateSuccess {
-		for _, value := range collectedStatus.StatusMap {
-			if value != ClusterPropagationOK {
+		for cluster, value := range collectedStatus.StatusMap {
+			rawStatus, ok := collectedResourceStatus.StatusMap[cluster]
+			if value != ClusterPropagationOK || rawStatus == nil {
+				klog.Infof("Check the cluster '%v' with status '%v' found '%v'!", cluster, rawStatus, ok)
 				reason = CheckClusters
 				break
 			}
 		}
 	}
 
-	clustersChanged := s.setClusters(collectedStatus.StatusMap)
+	clustersChanged := s.setClusters(collectedStatus.StatusMap, collectedResourceStatus.StatusMap)
 
 	// Indicate that changes were propagated if either status.clusters
 	// was changed or if existing resources were updated (which could
 	// occur even if status.clusters was unchanged).
-	changesPropagated := clustersChanged || len(collectedStatus.StatusMap) > 0 && collectedStatus.ResourcesUpdated
+	// TODO (hectorj2f): re-consider this new condition or add a new one for the resource status update or not.
+	changesPropagated := clustersChanged || len(collectedStatus.StatusMap) > 0 && len(collectedResourceStatus.StatusMap) > 0 && collectedStatus.ResourcesUpdated
 
 	propStatusUpdated := s.setPropagationCondition(reason, changesPropagated)
 
 	statusUpdated := generationUpdated || propStatusUpdated
+
+	klog.Infof("Values of propStatusUpdated '%v' statusUpdated '%v' changesPropagated '%v'", propStatusUpdated, statusUpdated, changesPropagated)
 	return statusUpdated
 }
 
 // setClusters sets the status.clusters slice from a propagation status
 // map. Returns a boolean indication of whether the status.clusters was
 // modified.
-func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap) bool {
-	if !s.clustersDiffers(statusMap) {
+func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
+	if !s.clustersDiffers(statusMap, resourceStatusMap) {
 		return false
 	}
 	s.Clusters = []GenericClusterStatus{}
 	for clusterName, status := range statusMap {
+		rawResourceStatus := resourceStatusMap[clusterName]
 		s.Clusters = append(s.Clusters, GenericClusterStatus{
-			Name:   clusterName,
-			Status: status,
+			Name:         clusterName,
+			Status:       status,
+			RemoteStatus: rawResourceStatus,
 		})
 	}
 	return true
@@ -197,12 +215,17 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap) boo
 
 // clustersDiffers checks whether `status.clusters` differs from the
 // given status map.
-func (s *GenericFederatedStatus) clustersDiffers(statusMap PropagationStatusMap) bool {
-	if len(s.Clusters) != len(statusMap) {
+func (s *GenericFederatedStatus) clustersDiffers(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
+	if len(s.Clusters) != len(statusMap) || len(s.Clusters) != len(resourceStatusMap) {
+		klog.Info("Clusters differs from the size")
 		return true
 	}
 	for _, status := range s.Clusters {
 		if statusMap[status.Name] != status.Status {
+			return true
+		}
+		if !reflect.DeepEqual(resourceStatusMap[status.Name], status.RemoteStatus) {
+			klog.Infof("Clusters differs resource status: %v VS %v", resourceStatusMap[status.Name], status.RemoteStatus)
 			return true
 		}
 	}
