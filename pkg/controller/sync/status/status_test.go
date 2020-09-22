@@ -39,8 +39,21 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				"ready": false,
 				"stage": "absent",
 			},
+			resourcesUpdated: false,
+			expectedChanged:  true,
 		},
 		"No change in clusters with update indicates changed": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+			},
+			resourceStatusMap: map[string]interface{}{
+				"ready": false,
+				"stage": "absent",
+			},
+			resourcesUpdated: true,
+			expectedChanged:  true,
+		},
+		"Change in clusters indicates changed": {
 			statusMap: PropagationStatusMap{
 				"cluster1": ClusterPropagationOK,
 			},
@@ -48,10 +61,6 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				"ready": true,
 				"stage": "deployed",
 			},
-			resourcesUpdated: true,
-			expectedChanged:  true,
-		},
-		"Change in clusters indicates changed": {
 			expectedChanged: true,
 		},
 		"Transition indicates changed": {
@@ -65,7 +74,7 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			propStatus := &GenericFederatedStatus{
+			fedStatus := &GenericFederatedStatus{
 				Clusters: []GenericClusterStatus{
 					{
 						Name: "cluster1",
@@ -86,7 +95,7 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				StatusMap:        tc.resourceStatusMap,
 				ResourcesUpdated: tc.resourcesUpdated,
 			}
-			changed := propStatus.update(tc.generation, tc.reason, collectedStatus, collectedResourceStatus)
+			changed := fedStatus.update(tc.generation, tc.reason, collectedStatus, collectedResourceStatus, true)
 			if tc.expectedChanged != changed {
 				t.Fatalf("Expected changed to be %v, got %v", tc.expectedChanged, changed)
 			}

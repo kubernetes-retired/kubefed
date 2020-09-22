@@ -288,25 +288,26 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 // syncToClusters ensures that the state of the given object is
 // synchronized to member clusters.
 func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
+	// Enable raw resource status collection if the statusCollection is enabled for that type
+	// and the feature is also enabled.
+	enableRawResourceStatusCollection := (s.typeConfig.GetStatusEnabled() && s.rawResourceStatusCollection)
+
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
 		fedResource.RecordError(string(status.ClusterRetrievalFailed), errors.Wrap(err, "Failed to retrieve list of clusters"))
-		return s.setFederatedStatus(fedResource, status.ClusterRetrievalFailed, nil, nil)
+		return s.setFederatedStatus(fedResource, status.ClusterRetrievalFailed, nil, nil, enableRawResourceStatusCollection)
 	}
 
 	selectedClusterNames, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
 		fedResource.RecordError(string(status.ComputePlacementFailed), errors.Wrap(err, "Failed to compute placement"))
-		return s.setFederatedStatus(fedResource, status.ComputePlacementFailed, nil, nil)
+		return s.setFederatedStatus(fedResource, status.ComputePlacementFailed, nil, nil, enableRawResourceStatusCollection)
 	}
 
 	kind := fedResource.TargetKind()
 	key := fedResource.TargetName().String()
 	klog.Infof("Ensuring %s %q in clusters: %s", kind, key, strings.Join(selectedClusterNames.List(), ","))
 
-	// Enable raw resource status collection if the statusCollection is enabled for that type
-	// and the feature is also enabled.
-	enableRawResourceStatusCollection := (s.typeConfig.GetStatusEnabled() && s.rawResourceStatusCollection)
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources, enableRawResourceStatusCollection)
 
 	for _, cluster := range clusters {
@@ -385,11 +386,11 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 
 	collectedStatus, collectedResourceStatus := dispatcher.CollectedStatus()
 	klog.Infof("Setting the federating status '%v'", collectedResourceStatus)
-	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus, &collectedResourceStatus)
+	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus, &collectedResourceStatus, enableRawResourceStatusCollection)
 }
 
 func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource,
-	reason status.AggregateReason, collectedStatus *status.CollectedPropagationStatus, collectedResourceStatus *status.CollectedResourceStatus) util.ReconciliationStatus {
+	reason status.AggregateReason, collectedStatus *status.CollectedPropagationStatus, collectedResourceStatus *status.CollectedResourceStatus, resourceStatusCollection bool) util.ReconciliationStatus {
 	if collectedStatus == nil {
 		collectedStatus = &status.CollectedPropagationStatus{}
 	}
@@ -415,7 +416,7 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 	// If the underlying resource has changed, attempt to retrieve and
 	// update it repeatedly.
 	err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
-		if updateRequired, err := status.SetFederatedStatus(obj, reason, *collectedStatus, *collectedResourceStatus); err != nil {
+		if updateRequired, err := status.SetFederatedStatus(obj, reason, *collectedStatus, *collectedResourceStatus, resourceStatusCollection); err != nil {
 			klog.Infof("Failed to set the status for %s %q", kind, name)
 			return false, errors.Wrapf(err, "failed to set the status")
 		} else if !updateRequired {

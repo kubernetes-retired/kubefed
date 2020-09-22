@@ -159,7 +159,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 		if err == nil {
 			version := util.ObjectVersion(obj)
 			d.recordVersion(clusterName, version)
-			d.RecordStatus(clusterName, status.ClusterPropagationOK, obj.Object[util.StatusField])
+			d.RecordStatus(clusterName, status.CreationTimedOut, obj.Object[util.StatusField])
 			metrics.DispatchOperationDurationFromStart("create", start)
 			return util.StatusAllOK
 		}
@@ -179,7 +179,7 @@ func (d *managedDispatcherImpl) Create(clusterName string) {
 			return d.recordOperationError(status.RetrievalFailed, clusterName, op, wrappedErr)
 		}
 
-		d.RecordStatus(clusterName, status.ClusterPropagationOK, obj.Object[util.StatusField])
+		d.RecordStatus(clusterName, status.CreationTimedOut, obj.Object[util.StatusField])
 
 		if d.skipAdoptingResources && !d.fedResource.IsNamespaceInHostCluster(obj) {
 			_ = d.recordOperationError(status.AlreadyExists, clusterName, op, errors.Errorf("Resource pre-exist in cluster"))
@@ -226,7 +226,7 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 		}
 		if !util.ObjectNeedsUpdate(obj, clusterObj, version) {
 			// Resource is current
-			d.RecordStatus(clusterName, status.ClusterPropagationOK, clusterObj.Object[util.StatusField])
+			d.RecordStatus(clusterName, status.UpdateTimedOut, clusterObj.Object[util.StatusField])
 			return util.StatusAllOK
 		}
 
@@ -237,7 +237,7 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 		if err != nil {
 			return d.recordOperationError(status.UpdateFailed, clusterName, op, err)
 		}
-		d.RecordStatus(clusterName, status.ClusterPropagationOK, obj.Object[util.StatusField])
+		d.RecordStatus(clusterName, status.UpdateTimedOut, obj.Object[util.StatusField])
 		d.setResourcesUpdated()
 		version = util.ObjectVersion(obj)
 		d.recordVersion(clusterName, version)

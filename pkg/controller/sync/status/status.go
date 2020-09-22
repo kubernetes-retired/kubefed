@@ -124,7 +124,7 @@ type CollectedResourceStatus struct {
 // SetFederatedStatus sets the conditions and clusters fields of the
 // federated resource's object map. Returns a boolean indication of
 // whether status should be written to the API.
-func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus) (bool, error) {
+func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus, resourceStatusCollection bool) (bool, error) {
 	resource := &GenericFederatedResource{}
 	err := util.UnstructuredToInterface(fedObject, resource)
 	if err != nil {
@@ -134,7 +134,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 		resource.Status = &GenericFederatedStatus{}
 	}
 
-	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus)
+	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus, resourceStatusCollection)
 	if !changed {
 		return false, nil
 	}
@@ -159,7 +159,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 // and collected status. Returns a boolean indication of whether the
 // status has been changed.
 func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason,
-	collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus) bool {
+	collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus, resourceStatusCollection bool) bool {
 	generationUpdated := s.ObservedGeneration != generation
 	if generationUpdated {
 		s.ObservedGeneration = generation
@@ -169,9 +169,9 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 	// successfully.
 	if reason == AggregateSuccess {
 		for cluster, value := range collectedStatus.StatusMap {
-			rawStatus, ok := collectedResourceStatus.StatusMap[cluster]
-			if value != ClusterPropagationOK || rawStatus == nil {
-				klog.Infof("Check the cluster '%v' with status '%v' found '%v'!", cluster, rawStatus, ok)
+			rawStatus := collectedResourceStatus.StatusMap[cluster]
+			if value != ClusterPropagationOK || (resourceStatusCollection && rawStatus == nil) {
+				klog.Infof("Check the cluster '%v' with resource status '%v' and propStatus '%v' whose resource status collection is: '%v'", cluster, rawStatus, value, resourceStatusCollection)
 				reason = CheckClusters
 				break
 			}
