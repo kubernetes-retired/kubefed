@@ -98,15 +98,15 @@ You now have a Kubernetes cluster with kubefed up and running. The cluster has b
    ```
 1. Create a `ConfigMap` to be federated:
    ```
-   kubectl -n federate-me create cm federated-cm
+   kubectl -n federate-me create cm my-cm
    ```
 1. Tell kubefed to federate that `ConfigMap`:
    ```
-   ./bin/kubefedctl -n federate-me federate configmap federated-cm
+   ./bin/kubefedctl -n federate-me federate configmap my-cm
    ```
 1. Verify the `FederatedConfigMap` has been created and propagates properly:
    ```
-   kubectl -n federate-me describe federatedconfigmap federated-cm
+   kubectl -n federate-me describe federatedconfigmap my-cm
    ```
 
 ### User Guide
