@@ -21,13 +21,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 )
@@ -56,43 +55,33 @@ func NewValidatingResource(resourcePluralName string) schema.GroupVersionResourc
 
 // Allowed returns true if the admission request for the plural name of the
 // resource passed in should be allowed to pass through, false otherwise.
-func Allowed(a admission.Request, pluralResourceName string, status *admission.Response) bool {
+func Allowed(a admission.Request, pluralResourceName string) bool {
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not <pluralResourceName>
 	createOrUpdate := a.Operation == admissionv1beta1.Create || a.Operation == admissionv1beta1.Update
 	isMyGroupAndResource := a.Resource.Group == v1beta1.SchemeGroupVersion.Group && a.Resource.Resource == pluralResourceName
-	if !createOrUpdate || !isMyGroupAndResource {
-		status.Allowed = true
-		return true
-	}
-	return false
+	return !createOrUpdate || !isMyGroupAndResource
 }
 
-func Unmarshal(rawExt *runtime.RawExtension, object interface{}, status *admission.Response) error {
-	err := json.Unmarshal(rawExt.Raw, object)
-	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
-		}
-	}
-
-	return err
+func Unmarshal(rawExt *runtime.RawExtension, object interface{}) error {
+	return json.Unmarshal(rawExt.Raw, object)
 }
 
-func Validate(status *admission.Response, validateFn func() field.ErrorList) {
+func Validate(validateFn func() field.ErrorList) admission.Response {
+	res := admission.Response{}
 	errs := validateFn()
 	if len(errs) != 0 {
-		status.Allowed = false
-		status.Result = &metav1.Status{
+		res.Allowed = false
+		res.Result = &metav1.Status{
 			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
 			Message: errs.ToAggregate().Error(),
 		}
 	} else {
-		status.Allowed = true
+		res.Allowed = true
 	}
+
+	return res
 }
 
 func AdmissionRequestDebugString(a admission.Request) string {
