@@ -115,9 +115,9 @@ type GenericFederatedResource struct {
 }
 
 type GenericClusterStatus struct {
-	Name   string            `json:"name"`
-	Status PropagationStatus `json:"status,omitempty"`
-
+  Name   string                  `json:"name"`
+  Status PropagationStatus       `json:"status,omitempty"`
+  RemoteStatus interface{}       `json:"remoteStatus,omitempty"`
   Conditions []*metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -365,11 +365,6 @@ to expect a common schema for `.status.conditions` and share golang logic for co
 By following this approach, kubefed would be able to properly consume and report the status
 of any federated resource by checking the `status.conditions` (e.g `Ready=True`) fields.
 
-
-**Note that**, this proposed solution might include additional flags to the kubefed control-plane
-components to avoid blowing out the control-plane due to frequent and concurrent API calls to
-update the status of the federated resources.
-
 Obviously users might want to be able to enable/disable the definition of:
 
 * Which condition to look for each federated resource to determine its readiness, e.g. `Ready=True`, `Deployed=True`.
@@ -379,8 +374,98 @@ This might be especially useful for custom resource types without a `IsReady` st
 By raw status, the system understand to show the status of all the federated resources `Ready` and not `Ready`.
 This can have an impact in the performance, so this should be configured with precautions.
 
-To do so, the system exposes properties as part of each `FederatedTypeConfig` to define
-the desired behavior at federated resource type.
+**Note that**, this proposed solution includes additional flags to the kubefed control-plane
+components to avoid blowing out the control-plane due to frequent and concurrent API calls to
+update the status of the federated resources.
+
+In addition to the `conditions` field, this new feature adds a new property `remoteStatus` that holds
+the status of the created resource created in the kubefed cluster.
+To enable the collection of the status of federated resources, a new feature gate, disabled by default, is added to the current list of features.
+Likewise the user has to explicitly enable the collection at `FederatedTypeConfig` level. To do so, the `FederatedTypeConfig.statusCollection` field
+has to be set to `Enabled`.
+
+As an example, the following property needs to be enabled in the `FederatedDeployment`:
+
+```yaml
+spec:
+  federatedType:
+    group: types.kubefed.io
+    kind: FederatedDeployment
+    pluralName: federateddeployments
+    scope: Namespaced
+    version: v1beta1
+  propagation: Enabled
+  statusCollection: Enabled
+  targetType:
+    group: apps
+    kind: Deployment
+    pluralName: deployments
+    scope: Namespaced
+    version: v1
+```
+
+An example of a `FederatedDeployment` federated in a `cluster1` where the feature
+collected the resource remote status `remoteStatus`.
+
+```yaml
+- apiVersion: types.kubefed.io/v1beta1
+  kind: FederatedDeployment
+  metadata:
+    finalizers:
+    - kubefed.io/sync-controller
+    generation: 1
+    name: asystem
+    namespace: asystem
+    resourceVersion: "70174497"
+  spec:
+    placement:
+      clusters:
+      - name: cluster1
+    template:
+      metadata:
+        labels:
+          app: nginx
+      spec:
+        replicas: 3
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - image: nginx
+              name: nginx
+  status:
+    clusters:
+    - name: "cluster1"
+      remoteStatus:
+        availableReplicas: 3
+        conditions:
+        - lastTransitionTime: "2020-09-18T11:07:55Z"
+          lastUpdateTime: "2020-09-18T11:18:31Z"
+          message: ReplicaSet "asystem-f89759699" has successfully progressed.
+          reason: NewReplicaSetAvailable
+          status: "True"
+          type: Progressing
+        - lastTransitionTime: "2020-09-24T05:42:11Z"
+          lastUpdateTime: "2020-09-24T05:42:11Z"
+          message: Deployment has minimum availability.
+          reason: MinimumReplicasAvailable
+          status: "True"
+          type: Available
+        observedGeneration: 3
+        readyReplicas: 3
+        replicas: 3
+        updatedReplicas: 3
+    conditions:
+    - lastTransitionTime: "2020-05-25T20:23:59Z"
+      lastUpdateTime: "2020-05-25T20:23:59Z"
+      status: "True"
+      type: "Propagation"
+```
 
 ### User Stories
 
