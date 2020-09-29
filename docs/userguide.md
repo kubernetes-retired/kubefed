@@ -471,11 +471,6 @@ until the sync controller has a chance to perform pre-deletion
 cleanup.
 
 Pre-deletion cleanup of a federated resource includes removal of
-resources managed by the federated resource from member clusters. To
-ensure retention of managed resources, add `kubefed.io/orphan:
-true` as an annotation to the federated resource prior to deletion:
-
-Pre-deletion cleanup includes removal of
 resources managed by the federated resource from member clusters.
 
 To prevent removal of these managed resources, add `kubefed.io/orphan:
