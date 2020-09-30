@@ -62,6 +62,8 @@ controllermanager:
 
   certManager:
     enabled: false
+    apiGroup: certmanager.k8s.io
+    apiVersion: v1alpha1
 
 
 ## Configuration global values for all charts
