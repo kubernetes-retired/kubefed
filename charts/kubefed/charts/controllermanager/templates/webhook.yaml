@@ -15,7 +15,7 @@ metadata:
 {{- end }}
   annotations:
   {{- if .Values.certManager.enabled }}
-    {{ .Values.certManager.apiGroup }}/inject-ca-from: {{ printf "%s/%s%s" .Release.Namespace .Release.Name "-root-certificate" | quote }}
+    cert-manager.io/inject-ca-from: {{ printf "%s/%s%s" .Release.Namespace .Release.Name "-root-certificate" | quote }}
   {{- end }}
 webhooks:
 - name: federatedtypeconfigs.core.kubefed.io
@@ -152,7 +152,7 @@ stringData:
   tls.key: {{ $cert.Key | quote }}
 {{- else }}
 ---
-apiVersion: {{ .Values.certManager.apiGroup }}/{{ .Values.certManager.apiVersion }}
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: {{ .Release.Name }}-ca-issuer
@@ -160,7 +160,7 @@ spec:
   selfSigned: {}
 ---
 # Generate a CA Certificate used to sign certificates for the webhook
-apiVersion: {{ .Values.certManager.apiGroup }}/{{ .Values.certManager.apiVersion }}
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ .Release.Name}}-root-certificate
@@ -173,7 +173,7 @@ spec:
   isCA: true
 ---
 # Create an Issuer that uses the above generated CA certificate to issue certs
-apiVersion: {{ .Values.certManager.apiGroup }}/{{ .Values.certManager.apiVersion }}
+apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: {{ .Release.Name }}-issuer
@@ -182,7 +182,7 @@ spec:
     secretName: {{ .Release.Name}}-root-ca
 ---
 # Finally, generate a serving certificate for the webhook to use
-apiVersion: {{ .Values.certManager.apiGroup }}/{{ .Values.certManager.apiVersion }}
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ .Release.Name }}-certificate
