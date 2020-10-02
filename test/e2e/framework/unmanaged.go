@@ -86,7 +86,8 @@ func SetUpControlPlane() {
 		KubeFedNamespaces: util.KubeFedNamespaces{
 			KubeFedNamespace: TestContext.KubeFedSystemNamespace,
 		},
-		KubeConfig: config,
+		KubeConfig:                  config,
+		RawResourceStatusCollection: true,
 	})
 }
 
@@ -183,7 +184,7 @@ func (f *UnmanagedFramework) AfterEach() {
 }
 
 func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
-	return &util.ControllerConfig{
+	controllerCfg := &util.ControllerConfig{
 		KubeFedNamespaces: util.KubeFedNamespaces{
 			KubeFedNamespace: TestContext.KubeFedSystemNamespace,
 			TargetNamespace:  f.inMemoryTargetNamespace(),
@@ -191,6 +192,8 @@ func (f *UnmanagedFramework) ControllerConfig() *util.ControllerConfig {
 		KubeConfig:      f.Config,
 		MinimizeLatency: true,
 	}
+	controllerCfg.RawResourceStatusCollection = true
+	return controllerCfg
 }
 
 func (f *UnmanagedFramework) Logger() common.TestLogger {

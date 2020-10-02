@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
@@ -712,6 +713,105 @@ func (c *FederatedTypeCrudTester) versionForCluster(version *fedv1a1.PropagatedV
 		}
 	}
 	return ""
+}
+
+func (c *FederatedTypeCrudTester) CheckRemoteStatus(fedObject *unstructured.Unstructured, targetObject *unstructured.Unstructured) {
+	for clusterName := range c.testClusters {
+		clusterConfig := c.testClusters[clusterName].Config
+
+		kubeClient := kubeclientset.NewForConfigOrDie(clusterConfig)
+		WaitForNamespaceOrDie(c.tl, kubeClient, clusterName, targetObject.GetNamespace(),
+			c.waitInterval, 30*time.Second)
+
+		util.AddManagedLabel(targetObject)
+		labeledObj, err := CreateResource(clusterConfig, c.typeConfig.GetTargetType(), targetObject)
+		if err != nil {
+			c.tl.Fatalf("Failed to create labeled resource in cluster %q: %v", clusterName, err)
+		}
+
+		clusterClient := genericclient.NewForConfigOrDie(clusterConfig)
+		defer func() {
+			err := clusterClient.Delete(context.TODO(), labeledObj, labeledObj.GetNamespace(), labeledObj.GetName())
+			if err != nil {
+				c.tl.Fatalf("Unexpected error: %v", err)
+			}
+		}()
+
+		c.tl.Log("Checking that the resource has status")
+		var objStatus interface{}
+		err = wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+			obj := &unstructured.Unstructured{}
+			obj.SetGroupVersionKind(labeledObj.GroupVersionKind())
+			err := clusterClient.Get(context.TODO(), obj, labeledObj.GetNamespace(), labeledObj.GetName())
+			if err != nil {
+				c.tl.Errorf("Error retrieving kubefed cluster object resource: %v", err)
+				return false, nil
+			}
+
+			objStatus = obj.Object[util.StatusField]
+			c.tl.Logf("Show kubefed cluster object status: %v", objStatus)
+			return (obj.Object[util.StatusField] != nil), nil
+		})
+		if err != nil {
+			c.tl.Fatal("Timed out waiting for the resource to have a status field")
+		}
+		c.tl.Logf("Kubefed cluster object status: %v", objStatus)
+
+		c.tl.Log("Checking that the federated resource has a remote status field")
+		objRemoteStatus, err := c.getRemoteStatus(fedObject, clusterName)
+		if err != nil {
+			c.tl.Fatal("Timed out waiting for the federated resource to have a remote status field")
+		}
+		if objRemoteStatus == nil {
+			c.tl.Fatal("Federated object remote status is empty")
+		}
+		c.tl.Logf("Show federated object remote status %v", objRemoteStatus)
+	}
+}
+
+func (c *FederatedTypeCrudTester) getRemoteStatus(fedObject *unstructured.Unstructured, clusterName string) (interface{}, error) {
+	apiResource := c.typeConfig.GetFederatedType()
+	qualifiedName := util.NewQualifiedName(fedObject)
+
+	client := c.resourceClient(apiResource)
+	var remoteStatusObj interface{}
+	// The default is normally 30 seconds
+	waitTimeout := 6 * wait.ForeverTestTimeout
+	err := wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
+		fedObj, err := client.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
+		if err != nil {
+			c.tl.Errorf("An unexpected error occurred while polling for remote status: %v", err)
+			return false, nil
+		}
+
+		if err == nil {
+			resource := &status.GenericFederatedResource{}
+			err := util.UnstructuredToInterface(fedObj, resource)
+			if err != nil {
+				return false, err
+			}
+			if resource.Status != nil {
+				for _, cluster := range resource.Status.Clusters {
+					if cluster.Name == clusterName && cluster.Status == status.ClusterPropagationOK {
+						c.tl.Logf("resource remote status for cluster '%s': %v", cluster.Name, cluster.RemoteStatus)
+						if cluster.RemoteStatus != nil {
+							remoteStatusObj = cluster.RemoteStatus
+							return true, nil
+						}
+					}
+				}
+			}
+			return false, nil
+		}
+		return false, err
+	})
+
+	if err != nil {
+		c.tl.Fatalf("Timed out waiting for the remote status: %q", qualifiedName)
+		return nil, err
+	}
+
+	return remoteStatusObj, nil
 }
 
 func (c *FederatedTypeCrudTester) CheckStatusCreated(qualifiedName util.QualifiedName) {

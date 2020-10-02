@@ -33,3 +33,12 @@ func GetTypeConfig(genericClient client.Client, name, namespace string) (typecon
 
 	return typeConfig, nil
 }
+
+func UpdateTypeConfig(genericClient client.Client, typeConfig *fedv1b1.FederatedTypeConfig, namespace string) error {
+	err := genericClient.Update(context.Background(), typeConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

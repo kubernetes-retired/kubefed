@@ -98,6 +98,8 @@ types enabled by default:
 1. a label update is reflected in the objects stored in the target
    clusters.
 1. a placement update for the object is reflected in the target clusters.
+1. optionally if `RawResourceStatusCollection` feature is enabled, tests check the value
+of the `remoteStatus` field of federated resources.
 1. deleted resources are removed from the target clusters.
 
 The read operation is implicit.
