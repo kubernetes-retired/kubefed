@@ -27,6 +27,19 @@ entries:
     version: 0.0.8
   kubefed:
   - apiVersion: v2
+    created: "2020-10-02T16:50:14.125278923+02:00"
+    dependencies:
+    - condition: controllermanager.enabled
+      name: controllermanager
+      repository: https://localhost/
+      version: 0.4.1
+    description: KubeFed helm chart
+    digest: 297ace4fd678d4e67fcc8da91c2d943799cf03aa91f81c10c7144c1441696c5a
+    name: kubefed
+    urls:
+    - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.4.1/kubefed-0.4.1.tgz
+    version: 0.4.1
+  - apiVersion: v2
     created: "2020-08-17T17:14:21.241083506+01:00"
     dependencies:
     - condition: controllermanager.enabled
@@ -116,4 +129,4 @@ entries:
     urls:
     - https://github.com/kubernetes-sigs/kubefed/releases/download/v0.1.0-rc1/kubefed-0.1.0-rc1.tgz
     version: 0.1.0-rc1
-generated: "2020-08-17T17:14:21.238786027+01:00"
+generated: "2020-10-02T16:50:14.122592721+02:00"

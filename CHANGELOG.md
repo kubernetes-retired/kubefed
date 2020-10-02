@@ -1,5 +1,17 @@
 # Unreleased
-
+# v0.4.1
+- [#1289](https://github.com/kubernetes-sigs/kubefed/pull/1289) 
+  chore: use cert-mananager.io/v1 group/version
+- [#1286](https://github.com/kubernetes-sigs/kubefed/pull/1286) 
+  docs: clean up redundant text 
+- [#1282](https://github.com/kubernetes-sigs/kubefed/pull/1282) 
+  chore: webhook functions now return AdmissionResponse
+- [#1280]((https://github.com/kubernetes-sigs/kubefed/pull/1280)
+  docs: Add quickstart guide
+- [#1279]((https://github.com/kubernetes-sigs/kubefed/pull/1279)
+  Add a shortname to replicaschedulingpreference
+- [#1274]((https://github.com/kubernetes-sigs/kubefed/pull/1274)
+  Update linters and gofmt scripts 
 # v0.4.0
 - [#1260](https://github.com/kubernetes-sigs/kubefed/pull/1260)
   Helm 3 chart migration.
