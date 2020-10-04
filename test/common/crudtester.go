@@ -792,6 +792,7 @@ func (c *FederatedTypeCrudTester) getRemoteStatus(fedObject *unstructured.Unstru
 			}
 			if resource.Status != nil {
 				for _, cluster := range resource.Status.Clusters {
+					c.tl.Logf("Current status of resource for cluster '%s' with value: %v", cluster.Name, resource.Status)
 					if cluster.Name == clusterName && cluster.Status == status.ClusterPropagationOK {
 						c.tl.Logf("resource remote status for cluster '%s': %v", cluster.Name, cluster.RemoteStatus)
 						if cluster.RemoteStatus != nil {

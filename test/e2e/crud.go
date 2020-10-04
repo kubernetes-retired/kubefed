@@ -67,7 +67,16 @@ var _ = Describe("Federated", func() {
 
 			for _, remoteStatusTypeName := range containedTypeNames {
 				if typeConfigName == remoteStatusTypeName {
+
 					It("should be created, read its remote status and deleted successfully", func() {
+						kubeFedConfig := &v1beta1.KubeFedConfig{}
+						client := genericclient.NewForConfigOrDie(f.KubeConfig())
+						err := client.Get(context.TODO(), kubeFedConfig, f.KubeFedSystemNamespace(), util.KubeFedConfigName)
+						if err != nil {
+							tl.Fatalf("Error collecting the kubefedconfig file: %v", err)
+						}
+						tl.Logf("Show the content of the kubefedconfig file: '%v'", kubeFedConfig)
+
 						typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
 						crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
 						fedObject := crudTester.CheckCreate(targetObject, overrides)
@@ -272,7 +281,8 @@ func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 	// Enable the Status Collection for this type of resource
 	tc := typeConfig.(*v1beta1.FederatedTypeConfig)
 	for _, typeName := range containedTypeNames {
-		if tc.Spec.TargetType.Kind == typeName {
+		tl.Logf("TypeConfig name: %s", tc.GetName())
+		if tc.GetName() == typeName {
 			tl.Logf("Enabling remote status collection for %v", typeConfig.GetFederatedType().Kind)
 			statusCollection := v1beta1.StatusCollectionEnabled
 			tc.Spec.StatusCollection = &statusCollection
