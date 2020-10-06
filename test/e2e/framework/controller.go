@@ -50,7 +50,13 @@ func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.Contr
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
-	if typeConfig.GetStatusEnabled() {
+	// The status controller should be only enabled for services whenver the statusAPIResource is defined
+	if typeConfig.GetStatusEnabled() && typeConfig.GetTargetType().Kind == "Service" {
+		federatedAPIResource := typeConfig.GetFederatedType()
+		statusAPIResource := typeConfig.GetStatusType()
+		if statusAPIResource == nil {
+			tl.Fatalf("Skipping status collection, status API resource is not defined %q", federatedAPIResource.Kind)
+		}
 		err := status.StartKubeFedStatusController(controllerConfig, f.stopChan, typeConfig)
 		if err != nil {
 			tl.Fatalf("Error starting status controller: %v", err)

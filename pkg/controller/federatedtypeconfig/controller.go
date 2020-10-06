@@ -150,7 +150,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	syncEnabled := typeConfig.GetPropagationEnabled()
 	// TODO (hectorj2f): Disabled by default the collection of the resource status following
 	// the NEW approach.
-	statusControllerEnabled := typeConfig.GetStatusEnabled() && typeConfig.Name == "services"
+	statusControllerEnabled := c.isEnabledFederatedServiceStatusCollection(typeConfig)
 	if c.controllerConfig.RawResourceStatusCollection {
 		// If Feature RawResourceStatusCollection is enabled then disable the old mechanism
 		statusControllerEnabled = false
@@ -438,4 +438,18 @@ func (c *Controller) reconcileOnNamespaceFTCUpdate() {
 			c.worker.EnqueueObject(typeConfig)
 		}
 	}
+}
+
+func (c *Controller) isEnabledFederatedServiceStatusCollection(tc *corev1b1.FederatedTypeConfig) bool {
+	if tc.GetStatusEnabled() && tc.Name == "services" {
+		federatedAPIResource := tc.GetFederatedType()
+		statusAPIResource := tc.GetStatusType()
+		if statusAPIResource == nil {
+			klog.Infof("Skipping status collection, status API resource is not defined for %q", federatedAPIResource.Kind)
+			return false
+		}
+		klog.Info("Federated Service Status collection is enabled")
+		return true
+	}
+	return false
 }
