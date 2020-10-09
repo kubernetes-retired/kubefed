@@ -106,6 +106,13 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 					targetResource = resource.DeepCopy()
 					targetResource.Group = group
 					targetResource.Version = gv.Version
+					// a resource from the 'core' group matches the 'key', so we prefer
+					// that one over any other because otherwise there would be no way
+					// for the user to signify that he wants to enable federation of
+					// a specific core group resource.
+					if targetResource.Group == "" {
+						return targetResource, nil
+					}
 				}
 				matchedResources = append(matchedResources, groupQualifiedName(resource.Name, gv.Group))
 			}
