@@ -730,12 +730,6 @@ func (c *FederatedTypeCrudTester) CheckRemoteStatus(fedObject *unstructured.Unst
 		}
 
 		clusterClient := genericclient.NewForConfigOrDie(clusterConfig)
-		defer func() {
-			err := clusterClient.Delete(context.TODO(), labeledObj, labeledObj.GetNamespace(), labeledObj.GetName())
-			if err != nil {
-				c.tl.Fatalf("Unexpected error: %v", err)
-			}
-		}()
 
 		c.tl.Log("Checking that the resource has status")
 		var objStatus interface{}
@@ -766,6 +760,11 @@ func (c *FederatedTypeCrudTester) CheckRemoteStatus(fedObject *unstructured.Unst
 			c.tl.Fatal("Federated object remote status is empty")
 		}
 		c.tl.Logf("Show federated object remote status %v", objRemoteStatus)
+
+		err = clusterClient.Delete(context.TODO(), labeledObj, labeledObj.GetNamespace(), labeledObj.GetName())
+		if err != nil {
+			c.tl.Fatalf("Unexpected error deleting the labeled resource: %v", err)
+		}
 	}
 }
 
@@ -784,27 +783,24 @@ func (c *FederatedTypeCrudTester) getRemoteStatus(fedObject *unstructured.Unstru
 			return false, nil
 		}
 
-		if err == nil {
-			resource := &status.GenericFederatedResource{}
-			err := util.UnstructuredToInterface(fedObj, resource)
-			if err != nil {
-				return false, err
-			}
-			if resource.Status != nil {
-				for _, cluster := range resource.Status.Clusters {
-					c.tl.Logf("Current status of resource for cluster '%s' with value: %v", cluster.Name, resource.Status)
-					if cluster.Name == clusterName && cluster.Status == status.ClusterPropagationOK {
-						c.tl.Logf("resource remote status for cluster '%s': %v", cluster.Name, cluster.RemoteStatus)
-						if cluster.RemoteStatus != nil {
-							remoteStatusObj = cluster.RemoteStatus
-							return true, nil
-						}
+		resource := &status.GenericFederatedResource{}
+		err = util.UnstructuredToInterface(fedObj, resource)
+		if err != nil {
+			return false, err
+		}
+		if resource.Status != nil {
+			for _, cluster := range resource.Status.Clusters {
+				c.tl.Logf("Current status of resource for cluster '%s' with value: %v", cluster.Name, resource.Status)
+				if cluster.Name == clusterName && cluster.Status == status.ClusterPropagationOK {
+					c.tl.Logf("resource remote status for cluster '%s': %v", cluster.Name, cluster.RemoteStatus)
+					if cluster.RemoteStatus != nil {
+						remoteStatusObj = cluster.RemoteStatus
+						return true, nil
 					}
 				}
 			}
-			return false, nil
 		}
-		return false, err
+		return false, nil
 	})
 
 	if err != nil {

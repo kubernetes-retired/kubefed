@@ -50,7 +50,7 @@ func NewSyncControllerFixture(tl common.TestLogger, controllerConfig *util.Contr
 	if err != nil {
 		tl.Fatalf("Error starting sync controller: %v", err)
 	}
-	// The status controller should be only enabled for services whenver the statusAPIResource is defined
+	// The status controller should be only enabled for services whenever the statusAPIResource is defined
 	if typeConfig.GetStatusEnabled() && typeConfig.GetTargetType().Kind == "Service" {
 		federatedAPIResource := typeConfig.GetFederatedType()
 		statusAPIResource := typeConfig.GetStatusType()

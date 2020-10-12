@@ -208,7 +208,7 @@ func (f *FederatedTypeConfig) GetFederatedType() metav1.APIResource {
 }
 
 // TODO (hectorj2f): It should get deprecated once we move to the new status approach
-// because the type is the same than the target type.
+// because the type is the same as the target type.
 func (f *FederatedTypeConfig) GetStatusType() *metav1.APIResource {
 	if f.Spec.StatusType == nil {
 		return nil

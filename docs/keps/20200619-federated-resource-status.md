@@ -375,11 +375,12 @@ By raw status, the system understand to show the status of all the federated res
 This can have an impact in the performance, so this should be configured with precautions.
 
 **Note that**, this proposed solution includes additional flags to the kubefed control-plane
-components to avoid blowing out the control-plane due to frequent and concurrent API calls to
-update the status of the federated resources.
+components to limit the calls per second to the API, which could cause performance degradations
+to the control-plane when updating the status of the federated resources.
 
 In addition to the `conditions` field, this new feature adds a new property `remoteStatus` that holds
-the status of the created resource created in the kubefed cluster.
+the status of the created resource created in the kubefed cluster.The `remoteStatus` is an unstructured
+object due to the unknown structure of the status of the target resources.
 To enable the collection of the status of federated resources, a new feature gate, disabled by default, is added to the current list of features.
 Likewise the user has to explicitly enable the collection at `FederatedTypeConfig` level. To do so, the `FederatedTypeConfig.statusCollection` field
 has to be set to `Enabled`.

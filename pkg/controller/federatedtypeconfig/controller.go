@@ -148,13 +148,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	corev1b1.SetFederatedTypeConfigDefaults(typeConfig)
 
 	syncEnabled := typeConfig.GetPropagationEnabled()
-	// TODO (hectorj2f): Disabled by default the collection of the resource status following
-	// the NEW approach.
-	statusControllerEnabled := c.isEnabledFederatedServiceStatusCollection(typeConfig)
-	if c.controllerConfig.RawResourceStatusCollection {
-		// If Feature RawResourceStatusCollection is enabled then disable the old mechanism
-		statusControllerEnabled = false
-	}
+	// NOTE (hectorj2f): RawResourceStatusCollection is a new feature and is
+	// Disabled by default. When RawResourceStatusCollection is enabled,
+	// the old mechanism to collect the service status of FederatedServices would be disabled.
+	statusControllerEnabled := !c.controllerConfig.RawResourceStatusCollection && c.isEnabledFederatedServiceStatusCollection(typeConfig)
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {

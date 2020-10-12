@@ -76,7 +76,6 @@ type GenericClusterStatus struct {
 	Name         string            `json:"name"`
 	Status       PropagationStatus `json:"status,omitempty"`
 	RemoteStatus interface{}       `json:"remoteStatus,omitempty"`
-	//	Conditions []*metav1.Condition `json:"conditions,omitempty"`
 }
 
 type GenericCondition struct {
@@ -194,11 +193,11 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 	return statusUpdated
 }
 
-// setClusters sets the status.clusters slice from a propagation status
-// map. Returns a boolean indication of whether the status.clusters was
+// setClusters sets the status.clusters slice from propagation and resource status
+// maps. Returns a boolean indication of whether the status.clusters was
 // modified.
 func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
-	if !s.clustersDiffers(statusMap, resourceStatusMap) {
+	if !s.clustersDiffer(statusMap, resourceStatusMap) {
 		return false
 	}
 	s.Clusters = []GenericClusterStatus{}
@@ -213,9 +212,9 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, res
 	return true
 }
 
-// clustersDiffers checks whether `status.clusters` differs from the
+// clustersDiffer checks whether `status.clusters` differs from the
 // given status map.
-func (s *GenericFederatedStatus) clustersDiffers(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
+func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
 	if len(s.Clusters) != len(statusMap) || len(s.Clusters) != len(resourceStatusMap) {
 		klog.Info("Clusters differs from the size")
 		return true
@@ -225,7 +224,7 @@ func (s *GenericFederatedStatus) clustersDiffers(statusMap PropagationStatusMap,
 			return true
 		}
 		if !reflect.DeepEqual(resourceStatusMap[status.Name], status.RemoteStatus) {
-			klog.Infof("Clusters differs resource status: %v VS %v", resourceStatusMap[status.Name], status.RemoteStatus)
+			klog.V(4).Infof("Clusters resource status differ: %v VS %v", resourceStatusMap[status.Name], status.RemoteStatus)
 			return true
 		}
 	}

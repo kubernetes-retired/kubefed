@@ -259,7 +259,7 @@ func (d *managedDispatcherImpl) RemoveManagedLabel(clusterName string, clusterOb
 
 func (d *managedDispatcherImpl) RecordClusterError(propStatus status.PropagationStatus, clusterName string, err error) {
 	d.fedResource.RecordError(string(propStatus), err)
-	d.RecordStatus(clusterName, propStatus, "UnknownClusterError")
+	d.RecordStatus(clusterName, propStatus, nil)
 }
 
 func (d *managedDispatcherImpl) RecordStatus(clusterName string, propStatus status.PropagationStatus, resourceStatus interface{}) {
@@ -275,7 +275,7 @@ func (d *managedDispatcherImpl) RecordStatus(clusterName string, propStatus stat
 
 func (d *managedDispatcherImpl) recordOperationError(propStatus status.PropagationStatus, clusterName, operation string, err error) util.ReconciliationStatus {
 	d.recordError(clusterName, operation, err)
-	d.RecordStatus(clusterName, propStatus, "UnknownOperationError")
+	d.RecordStatus(clusterName, propStatus, nil)
 	return util.StatusError
 }
 

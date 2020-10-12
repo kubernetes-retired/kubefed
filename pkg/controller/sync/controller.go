@@ -203,7 +203,7 @@ func (s *KubeFedSyncController) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (s *KubeFedSyncController) isSynced() bool {
 	if !s.informer.ClustersSynced() {
-		klog.Infof("Cluster list not synced")
+		klog.V(2).Info("Cluster list not synced")
 		return false
 	}
 	if !s.fedAccessor.HasSynced() {
@@ -290,7 +290,7 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) util.ReconciliationStatus {
 	// Enable raw resource status collection if the statusCollection is enabled for that type
 	// and the feature is also enabled.
-	enableRawResourceStatusCollection := (s.typeConfig.GetStatusEnabled() && s.rawResourceStatusCollection)
+	enableRawResourceStatusCollection := s.typeConfig.GetStatusEnabled() && s.rawResourceStatusCollection
 
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
@@ -306,7 +306,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 
 	kind := fedResource.TargetKind()
 	key := fedResource.TargetName().String()
-	klog.Infof("Ensuring %s %q in clusters: %s", kind, key, strings.Join(selectedClusterNames.List(), ","))
+	klog.V(4).Infof("Ensuring %s %q in clusters: %s", kind, key, strings.Join(selectedClusterNames.List(), ","))
 
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources, enableRawResourceStatusCollection)
 
@@ -385,7 +385,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	}
 
 	collectedStatus, collectedResourceStatus := dispatcher.CollectedStatus()
-	klog.Infof("Setting the federating status '%v'", collectedResourceStatus)
+	klog.V(4).Infof("Setting the federated status '%v'", collectedResourceStatus)
 	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus, &collectedResourceStatus, enableRawResourceStatusCollection)
 }
 
@@ -423,7 +423,7 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 			klog.Infof("No status update necessary for %s %q", kind, name)
 			return true, nil
 		}
-		klog.Infof("Updating status of name '%v' and kind '%v'", name, kind)
+		klog.V(4).Infof("Updating status for %s %q", kind, name)
 		err := s.hostClusterClient.UpdateStatus(context.TODO(), obj)
 		if err == nil {
 			return true, nil
