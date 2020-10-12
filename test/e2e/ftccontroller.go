@@ -22,8 +22,8 @@ import (
 
 	. "github.com/onsi/ginkgo" //nolint:stylecheck
 	"github.com/pborman/uuid"
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
@@ -68,10 +68,23 @@ var _ = Describe("FTC controller", func() {
 			Name:       fedv1b1.PluralName(targetCrdKind),
 			Namespaced: true,
 		}
-		targetCrd := kfenable.CrdForAPIResource(targetAPIResource, nil, nil)
-		crdClient := apiextv1b1client.NewForConfigOrDie(f.KubeConfig())
+		validationSchema := kfenable.ValidationSchema(apiextv1.JSONSchemaProps{
+			Type: "object",
+			Properties: map[string]apiextv1.JSONSchemaProps{
+				"bar": {
+					Type: "array",
+					Items: &apiextv1.JSONSchemaPropsOrArray{
+						Schema: &apiextv1.JSONSchemaProps{
+							Type: "string",
+						},
+					},
+				},
+			},
+		})
+		targetCrd := kfenable.CrdForAPIResource(targetAPIResource, validationSchema, nil)
+		crdClient := apiextv1client.NewForConfigOrDie(f.KubeConfig())
 
-		targetCrd.Spec.Version = "v1"
+		targetCrd.Spec.Versions[0].Name = "v1"
 		createCrdForHost(f.Logger(), crdClient, targetCrd)
 		waitForTargetCrd(f.Logger(), f.KubeConfig(), targetAPIResource.Name, "v1")
 
@@ -88,22 +101,25 @@ var _ = Describe("FTC controller", func() {
 		if err != nil {
 			tl.Fatalf("Error retrieving target CRD %q: %v", objectMeta.Name, err)
 		}
-		existingCrd.Spec.Version = "v2"
-		existingCrd.Spec.Versions = []apiextv1b1.CustomResourceDefinitionVersion{
+
+		existingCrd.Spec.Versions[0].Name = "v2"
+		existingCrd.Spec.Versions = []apiextv1.CustomResourceDefinitionVersion{
 			{
 				Name:    "v2",
+				Schema:  existingCrd.Spec.Versions[0].Schema,
 				Served:  true,
 				Storage: true,
 			},
 			{
 				Name:    "v1",
+				Schema:  existingCrd.Spec.Versions[0].Schema,
 				Served:  false,
 				Storage: false,
 			},
 		}
 		_, err = crdClient.CustomResourceDefinitions().Update(context.Background(), existingCrd, metav1.UpdateOptions{})
 		if err != nil {
-			tl.Fatalf("Error updating target CRD version %q: %v", existingCrd.Spec.Version, err)
+			tl.Fatalf("Error updating target CRD version %q: %v", existingCrd.Spec.Versions[0].Name, err)
 		}
 
 		waitForTargetCrd(f.Logger(), f.KubeConfig(), targetAPIResource.Name, "v2")

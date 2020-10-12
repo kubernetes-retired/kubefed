@@ -24,8 +24,8 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -93,11 +93,16 @@ func validateCrdCrud(f framework.KubeFedFramework, targetCrdKind string, namespa
 		Namespaced: namespaced,
 	}
 
-	validationSchema := kfenable.ValidationSchema(apiextv1b1.JSONSchemaProps{
+	validationSchema := kfenable.ValidationSchema(apiextv1.JSONSchemaProps{
 		Type: "object",
-		Properties: map[string]apiextv1b1.JSONSchemaProps{
+		Properties: map[string]apiextv1.JSONSchemaProps{
 			"bar": {
 				Type: "array",
+				Items: &apiextv1.JSONSchemaPropsOrArray{
+					Schema: &apiextv1.JSONSchemaProps{
+						Type: "string",
+					},
+				},
 			},
 		},
 	})
@@ -112,7 +117,7 @@ func validateCrdCrud(f framework.KubeFedFramework, targetCrdKind string, namespa
 	var hostConfig *rest.Config
 	for clusterName, clusterConfig := range clusterConfigs {
 		configs = append(configs, clusterConfig.Config)
-		crdClient := apiextv1b1client.NewForConfigOrDie(clusterConfig.Config)
+		crdClient := apiextv1client.NewForConfigOrDie(clusterConfig.Config)
 		if clusterConfig.IsPrimary {
 			hostConfig = clusterConfig.Config
 			createCrdForHost(tl, crdClient, targetCrd)
@@ -246,11 +251,11 @@ func waitForCrd(config *rest.Config, tl common.TestLogger, apiResource metav1.AP
 	}
 }
 
-func createCrdForHost(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition) {
+func createCrdForHost(tl common.TestLogger, client *apiextv1client.ApiextensionsV1Client, crd *apiextv1.CustomResourceDefinition) {
 	createCrd(tl, client, crd, "")
 }
 
-func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crd *apiextv1b1.CustomResourceDefinition, clusterName string) {
+func createCrd(tl common.TestLogger, client *apiextv1client.ApiextensionsV1Client, crd *apiextv1.CustomResourceDefinition, clusterName string) {
 	createdCrd, err := client.CustomResourceDefinitions().Create(context.Background(), crd, metav1.CreateOptions{})
 	if err != nil {
 		tl.Fatalf("Error creating crd %s in %s: %v", crd.Name, clusterMsg(clusterName), err)
@@ -258,7 +263,7 @@ func createCrd(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1bet
 	ensureCRDRemoval(tl, client, createdCrd.Name, clusterName)
 }
 
-func ensureCRDRemoval(tl common.TestLogger, client *apiextv1b1client.ApiextensionsV1beta1Client, crdName, clusterName string) {
+func ensureCRDRemoval(tl common.TestLogger, client *apiextv1client.ApiextensionsV1Client, crdName, clusterName string) {
 	framework.AddCleanupAction(func() {
 		err := client.CustomResourceDefinitions().Delete(context.Background(), crdName, metav1.DeleteOptions{})
 		if err != nil {

@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -361,7 +361,7 @@ func customResourcesExist(config *rest.Config, resource *metav1.APIResource) (bo
 }
 
 func deleteFederatedCRD(config *rest.Config, crdName string, write func(string)) error {
-	client, err := apiextv1b1client.NewForConfig(config)
+	client, err := apiextv1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Error creating crd client")
 	}

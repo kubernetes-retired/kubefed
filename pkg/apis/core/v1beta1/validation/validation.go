@@ -23,7 +23,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apimachineryval "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -120,7 +120,7 @@ func ValidateAPIResource(obj *v1beta1.APIResource, fldPath *field.Path) field.Er
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("pluralName"), obj.PluralName, strings.Join(errs, ",")))
 	}
 
-	allErrs = append(allErrs, validateEnumStrings(fldPath.Child("scope"), string(obj.Scope), []string{string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped)})...)
+	allErrs = append(allErrs, validateEnumStrings(fldPath.Child("scope"), string(obj.Scope), []string{string(apiextv1.ClusterScoped), string(apiextv1.NamespaceScoped)})...)
 
 	return allErrs
 }
@@ -252,7 +252,7 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 	spec := kubeFedConfig.Spec
 	specPath := field.NewPath("spec")
 	allErrs = append(allErrs, validateEnumStrings(specPath.Child("scope"), string(spec.Scope),
-		[]string{string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped)})...)
+		[]string{string(apiextv1.ClusterScoped), string(apiextv1.NamespaceScoped)})...)
 
 	if oldKubeFedConfig != nil {
 		// We are validating a KubeFedConfig update.

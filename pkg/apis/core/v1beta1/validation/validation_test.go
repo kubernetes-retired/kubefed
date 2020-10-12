@@ -23,7 +23,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -659,7 +659,7 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	errorCases["spec.scope: Unsupported value"] = invalidScope
 
 	immutableScope := testcommon.ValidKubeFedConfig()
-	immutableScope.Spec.Scope = apiextv1b1.NamespaceScoped
+	immutableScope.Spec.Scope = apiextv1.NamespaceScoped
 	errorCases[`spec.scope: Invalid value: "Namespaced": field is immutable`] = immutableScope
 
 	invalidControllerDurationNil := testcommon.ValidKubeFedConfig()

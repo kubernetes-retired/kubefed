@@ -26,8 +26,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -187,7 +187,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 type typeResources struct {
 	TypeConfig typeconfig.Interface
-	CRD        *apiextv1b1.CustomResourceDefinition
+	CRD        *apiextv1.CustomResourceDefinition
 }
 
 func GetResources(config *rest.Config, enableTypeDirective *EnableTypeDirective) (*typeResources, error) {
@@ -263,7 +263,7 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 		}
 	}
 
-	crdClient, err := apiextv1b1client.NewForConfig(config)
+	crdClient, err := apiextv1client.NewForConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create crd clientset")
 	}
@@ -395,7 +395,7 @@ func qualifiedAPIResourceName(resource metav1.APIResource) string {
 	return fmt.Sprintf("%s.%s/%s", resource.Name, resource.Group, resource.Version)
 }
 
-func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, shortNames []string) *apiextv1b1.CustomResourceDefinition {
+func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, shortNames []string) *apiextv1.CustomResourceDefinition {
 	templateSchema := accessor.templateSchema()
 	schema := federatedTypeValidationSchema(templateSchema)
 	return CrdForAPIResource(typeConfig.GetFederatedType(), schema, shortNames)

@@ -32,7 +32,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -145,7 +145,7 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 		klog.Fatalf("Invalid Feature Gate: %v", err)
 	}
 
-	if opts.Scope == apiextv1b1.NamespaceScoped {
+	if opts.Scope == apiextv1.NamespaceScoped {
 		opts.Config.TargetNamespace = opts.Config.KubeFedNamespace
 		klog.Infof("KubeFed will be limited to the %q namespace", opts.Config.KubeFedNamespace)
 	} else {
@@ -268,20 +268,20 @@ func setDefaultKubeFedConfigScope(fedConfig *corev1b1.KubeFedConfig) bool {
 	const defaultScopeEnv = "DEFAULT_KUBEFED_SCOPE"
 	defaultScope := os.Getenv(defaultScopeEnv)
 	if len(defaultScope) != 0 {
-		if defaultScope != string(apiextv1b1.ClusterScoped) && defaultScope != string(apiextv1b1.NamespaceScoped) {
+		if defaultScope != string(apiextv1.ClusterScoped) && defaultScope != string(apiextv1.NamespaceScoped) {
 			klog.Fatalf("%s must be one of %s or %s; got %q", defaultScopeEnv,
-				string(apiextv1b1.ClusterScoped), string(apiextv1b1.NamespaceScoped), defaultScope)
+				string(apiextv1.ClusterScoped), string(apiextv1.NamespaceScoped), defaultScope)
 			return false
 		}
 
 		if len(fedConfig.Spec.Scope) == 0 {
-			fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
+			fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
 			klog.Infof("Setting the scope of KubeFedConfig spec to %s", defaultScope)
 			return true
-		} else if fedConfig.Spec.Scope != apiextv1b1.ResourceScope(defaultScope) {
+		} else if fedConfig.Spec.Scope != apiextv1.ResourceScope(defaultScope) {
 			klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
 				string(fedConfig.Spec.Scope), defaultScope)
-			fedConfig.Spec.Scope = apiextv1b1.ResourceScope(defaultScope)
+			fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
 			return true
 		}
 	}

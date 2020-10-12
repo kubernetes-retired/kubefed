@@ -1,4 +1,6 @@
 # Unreleased
+- fix: Transition from apiextensions.k8s.io/v1beta1 to
+  apiextensions.k8s.io/v1.
 # v0.5.0
 - [#1310](https://github.com/kubernetes-sigs/kubefed/pull/1310)
   chore: Add labels to service.

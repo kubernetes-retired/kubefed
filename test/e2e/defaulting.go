@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
@@ -95,7 +95,7 @@ var _ = Describe("Default", func() {
 							Duration: defaults.DefaultClusterHealthCheckPeriod + 11*time.Second,
 						},
 					},
-					Scope: apiextv1b1.ClusterScoped, // Required
+					Scope: apiextv1.ClusterScoped, // Required
 				},
 			}
 		}

@@ -20,7 +20,7 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -29,7 +29,7 @@ import (
 type Options struct {
 	Config                   *util.ControllerConfig
 	FeatureGates             map[string]bool
-	Scope                    apiextv1b1.ResourceScope
+	Scope                    apiextv1.ResourceScope
 	LeaderElection           *util.LeaderElectionConfiguration
 	ClusterHealthCheckConfig *util.ClusterHealthCheckConfig
 }

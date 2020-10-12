@@ -17,28 +17,29 @@ limitations under the License.
 package enable
 
 import (
-	v1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
-func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
-	schema := ValidationSchema(v1beta1.JSONSchemaProps{
+func federatedTypeValidationSchema(templateSchema map[string]v1.JSONSchemaProps) *v1.CustomResourceValidation {
+	schema := ValidationSchema(v1.JSONSchemaProps{
 		Type: "object",
-		Properties: map[string]v1beta1.JSONSchemaProps{
+		Properties: map[string]v1.JSONSchemaProps{
 			"placement": {
 				Type: "object",
-				Properties: map[string]v1beta1.JSONSchemaProps{
+				Properties: map[string]v1.JSONSchemaProps{
 					// References to one or more clusters allow a
 					// scheduling mechanism to explicitly indicate
 					// placement. If one or more clusters is provided,
 					// the clusterSelector field will be ignored.
 					"clusters": {
 						Type: "array",
-						Items: &v1beta1.JSONSchemaPropsOrArray{
-							Schema: &v1beta1.JSONSchemaProps{
+						Items: &v1.JSONSchemaPropsOrArray{
+							Schema: &v1.JSONSchemaProps{
 								Type: "object",
-								Properties: map[string]v1beta1.JSONSchemaProps{
+								Properties: map[string]v1.JSONSchemaProps{
 									"name": {
 										Type: "string",
 									},
@@ -51,13 +52,13 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 					},
 					"clusterSelector": {
 						Type: "object",
-						Properties: map[string]v1beta1.JSONSchemaProps{
+						Properties: map[string]v1.JSONSchemaProps{
 							"matchExpressions": {
 								Type: "array",
-								Items: &v1beta1.JSONSchemaPropsOrArray{
-									Schema: &v1beta1.JSONSchemaProps{
+								Items: &v1.JSONSchemaPropsOrArray{
+									Schema: &v1.JSONSchemaProps{
 										Type: "object",
-										Properties: map[string]v1beta1.JSONSchemaProps{
+										Properties: map[string]v1.JSONSchemaProps{
 											"key": {
 												Type: "string",
 											},
@@ -66,8 +67,8 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 											},
 											"values": {
 												Type: "array",
-												Items: &v1beta1.JSONSchemaPropsOrArray{
-													Schema: &v1beta1.JSONSchemaProps{
+												Items: &v1.JSONSchemaPropsOrArray{
+													Schema: &v1.JSONSchemaProps{
 														Type: "string",
 													},
 												},
@@ -82,8 +83,8 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 							},
 							"matchLabels": {
 								Type: "object",
-								AdditionalProperties: &v1beta1.JSONSchemaPropsOrBool{
-									Schema: &v1beta1.JSONSchemaProps{
+								AdditionalProperties: &v1.JSONSchemaPropsOrBool{
+									Schema: &v1.JSONSchemaProps{
 										Type: "string",
 									},
 								},
@@ -94,19 +95,19 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 			},
 			"overrides": {
 				Type: "array",
-				Items: &v1beta1.JSONSchemaPropsOrArray{
-					Schema: &v1beta1.JSONSchemaProps{
+				Items: &v1.JSONSchemaPropsOrArray{
+					Schema: &v1.JSONSchemaProps{
 						Type: "object",
-						Properties: map[string]v1beta1.JSONSchemaProps{
+						Properties: map[string]v1.JSONSchemaProps{
 							"clusterName": {
 								Type: "string",
 							},
 							"clusterOverrides": {
 								Type: "array",
-								Items: &v1beta1.JSONSchemaPropsOrArray{
-									Schema: &v1beta1.JSONSchemaProps{
+								Items: &v1.JSONSchemaPropsOrArray{
+									Schema: &v1.JSONSchemaProps{
 										Type: "object",
-										Properties: map[string]v1beta1.JSONSchemaProps{
+										Properties: map[string]v1.JSONSchemaProps{
 											"op": {
 												Type:    "string",
 												Pattern: "^(add|remove|replace)?$",
@@ -115,27 +116,7 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 												Type: "string",
 											},
 											"value": {
-												// Supporting the override of an arbitrary field
-												// precludes up-front validation.  Errors in
-												// the definition of override values will need to
-												// be caught during propagation.
-												AnyOf: []v1beta1.JSONSchemaProps{
-													{
-														Type: "string",
-													},
-													{
-														Type: "integer",
-													},
-													{
-														Type: "boolean",
-													},
-													{
-														Type: "object",
-													},
-													{
-														Type: "array",
-													},
-												},
+												XPreserveUnknownFields: pointer.BoolPtr(true),
 											},
 										},
 										Required: []string{
@@ -152,8 +133,9 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 	})
 	if templateSchema != nil {
 		specProperties := schema.OpenAPIV3Schema.Properties["spec"].Properties
-		specProperties["template"] = v1beta1.JSONSchemaProps{
-			Type: "object",
+		specProperties["template"] = v1.JSONSchemaProps{
+			XPreserveUnknownFields: pointer.BoolPtr(true),
+			Type:                   "object",
 		}
 		// Add retainReplicas field to types that exposes a replicas
 		// field that could be targeted by HPA.
@@ -161,7 +143,7 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 			// TODO: find a simpler way to detect that a resource is scalable than having to compute the entire schema.
 			if replicasField, ok := templateSpec.Properties["replicas"]; ok {
 				if replicasField.Type == "integer" && replicasField.Format == "int32" {
-					specProperties[util.RetainReplicasField] = v1beta1.JSONSchemaProps{
+					specProperties[util.RetainReplicasField] = v1.JSONSchemaProps{
 						Type: "boolean",
 					}
 				}
@@ -171,10 +153,11 @@ func federatedTypeValidationSchema(templateSchema map[string]v1beta1.JSONSchemaP
 	return schema
 }
 
-func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResourceValidation {
-	return &v1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
-			Properties: map[string]v1beta1.JSONSchemaProps{
+func ValidationSchema(specProps v1.JSONSchemaProps) *v1.CustomResourceValidation {
+	return &v1.CustomResourceValidation{
+		OpenAPIV3Schema: &v1.JSONSchemaProps{
+			Type: "object",
+			Properties: map[string]v1.JSONSchemaProps{
 				"apiVersion": {
 					Type: "string",
 				},
@@ -188,13 +171,13 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 				"spec": specProps,
 				"status": {
 					Type: "object",
-					Properties: map[string]v1beta1.JSONSchemaProps{
+					Properties: map[string]v1.JSONSchemaProps{
 						"conditions": {
 							Type: "array",
-							Items: &v1beta1.JSONSchemaPropsOrArray{
-								Schema: &v1beta1.JSONSchemaProps{
+							Items: &v1.JSONSchemaPropsOrArray{
+								Schema: &v1.JSONSchemaProps{
 									Type: "object",
-									Properties: map[string]v1beta1.JSONSchemaProps{
+									Properties: map[string]v1.JSONSchemaProps{
 										"type": {
 											Type: "string",
 										},
@@ -222,10 +205,10 @@ func ValidationSchema(specProps v1beta1.JSONSchemaProps) *v1beta1.CustomResource
 						},
 						"clusters": {
 							Type: "array",
-							Items: &v1beta1.JSONSchemaPropsOrArray{
-								Schema: &v1beta1.JSONSchemaProps{
+							Items: &v1.JSONSchemaPropsOrArray{
+								Schema: &v1.JSONSchemaProps{
 									Type: "object",
-									Properties: map[string]v1beta1.JSONSchemaProps{
+									Properties: map[string]v1.JSONSchemaProps{
 										"name": {
 											Type: "string",
 										},

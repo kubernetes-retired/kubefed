@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
@@ -66,7 +66,7 @@ type APIResource struct {
 	// suffixing an 's'.
 	PluralName string `json:"pluralName"`
 	// Scope of the resource.
-	Scope apiextv1b1.ResourceScope `json:"scope"`
+	Scope apiextv1.ResourceScope `json:"scope"`
 }
 
 // PropagationMode defines the state of propagation to member clusters.
@@ -243,7 +243,7 @@ func (f *FederatedTypeConfig) IsNamespace() bool {
 }
 
 func (a *APIResource) Namespaced() bool {
-	return a.Scope == apiextv1b1.NamespaceScoped
+	return a.Scope == apiextv1.NamespaceScoped
 }
 
 func apiResourceToMeta(apiResource APIResource, namespaced bool) metav1.APIResource {
