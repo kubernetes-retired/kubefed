@@ -27,7 +27,7 @@ spec:
   - name: SchedulerPreferences
     configuration: {{ .Values.featureGates.SchedulerPreferences | default "Enabled" | quote }}
   - name: CrossClusterServiceDiscovery
-    configuration: {{ .Values.featureGates.CrossClusterServiceDiscovery | default "Enabled" | quote }}
+    configuration: {{ .Values.featureGates.CrossClusterServiceDiscovery | default "Disabled" | quote }}
   - name: FederatedIngress
     configuration: {{ .Values.featureGates.FederatedIngress | default "Enabled" | quote }}
 {{- end }}

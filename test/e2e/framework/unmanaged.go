@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -36,6 +37,7 @@ import (
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
+	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/test/common"
 
 	. "github.com/onsi/ginkgo" //nolint:stylecheck
@@ -58,6 +60,19 @@ var (
 	hostClusterClient kubeclientset.Interface
 	deletedNamespaces []string
 )
+
+func SetUpFeatureGates() {
+	// Enable all the feature gates when running the control plane
+	// in-memory.
+	resetDefaultFeatureGates := map[string]bool{
+		string(features.SchedulerPreferences):         true,
+		string(features.PushReconciler):               true,
+		string(features.CrossClusterServiceDiscovery): true,
+		string(features.FederatedIngress):             true,
+	}
+	err := utilfeature.DefaultMutableFeatureGate.SetFromMap(resetDefaultFeatureGates)
+	Expect(err).NotTo(HaveOccurred())
+}
 
 func SetUpControlPlane() {
 	if clusterControllerFixture != nil {

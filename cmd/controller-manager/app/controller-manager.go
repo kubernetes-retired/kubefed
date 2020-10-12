@@ -187,6 +187,8 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
+		klog.Warningf("The feature '%s' is deprecated and will be removed in a future release.", features.CrossClusterServiceDiscovery)
+
 		if err := servicedns.StartController(opts.Config, stopChan); err != nil {
 			klog.Fatalf("Error starting dns controller: %v", err)
 		}
