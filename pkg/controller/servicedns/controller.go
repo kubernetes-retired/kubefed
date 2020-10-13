@@ -308,7 +308,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	// Iterate through all ready clusters and aggregate the service status for the key
 	for _, cluster := range clusters {
 		if cluster.Status.Region == nil || *cluster.Status.Region == "" || len(cluster.Status.Zones) == 0 {
-			runtime.HandleError(errors.Wrapf(err, "Cluster %q does not have Region or Zones Attributes", cluster.Name))
+			klog.Errorf("Cluster %q does not have Region or Zones Attributes", cluster.Name)
 			return util.StatusError
 		}
 		clusterDNS := dnsv1a1.ClusterDNS{
