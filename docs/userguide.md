@@ -111,7 +111,7 @@ See the [Cluster Registration documentation](./cluster-registration.md) for more
 You can enable federation of any Kubernetes API type (including CRDs) by using the
 `kubefedctl` command as follows.
 
-**NOTE:** Federation of a CRD requires that the CRD Kubernetes type (`customresourcedefinitions`) to be enabled, to then 
+**NOTE:** Federation of a CRD requires the CRD Kubernetes type (`customresourcedefinitions`) to be enabled, to then 
 federate any custom CRD on the member clusters. If the CRD Kubernetes type is not enabled and its Federated equivalent CRD is not federated, the propagation to that cluster will fail.
 
 ```bash
@@ -328,7 +328,7 @@ be read in yaml format via the `--filename` argument. The command currently does
 for an already enabled type to use the type configuration values while translating yaml resources
 and uses default values for the same.
 The command in this mode can also take input from `stdin` in place of an actual file.
-The output could be piped to `kubectl create -f -` if the intention is to create the federate
+The output could be piped to `kubectl create -f -` if the intention is to create the federated
 resource in the federated API surface.
 No other arguments or flag options are needed in this mode.
 
@@ -457,7 +457,7 @@ The following table enumerates the possible values for cluster status:
 | LabelRemovalFailed     | Removal of the KubeFed label from the target resource failed. |
 | LabelRemovalTimedOut   | Removal of the KubeFed label from the target resource timed out. |
 | ManagedLabelFalse      | Unable to manage the object which has label kubefed.io/managed: false |
-| RetrievalFailed        | Retrievel of the target resource from the cluster failed. |
+| RetrievalFailed        | Retrieval of the target resource from the cluster failed. |
 | UpdateFailed           | Update of the target resource failed. |
 | UpdateTimedOut         | Update of the target resource timed out. |
 | VersionRetrievalFailed | An error occurred while attempting to retrieve the last recorded version of the target resource. |
@@ -995,7 +995,7 @@ behaviour is unacceptable.
 The RSP can be considered as more user friendly mechanism to distribute the
 replicas, where the inputs needed from the user at federated control plane are
 reduced. The user only needs to create the RSP resource and associated federated
-resource (with only spec.template populated) to distribute the replicas. It can
+resources (with only spec.template populated) to distribute the replicas. It can
 also be considered as a more automated approach at distribution and further
 reconciliation of the workload replicas.
 
