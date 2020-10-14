@@ -128,6 +128,12 @@ The `<target kubernetes API type>` can be any of the following
 
 for the intended target API type.
 
+**NOTE:** To specifically target a type of a certain API group, you can append the group's name as in `deployment.apps`.
+For core Kubernetes types such as `Pod` or `Service` this is not possible because they have no specific API group assigned
+to them. Therefore, core types always take precendence over other types of the same name from another API group. Please
+see the [Enabling an API type with a non-default API group](#enabling-an-api-type-with-a-non-default-api-group) section
+for more information on the impact of possible naming conflicts.
+
 The `kubefedctl` command will create
  - a CRD for the federated type named `Federated<Kind>`
  - a `FederatedTypeConfig` in the KubeFed system namespace with the group-qualified plural name of the target type.
