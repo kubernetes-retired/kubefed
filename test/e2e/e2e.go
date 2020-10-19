@@ -56,6 +56,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	}
 
 	if framework.TestContext.InMemoryControllers {
+		framework.SetUpFeatureGates()
 		// Start the cluster controller to ensure clusters will be
 		// reported as healthy when running the control plane
 		// in-memory.

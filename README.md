@@ -46,7 +46,7 @@ higher-level APIs:
 
 - **Status** collects the status of resources distributed by KubeFed across all federated clusters
 - **Policy** determines which subset of clusters a resource is allowed to be distributed to
-- **Scheduling** refers to a decision-making capability that can decide how 
+- **Scheduling** refers to a decision-making capability that can decide how
   workloads should be spread across different clusters similar to how a human
   operator would
 
@@ -57,7 +57,7 @@ higher-level APIs:
 | [Push propagation of arbitrary types to remote clusters](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#verify-your-deployment-is-working) | Alpha | PushReconciler | true |
 | [CLI utility (`kubefedctl`)](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#kubefedctl-cli) | Alpha | | |
 | [Generate KubeFed APIs without writing code](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#enabling-federation-of-an-api-type) | Alpha | | |
-| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md) | Alpha | CrossClusterServiceDiscovery | true |
+| [Multicluster Service DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/servicedns-with-externaldns.md) | Alpha | CrossClusterServiceDiscovery | false |
 | [Multicluster Ingress DNS via `external-dns`](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/ingressdns-with-externaldns.md) | Alpha | FederatedIngress | true |
 | [Replica Scheduling Preferences](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md#replicaschedulingpreference) | Alpha | SchedulerPreferences | true |
 
