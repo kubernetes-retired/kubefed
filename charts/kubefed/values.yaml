@@ -25,7 +25,19 @@ controllermanager:
     SchedulerPreferences:
     CrossClusterServiceDiscovery:
     FederatedIngress:
-  
+
+  ## common node selector
+  commonNodeSelector: {}
+  #  key1: value1
+  #  key2: value2
+
+  ## common tolerations
+  commonTolerations: []
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+
   controller:
     annotations: {}
     replicaCount: 2
