@@ -199,6 +199,8 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
+		klog.Warningf("The feature '%s' is deprecated and will be removed in a future release.", features.FederatedIngress)
+
 		if err := ingressdns.StartController(opts.Config, stopChan); err != nil {
 			klog.Fatalf("Error starting ingress dns controller: %v", err)
 		}
