@@ -149,7 +149,7 @@ echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
 CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY_HOST=y \
-    KIND_TAG="v1.18.4" ./scripts/create-clusters.sh
+    KIND_TAG="v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600" ./scripts/create-clusters.sh
 
 # Initialize list of clusters to join
 join-cluster-list > /dev/null

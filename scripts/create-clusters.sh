@@ -90,11 +90,15 @@ EOF
 "
       ;;
     $containerd_config)
-     echo 'echo -e "[plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"'${CONTAINER_REGISTRY_HOST}'\"]\n  endpoint = [\"http://'${CONTAINER_REGISTRY_HOST}'\"]\n" >> '${containerd_config}
-     ;;
+      if [ "${CONFIGURE_INSECURE_REGISTRY_CLUSTER}" ]; then
+        echo -e "containerdConfigPatches:\n- |-\n  [plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"${CONTAINER_REGISTRY_HOST}\"]\n  endpoint = [\"http://${CONTAINER_REGISTRY_HOST}\"]\n"
+      else
+        echo ""
+      fi
+      ;;
     *)
-     echo "Sorry, config insecure registy is not supported for $config_file"
-     ;;
+      echo "Sorry, config insecure registy is not supported for $config_file"
+      ;;
   esac
 }
 
@@ -112,21 +116,18 @@ function create-clusters() {
     image_arg="--image=kindest/node:${KIND_TAG}"
   fi
   for i in $(seq ${num_clusters}); do
-    kind create cluster --name "cluster${i}" ${image_arg}
-    # TODO(font): remove once all workarounds are addressed.
+    kind create cluster --name "cluster${i}" --config - "${image_arg}" << EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+$(insecure-registry-config-cmd ${containerd_config})
+EOF
     fixup-cluster ${i}
     echo
+
   done
 
   echo "Waiting for clusters to be ready"
   check-clusters-ready ${num_clusters}
-
-  if [[ "${CONFIGURE_INSECURE_REGISTRY_CLUSTER}" ]]; then
-    # TODO(font): Configure insecure registry on kind host cluster. Remove once
-    # https://github.com/kubernetes-sigs/kind/issues/110 is resolved.
-    echo "Configuring insecure container registry on kind host cluster"
-    configure-insecure-registry-on-cluster 1
-  fi
 }
 
 function fixup-cluster() {
@@ -134,14 +135,10 @@ function fixup-cluster() {
 
   if [ "$OS" != "Darwin" ];then
     # Set container IP address as kube API endpoint in order for clusters to reach kube API servers in other clusters.
-    OLD_KUBECONFIG=${KUBECONFIG:-}
-    export KUBECONFIG=$(mktemp)
-    kind get kubeconfig --name "cluster${i}" --internal > ${KUBECONFIG}
-    SERVER=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
-    rm ${KUBECONFIG}
-    KUBECONFIG=${OLD_KUBECONFIG}
-    kubectl config set-cluster kind-cluster${i} --server=${SERVER}
+    local docker_ip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "cluster${i}-control-plane")
+    kubectl config set-cluster "kind-cluster${i}" --server="https://${docker_ip}:6443"
   fi
+
   # Simplify context name
   kubectl config rename-context "kind-cluster${i}" "cluster${i}"
 }
@@ -150,13 +147,6 @@ function check-clusters-ready() {
   for i in $(seq ${1}); do
     util::wait-for-condition 'ok' "kubectl --context cluster${i} get --raw=/healthz &> /dev/null" 120
   done
-}
-
-function configure-insecure-registry-on-cluster() {
-  cmd_context="docker exec cluster${1}-control-plane bash -c"
-  containerd_id=`${cmd_context} "pgrep -x containerd"`
-
-  configure-insecure-registry-and-reload "${cmd_context}" ${containerd_id} ${containerd_config}
 }
 
 if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
