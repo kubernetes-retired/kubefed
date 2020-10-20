@@ -177,12 +177,12 @@ func ApplyJSONPatch(obj *unstructured.Unstructured, overrides ClusterOverrides) 
 		return err
 	}
 
-	ObjectJSONBytes, err := obj.MarshalJSON()
+	objectJSONBytes, err := obj.MarshalJSON()
 	if err != nil {
 		return err
 	}
 
-	patchedObjectJSONBytes, err := patch.Apply(ObjectJSONBytes)
+	patchedObjectJSONBytes, err := patch.Apply(objectJSONBytes)
 	if err != nil {
 		return err
 	}
