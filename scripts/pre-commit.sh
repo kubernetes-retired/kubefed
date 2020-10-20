@@ -20,8 +20,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source "$(dirname "${BASH_SOURCE}")/util.sh"
-ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
+# shellcheck source=util.sh
+source "${BASH_SOURCE%/*}/util.sh"
+ROOT_DIR="$(cd "${BASH_SOURCE%/*}/.." ; pwd)"
 TEMP_DIR="$(mktemp -d)"
 MAKE_CMD="make -C ${ROOT_DIR}"
 OS="$(go env GOOS)"
@@ -30,7 +31,6 @@ PLATFORM="${OS}-${ARCH}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 JOIN_CLUSTERS="${JOIN_CLUSTERS:-}"
 DOWNLOAD_BINARIES="${DOWNLOAD_BINARIES:-}"
-CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
 COMMON_TEST_ARGS="-kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
 E2E_TEST_CMD="${TEMP_DIR}/e2e-${PLATFORM} ${COMMON_TEST_ARGS}"
 # Disable limited scope in-memory controllers to ensure the controllers in the
@@ -45,29 +45,17 @@ function build-binaries() {
   ${MAKE_CMD} e2e
   # Copying the test binary to ${TEMP_DIR} to ensure
   # there's no dependency on the static files in the path
-  cp ${ROOT_DIR}/bin/e2e-${PLATFORM} ${TEMP_DIR}
+  cp "${ROOT_DIR}/bin/e2e-${PLATFORM}" "${TEMP_DIR}"
 }
 
 function download-dependencies() {
-  if [[ -z "${DOWNLOAD_BINARIES}" ]]; then
-    return
+  if [[ "${DOWNLOAD_BINARIES:-}" == "y"  ]]; then
+    ./scripts/download-binaries.sh
   fi
-
-  ./scripts/download-binaries.sh
 }
 
 function run-unit-tests() {
   KUBEBUILDER_ASSETS=${ROOT_DIR}/bin ${MAKE_CMD} test
-}
-
-function join-cluster-list() {
-  if [[ -z "${JOIN_CLUSTERS}" ]]; then
-    for i in $(seq 2 ${NUM_CLUSTERS}); do
-      JOIN_CLUSTERS+="cluster${i} "
-    done
-    export JOIN_CLUSTERS=$(echo ${JOIN_CLUSTERS} | sed 's/ $//')
-  fi
-  echo "${JOIN_CLUSTERS}"
 }
 
 function run-e2e-tests() {
@@ -98,7 +86,7 @@ function check-git-state() {
     return
   fi
   echo "ERROR: the working tree is dirty:"
-  for line in "${output}"; do
+  for line in ${output}; do
     echo "${line}"
   done
   git diff
@@ -148,14 +136,17 @@ run-unit-tests
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
-CREATE_INSECURE_REGISTRY=y CONFIGURE_INSECURE_REGISTRY_HOST=y \
-    KIND_TAG="v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600" ./scripts/create-clusters.sh
+KIND_TAG="v1.19.1@sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600" ./scripts/create-clusters.sh
 
-# Initialize list of clusters to join
-join-cluster-list > /dev/null
+declare -a join_cluster_list=() 
+if [[ -z "${JOIN_CLUSTERS}" ]]; then
+  for i in $(seq 2 "${NUM_CLUSTERS}"); do
+    join_cluster_list+=("cluster${i}")
+  done
+fi
 
 echo "Deploying cluster-scoped kubefed"
-./scripts/deploy-kubefed.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
+KIND_CLUSTER_NAME=cluster1 KIND_LOAD_IMAGE=y ./scripts/deploy-kubefed.sh local/kubefed:e2e "${join_cluster_list[@]-}"
 
 echo "Running e2e tests against cluster-scoped kubefed"
 run-e2e-tests
@@ -180,7 +171,7 @@ echo "Deleting cluster-scoped kubefed"
 ./scripts/delete-kubefed.sh
 
 echo "Deploying namespace-scoped kubefed"
-KUBEFED_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-kubefed.sh ${CONTAINER_REGISTRY_HOST}/kubefed:e2e $(join-cluster-list)
+KUBEFED_NAMESPACE=foo NAMESPACED=y ./scripts/deploy-kubefed.sh local/kubefed:e2e "${join_cluster_list[@]}"
 
 echo "Running go e2e tests with namespace-scoped kubefed"
 run-namespaced-e2e-tests

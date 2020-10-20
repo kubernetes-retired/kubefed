@@ -21,33 +21,22 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DELETE_INSECURE_REGISTRY="${DELETE_INSECURE_REGISTRY:-}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
-
-function delete-insecure-registry() {
-  docker kill registry &> /dev/null || return 0
-  docker rm registry &> /dev/null || true
-}
 
 function delete-clusters() {
   local num_clusters=${1}
 
-  for i in $(seq ${num_clusters}); do
+  for i in $(seq "${num_clusters}"); do
     # The context name has been changed when creating clusters by 'create-cluster.sh'.
     # This will result in the context can't be removed by kind when deleting a cluster.
     # So, we need to change context name back and let kind take care about it.
     kubectl config rename-context "cluster${i}" "kind-cluster${i}"
 
-    kind delete cluster --name cluster${i}
+    kind delete cluster --name "cluster${i}"
   done
 }
 
-if [[ "${DELETE_INSECURE_REGISTRY}" ]]; then
-  echo "Deleting container registry on host"
-  delete-insecure-registry
-fi
-
 echo "Deleting ${NUM_CLUSTERS} clusters"
-delete-clusters ${NUM_CLUSTERS}
+delete-clusters "${NUM_CLUSTERS}"
 
 echo "Complete"

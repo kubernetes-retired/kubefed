@@ -35,7 +35,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source "$(dirname "${BASH_SOURCE}")/util.sh"
+# shellcheck source=util.sh
+source "${BASH_SOURCE%/*}/util.sh"
 
 function deploy-with-helm() {
   local repository=${IMAGE_NAME%/*}
@@ -45,10 +46,10 @@ function deploy-with-helm() {
 
   local cmd
   if [[ "${NAMESPACED}" ]]; then
-    cmd="$(helm-deploy-cmd kubefed-${NS} ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd "kubefed-${NS}" "${NS}" "${repository}" "${image}" "${tag}")"
     cmd="${cmd} --set global.scope=Namespaced"
   else
-    cmd="$(helm-deploy-cmd kubefed ${NS} ${repository} ${image} ${tag})"
+    cmd="$(helm-deploy-cmd kubefed "${NS}" "${repository}" "${image}" "${tag}")"
   fi
 
   if [[ "${IMAGE_PULL_POLICY:-}" ]]; then
@@ -57,8 +58,8 @@ function deploy-with-helm() {
 
   ${cmd}
 
-  deployment-image-as-expected ${NS} kubefed-admission-webhook admission-webhook ${repository}/${image}:${tag}
-  deployment-image-as-expected ${NS} kubefed-controller-manager controller-manager ${repository}/${image}:${tag}
+  deployment-image-as-expected "${NS}" kubefed-admission-webhook admission-webhook "${repository}/${image}:${tag}"
+  deployment-image-as-expected "${NS}" kubefed-controller-manager controller-manager "${repository}/${image}:${tag}"
 }
 
 function helm-deploy-cmd {
@@ -86,7 +87,8 @@ function helm-deploy-cmd {
 }
 
 function kubefed-admission-webhook-ready() {
-  local readyReplicas=$(kubectl -n ${1} get deployments.apps kubefed-admission-webhook -o jsonpath='{.status.readyReplicas}')
+  local readyReplicas
+  readyReplicas=$(kubectl -n "${1}" get deployments.apps kubefed-admission-webhook -o jsonpath='{.status.readyReplicas}')
   [[ "${readyReplicas}" -ge "1" ]]
 }
 
@@ -96,7 +98,8 @@ function deployment-image-as-expected() {
   local container="${3}"
   local expected_image="${4}"
 
-  local deployed_image="$(kubectl -n ${namespace} get deployment ${deployment} -o jsonpath='{.spec.template.spec.containers[?(@.name=="'"${container}"'")].image}')"
+  local deployed_image
+  deployed_image="$(kubectl -n "${namespace}" get deployment "${deployment}" -o jsonpath='{.spec.template.spec.containers[?(@.name=="'"${container}"'")].image}')"
   [[ "${deployed_image}" == "${expected_image}" ]]
 }
 
@@ -105,7 +108,7 @@ function check-command-installed() {
 
   command -v "${cmdName}" >/dev/null 2>&1 ||
   {
-    echo "${cmdName} command not found. Please download dependencies using $(dirname ${BASH_SOURCE})/download-binaries.sh and install it in your PATH." >&2
+    echo "${cmdName} command not found. Please download dependencies using ${BASH_SOURCE%/*}/download-binaries.sh and install it in your PATH." >&2
     exit 1
   }
 }
@@ -121,7 +124,7 @@ else
   USE_LATEST=
 fi
 
-KF_NS_ARGS="--kubefed-namespace=${NS} "
+KF_NS_ARGS="--kubefed-namespace=${NS}"
 
 if [[ -z "${IMAGE_NAME}" ]]; then
   >&2 echo "Usage: $0 <image> [join-cluster]...
@@ -133,7 +136,6 @@ Example: docker.io/<username>/kubefed:test
 If intending to use the docker hub as the container registry to push
 the KubeFed image to, make sure to login to the local docker daemon
 to ensure credentials are available for push:
-
   $ docker login --username <username>
 
 <join-cluster> should be the kubeconfig context name for the additional cluster to join.
@@ -153,19 +155,14 @@ check-command-installed helm
 # Build KubeFed binaries and image
 if [[ "${USE_LATEST:-}" != "y" ]]; then
   cd "$(dirname "$0")/.."
-  make container IMAGE_NAME=${IMAGE_NAME}
+  make container IMAGE_NAME="${IMAGE_NAME}"
   cd -
-  # Use DOCKER_PUSH=n ./scripts/deploy-kubefed.sh <image> to skip docker
-  # push on container image when not using latest image.
-  if [[ "${DOCKER_PUSH:-y}" == "y" ]]; then
-    docker push ${IMAGE_NAME}
-  fi
 fi
 
-# Use KIND_LOAD_IMAGE=y DOCKER_PUSH= ./scripts/deploy-kubefed.sh <image> to load
+# Use KIND_LOAD_IMAGE=y ./scripts/deploy-kubefed.sh <image> to load
 # the built docker image into kind before deploying.
 if [[ "${KIND_LOAD_IMAGE:-}" == "y" ]]; then
-    kind load docker-image ${IMAGE_NAME}
+    kind load docker-image "${IMAGE_NAME}" --name="${KIND_CLUSTER_NAME:-}"
 fi
 
 cd "$(dirname "$0")/.."
@@ -177,8 +174,8 @@ deploy-with-helm
 
 # Join the host cluster
 CONTEXT="$(kubectl config current-context)"
-./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS} --error-on-existing=false
+./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 "${KF_NS_ARGS}" --error-on-existing=false
 
 for c in ${JOIN_CLUSTERS}; do
-  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --v=2 ${KF_NS_ARGS} --error-on-existing=false
+  ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --v=2 "${KF_NS_ARGS}" --error-on-existing=false
 done

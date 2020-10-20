@@ -21,90 +21,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source "$(dirname "${BASH_SOURCE}")/util.sh"
-CREATE_INSECURE_REGISTRY="${CREATE_INSECURE_REGISTRY:-}"
-CONFIGURE_INSECURE_REGISTRY_HOST="${CONFIGURE_INSECURE_REGISTRY_HOST:-}"
-CONFIGURE_INSECURE_REGISTRY_CLUSTER="${CONFIGURE_INSECURE_REGISTRY_CLUSTER-y}"
-CONTAINER_REGISTRY_HOST="${CONTAINER_REGISTRY_HOST:-172.17.0.1:5000}"
+# shellcheck source=util.sh
+source "${BASH_SOURCE%/*}/util.sh"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 KIND_IMAGE="${KIND_IMAGE:-}"
 KIND_TAG="${KIND_TAG:-}"
-docker_daemon_config="/etc/docker/daemon.json"
-containerd_config="/etc/containerd/config.toml"
-OS=`uname`
-
-function create-insecure-registry() {
-  # Run insecure registry as container
-  docker run -d -p 5000:5000 --restart=always --name registry registry:2
-}
-
-function configure-insecure-registry() {
-  local err=
-  if sudo test -f "${docker_daemon_config}"; then
-    if sudo grep -q "\"insecure-registries\": \[\"${CONTAINER_REGISTRY_HOST}\"\]" ${docker_daemon_config}; then
-      return 0
-    elif sudo grep -q "\"insecure-registries\": " ${docker_daemon_config}; then
-      echo <<EOF "Error: ${docker_daemon_config} exists and \
-is already configured with an 'insecure-registries' entry but not set to ${CONTAINER_REGISTRY_HOST}. \
-Please make sure it is removed and try again."
-EOF
-      err=true
-    fi
-  elif pgrep -a dockerd | grep -q 'insecure-registry'; then
-    echo <<EOF "Error: CONFIGURE_INSECURE_REGISTRY_HOST=${CONFIGURE_INSECURE_REGISTRY_HOST} \
-and about to write ${docker_daemon_config}, but dockerd is already configured with \
-an 'insecure-registry' command line option. Please make the necessary changes or disable \
-the command line option and try again."
-EOF
-    err=true
-  fi
-
-  if [[ "${err}" ]]; then
-    if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
-      docker kill registry &> /dev/null
-      docker rm registry &> /dev/null
-    fi
-    return 1
-  fi
-
-  configure-insecure-registry-and-reload "sudo bash -c" $(pgrep dockerd) ${docker_daemon_config}
-}
-
-function configure-insecure-registry-and-reload() {
-  local cmd_context="${1}" # context to run command e.g. sudo, docker exec
-  local docker_pid="${2}"
-  local config_file="${3}"
-  ${cmd_context} "$(insecure-registry-config-cmd ${config_file})"
-  ${cmd_context} "$(reload-daemon-cmd "${docker_pid}")"
-}
-
-function insecure-registry-config-cmd() {
-  local config_file="${1}"
-  case $config_file in
-    $docker_daemon_config)
-      echo "cat <<EOF > ${docker_daemon_config}
-{
-    \"insecure-registries\": [\"${CONTAINER_REGISTRY_HOST}\"]
-}
-EOF
-"
-      ;;
-    $containerd_config)
-      if [ "${CONFIGURE_INSECURE_REGISTRY_CLUSTER}" ]; then
-        echo -e "containerdConfigPatches:\n- |-\n  [plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"${CONTAINER_REGISTRY_HOST}\"]\n  endpoint = [\"http://${CONTAINER_REGISTRY_HOST}\"]\n"
-      else
-        echo ""
-      fi
-      ;;
-    *)
-      echo "Sorry, config insecure registy is not supported for $config_file"
-      ;;
-  esac
-}
-
-function reload-daemon-cmd() {
-  echo "kill -s SIGHUP ${1}"
-}
+OS="$(uname)"
 
 function create-clusters() {
   local num_clusters=${1}
@@ -115,19 +37,15 @@ function create-clusters() {
   elif [[ "${KIND_TAG}" ]]; then
     image_arg="--image=kindest/node:${KIND_TAG}"
   fi
-  for i in $(seq ${num_clusters}); do
-    kind create cluster --name "cluster${i}" --config - "${image_arg}" << EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-$(insecure-registry-config-cmd ${containerd_config})
-EOF
-    fixup-cluster ${i}
+  for i in $(seq "${num_clusters}"); do
+    kind create cluster --name "cluster${i}" "${image_arg}"
+    fixup-cluster "${i}"
     echo
 
   done
 
   echo "Waiting for clusters to be ready"
-  check-clusters-ready ${num_clusters}
+  check-clusters-ready "${num_clusters}"
 }
 
 function fixup-cluster() {
@@ -135,7 +53,8 @@ function fixup-cluster() {
 
   if [ "$OS" != "Darwin" ];then
     # Set container IP address as kube API endpoint in order for clusters to reach kube API servers in other clusters.
-    local docker_ip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "cluster${i}-control-plane")
+    local docker_ip
+    docker_ip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "cluster${i}-control-plane")
     kubectl config set-cluster "kind-cluster${i}" --server="https://${docker_ip}:6443"
   fi
 
@@ -144,23 +63,13 @@ function fixup-cluster() {
 }
 
 function check-clusters-ready() {
-  for i in $(seq ${1}); do
+  for i in $(seq "${1}"); do
     util::wait-for-condition 'ok' "kubectl --context cluster${i} get --raw=/healthz &> /dev/null" 120
   done
 }
 
-if [[ "${CREATE_INSECURE_REGISTRY}" ]]; then
-  echo "Creating container registry on host"
-  create-insecure-registry
-fi
-
-if [[ "${CONFIGURE_INSECURE_REGISTRY_HOST}" ]]; then
-  echo "Configuring container registry on host"
-  configure-insecure-registry
-fi
-
 echo "Creating ${NUM_CLUSTERS} clusters"
-create-clusters ${NUM_CLUSTERS}
+create-clusters "${NUM_CLUSTERS}"
 kubectl config use-context cluster1
 
 echo "Complete"
