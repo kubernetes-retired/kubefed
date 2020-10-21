@@ -57,6 +57,8 @@ for filename in ./config/crds/*.yaml; do
    ${SED} '/controller-gen.kubebuilder.io/d; /annotations:/d' $filename >> ${TEMP_CRDS_YAML}
 done
 
+mv ${TEMP_CRDS_YAML} ./charts/kubefed/charts/controllermanager/crds/crds.yaml
+
 # Generate kubeconfig to access kube-apiserver. It is cleaned when script is done.
 cat <<EOF > ${WORKDIR}/kubeconfig
 apiVersion: v1
