@@ -35,10 +35,11 @@ dest_dir="${root_dir}/bin"
 mkdir -p "${dest_dir}"
 
 # kind
+platform="$(uname -s|tr A-Z a-z)"
 kind_version="v0.9.0"
 kind_path="${dest_dir}/kind"
-kind_url="https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-linux-amd64"
-curl -Lo "${kind_path}" "${kind_url}" && chmod +x "${kind_path}"
+kind_url="https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${platform}-amd64"
+curl -fLo "${kind_path}" "${kind_url}" && chmod +x "${kind_path}"
 
 # Pull the busybox image (used in tests of workload types)
 docker pull busybox
