@@ -1,3 +1,5 @@
+
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -78,7 +80,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -161,7 +162,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -335,7 +335,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -475,7 +474,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -606,7 +604,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -688,7 +685,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -776,7 +772,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -829,7 +824,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -926,7 +920,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -1061,7 +1054,6 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
 
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -1075,9 +1067,9 @@ spec:
     kind: ReplicaSchedulingPreference
     listKind: ReplicaSchedulingPreferenceList
     plural: replicaschedulingpreferences
-    singular: replicaschedulingpreference
     shortNames:
     - rsp
+    singular: replicaschedulingpreference
   scope: Namespaced
   validation:
     openAPIV3Schema:
@@ -1171,4 +1163,3 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
----
