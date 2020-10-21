@@ -46,9 +46,8 @@ platform=$(uname -s|tr A-Z a-z)
 kb_version="2.3.1"
 kb_tgz="kubebuilder_${kb_version}_${platform}_amd64.tar.gz"
 kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_version}/${kb_tgz}"
-curl "${curl_args}O" "${kb_url}" \
-  && tar xzfP "${kb_tgz}" -C "${dest_dir}" --strip-components=2 \
-  && rm "${kb_tgz}"
+curl "${curl_args}" "${kb_url}" \
+  | tar xzP -C "${dest_dir}" --strip-components=2
 
 export KUBEBUILDER_ASSETS="${dest_dir}"
 echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
@@ -56,24 +55,20 @@ echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
 helm_version="3.3.4"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://get.helm.sh/$helm_tgz"
-curl "${curl_args}O" "${helm_url}" \
-    && tar xzfp "${helm_tgz}" -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm" \
-    && rm "${helm_tgz}"
+curl "${curl_args}" "${helm_url}" \
+    | tar xzP -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm"
 
 golint_version="1.31.0"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"
 golint_url="https://github.com/golangci/golangci-lint/releases/download/v${golint_version}/${golint_tgz}"
-curl "${curl_args}O" "${golint_url}" \
-    && tar xzfP "${golint_tgz}" -C "${dest_dir}" --strip-components=1 "${golint_dir}/golangci-lint" \
-    && rm "${golint_tgz}"
+curl "${curl_args}" "${golint_url}" \
+    | tar xzP -C "${dest_dir}" --strip-components=1 "${golint_dir}/golangci-lint"
 
 # Install go-bindata tool
-GOBIN="$(go env GOPATH)/bin"
 pushd ${root_dir}/tools
-go install github.com/go-bindata/go-bindata/v3/go-bindata
+GOBIN=${dest_dir} go install github.com/go-bindata/go-bindata/v3/go-bindata
 popd
-ln -sf ${GOBIN}/go-bindata ${dest_dir}/go-bindata
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"
