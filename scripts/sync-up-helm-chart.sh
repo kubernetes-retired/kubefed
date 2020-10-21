@@ -47,15 +47,14 @@ fi
 rm -f ./config/crds/*.yaml
 
 # Generate CRD manifest files
-command -v controller-gen &> /dev/null || (cd ${ROOT_DIR}/tools && go install sigs.k8s.io/controller-tools/cmd/controller-gen)
-controller-gen crd:trivialVersions=true paths="./pkg/apis/..." output:crd:artifacts:config=config/crds
+(cd ${ROOT_DIR}/tools && GOBIN=${ROOT_DIR}/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen)
+${ROOT_DIR}/bin/controller-gen crd:trivialVersions=true paths="./pkg/apis/..." output:crd:artifacts:config=config/crds
 
 # Merge all CRD manifest files into one file
-echo "---" > ${TEMP_CRDS_YAML}
+echo "" > ${TEMP_CRDS_YAML}
 for filename in ./config/crds/*.yaml; do
   # Remove unwanted kubebuilder annotation
-   sed '/controller-gen.kubebuilder.io/d; /annotations:/d' $filename >> ${TEMP_CRDS_YAML}
-  echo "---" >> ${TEMP_CRDS_YAML}
+   ${SED} '/controller-gen.kubebuilder.io/d; /annotations:/d' $filename >> ${TEMP_CRDS_YAML}
 done
 
 # Generate kubeconfig to access kube-apiserver. It is cleaned when script is done.
