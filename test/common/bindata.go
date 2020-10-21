@@ -165,12 +165,6 @@ overrides:
       value: 1
     - path: "/spec/template/spec/containers/0/image"
       value: "busybox:1.31.0-uclibc"
-    - path: "/metadata/annotations"
-      op: "add"
-      value:
-        foo: bar
-    - path: "/metadata/annotations/foo"
-      op: "remove"
 `)
 
 func testCommonFixturesDeploymentsAppsYamlBytes() ([]byte, error) {
