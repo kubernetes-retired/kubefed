@@ -41,7 +41,6 @@ type SchedulingManager struct {
 
 	worker util.ReconcileWorker
 
-	//schedulers map[string]*SchedulerWrapper
 	schedulers *util.SafeMap
 
 	config *util.ControllerConfig

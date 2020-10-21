@@ -194,7 +194,7 @@ func (d *controller) processItem(key string) error {
 	}
 
 	if !exists {
-		//delete corresponding DNSEndpoint object
+		// delete corresponding DNSEndpoint object
 		dnsEndpointObject := &feddnsv1a1.DNSEndpoint{}
 		err = d.client.Delete(context.TODO(), dnsEndpointObject, namespace, name)
 		if apierrors.IsNotFound(err) {

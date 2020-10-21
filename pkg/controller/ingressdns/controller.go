@@ -277,7 +277,7 @@ func (c *Controller) getIngressStatusInCluster(cluster, key string) (*corev1.Loa
 		return lbStatus, err
 	}
 	if ingressFound {
-		//TODO(shashi): Find better alternative to convert Unstructured to a given type
+		// TODO(shashi): Find better alternative to convert Unstructured to a given type
 		clusterIngress, ok := clusterIngressObj.(*unstructured.Unstructured)
 		if !ok {
 			runtime.HandleError(errors.Errorf("Failed to cast the object to unstructured object: %v", clusterIngressObj))

@@ -382,7 +382,7 @@ func (c *Controller) getServiceStatusInCluster(cluster, key string) (*corev1.Loa
 		return lbStatus, err
 	}
 	if serviceFound {
-		//TODO(shashi): Find better alternative to convert Unstructured to a given type
+		// TODO(shashi): Find better alternative to convert Unstructured to a given type
 		clusterService, ok := clusterServiceObj.(*unstructured.Unstructured)
 		if !ok {
 			runtime.HandleError(errors.Errorf("Failed to cast the object to unstructured object: %v", clusterServiceObj))
@@ -420,7 +420,7 @@ func (c *Controller) serviceBackedByEndpointsInCluster(cluster, key string) (boo
 		return false, err
 	}
 	if endpointFound {
-		//TODO(shashi): Find better alternative to convert Unstructured to a given type
+		// TODO(shashi): Find better alternative to convert Unstructured to a given type
 		clusterEndpoints, ok := clusterEndpointObj.(*unstructured.Unstructured)
 		if !ok {
 			runtime.HandleError(errors.Errorf("Failed to cast the object to unstructured object: %v", clusterEndpointObj))

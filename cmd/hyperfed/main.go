@@ -56,7 +56,7 @@ func main() {
 	basename := filepath.Base(os.Args[0])
 	if err := commandFor(basename, hyperfedCommand, allCommandFns).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic
 	}
 }
 
