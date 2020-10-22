@@ -43,7 +43,7 @@ endif
 BUILDMNT = /go/src/$(GOTARGET)
 # The version here should match the version of go configured in
 # .travis.yml
-BUILD_IMAGE ?= golang:1.14.7
+BUILD_IMAGE ?= golang:1.15.3
 
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
