@@ -29,5 +29,5 @@ spec:
   - name: CrossClusterServiceDiscovery
     configuration: {{ .Values.featureGates.CrossClusterServiceDiscovery | default "Disabled" | quote }}
   - name: FederatedIngress
-    configuration: {{ .Values.featureGates.FederatedIngress | default "Enabled" | quote }}
+    configuration: {{ .Values.featureGates.FederatedIngress | default "Disabled" | quote }}
 {{- end }}
