@@ -162,7 +162,7 @@ fi
 # Use KIND_LOAD_IMAGE=y ./scripts/deploy-kubefed.sh <image> to load
 # the built docker image into kind before deploying.
 if [[ "${KIND_LOAD_IMAGE:-}" == "y" ]]; then
-    kind load docker-image "${IMAGE_NAME}" --name="${KIND_CLUSTER_NAME:-}"
+    kind load docker-image "${IMAGE_NAME}" --name="${KIND_CLUSTER_NAME:-kind}"
 fi
 
 cd "$(dirname "$0")/.."
