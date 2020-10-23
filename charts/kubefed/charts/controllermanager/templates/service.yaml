@@ -3,6 +3,10 @@ kind: Service
 metadata:
   name: kubefed-admission-webhook
   namespace: {{ .Release.Namespace }}
+{{- if .Values.service.labels }}
+  labels:
+{{ toYaml .Values.service.labels | indent 4 }}
+{{- end }}
 spec:
   selector:
     kubefed-admission-webhook: "true"
@@ -15,6 +19,10 @@ kind: Service
 metadata:
   name: kubefed-controller-manager-metrics-service
   namespace: {{ .Release.Namespace }}
+{{- if .Values.service.labels }}
+  labels:
+{{ toYaml .Values.service.labels | indent 4 }}
+{{- end }}
   annotations:
     prometheus.io/port: "9090"
     prometheus.io/scheme: http

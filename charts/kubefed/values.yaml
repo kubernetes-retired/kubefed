@@ -75,10 +75,13 @@ controllermanager:
   certManager:
     enabled: false
 
+  service:
+    labels: {}
+
 ## Configuration global values for all charts
 ##
 global:
-  ## The scope of the the kubefed control plane.  Supported options
+  ## The scope of the the kubefed control plane. Supported options
   ## are `Cluster` (watch cluster-scoped resources and resources in
   ## all namespaces) and `Namespaced` (only watch resources in the
   ## kubefed system namespace). If unset, will default to `Cluster`.
