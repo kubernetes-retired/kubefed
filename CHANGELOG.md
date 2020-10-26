@@ -1,4 +1,23 @@
 # Unreleased
+# v0.5.0
+- [#1310](https://github.com/kubernetes-sigs/kubefed/pull/1310)
+  chore: Add labels to service.
+- [#1308](https://github.com/kubernetes-sigs/kubefed/pull/1308) 
+  chore: upgrade tools.
+- [#1306](https://github.com/kubernetes-sigs/kubefed/pull/1306) 
+  chore: Remove need for insecure registry.  
+- [#1305](https://github.com/kubernetes-sigs/kubefed/pull/1305) 
+  chore: disabled FederatedIngress by default.
+- [#1302](https://github.com/kubernetes-sigs/kubefed/pull/1302)
+  chore: set the tolerations and nodeSelector  
+- [#1301](https://github.com/kubernetes-sigs/kubefed/pull/1301) 
+  chore: upgrade kubernetes dependencies.
+- [#1300](https://github.com/kubernetes-sigs/kubefed/pull/1300)
+  doc: fixing some typos in user guide.
+- [#1298](https://github.com/kubernetes-sigs/kubefed/pull/1298)
+  chore: disable CrossClusterDiscovery feature by default
+- [#1294](https://github.com/kubernetes-sigs/kubefed/pull/1294)
+  fix: prefer core resources when enabling a type.
 # v0.4.1
 - [#1289](https://github.com/kubernetes-sigs/kubefed/pull/1289) 
   chore: use cert-mananager.io/v1 group/version
