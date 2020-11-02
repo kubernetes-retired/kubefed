@@ -69,6 +69,7 @@ func SetUpFeatureGates() {
 		string(features.PushReconciler):               true,
 		string(features.CrossClusterServiceDiscovery): true,
 		string(features.FederatedIngress):             true,
+		string(features.RawResourceStatusCollection):  true,
 	}
 	err := utilfeature.DefaultMutableFeatureGate.SetFromMap(resetDefaultFeatureGates)
 	Expect(err).NotTo(HaveOccurred())
