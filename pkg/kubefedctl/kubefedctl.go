@@ -19,12 +19,13 @@ package kubefedctl
 import (
 	"flag"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"k8s.io/client-go/tools/clientcmd"
 	apiserverflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
@@ -45,9 +46,12 @@ func NewKubeFedCtlCommand(out io.Writer) *cobra.Command {
 
 	// Add the command line flags from other dependencies (e.g., klog), but do not
 	// warn if they contain underscores.
-	pflag.CommandLine.SetNormalizeFunc(apiserverflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	rootCmd.PersistentFlags().AddFlagSet(pflag.CommandLine)
+	flags := rootCmd.Flags()
+	local := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	klog.InitFlags(local)
+	flags.SetNormalizeFunc(apiserverflag.WordSepNormalizeFunc)
+	flags.AddGoFlagSet(local)
+	rootCmd.PersistentFlags().AddFlagSet(flags)
 
 	// From this point and forward we get warnings on flags that contain "_" separators
 	rootCmd.SetGlobalNormalizationFunc(apiserverflag.WarnWordSepNormalizeFunc)
