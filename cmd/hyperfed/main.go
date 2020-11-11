@@ -30,12 +30,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 
 	ctrlapp "sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	webhookapp "sigs.k8s.io/kubefed/cmd/webhook/app"
@@ -47,8 +47,11 @@ func main() {
 
 	hyperfedCommand, allCommandFns := NewHyperFedCommand()
 
-	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+	flags := hyperfedCommand.Flags()
+	local := goflag.NewFlagSet(os.Args[0], goflag.ExitOnError)
+	klog.InitFlags(local)
+	flags.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	flags.AddGoFlagSet(local)
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
