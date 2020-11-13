@@ -169,7 +169,14 @@ spec:
   duration: 8760h # 1y
   issuerRef:
     name: {{ .Release.Name }}-ca-issuer
-  commonName: "ca.webhook.kubefed"
+  commonName: {{ .Values.certManager.rootCertificate.commonName }}
+{{- if .Values.certManager.rootCertificate.organizations }}
+  subject:
+    organizations:
+      {{- toYaml .Values.certManager.rootCertificate.organizations | nindent 4 }}
+{{- end }}
+  dnsNames:
+    {{- toYaml .Values.certManager.rootCertificate.dnsNames | nindent 4 }}
   isCA: true
 ---
 # Create an Issuer that uses the above generated CA certificate to issue certs
