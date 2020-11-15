@@ -1,6 +1,13 @@
 # Unreleased
+
 - fix: Transition from apiextensions.k8s.io/v1beta1 to
   apiextensions.k8s.io/v1.
+
+# v0.5.1
+- [#1318](https://github.com/kubernetes-sigs/kubefed/pull/1318)
+  chore: make certain cert-manager properties configurable.
+- [#1315](https://github.com/kubernetes-sigs/kubefed/pull/1315)
+  fix: klog verbosity detection.
 # v0.5.0
 - [#1310](https://github.com/kubernetes-sigs/kubefed/pull/1310)
   chore: Add labels to service.

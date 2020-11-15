@@ -74,6 +74,11 @@ controllermanager:
 
   certManager:
     enabled: false
+    rootCertificate:
+      organizations: []
+      dnsNames:
+        - ca.webhook.kubefed
+      commonName: ca.webhook.kubefed
 
   service:
     labels: {}

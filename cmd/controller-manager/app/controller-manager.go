@@ -93,16 +93,18 @@ member clusters and do the necessary reconciliation`,
 		},
 	}
 
-	// Add the command line flags from other dependencies(klog, kubebuilder, etc.)
-	cmd.Flags().AddGoFlagSet(flag.CommandLine)
+	flags := cmd.Flags()
+	opts.AddFlags(flags)
+	flags.StringVar(&healthzAddr, "healthz-addr", healthzDefaultBindAddress, "The address the healthz endpoint binds to.")
+	flags.StringVar(&metricsAddr, "metrics-addr", metricsDefaultBindAddress, "The address the metric endpoint binds to.")
+	flags.BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager.")
+	flags.StringVar(&kubeFedConfig, "kubefed-config", "", "Path to a KubeFedConfig yaml file. Test only.")
+	flags.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+	flags.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 
-	opts.AddFlags(cmd.Flags())
-	cmd.Flags().StringVar(&healthzAddr, "healthz-addr", healthzDefaultBindAddress, "The address the healthz endpoint binds to.")
-	cmd.Flags().StringVar(&metricsAddr, "metrics-addr", metricsDefaultBindAddress, "The address the metric endpoint binds to.")
-	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of controller-manager.")
-	cmd.Flags().StringVar(&kubeFedConfig, "kubefed-config", "", "Path to a KubeFedConfig yaml file. Test only.")
-	cmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
-	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	local := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	klog.InitFlags(local)
+	flags.AddGoFlagSet(local)
 
 	return cmd
 }
