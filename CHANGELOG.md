@@ -1,6 +1,6 @@
 # Unreleased
 
-- fix: Transition from apiextensions.k8s.io/v1beta1 to
+- feat: Transition from apiextensions.k8s.io/v1beta1 to
   apiextensions.k8s.io/v1.
 
 # v0.5.1
