@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
 
@@ -101,7 +101,7 @@ var _ = Describe("Simulated Scale", func() {
 			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
 				hostConfig, hostConfig, hostNamespace,
 				joiningNamespace, hostCluster, memberCluster,
-				"", apiextv1b1.NamespaceScoped, false, false)
+				"", apiextv1.NamespaceScoped, false, false)
 
 			defer func() {
 				framework.DeleteNamespace(client, joiningNamespace)

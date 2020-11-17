@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextv1b1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,7 +34,7 @@ import (
 )
 
 type schemaAccessor interface {
-	templateSchema() map[string]apiextv1b1.JSONSchemaProps
+	templateSchema() map[string]apiextv1.JSONSchemaProps
 }
 
 func newSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (schemaAccessor, error) {
@@ -50,7 +50,7 @@ func newSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (sch
 }
 
 type crdSchemaAccessor struct {
-	validation *apiextv1b1.CustomResourceValidation
+	validation *apiextv1.CustomResourceValidation
 }
 
 func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (schemaAccessor, error) {
@@ -59,7 +59,7 @@ func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (
 		return nil, nil
 	}
 	// Check whether the target resource is a crd
-	crdClient, err := apiextv1b1client.NewForConfig(config)
+	crdClient, err := apiextv1client.NewForConfig(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create crd clientset")
 	}
@@ -71,10 +71,10 @@ func newCRDSchemaAccessor(config *rest.Config, apiResource metav1.APIResource) (
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error attempting retrieval of crd %q", crdName)
 	}
-	return &crdSchemaAccessor{validation: crd.Spec.Validation}, nil
+	return &crdSchemaAccessor{validation: crd.Spec.Versions[0].Schema}, nil
 }
 
-func (a *crdSchemaAccessor) templateSchema() map[string]apiextv1b1.JSONSchemaProps {
+func (a *crdSchemaAccessor) templateSchema() map[string]apiextv1.JSONSchemaProps {
 	if a.validation != nil && a.validation.OpenAPIV3Schema != nil {
 		return a.validation.OpenAPIV3Schema.Properties
 	}
@@ -108,10 +108,10 @@ func newOpenAPISchemaAccessor(config *rest.Config, apiResource metav1.APIResourc
 	}, nil
 }
 
-func (a *openAPISchemaAccessor) templateSchema() map[string]apiextv1b1.JSONSchemaProps {
-	var templateSchema *apiextv1b1.JSONSchemaProps
+func (a *openAPISchemaAccessor) templateSchema() map[string]apiextv1.JSONSchemaProps {
+	var templateSchema *apiextv1.JSONSchemaProps
 	visitor := &jsonSchemaVistor{
-		collect: func(schema apiextv1b1.JSONSchemaProps) {
+		collect: func(schema apiextv1.JSONSchemaProps) {
 			templateSchema = &schema
 		},
 	}
@@ -127,16 +127,16 @@ func (a *openAPISchemaAccessor) templateSchema() map[string]apiextv1b1.JSONSchem
 // TODO(marun) Generate more extensive schema if/when openapi schema
 // provides more detail as per https://github.com/ant31/crd-validation
 type jsonSchemaVistor struct {
-	collect func(schema apiextv1b1.JSONSchemaProps)
+	collect func(schema apiextv1.JSONSchemaProps)
 }
 
 func (v *jsonSchemaVistor) VisitArray(a *proto.Array) {
-	arraySchema := apiextv1b1.JSONSchemaProps{
+	arraySchema := apiextv1.JSONSchemaProps{
 		Type:  "array",
-		Items: &apiextv1b1.JSONSchemaPropsOrArray{},
+		Items: &apiextv1.JSONSchemaPropsOrArray{},
 	}
 	localVisitor := &jsonSchemaVistor{
-		collect: func(schema apiextv1b1.JSONSchemaProps) {
+		collect: func(schema apiextv1.JSONSchemaProps) {
 			arraySchema.Items.Schema = &schema
 		},
 	}
@@ -145,14 +145,14 @@ func (v *jsonSchemaVistor) VisitArray(a *proto.Array) {
 }
 
 func (v *jsonSchemaVistor) VisitMap(m *proto.Map) {
-	mapSchema := apiextv1b1.JSONSchemaProps{
+	mapSchema := apiextv1.JSONSchemaProps{
 		Type: "object",
-		AdditionalProperties: &apiextv1b1.JSONSchemaPropsOrBool{
+		AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
 			Allows: true,
 		},
 	}
 	localVisitor := &jsonSchemaVistor{
-		collect: func(schema apiextv1b1.JSONSchemaProps) {
+		collect: func(schema apiextv1.JSONSchemaProps) {
 			mapSchema.AdditionalProperties.Schema = &schema
 		},
 	}
@@ -166,9 +166,9 @@ func (v *jsonSchemaVistor) VisitPrimitive(p *proto.Primitive) {
 }
 
 func (v *jsonSchemaVistor) VisitKind(k *proto.Kind) {
-	kindSchema := apiextv1b1.JSONSchemaProps{
+	kindSchema := apiextv1.JSONSchemaProps{
 		Type:       "object",
-		Properties: make(map[string]apiextv1b1.JSONSchemaProps),
+		Properties: make(map[string]apiextv1.JSONSchemaProps),
 		Required:   k.RequiredFields,
 	}
 	for key, fieldSchema := range k.Fields {
@@ -177,7 +177,7 @@ func (v *jsonSchemaVistor) VisitKind(k *proto.Kind) {
 			continue
 		}
 		localVisitor := &jsonSchemaVistor{
-			collect: func(schema apiextv1b1.JSONSchemaProps) {
+			collect: func(schema apiextv1.JSONSchemaProps) {
 				kindSchema.Properties[key] = schema
 			},
 		}
@@ -192,18 +192,18 @@ func (v *jsonSchemaVistor) VisitReference(r proto.Reference) {
 	// TODO(marun) Implement proper support for recursive schema
 	if r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps" ||
 		r.Reference() == "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps" {
-		v.collect(apiextv1b1.JSONSchemaProps{Type: "object"})
+		v.collect(apiextv1.JSONSchemaProps{Type: "object"})
 		return
 	}
 
 	r.SubSchema().Accept(v)
 }
 
-func schemaForPrimitive(p *proto.Primitive) apiextv1b1.JSONSchemaProps {
-	schema := apiextv1b1.JSONSchemaProps{}
+func schemaForPrimitive(p *proto.Primitive) apiextv1.JSONSchemaProps {
+	schema := apiextv1.JSONSchemaProps{}
 
 	if p.Format == "int-or-string" {
-		schema.AnyOf = []apiextv1b1.JSONSchemaProps{
+		schema.AnyOf = []apiextv1.JSONSchemaProps{
 			{
 				Type:   "integer",
 				Format: "int32",

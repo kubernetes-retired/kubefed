@@ -95,7 +95,7 @@ for filename in ./config/enabletypedirectives/*.yaml; do
   $SED -i '$d' ${CHART_FEDERATED_PROPAGATION_DIR}/templates/federatedtypeconfig.yaml
 
   echo "---" >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds/crds.yaml
-  $SED -n '/^apiVersion: apiextensions.k8s.io\/v1beta1/,$p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds/crds.yaml
+  $SED -n '/^apiVersion: apiextensions.k8s.io\/v1/,$p' ${full_name} >> ${CHART_FEDERATED_PROPAGATION_DIR}/crds/crds.yaml
 
   rm ${full_name}
 done

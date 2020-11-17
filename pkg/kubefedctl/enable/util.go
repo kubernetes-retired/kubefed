@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -50,33 +50,39 @@ func DecodeYAML(r io.Reader, obj interface{}) error {
 	return decoder.Decode(obj)
 }
 
-func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1b1.CustomResourceValidation, shortNames []string) *apiextv1b1.CustomResourceDefinition {
-	scope := apiextv1b1.ClusterScoped
+func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1.CustomResourceValidation, shortNames []string) *apiextv1.CustomResourceDefinition {
+	scope := apiextv1.ClusterScoped
 	if apiResource.Namespaced {
-		scope = apiextv1b1.NamespaceScoped
+		scope = apiextv1.NamespaceScoped
 	}
-	return &apiextv1b1.CustomResourceDefinition{
+	return &apiextv1.CustomResourceDefinition{
 		// Explicitly including TypeMeta will ensure it will be
 		// serialized properly to yaml.
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CustomResourceDefinition",
-			APIVersion: "apiextensions.k8s.io/v1beta1",
+			APIVersion: "apiextensions.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: typeconfig.GroupQualifiedName(apiResource),
 		},
-		Spec: apiextv1b1.CustomResourceDefinitionSpec{
-			Group:   apiResource.Group,
-			Version: apiResource.Version,
-			Scope:   scope,
-			Names: apiextv1b1.CustomResourceDefinitionNames{
+		Spec: apiextv1.CustomResourceDefinitionSpec{
+			Group: apiResource.Group,
+			Versions: []apiextv1.CustomResourceDefinitionVersion{
+				{
+					Name:   apiResource.Version,
+					Schema: validation,
+					Subresources: &apiextv1.CustomResourceSubresources{
+						Status: &apiextv1.CustomResourceSubresourceStatus{},
+					},
+					Served:  true,
+					Storage: true,
+				},
+			},
+			Scope: scope,
+			Names: apiextv1.CustomResourceDefinitionNames{
 				Plural:     apiResource.Name,
 				Kind:       apiResource.Kind,
 				ShortNames: shortNames,
-			},
-			Validation: validation,
-			Subresources: &apiextv1b1.CustomResourceSubresources{
-				Status: &apiextv1b1.CustomResourceSubresourceStatus{},
 			},
 		},
 	}
@@ -160,21 +166,21 @@ func GetServerPreferredResources(config *rest.Config) ([]*metav1.APIResourceList
 	return resourceLists, nil
 }
 
-func NamespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
+func NamespacedToScope(apiResource metav1.APIResource) apiextv1.ResourceScope {
 	if apiResource.Namespaced {
-		return apiextv1b1.NamespaceScoped
+		return apiextv1.NamespaceScoped
 	}
-	return apiextv1b1.ClusterScoped
+	return apiextv1.ClusterScoped
 }
 
-func FederatedNamespacedToScope(apiResource metav1.APIResource) apiextv1b1.ResourceScope {
+func FederatedNamespacedToScope(apiResource metav1.APIResource) apiextv1.ResourceScope {
 	// Special-case the scope of federated namespace since it will
 	// hopefully be the only instance of the scope of a federated
 	// type differing from the scope of its target.
 	if typeconfig.GroupQualifiedName(apiResource) == common.NamespaceName {
 		// FederatedNamespace is namespaced to allow the control plane to run
 		// with only namespace-scoped permissions e.g. to determine placement.
-		return apiextv1b1.NamespaceScoped
+		return apiextv1.NamespaceScoped
 	}
 	return NamespacedToScope(apiResource)
 }

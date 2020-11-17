@@ -16,7 +16,9 @@ limitations under the License.
 
 package framework
 
-import "sync"
+import (
+	"sync"
+)
 
 type CleanupActionHandle *int
 

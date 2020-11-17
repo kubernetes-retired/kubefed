@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	apiextv1b1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -140,7 +140,7 @@ func defaultKubeFedConfig() *v1beta1.KubeFedConfig {
 			Name:      util.KubeFedConfigName,
 		},
 		Spec: v1beta1.KubeFedConfigSpec{
-			Scope: apiextv1b1.ClusterScoped,
+			Scope: apiextv1.ClusterScoped,
 		},
 	}
 
