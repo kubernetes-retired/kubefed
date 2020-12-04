@@ -173,8 +173,10 @@ cd -
 deploy-with-helm
 
 # Join the host cluster
-CONTEXT="$(kubectl config current-context)"
-./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 "${KF_NS_ARGS}" --error-on-existing=false
+if [ -z "${NO_JOIN_HOST_CLUSTER:-}" ] ; then
+    CONTEXT="$(kubectl config current-context)"
+    ./bin/kubefedctl join "${CONTEXT}" --host-cluster-context "${CONTEXT}" --v=2 "${KF_NS_ARGS}" --error-on-existing=false
+fi
 
 for c in ${JOIN_CLUSTERS}; do
   ./bin/kubefedctl join "${c}" --host-cluster-context "${CONTEXT}" --v=2 "${KF_NS_ARGS}" --error-on-existing=false
