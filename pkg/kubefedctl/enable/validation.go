@@ -215,6 +215,10 @@ func ValidationSchema(specProps v1.JSONSchemaProps) *v1.CustomResourceValidation
 										"status": {
 											Type: "string",
 										},
+										"remoteStatus": {
+											XPreserveUnknownFields: pointer.BoolPtr(true),
+											Type:                   "object",
+										},
 									},
 									Required: []string{
 										"name",

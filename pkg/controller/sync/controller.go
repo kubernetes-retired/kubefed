@@ -420,7 +420,7 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 			klog.Infof("Failed to set the status for %s %q", kind, name)
 			return false, errors.Wrapf(err, "failed to set the status")
 		} else if !updateRequired {
-			klog.Infof("No status update necessary for %s %q", kind, name)
+			klog.V(4).Infof("No status update necessary for %s %q", kind, name)
 			return true, nil
 		}
 		klog.V(4).Infof("Updating status for %s %q", kind, name)
