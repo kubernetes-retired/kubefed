@@ -38,6 +38,10 @@ controllermanager:
   #   value: "value"
   #   effect: "NoSchedule"
 
+  ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  imagePullSecrets: []
+  # - name: secretName
+
   controller:
     annotations: {}
     replicaCount: 2
@@ -91,7 +95,3 @@ global:
   ## all namespaces) and `Namespaced` (only watch resources in the
   ## kubefed system namespace). If unset, will default to `Cluster`.
   scope: ""
-
-## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
-# - name: secretName
