@@ -24,6 +24,10 @@ spec:
         rollme: {{ randAlphaNum 5 | quote }}
       {{- end }}
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       nodeSelector:
         {{- toYaml .Values.commonNodeSelector | nindent 8 }}
       tolerations:
@@ -86,6 +90,10 @@ spec:
         rollme: {{ randAlphaNum 5 | quote }}
       {{- end }}
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       nodeSelector:
         {{- toYaml .Values.commonNodeSelector | nindent 8 }}
       tolerations:
