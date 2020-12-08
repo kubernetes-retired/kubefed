@@ -22,14 +22,19 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
+
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clientappsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -47,6 +52,26 @@ type testResources struct {
 	typeConfig     typeconfig.Interface
 }
 
+func getDeployment(c clientappsv1.DeploymentInterface, name string) (*appsv1.Deployment, error) {
+	var deploy *appsv1.Deployment
+	err := wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+		var err error
+		deploy, err = c.Get(context.Background(), name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return deploy, err
+}
+
 var _ = Describe("Federate ", func() {
 	f := framework.NewKubeFedFramework("federate-resource")
 	tl := framework.NewE2ELogger()
@@ -62,6 +87,128 @@ var _ = Describe("Federate ", func() {
 			client, err = genericclient.New(kubeConfig)
 			if err != nil {
 				tl.Fatalf("Error initializing dynamic client: %v", err)
+			}
+		}
+	})
+
+	It("should honor retainReplicas setting", func() {
+		f.EnsureTestNamespacePropagation()
+
+		typeConfig := &fedv1b1.FederatedTypeConfig{}
+		err := client.Get(context.Background(), typeConfig, f.KubeFedSystemNamespace(), "deployments.apps")
+		if err != nil {
+			tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", "deployments.apps", err)
+		}
+
+		targetResource, err := common.NewTestTargetObject(typeConfig, f.TestNamespaceName(), typeConfigFixtures["deployments.apps"])
+		if err != nil {
+			tl.Fatalf("Error creating test resource: %v", err)
+		}
+		generateName, hasGenName, err := unstructured.NestedString(targetResource.Object, "metadata", "generateName")
+		if err != nil {
+			tl.Fatalf("Error getting metadata.generateName field from target resource: %v", err)
+		}
+		if !hasGenName {
+			tl.Fatalf("Target resource has no metadata.generateName field: %v", targetResource)
+		}
+
+		federatedDeploy, err := federate.FederatedResourceFromTargetResource(typeConfig, targetResource)
+		if err != nil {
+			tl.Fatalf("Error creating federated resource from %v: %v", targetResource, err)
+		}
+		federatedDeploy.SetGenerateName(generateName)
+		if err := unstructured.SetNestedField(federatedDeploy.Object, true, "spec", "retainReplicas"); err != nil {
+			tl.Fatalf("Error setting retainReplias field on %v: %v", federatedDeploy, err)
+		}
+
+		targetAPIResource := typeConfig.GetFederatedType()
+		resClient, err := util.NewResourceClient(kubeConfig, &targetAPIResource)
+		if err != nil {
+			tl.Fatalf("Error creating client for %s: %v", targetAPIResource, err)
+		}
+
+		res, err := resClient.Resources(federatedDeploy.GetNamespace()).Create(context.Background(), federatedDeploy, metav1.CreateOptions{})
+		if err != nil {
+			tl.Fatalf("Error creating federated resource: %v", err)
+		}
+		testResourceName := util.NewQualifiedName(res)
+		defer deleteResources(f, tl, typeConfig, testResourceName)
+
+		for clusterName, c := range f.ClusterKubeClients("retain-replicas-test") {
+			dc := c.AppsV1().Deployments(res.GetNamespace())
+			deploy, err := getDeployment(dc, res.GetName())
+			if err != nil {
+				tl.Fatalf("Error fetching deployment %s from cluster %s: %v", testResourceName, clusterName, err)
+			}
+			if *deploy.Spec.Replicas != 2 {
+				tl.Fatalf("Unexpected replicas on cluster %s. Expected: 2, got: %d", clusterName, *deploy.Spec.Replicas)
+			}
+
+			// scale down Deployment and check whether kubefed leaves it alone because `retainReplicas` is set to `true`
+
+			err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+				deploy.Spec.Replicas = pointer.Int32Ptr(1)
+				deploy, err = dc.Update(context.Background(), deploy, metav1.UpdateOptions{})
+				if err != nil {
+					tl.Logf("Error updating Deployment, trying again. %v", err)
+					deploy, err = getDeployment(dc, res.GetName())
+					if err != nil {
+						return false, err
+					}
+					return false, nil
+				}
+				return true, nil
+			})
+			if err != nil {
+				tl.Fatalf("Error scaling down deployment: %v", err)
+			}
+			stopCh := make(chan struct{})
+			go func() {
+				ticker := time.NewTicker(30 * time.Second)
+				defer ticker.Stop()
+				<-ticker.C
+				close(stopCh)
+			}()
+			wait.Until(func() {
+				var err error
+				deploy, err := getDeployment(dc, res.GetName())
+				if err != nil {
+					tl.Logf("Error fetching Deployment: %v", err)
+				}
+				if *deploy.Spec.Replicas != 1 {
+					tl.Fatalf("Unexpected number of replicas in Deployment: %d. Expected: 1", *deploy.Spec.Replicas)
+				}
+			}, framework.PollInterval, stopCh)
+
+			// set `retainReplias` to `false` and check whether the Deployment is scaled up again
+			err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+				if err := unstructured.SetNestedField(res.Object, false, "spec", "retainReplicas"); err != nil {
+					return false, err
+				}
+				newRes, err := resClient.Resources(res.GetNamespace()).Update(context.Background(), res, metav1.UpdateOptions{})
+				if err != nil {
+					tl.Logf("Error updating federated resource, trying again. %v", err)
+					res, err = resClient.Resources(res.GetNamespace()).Get(context.Background(), res.GetName(), metav1.GetOptions{})
+					if err != nil {
+						return false, err
+					}
+					return false, nil
+				}
+				res = newRes
+				return true, nil
+			})
+			if err != nil {
+				tl.Fatalf("Error updating federated resource: %v", err)
+			}
+			err = wait.PollImmediate(framework.PollInterval, framework.TestContext.SingleCallTimeout, func() (bool, error) {
+				deploy, err := getDeployment(dc, res.GetName())
+				if err != nil {
+					return false, err
+				}
+				return *deploy.Spec.Replicas == 2, nil
+			})
+			if err != nil {
+				tl.Fatalf("Error checking Deployment: %v", err)
 			}
 		}
 	})

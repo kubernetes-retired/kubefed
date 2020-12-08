@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 )
 
 // Copies cluster-independent, user provided data from the given ObjectMeta struct. If in
@@ -111,6 +112,24 @@ func ObjectMetaAndSpecEquivalent(a, b runtime.Object) bool {
 	specA := reflect.ValueOf(a).Elem().FieldByName("Spec").Interface()
 	specB := reflect.ValueOf(b).Elem().FieldByName("Spec").Interface()
 	return ObjectMetaEquivalent(objectMetaA, objectMetaB) && reflect.DeepEqual(specA, specB)
+}
+
+// Checks if cluster-independent, user provided data in ObjectMeta and Spec in two given top
+// level api objects are equivalent.
+func ObjectMetaAndSpecUnstructuredEquivalent(a, b *unstructured.Unstructured) bool {
+	specA, hasSpecA, err := unstructured.NestedFieldNoCopy(a.Object, SpecField)
+	if err != nil {
+		klog.Errorf("could not traverse to object a's spec field (%v): %s", a, err)
+		return false
+	}
+	specB, hasSpecB, err := unstructured.NestedFieldNoCopy(b.Object, SpecField)
+	if err != nil {
+		klog.Errorf("could not traverse to object b's spec field (%v): %s", b, err)
+		return false
+	}
+	omoe := ObjectMetaObjEquivalent(a, b)
+	de := reflect.DeepEqual(specA, specB)
+	return omoe && hasSpecA && hasSpecB && de
 }
 
 func MetaAccessor(obj runtime.Object) metav1.Object {

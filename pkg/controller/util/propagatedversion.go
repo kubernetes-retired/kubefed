@@ -55,7 +55,7 @@ func ObjectNeedsUpdate(desiredObj, clusterObj *unstructured.Unstructured, record
 	// If versions match and the version is sourced from the
 	// generation field, a further check of metadata equivalency is
 	// required.
-	return strings.HasPrefix(targetVersion, generationPrefix) && !ObjectMetaObjEquivalent(desiredObj, clusterObj)
+	return strings.HasPrefix(targetVersion, generationPrefix) && !ObjectMetaAndSpecUnstructuredEquivalent(desiredObj, clusterObj)
 }
 
 // SortClusterVersions ASCII sorts the given cluster versions slice
