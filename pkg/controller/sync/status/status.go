@@ -148,7 +148,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 		return false, errors.Wrapf(err, "Failed to marshall generic resource json to unstructured")
 	}
 
-	klog.Infof("Setting the status of federated object '%v' and resource object '%v'", fedObject.GetName(), resourceObj.GetName())
+	klog.V(4).Infof("Setting the status of federated object '%v' and resource object '%v'", fedObject.GetName(), resourceObj.GetName())
 	fedObject.Object[util.StatusField] = resourceObj.Object[util.StatusField]
 
 	return true, nil
@@ -170,7 +170,7 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 		for cluster, value := range collectedStatus.StatusMap {
 			rawStatus := collectedResourceStatus.StatusMap[cluster]
 			if value != ClusterPropagationOK || (resourceStatusCollection && rawStatus == nil) {
-				klog.Infof("Check the cluster '%v' with resource status '%v' and propStatus '%v' whose resource status collection is: '%v'", cluster, rawStatus, value, resourceStatusCollection)
+				klog.V(4).Infof("Check the cluster '%v' with resource status '%v' and propStatus '%v' whose resource status collection is: '%v'", cluster, rawStatus, value, resourceStatusCollection)
 				reason = CheckClusters
 				break
 			}
@@ -189,7 +189,7 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 
 	statusUpdated := generationUpdated || propStatusUpdated
 
-	klog.Infof("Values of propStatusUpdated '%v' statusUpdated '%v' changesPropagated '%v'", propStatusUpdated, statusUpdated, changesPropagated)
+	klog.V(4).Infof("Value of flags: propStatusUpdated: '%v'; statusUpdated '%v'; changesPropagated '%v'", propStatusUpdated, statusUpdated, changesPropagated)
 	return statusUpdated
 }
 
@@ -216,7 +216,7 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, res
 // given status map.
 func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
 	if len(s.Clusters) != len(statusMap) || len(s.Clusters) != len(resourceStatusMap) {
-		klog.Info("Clusters differs from the size")
+		klog.V(4).Info("Clusters differs from the size")
 		return true
 	}
 	for _, status := range s.Clusters {

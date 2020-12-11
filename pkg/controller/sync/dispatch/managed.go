@@ -268,7 +268,7 @@ func (d *managedDispatcherImpl) RecordStatus(clusterName string, propStatus stat
 	d.statusMap[clusterName] = propStatus
 
 	if d.rawResourceStatusCollection && resourceStatus != nil {
-		klog.Infof("Recording resource status %v", resourceStatus)
+		klog.V(4).Infof("Recording resource status %v", resourceStatus)
 		d.resourceStatusMap[clusterName] = resourceStatus
 	}
 }

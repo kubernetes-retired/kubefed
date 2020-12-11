@@ -417,7 +417,7 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 	// update it repeatedly.
 	err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
 		if updateRequired, err := status.SetFederatedStatus(obj, reason, *collectedStatus, *collectedResourceStatus, resourceStatusCollection); err != nil {
-			klog.Infof("Failed to set the status for %s %q", kind, name)
+			klog.V(4).Infof("Failed to set the status for %s %q", kind, name)
 			return false, errors.Wrapf(err, "failed to set the status")
 		} else if !updateRequired {
 			klog.V(4).Infof("No status update necessary for %s %q", kind, name)
@@ -429,7 +429,7 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 			return true, nil
 		}
 		if apierrors.IsConflict(err) {
-			klog.Infof("Failed to set propagation status for %s %q due to conflict (will retry): %v.", kind, name, err)
+			klog.V(2).Infof("Failed to set propagation status for %s %q due to conflict (will retry): %v.", kind, name, err)
 			err := s.hostClusterClient.Get(context.TODO(), obj, obj.GetNamespace(), obj.GetName())
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to retrieve resource")
