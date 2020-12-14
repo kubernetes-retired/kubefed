@@ -89,6 +89,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -219,6 +222,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -351,6 +357,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -481,6 +490,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -609,6 +621,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -739,6 +754,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -871,6 +889,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -999,6 +1020,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -1129,6 +1153,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:
@@ -1259,6 +1286,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    remoteStatus:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     status:
                       type: string
                   required:

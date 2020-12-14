@@ -29,6 +29,7 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -38,6 +39,8 @@ import (
 
 	. "github.com/onsi/ginkgo" //nolint:stylecheck
 )
+
+var containedTypeNames = []string{"jobs.batch", "deployments.apps", "replicasets.apps"}
 
 type testObjectsAccessor func(namespace string, clusterNames []string) (targetObject *unstructured.Unstructured, overrides []interface{}, err error)
 
@@ -61,6 +64,33 @@ var _ = Describe("Federated", func() {
 				crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
 				crudTester.CheckLifecycle(targetObject, overrides)
 			})
+
+			for _, remoteStatusTypeName := range containedTypeNames {
+				if typeConfigName == remoteStatusTypeName {
+
+					It("should be created, read its remote status and deleted successfully", func() {
+						kubeFedConfig := &v1beta1.KubeFedConfig{}
+						client := genericclient.NewForConfigOrDie(f.KubeConfig())
+						err := client.Get(context.TODO(), kubeFedConfig, f.KubeFedSystemNamespace(), util.KubeFedConfigName)
+						if err != nil {
+							tl.Fatalf("Error collecting the kubefedconfig file: %v", err)
+						}
+						tl.Logf("Show the content of the kubefedconfig file: '%v'", kubeFedConfig)
+
+						typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
+						crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+						fedObject := crudTester.CheckCreate(targetObject, overrides)
+
+						By("Checking the remote status filled for each federated resource for every cluster")
+						tl.Logf("Checking the existence of a remote status for each fedObj in every cluster: %v", fedObject)
+						crudTester.CheckRemoteStatus(fedObject, targetObject)
+
+						defer func() {
+							crudTester.CheckDelete(fedObject, false)
+						}()
+					})
+				}
+			}
 
 			// The tests that follow only need to be executed against
 			// a single namespaced type.
@@ -248,6 +278,21 @@ func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 		tl.Fatalf("Error retrieving federatedtypeconfig %q: %v", typeConfigName, err)
 	}
 
+	// Enable the Status Collection for this type of resource
+	tc := typeConfig.(*v1beta1.FederatedTypeConfig)
+	for _, typeName := range containedTypeNames {
+		tl.Logf("TypeConfig name: %s", tc.GetName())
+		if tc.GetName() == typeName {
+			tl.Logf("Enabling remote status collection for %v", typeConfig.GetFederatedType().Kind)
+			statusCollection := v1beta1.StatusCollectionEnabled
+			tc.Spec.StatusCollection = &statusCollection
+			err = common.UpdateTypeConfig(client, tc, f.KubeFedSystemNamespace())
+			if err != nil {
+				tl.Fatalf("Error updating the federatedtypeconfig %q: %v", typeConfigName, err)
+			}
+		}
+	}
+
 	if framework.TestContext.LimitedScope && !typeConfig.GetNamespaced() {
 		framework.Skipf("Federation of cluster-scoped type %s is not supported by a namespaced control plane.", typeConfigName)
 	}
@@ -262,6 +307,7 @@ func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 			targetObject.SetName(namespace)
 			targetObject.SetNamespace(namespace)
 		}
+
 		overrides, err := common.OverridesFromFixture(clusterNames, fixture)
 		if err != nil {
 			return nil, nil, err
@@ -297,6 +343,7 @@ func initCrudTestWithPropagation(f framework.KubeFedFramework, tl common.TestLog
 
 	kubeConfig := f.KubeConfig()
 	targetAPIResource := typeConfig.GetTargetType()
+
 	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
 	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 	if err != nil {

@@ -148,7 +148,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	corev1b1.SetFederatedTypeConfigDefaults(typeConfig)
 
 	syncEnabled := typeConfig.GetPropagationEnabled()
-	statusEnabled := typeConfig.GetStatusEnabled()
+	// NOTE (hectorj2f): RawResourceStatusCollection is a new feature and is
+	// Disabled by default. When RawResourceStatusCollection is enabled,
+	// the old mechanism to collect the service status of FederatedServices would be disabled.
+	statusControllerEnabled := !c.controllerConfig.RawResourceStatusCollection && c.isEnabledFederatedServiceStatusCollection(typeConfig)
 
 	limitedScope := c.controllerConfig.TargetNamespace != metav1.NamespaceAll
 	if limitedScope && syncEnabled && !typeConfig.GetNamespaced() {
@@ -225,8 +228,8 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 		c.stopController(typeConfig.Name, syncStopChan)
 	}
 
-	startNewStatusController := !statusRunning && statusEnabled
-	stopStatusController := statusRunning && !statusEnabled
+	startNewStatusController := !statusRunning && statusControllerEnabled
+	stopStatusController := statusRunning && !statusControllerEnabled
 	if startNewStatusController {
 		if err := c.startStatusController(statusKey, typeConfig); err != nil {
 			runtime.HandleError(err)
@@ -432,4 +435,18 @@ func (c *Controller) reconcileOnNamespaceFTCUpdate() {
 			c.worker.EnqueueObject(typeConfig)
 		}
 	}
+}
+
+func (c *Controller) isEnabledFederatedServiceStatusCollection(tc *corev1b1.FederatedTypeConfig) bool {
+	if tc.GetStatusEnabled() && tc.Name == "services" {
+		federatedAPIResource := tc.GetFederatedType()
+		statusAPIResource := tc.GetStatusType()
+		if statusAPIResource == nil {
+			klog.Infof("Skipping status collection, status API resource is not defined for %q", federatedAPIResource.Kind)
+			return false
+		}
+		klog.Info("Federated Service Status collection is enabled")
+		return true
+	}
+	return false
 }

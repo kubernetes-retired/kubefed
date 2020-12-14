@@ -88,6 +88,10 @@ var _ = Describe("Default", func() {
 							Name:          string(features.PushReconciler),
 							Configuration: v1beta1.ConfigurationDisabled,
 						},
+						{
+							Name:          string(features.RawResourceStatusCollection),
+							Configuration: v1beta1.ConfigurationEnabled,
+						},
 					},
 					ClusterHealthCheck: &v1beta1.ClusterHealthCheckConfig{
 

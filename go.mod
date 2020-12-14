@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-logr/logr v0.2.1 // indirect
+	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/go-logr/zapr v0.2.0 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.14.2
@@ -16,6 +16,8 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
+	go.uber.org/zap v1.16.0 // indirect
+	golang.org/x/text v0.3.4 // indirect
 	k8s.io/api v0.19.3
 	k8s.io/apiextensions-apiserver v0.19.3
 	k8s.io/apimachinery v0.19.3
