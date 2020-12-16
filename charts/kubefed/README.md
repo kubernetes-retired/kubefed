@@ -24,7 +24,7 @@ group](https://groups.google.com/forum/#!forum/kubernetes-sig-multicluster).
 
 ## Prerequisites
 
-- Kubernetes 1.13+
+- Kubernetes 1.16+
 - Helm 3.2+
 
 ## Installing the Chart
@@ -98,14 +98,18 @@ chart and their default values.
 | Parameter                             | Description                                                                                                                                                                                 | Default                         |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------|
 | controllermanager.enabled             | Specifies whether to enable the controller manager in KubeFed.                                                                                                                              | true                            |
-| controllermanager.replicaCount        | Number of replicas for KubeFed controller manager.                                                                                                                                          | 2                               |
-| controllermanager.repository          | Repo of the KubeFed image.                                                                                                                                                                  | quay.io/kubernetes-multicluster |
-| controllermanager.image               | Name of the KubeFed image.                                                                                                                                                                  | kubefed                         |
-| controllermanager.tag                 | Tag of the KubeFed image.                                                                                                                                                                   | latest                          |
-| controllermanager.imagePullPolicy     | Image pull policy.                                                                                                                                                                          | IfNotPresent                    |
 | controllermanager.imagePullSecrets    | Image pull secrets.                                                                                                                                                                         | [] 
 | controllermanager.commonTolerations   | Tolerations for all the pods.                                                                                                                                                               | []                              |
 | controllermanager.commonNodeSelector     | Node selector for all the pods.                                                                                                                                                          | {}                              |
+| controllermanager.controller.repository        | Repo of the KubeFed image.                                                                                                                                                         | quay.io/kubernetes-multicluster |
+| controllermanager.controller.image             | Name of the KubeFed image.                                                                                                                                                         | kubefed                         |
+| controllermanager.controller.tag               | Tag of the KubeFed image.                                                                                                                                                          | canary                          |
+| controllermanager.controller.replicaCount      | Number of replicas for KubeFed controller manager.                                                                                                                                 | 2                          |
+| controllermanager.controller.imagePullPolicy   | Image pull policy.                                                                                                                                                                 | IfNotPresent                          |
+| controllermanager.webhook.repository           | Repo of the KubeFed image.                                                                                                                                                         | quay.io/kubernetes-multicluster |
+| controllermanager.webhook.image                | Name of the KubeFed image.                                                                                                                                                         | kubefed                         |
+| controllermanager.webhook.tag                  | Tag of the KubeFed image.                                                                                                                                                          | canary                          |
+| controllermanager.webhook.imagePullPolicy   | Image pull policy.                                                                                                                                                                 | IfNotPresent                          |
 | controllermanager.featureGates.PushReconciler               | Push reconciler feature.                                                                                                                                              | true                            |
 | controllermanager.featureGates.RawResourceStatusCollection               | Raw collection of resource status on target clusters feature.                                                                                                                                              | false                            |
 | controllermanager.featureGates.SchedulerPreferences         | Scheduler preferences feature.                                                                                                                                        | true                            |
