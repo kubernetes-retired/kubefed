@@ -1,8 +1,18 @@
 # Unreleased
 
-- feat: Transition from apiextensions.k8s.io/v1beta1 to
-  apiextensions.k8s.io/v1.
-
+# v0.6.0
+- [#1328](https://github.com/kubernetes-sigs/kubefed/pull/1328)
+  docs: optimize chart readme. 
+- [#1292](https://github.com/kubernetes-sigs/kubefed/pull/1292)
+  feat: collect remote resource status when enabled. 
+- [#1325](https://github.com/kubernetes-sigs/kubefed/pull/1325)
+  chore: add helm parameter imagePullSecrets. 
+- [#1324](https://github.com/kubernetes-sigs/kubefed/pull/1324)
+  chore: improve some of the deployment and build scripts. 
+- [#1323](https://github.com/kubernetes-sigs/kubefed/pull/1323)
+  make create-clusters.sh work based on kind document. 
+- [#1297](https://github.com/kubernetes-sigs/kubefed/pull/1297)
+  feat: Transition from apiextensions.k8s.io/v1beta1 to apiextensions.k8s.io/v1.
 # v0.5.1
 - [#1318](https://github.com/kubernetes-sigs/kubefed/pull/1318)
   chore: make certain cert-manager properties configurable.
