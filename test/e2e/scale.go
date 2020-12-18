@@ -111,6 +111,63 @@ var _ = Describe("Simulated Scale", func() {
 			}
 		}
 
+		for i := 0; i < framework.TestContext.ScaleClusterCount; i++ {
+			memberCluster := fmt.Sprintf("scale-member-rejoin-errset-%d-%s", i, nameToken)
+			joiningNamespace := memberCluster
+			secretName := memberCluster
+
+			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, true)
+
+			_, errReJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, true)
+
+			defer func() {
+				framework.DeleteNamespace(client, joiningNamespace)
+			}()
+			if err != nil {
+				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
+			}
+
+			if errReJoin == nil {
+				tl.Fatalf("Should error rejoining cluster %s", memberCluster)
+			}
+		}
+
+		// rejoin when errorOnExisting=false
+		for i := 0; i < framework.TestContext.ScaleClusterCount; i++ {
+			memberCluster := fmt.Sprintf("scale-member-rejoin-%d-%s", i, nameToken)
+			memberClusters = append(memberClusters, memberCluster)
+			joiningNamespace := memberCluster
+
+			secretName := memberCluster
+
+			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, false)
+
+			_, errReJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, false)
+
+			defer func() {
+				framework.DeleteNamespace(client, joiningNamespace)
+			}()
+			if err != nil {
+				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
+			}
+
+			if errReJoin != nil {
+				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
+			}
+		}
+
 		// Override naming methods to allow the sync controller to
 		// work with a simulated scale environment.
 
