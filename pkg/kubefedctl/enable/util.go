@@ -22,6 +22,9 @@ import (
 	"os"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog"
+
 	"github.com/pkg/errors"
 
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -89,9 +92,10 @@ func CrdForAPIResource(apiResource metav1.APIResource, validation *apiextv1.Cust
 }
 
 func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.APIResource, error) {
+	errs := []error{}
 	resourceLists, err := GetServerPreferredResources(config)
 	if err != nil {
-		return nil, err
+		errs = append(errs, err)
 	}
 
 	var targetResource *metav1.APIResource
@@ -124,15 +128,19 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 			}
 		}
 	}
+
 	if len(matchedResources) > 1 {
-		return nil, errors.Errorf("Multiple resources are matched by %q: %s. A group-qualified plural name must be provided.", key, strings.Join(matchedResources, ", "))
+		errs = append(errs, errors.Errorf("Multiple resources are matched by %q: %s. A group-qualified plural name must be provided.", key, strings.Join(matchedResources, ", ")))
+		return nil, apierrors.NewAggregate(errs)
 	}
 
 	if targetResource != nil {
+		klog.Warningf("Api resource found with err %v, error ignored.", apierrors.NewAggregate(errs))
 		return targetResource, nil
 	}
 
-	return nil, errors.Errorf("Unable to find api resource named %q.", key)
+	errs = append(errs, errors.Errorf("Unable to find api resource named %q.", key))
+	return nil, apierrors.NewAggregate(errs)
 }
 
 func NameMatchesResource(name string, apiResource metav1.APIResource, group string) bool {
@@ -161,7 +169,7 @@ func GetServerPreferredResources(config *rest.Config) ([]*metav1.APIResourceList
 
 	resourceLists, err := client.ServerPreferredResources()
 	if err != nil {
-		return nil, errors.Wrap(err, "Error listing api resources")
+		return resourceLists, errors.Wrap(err, "Error listing api resources")
 	}
 	return resourceLists, nil
 }
