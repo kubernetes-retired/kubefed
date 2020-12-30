@@ -149,7 +149,7 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 
 	if opts.Scope == apiextv1.NamespaceScoped {
 		opts.Config.TargetNamespace = opts.Config.KubeFedNamespace
-		klog.Infof("KubeFed will be limited to the %q namespace", opts.Config.KubeFedNamespace)
+		klog.InfoS("KubeFed will be limited to the namespace", opts.Config.KubeFedNamespace)
 	} else {
 		opts.Config.TargetNamespace = metav1.NamespaceAll
 		klog.Info("KubeFed will target all namespaces")
@@ -239,14 +239,14 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 
 		err := client.Get(context.Background(), fedConfig, namespace, name)
 		if apierrors.IsNotFound(err) {
-			klog.Infof("Cannot retrieve KubeFedConfig %q: %v. Default options will be used.", qualifiedName.String(), err)
+			klog.InfoS("Cannot retrieve KubeFedConfig", "KubeFedConfig", qualifiedName.String(), "err", err,". Default options will be used.")
 			return nil
 		}
 		if err != nil {
 			klog.Fatalf("Error retrieving KubeFedConfig %q: %v.", qualifiedName.String(), err)
 		}
 
-		klog.Infof("Setting Options with KubeFedConfig %q", qualifiedName.String())
+		klog.InfoS("Setting Options with KubeFedConfig", "KubeFedConfig", qualifiedName.String())
 		return fedConfig
 	}
 
@@ -264,7 +264,7 @@ func getKubeFedConfig(opts *options.Options) *corev1b1.KubeFedConfig {
 
 	// set to current namespace to make sure `KubeFedConfig` is updated in correct namespace
 	fedConfig.Namespace = opts.Config.KubeFedNamespace
-	klog.Infof("Setting Options with KubeFedConfig from file %q: %v", kubeFedConfig, fedConfig.Spec)
+	klog.InfoS("Setting Options with KubeFedConfig from file","KubeFedConfig", kubeFedConfig, "fedConfig", fedConfig.Spec)
 	return fedConfig
 }
 
@@ -283,11 +283,11 @@ func setDefaultKubeFedConfigScope(fedConfig *corev1b1.KubeFedConfig) bool {
 
 		if len(fedConfig.Spec.Scope) == 0 {
 			fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
-			klog.Infof("Setting the scope of KubeFedConfig spec to %s", defaultScope)
+			klog.InfoS("Setting the scope of KubeFedConfig spec", "scope", defaultScope)
 			return true
 		} else if fedConfig.Spec.Scope != apiextv1.ResourceScope(defaultScope) {
-			klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
-				string(fedConfig.Spec.Scope), defaultScope)
+			klog.InfoS("Setting the scope of KubeFedConfig spec from fedConfig spec to defaultScope",
+				"fedConfig spec", string(fedConfig.Spec.Scope), "defaultScope", defaultScope)
 			fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
 			return true
 		}
@@ -338,7 +338,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 			Name:      util.KubeFedConfigName,
 		}
 
-		klog.Infof("Creating KubeFedConfig %q with default values", qualifiedName)
+		klog.InfoS("Creating KubeFedConfig with default values", "KubeFedConfig", qualifiedName)
 
 		fedConfig = &corev1b1.KubeFedConfig{
 			ObjectMeta: metav1.ObjectMeta{
@@ -370,7 +370,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	if len(errs) != 0 {
 		klog.Fatalf("Error: invalid KubeFedConfig %q: %v", qualifedName, errs)
 	} else {
-		klog.Infof("Using valid KubeFedConfig %q", qualifedName)
+		klog.InfoS("Using valid KubeFedConfig", "KubeFedConfig", qualifedName)
 	}
 
 	spec := fedConfig.Spec
