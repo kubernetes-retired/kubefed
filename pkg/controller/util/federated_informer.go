@@ -205,12 +205,12 @@ func NewFederatedInformer(
 					klog.Errorf("Cluster %v/%v not added; incorrect type", curCluster.Namespace, curCluster.Name)
 				case IsClusterReady(&curCluster.Status):
 					federatedInformer.addCluster(curCluster)
-					klog.Infof("Cluster %v/%v is ready", curCluster.Namespace, curCluster.Name)
+					klog.InfoS("Cluster is ready", "namespace", curCluster.Namespace, "cluster", curCluster.Name)
 					if clusterLifecycle.ClusterAvailable != nil {
 						clusterLifecycle.ClusterAvailable(curCluster)
 					}
 				default:
-					klog.Infof("Cluster %v/%v not added; it is not ready.", curCluster.Namespace, curCluster.Name)
+					klog.InfoS("Cluster not added; it is not ready.", "namespace", curCluster.Namespace, "cluster", curCluster.Name)
 				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
