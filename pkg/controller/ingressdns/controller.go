@@ -77,7 +77,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	klog.Infof("Starting IngressDNS controller")
+	klog.InfoS("Starting IngressDNS controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -175,7 +175,7 @@ func (c *Controller) Run(stopChan <-chan struct{}) {
 // synced with the corresponding api server.
 func (c *Controller) isSynced() bool {
 	if !c.ingressFederatedInformer.ClustersSynced() {
-		klog.V(2).Infof("Cluster list not synced")
+		klog.V(2).InfoS("Cluster list not synced")
 		return false
 	}
 	clusters, err := c.ingressFederatedInformer.GetReadyClusters()
@@ -210,10 +210,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	key := qualifiedName.String()
 
-	klog.V(2).Infof("Starting to reconcile IngressDNS resource: %v", key)
+	klog.V(2).InfoS("Starting to reconcile IngressDNS resource", "resource", key)
 	startTime := time.Now()
 	defer func() {
-		klog.V(2).Infof("Finished reconciling IngressDNS resource %v (duration: %v)", key, time.Since(startTime))
+		klog.V(2).InfoS("Finished reconciling IngressDNS resource", "resource", key, "duration", time.Since(startTime))
 	}()
 
 	cachedIngressDNSObj, exist, err := c.ingressDNSStore.GetByKey(key)
