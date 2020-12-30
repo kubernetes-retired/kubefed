@@ -100,7 +100,7 @@ func StartKubeFedSyncController(controllerConfig *util.ControllerConfig, stopCha
 	if controllerConfig.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	klog.Infof(fmt.Sprintf("Starting sync controller for %q", typeConfig.GetFederatedType().Kind))
+	klog.InfoS(fmt.Sprintf("Starting sync controller", "FederatedType", typeConfig.GetFederatedType().Kind))
 	controller.Run(stopChan)
 	return nil
 }
@@ -250,7 +250,7 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 	if possibleOrphan {
 		apiResource := s.typeConfig.GetTargetType()
 		gvk := apiResourceToGVK(&apiResource)
-		klog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByKubeFedLabelKey, gvk.Kind, qualifiedName)
+		klog.V(2).InfoS("Ensuring the removal of the label in member clusters.", "label", util.ManagedByKubeFedLabelKey, "kind", gvk.Kind, "object", qualifiedName)
 		err = s.removeManagedLabel(gvk, qualifiedName)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByKubeFedLabelKey, gvk.Kind, qualifiedName)
@@ -266,10 +266,10 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 
 	key := fedResource.FederatedName().String()
 
-	klog.V(4).Infof("Starting to reconcile %s %q", kind, key)
+	klog.V(4).InfoS("Starting to reconcile", "kind", kind, "key", key)
 	startTime := time.Now()
 	defer func() {
-		klog.V(4).Infof("Finished reconciling %s %q (duration: %v)", kind, key, time.Since(startTime))
+		klog.V(4).InfoS("Finished reconciling","kind", kind, "key", key, "duration", time.Since(startTime))
 		metrics.ReconcileFederatedResourcesDurationFromStart(startTime)
 	}()
 
@@ -306,7 +306,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 
 	kind := fedResource.TargetKind()
 	key := fedResource.TargetName().String()
-	klog.V(4).Infof("Ensuring %s %q in clusters: %s", kind, key, strings.Join(selectedClusterNames.List(), ","))
+	klog.V(4).InfoS("Ensuring  in clusters","kind", kind, "key", key, "cluster", strings.Join(selectedClusterNames.List(), ","))
 
 	dispatcher := dispatch.NewManagedDispatcher(s.informer.GetClientForCluster, fedResource, s.skipAdoptingResources, enableRawResourceStatusCollection)
 
@@ -385,7 +385,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	}
 
 	collectedStatus, collectedResourceStatus := dispatcher.CollectedStatus()
-	klog.V(4).Infof("Setting the federated status '%v'", collectedResourceStatus)
+	klog.V(4).InfoS("Setting the federated", "status", collectedResourceStatus)
 	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus, &collectedResourceStatus, enableRawResourceStatusCollection)
 }
 
@@ -417,19 +417,19 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 	// update it repeatedly.
 	err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
 		if updateRequired, err := status.SetFederatedStatus(obj, reason, *collectedStatus, *collectedResourceStatus, resourceStatusCollection); err != nil {
-			klog.V(4).Infof("Failed to set the status for %s %q", kind, name)
+			klog.V(4).InfoS("Failed to set the status", "kind", kind, "name",name)
 			return false, errors.Wrapf(err, "failed to set the status")
 		} else if !updateRequired {
-			klog.V(4).Infof("No status update necessary for %s %q", kind, name)
+			klog.V(4).InfoS("No status update necessary", "kind", kind, "name", name)
 			return true, nil
 		}
-		klog.V(4).Infof("Updating status for %s %q", kind, name)
+		klog.V(4).InfoS("Updating status", "kind", kind, "name", name)
 		err := s.hostClusterClient.UpdateStatus(context.TODO(), obj)
 		if err == nil {
 			return true, nil
 		}
 		if apierrors.IsConflict(err) {
-			klog.V(2).Infof("Failed to set propagation status for %s %q due to conflict (will retry): %v.", kind, name, err)
+			klog.V(2).InfoS("Failed to set propagation status  due to conflict (will retry)", "kind", kind, "name", name, "err", err)
 			err := s.hostClusterClient.Get(context.TODO(), obj, obj.GetNamespace(), obj.GetName())
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to retrieve resource")
@@ -452,26 +452,26 @@ func (s *KubeFedSyncController) ensureDeletion(fedResource FederatedResource) ut
 	key := fedResource.FederatedName().String()
 	kind := fedResource.FederatedKind()
 
-	klog.V(2).Infof("Ensuring deletion of %s %q", kind, key)
+	klog.V(2).InfoS("Ensuring deletion", "kind", kind, "key", key)
 
 	obj := fedResource.Object()
 
 	finalizers := sets.NewString(obj.GetFinalizers()...)
 	if !finalizers.Has(FinalizerSyncController) {
-		klog.V(2).Infof("%s %q does not have the %q finalizer. Nothing to do.", kind, key, FinalizerSyncController)
+		klog.V(2).InfoS("kind", kind, "key", key, "does not have the finalizer Nothing to do.",  "finalizer", FinalizerSyncController)
 		return util.StatusAllOK
 	}
 
 	if util.IsOrphaningEnabled(obj) {
-		klog.V(2).Infof("Found %q annotation on %s %q. Removing the finalizer.",
-			util.OrphanManagedResourcesAnnotation, kind, key)
+		klog.V(2).InfoS("Found ", "Annotation ", util.OrphanManagedResourcesAnnotation,
+		" annotation on ", "kind", kind, "key", key, "Removing the finalizer.")
 		err := s.removeFinalizer(fedResource)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove finalizer %q from %s %q", FinalizerSyncController, kind, key)
 			runtime.HandleError(wrappedErr)
 			return util.StatusError
 		}
-		klog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByKubeFedLabelKey, kind, key)
+		klog.V(2).InfoS("Initiating the removal of the label ", "KubeFedLabel", util.ManagedByKubeFedLabelKey, " from resources previously managed by ","kind", kind, "key", key)
 		err = s.removeManagedLabel(fedResource.TargetGVK(), fedResource.TargetName())
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByKubeFedLabelKey, kind, key)
@@ -481,7 +481,7 @@ func (s *KubeFedSyncController) ensureDeletion(fedResource FederatedResource) ut
 		return util.StatusAllOK
 	}
 
-	klog.V(2).Infof("Deleting resources managed by %s %q from member clusters.", kind, key)
+	klog.V(2).InfoS("Deleting resources managed by kind", "kind", "key", key, "from member clusters.")
 	recheckRequired, err := s.deleteFromClusters(fedResource)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "failed to delete %s %q", kind, key)
@@ -554,7 +554,7 @@ func (s *KubeFedSyncController) deleteFromClusters(fedResource FederatedResource
 	if len(remainingClusters) > 0 {
 		fedKind := fedResource.FederatedKind()
 		fedName := fedResource.FederatedName()
-		klog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
+		klog.V(2).InfoS("Waiting for resources managed by fedKind",fedKind, "fedName", fedName, " to be removed from the following clusters", strings.Join(remainingClusters, ", "))
 		return true, nil
 	}
 	err = s.ensureRemovedOrUnmanaged(fedResource)
@@ -651,7 +651,7 @@ func (s *KubeFedSyncController) ensureFinalizer(fedResource FederatedResource) e
 	if err != nil || !isUpdated {
 		return err
 	}
-	klog.V(2).Infof("Adding finalizer %s to %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
+	klog.V(2).InfoS("Adding finalizer", FinalizerSyncController, "FederatedKind", fedResource.FederatedKind(), "FederatedName", fedResource.FederatedName())
 	return s.hostClusterClient.Update(context.TODO(), obj)
 }
 
@@ -661,6 +661,6 @@ func (s *KubeFedSyncController) removeFinalizer(fedResource FederatedResource) e
 	if err != nil || !isUpdated {
 		return err
 	}
-	klog.V(2).Infof("Removing finalizer %s from %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
+	klog.V(2).InfoS("Removing finalizer ", FinalizerSyncController, "from FederatedKind", fedResource.FederatedKind(), "FederatedName", fedResource.FederatedName())
 	return s.hostClusterClient.Update(context.TODO(), obj)
 }
