@@ -89,7 +89,7 @@ func StartClusterController(config *util.ControllerConfig, clusterHealthCheckCon
 	if err != nil {
 		return err
 	}
-	klog.Infof("Starting cluster controller")
+	klog.InfoS("Starting cluster controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -168,7 +168,7 @@ func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfi
 func (cc *ClusterController) delFromClusterSet(obj *fedv1b1.KubeFedCluster) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
-	klog.V(1).Infof("ClusterController observed a cluster deletion: %v", obj.Name)
+	klog.V(1).InfoS("ClusterController observed a cluster deletion", "cluster", klog.KObj(obj))
 	delete(cc.clusterDataMap, obj.Name)
 }
 
@@ -181,7 +181,7 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 		return
 	}
 
-	klog.V(1).Infof("ClusterController observed a new cluster: %v", obj.Name)
+	klog.V(1).InfoS("ClusterController observed a new cluster", "cluster", klog.KObj(obj))
 
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
@@ -199,7 +199,7 @@ func (cc *ClusterController) Run(stopChan <-chan struct{}) {
 	// monitor cluster status periodically, in phase 1 we just get the health state from "/healthz"
 	go wait.Until(func() {
 		if err := cc.updateClusterStatus(); err != nil {
-			klog.Errorf("Error monitoring cluster status: %v", err)
+			klog.ErrorS(err, "Error monitoring cluster status")
 		}
 	}, cc.clusterHealthCheckConfig.Period, stopChan)
 }
@@ -225,7 +225,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 			clusterData = cc.clusterDataMap[cluster.Name]
 			cc.mu.RUnlock()
 			if clusterData == nil {
-				klog.Warningf("Failed to retrieve stored data for cluster %s", cluster.Name)
+				klog.InfoS("Failed to retrieve stored data for cluster", klog.KObj(cluster))
 				continue
 			}
 		}
@@ -258,7 +258,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	storedData.clusterStatus = currentClusterStatus
 	cluster.Status = *currentClusterStatus
 	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
-		klog.Warningf("Failed to update the status of cluster %q: %v", cluster.Name, err)
+		klog.InfoS(err, "Failed to update the status of cluster", "cluster", klog.KObj(cluster))
 	}
 
 	wg.Done()
