@@ -34,7 +34,7 @@ import (
 // This function is called on each Ginkgo node in parallel mode.
 func RunE2ETests(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgowrapper.Fail)
-	klog.Infof("Starting e2e run %q on Ginkgo node %d", framework.RunID, config.GinkgoConfig.ParallelNode)
+	klog.InfoS("Starting e2e run  on Ginkgo node ", "runID", framework.RunID, "node", config.GinkgoConfig.ParallelNode)
 	ginkgo.RunSpecs(t, "KubeFed e2e suite")
 }
 
