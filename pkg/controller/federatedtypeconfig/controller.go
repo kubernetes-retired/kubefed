@@ -69,7 +69,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 	if err != nil {
 		return err
 	}
-	klog.Infof("Starting FederatedTypeConfig controller")
+	klog.InfoS("Starting FederatedTypeConfig controller")
 	controller.Run(stopChan)
 	return nil
 }
