@@ -69,7 +69,7 @@ func StartSchedulingManager(config *util.ControllerConfig, stopChan <-chan struc
 		return nil, err
 	}
 
-	klog.Infof("Starting scheduling manager")
+	klog.InfoS("Starting scheduling manager")
 	manager.Run(stopChan)
 	return manager, nil
 }
@@ -180,7 +180,7 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 	// Scheduling preference controller is started on demand
 	abstractScheduler, ok := c.schedulers.Get(schedulingKind)
 	if !ok {
-		klog.Infof("Starting schedulingpreference controller for %s", schedulingKind)
+		klog.InfoS("Starting schedulingpreference controller", "schedulingKind", schedulingKind)
 		stopChan := make(chan struct{})
 		schedulerInterface, err := schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType, stopChan)
 		if err != nil {
@@ -218,14 +218,14 @@ func (c *SchedulingManager) stopScheduler(schedulingKind, typeConfigName string)
 	scheduler := abstractScheduler.(*SchedulerWrapper)
 	if scheduler.HasPlugin(typeConfigName) {
 		kind, _ := scheduler.pluginMap.Get(typeConfigName)
-		klog.Infof("Stopping plugin %s for %s", kind.(string), schedulingKind)
+		klog.InfoS("Stopping plugin", kind.(string), "schedulingKind", schedulingKind)
 		scheduler.StopPlugin(kind.(string))
 		scheduler.pluginMap.Delete(typeConfigName)
 	}
 
 	// If all plugins associated with this scheduler are gone, the scheduler should also be stopped.
 	if scheduler.pluginMap.Size() == 0 {
-		klog.Infof("Stopping schedulingpreference controller for %q", schedulingKind)
+		klog.InfoS("Stopping schedulingpreference controller", "schedulingKind", schedulingKind)
 		// Indicate scheduler and associated goroutines to be stopped in schedulingpreference controller.
 		close(scheduler.stopChan)
 		c.schedulers.Delete(schedulingKind)
