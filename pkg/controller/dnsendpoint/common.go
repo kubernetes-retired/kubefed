@@ -63,7 +63,7 @@ func getResolvedTargets(targets feddnsv1a1.Targets, netWrapper NetWrapper) (fedd
 			// through an interface abstracting the internet
 			ipAddrs, err := netWrapper.LookupHost(target)
 			if err != nil {
-				klog.Errorf("Failed to resolve %s, err: %v", target, err)
+				klog.ErrorS(err, "Failed to resolve", "target", target)
 				return resolvedTargets.List(), err
 			}
 			for _, ip := range ipAddrs {

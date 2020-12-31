@@ -43,7 +43,7 @@ func getIngressDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 
 	dnsObject, ok := obj.(*feddnsv1a1.IngressDNSRecord)
 	if !ok {
-		return nil, errors.Errorf("received event for unknown object %v", obj)
+		return nil, errors.ErrorS("received event for unknown object", "object", obj)
 	}
 
 	ttl := dnsObject.Spec.RecordTTL

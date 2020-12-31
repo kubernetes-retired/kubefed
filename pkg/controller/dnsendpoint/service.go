@@ -43,7 +43,7 @@ func StartServiceDNSEndpointController(config *util.ControllerConfig, stopChan <
 func getServiceDNSEndpoints(obj interface{}) ([]*feddnsv1a1.Endpoint, error) {
 	dnsObject, ok := obj.(*feddnsv1a1.ServiceDNSRecord)
 	if !ok {
-		return nil, errors.Errorf("received event for unknown object %v", obj)
+		return nil, errors.ErrorS("received event for unknown object", "object", obj)
 	}
 
 	commonPrefix := strings.Join([]string{dnsObject.Name, dnsObject.Namespace, dnsObject.Spec.DomainRef, "svc"}, ".")
