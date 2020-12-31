@@ -148,7 +148,7 @@ func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus,
 func (c *ClusterClient) GetClusterZones() ([]string, string, error) {
 	nodes, err := c.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		klog.Errorf("Failed to list nodes while getting zone names: %v", err)
+		klog.ErrorS(err, "Failed to list nodes while getting zone names")
 		return nil, "", err
 	}
 

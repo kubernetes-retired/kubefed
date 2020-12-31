@@ -86,7 +86,7 @@ func StartController(config *util.ControllerConfig, stopChan <-chan struct{}) er
 	if config.MinimizeLatency {
 		controller.minimizeLatency()
 	}
-	klog.Infof("Starting ServiceDNS controller")
+	klog.InfoS("Starting ServiceDNS controller")
 	controller.Run(stopChan)
 	return nil
 }
@@ -231,7 +231,7 @@ func (c *Controller) isSynced() bool {
 	}
 
 	if !c.endpointInformer.ClustersSynced() {
-		klog.V(2).Infof("Cluster list not synced")
+		klog.V(2).InfoS("Cluster list not synced")
 		return false
 	}
 	clusters, err = c.endpointInformer.GetReadyClusters()
@@ -266,10 +266,10 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 
 	key := qualifiedName.String()
 
-	klog.V(4).Infof("Starting to reconcile ServiceDNS resource: %v", key)
+	klog.V(4).InfoS("Starting to reconcile ServiceDNS resource", "resource", key)
 	startTime := time.Now()
 	defer func() {
-		klog.V(4).Infof("Finished reconciling ServiceDNS resource %v (duration: %v)", key, time.Since(startTime))
+		klog.V(4).InfoS("Finished reconciling ServiceDNS resource", "resource", key, "duration", time.Since(startTime))
 	}()
 
 	cachedObj, exist, err := c.serviceDNSStore.GetByKey(key)
@@ -308,7 +308,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	// Iterate through all ready clusters and aggregate the service status for the key
 	for _, cluster := range clusters {
 		if cluster.Status.Region == nil || *cluster.Status.Region == "" || len(cluster.Status.Zones) == 0 {
-			klog.Errorf("Cluster %q does not have Region or Zones Attributes", cluster.Name)
+			klog.ErrorS("Cluster does not have Region or Zones Attributes", "cluster", cluster.Name)
 			return util.StatusError
 		}
 		clusterDNS := dnsv1a1.ClusterDNS{
@@ -349,7 +349,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 				offlineClusterDNS := clusterDNS
 				offlineClusterDNS.LoadBalancer = corev1.LoadBalancerStatus{}
 				fedDNSStatus = append(fedDNSStatus, offlineClusterDNS)
-				klog.V(5).Infof("Cluster %s is Offline, Preserving previously available status for Service %s", cluster.Name, key)
+				klog.V(5).InfoS("Cluster is Offline, Preserving previously available status for Service", "cluster", cluster.Name, "service", key)
 				break
 			}
 		}
