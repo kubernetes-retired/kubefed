@@ -24,8 +24,6 @@ spec:
 {{- if .Values.featureGates }}
   - name: PushReconciler
     configuration: {{ .Values.featureGates.PushReconciler | default "Enabled" | quote }}
-  - name: RawResourceStatusCollection
-    configuration: {{ .Values.featureGates.RawResourceStatusCollection | default "Disabled" | quote }}
   - name: SchedulerPreferences
     configuration: {{ .Values.featureGates.SchedulerPreferences | default "Enabled" | quote }}
   - name: CrossClusterServiceDiscovery
