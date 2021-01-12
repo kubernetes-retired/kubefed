@@ -25,6 +25,7 @@ controllermanager:
     SchedulerPreferences:
     CrossClusterServiceDiscovery:
     FederatedIngress:
+    RawResourceStatusCollection:
 
   ## common node selector
   commonNodeSelector: {}

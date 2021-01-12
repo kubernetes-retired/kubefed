@@ -1,0 +1,103 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: "{{ .Release.Name }}-kubefed-config-hook"
+  namespace: "{{ .Release.Namespace }}"
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+data:
+  setup.sh: |-
+    #!/bin/bash
+    set -euo pipefail
+
+    kubectl patch kubefedconfig -n {{ .Release.Namespace }} kubefed --type='json' -p='[{"op": "add", "path": "/spec/featureGates", "value":[{"configuration": {{ .Values.featureGates.PushReconciler | default "Enabled" | quote }},"name":"PushReconciler"},{"configuration": {{ .Values.featureGates.CrossClusterServiceDiscovery | default "Disabled" | quote }},"name":"CrossClusterServiceDiscovery"},{"configuration": {{ .Values.featureGates.RawResourceStatusCollection | default "Disabled" | quote }},"name":"RawResourceStatusCollection"},{"configuration": {{ .Values.featureGates.FederatedIngress | default "Disabled" | quote }},"name":"FederatedIngress"},{"configuration": {{ .Values.featureGates.SchedulerPreferences | default "Enabled" | quote }},"name":"SchedulerPreferences"}]}]'
+
+    echo "Kubefedconfig patched successfully!"
+
+    kubectl rollout restart deployment/kubefed-controller-manager -n {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-{{ randAlphaNum 10 | lower }}"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-4"
+    "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kubefed-config-hook
+      automountServiceAccountToken: true
+      containers:
+      - name: post-install-job
+        image: "bitnami/kubectl:1.17.16"
+        command: ["/bin/bash"]
+        args: ["/opt/scripts/setup.sh"]
+        volumeMounts:
+        - name: "scripts"
+          mountPath: "/opt/scripts"
+      volumes:
+      - name: "scripts"
+        configMap:
+          name: "{{ .Release.Name }}-kubefed-config-hook"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubefed-config-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["patch","get"]
+  - apiGroups: ["core.kubefed.io"]
+    resources: ["kubefedconfigs"]
+    verbs: ["patch","get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubefed-config-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubefed-config-hook
+subjects:
+  - kind: ServiceAccount
+    name: kubefed-config-hook
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubefed-config-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
