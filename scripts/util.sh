@@ -98,3 +98,24 @@ function util::wait-for-condition() {
   fi
 }
 readonly -f util::wait-for-condition
+
+function deployment-image-as-expected() {
+  local namespace="${1}"
+  local deployment="${2}"
+  local container="${3}"
+  local expected_image="${4}"
+
+  local deployed_image
+  deployed_image="$(kubectl -n "${namespace}" get deployment "${deployment}" -o jsonpath='{.spec.template.spec.containers[?(@.name=="'"${container}"'")].image}')"
+  [[ "${deployed_image}" == "${expected_image}" ]]
+}
+
+function check-command-installed() {
+  local cmdName="${1}"
+
+  command -v "${cmdName}" >/dev/null 2>&1 ||
+  {
+    echo "${cmdName} command not found. Please download dependencies using ${BASH_SOURCE%/*}/download-binaries.sh and install it in your PATH." >&2
+    exit 1
+  }
+}

@@ -38,6 +38,9 @@ E2E_TEST_CMD="${TEMP_DIR}/e2e-${PLATFORM} ${COMMON_TEST_ARGS}"
 # given control plane scope.
 IN_MEMORY_E2E_TEST_CMD="go test -v -timeout 900s -race ./test/e2e -args ${COMMON_TEST_ARGS} -in-memory-controllers=true -limited-scope-in-memory-controllers=false"
 
+KUBEFED_UPGRADE_TEST_NS="upgrade-test"
+KUBEFED_UPGRADE_TEST_VERSION="v0.5.0"
+
 function build-binaries() {
   ${MAKE_CMD} hyperfed
   ${MAKE_CMD} controller
@@ -60,6 +63,28 @@ function run-unit-tests() {
 
 function run-e2e-tests() {
   ${E2E_TEST_CMD}
+}
+
+function run-e2e-upgrade-test() {
+  check-command-installed kubectl
+  check-command-installed helm
+
+  HOST_CLUSTER="$(kubectl config current-context)"
+
+  echo "Adding a repo to install an older kubefed version"
+  helm repo add kubefed-charts https://raw.githubusercontent.com/kubernetes-sigs/kubefed/master/charts
+
+  echo "Installing an older kubefed version ${KUBEFED_UPGRADE_TEST_VERSION}"
+  helm install kubefed kubefed-charts/kubefed --namespace ${KUBEFED_UPGRADE_TEST_NS} --version=${KUBEFED_UPGRADE_TEST_VERSION} --create-namespace
+
+  deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-admission-webhook admission-webhook "quay.io/kubernetes-multicluster/kubefed:${KUBEFED_UPGRADE_TEST_VERSION}"
+  deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-controller-manager controller-manager "quay.io/kubernetes-multicluster/kubefed:${KUBEFED_UPGRADE_TEST_VERSION}"
+
+  echo "Upgrading kubefed to current version"
+  KUBEFED_NAMESPACE=$KUBEFED_UPGRADE_TEST_NS KIND_CLUSTER_NAME=${HOST_CLUSTER} KIND_LOAD_IMAGE=y ./scripts/deploy-kubefed.sh local/kubefed:e2e "${join_cluster_list[@]-}"
+
+  deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-admission-webhook admission-webhook "local/kubefed:e2e"
+  deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-controller-manager controller-manager "local/kubefed:e2e"
 }
 
 function run-e2e-tests-with-in-memory-controllers() {
@@ -138,7 +163,7 @@ echo "Downloading e2e test dependencies"
 
 KIND_TAG="v1.19.4@sha256:796d09e217d93bed01ecf8502633e48fd806fe42f9d02fdd468b81cd4e3bd40b" ./scripts/create-clusters.sh
 
-declare -a join_cluster_list=() 
+declare -a join_cluster_list=()
 if [[ -z "${JOIN_CLUSTERS}" ]]; then
   for i in $(seq 2 "${NUM_CLUSTERS}"); do
     join_cluster_list+=("cluster${i}")
@@ -178,3 +203,9 @@ run-namespaced-e2e-tests
 
 echo "Deleting namespace-scoped kubefed"
 KUBEFED_NAMESPACE=foo NAMESPACED=y DELETE_CLUSTER_RESOURCE=y ./scripts/delete-kubefed.sh
+
+echo "Running e2e upgrade test"
+run-e2e-upgrade-test
+
+echo "Deleting kubefed"
+KUBEFED_NAMESPACE=${KUBEFED_UPGRADE_TEST_NS} DELETE_CLUSTER_RESOURCE=y ./scripts/delete-kubefed.sh
