@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -81,6 +82,91 @@ func TestRetainClusterFields(t *testing.T) {
 			}
 			if replicas != testCase.expectedReplicas {
 				t.Fatalf("Expected %d replicas when retainReplicas=%v, got %d", testCase.expectedReplicas, testCase.retainReplicas, replicas)
+			}
+		})
+	}
+}
+
+func TestRetainHealthCheckNodePortInServiceFields(t *testing.T) {
+	tests := []struct {
+		name          string
+		desiredObj    *unstructured.Unstructured
+		clusterObj    *unstructured.Unstructured
+		retainSucceed bool
+		expectedValue *int64
+	}{
+		{
+			"cluster object has no healthCheckNodePort",
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			true,
+			nil,
+		},
+		{
+			"cluster object has invalid healthCheckNodePort",
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"healthCheckNodePort": "invalid string",
+					},
+				},
+			},
+			false,
+			nil,
+		},
+		{
+			"cluster object has healthCheckNodePort 0",
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"healthCheckNodePort": int64(0),
+					},
+				},
+			},
+			true,
+			nil,
+		},
+		{
+			"cluster object has healthCheckNodePort 1000",
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			&unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"healthCheckNodePort": int64(1000),
+					},
+				},
+			},
+			true,
+			pointer.Int64Ptr(1000),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := retainServiceFields(test.desiredObj, test.clusterObj); (err == nil) != test.retainSucceed {
+				t.Fatalf("test %s fails: unexpected returned error %v", test.name, err)
+			}
+
+			currentValue, ok, err := unstructured.NestedInt64(test.desiredObj.Object, "spec", "healthCheckNodePort")
+			if err != nil {
+				t.Fatalf("test %s fails: %v", test.name, err)
+			}
+			if !ok && test.expectedValue != nil {
+				t.Fatalf("test %s fails: expect specified healthCheckNodePort but not found", test.name)
+			}
+			if ok && (test.expectedValue == nil || *test.expectedValue != currentValue) {
+				t.Fatalf("test %s fails: unexpected current healthCheckNodePort %d", test.name, currentValue)
 			}
 		})
 	}
