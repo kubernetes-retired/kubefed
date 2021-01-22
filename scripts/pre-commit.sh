@@ -65,9 +65,6 @@ function run-e2e-tests() {
 }
 
 function run-e2e-upgrade-test() {
-  check-command-installed kubectl
-  check-command-installed helm
-
   HOST_CLUSTER="$(kubectl config current-context)"
 
   echo "Adding a repo to install an older kubefed version"
@@ -78,7 +75,7 @@ function run-e2e-upgrade-test() {
   KUBEFED_UPGRADE_TEST_VERSION=$(helm search repo kubefed-charts/kubefed  --versions | awk '{print $2}' | head -3 | tail -1)
 
   echo "Installing an older kubefed version v${KUBEFED_UPGRADE_TEST_VERSION}"
-  helm install kubefed kubefed-charts/kubefed --namespace ${KUBEFED_UPGRADE_TEST_NS} --version=v${KUBEFED_UPGRADE_TEST_VERSION} --create-namespace
+  helm install kubefed kubefed-charts/kubefed --namespace ${KUBEFED_UPGRADE_TEST_NS} --version=v${KUBEFED_UPGRADE_TEST_VERSION} --create-namespace --wait
 
   deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-admission-webhook admission-webhook "quay.io/kubernetes-multicluster/kubefed:v${KUBEFED_UPGRADE_TEST_VERSION}"
   deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-controller-manager controller-manager "quay.io/kubernetes-multicluster/kubefed:v${KUBEFED_UPGRADE_TEST_VERSION}"
@@ -91,10 +88,10 @@ function run-e2e-upgrade-test() {
   local tag=${image_tag#*:}
 
   helm upgrade -i kubefed charts/kubefed --namespace ${KUBEFED_UPGRADE_TEST_NS} \
-  --set controllermanager.controller.repository=${repo} \
+  --set controllermanager.controller.repository=${repository} \
   --set controllermanager.controller.image=${image} \
   --set controllermanager.controller.tag=${tag} \
-  --set controllermanager.webhook.repository=${repo} \
+  --set controllermanager.webhook.repository=${repository} \
   --set controllermanager.webhook.image=${image} \
   --set controllermanager.webhook.tag=${tag} \
   --set controllermanager.featureGates.CrossClusterServiceDiscovery=Enabled,controllermanager.featureGates.FederatedIngress=Enabled,controllermanager.featureGates.RawResourceStatusCollection=Enabled \
