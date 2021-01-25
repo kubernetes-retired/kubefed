@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kubeclient "k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
@@ -40,7 +39,6 @@ import (
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	genscheme "sigs.k8s.io/kubefed/pkg/client/generic/scheme"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
-	"sigs.k8s.io/kubefed/pkg/features"
 	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
@@ -251,10 +249,6 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 
 	currentClusterStatus = thresholdAdjustedClusterStatus(currentClusterStatus, storedData, cc.clusterHealthCheckConfig)
 
-	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		currentClusterStatus = cc.updateClusterZonesAndRegion(currentClusterStatus, cluster, clusterClient)
-	}
-
 	storedData.clusterStatus = currentClusterStatus
 	cluster.Status = *currentClusterStatus
 	if err := cc.client.UpdateStatus(context.TODO(), cluster); err != nil {
@@ -298,31 +292,6 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 		storedData.resultRun = 1
 	}
 
-	return clusterStatus
-}
-
-func (cc *ClusterController) updateClusterZonesAndRegion(clusterStatus *fedv1b1.KubeFedClusterStatus, cluster *fedv1b1.KubeFedCluster,
-	clusterClient *ClusterClient) *fedv1b1.KubeFedClusterStatus {
-	if !util.IsClusterReady(clusterStatus) {
-		return clusterStatus
-	}
-
-	zones, region, err := clusterClient.GetClusterZones()
-	if err != nil {
-		cc.RecordError(cluster, "RetrievingRegionZonesFailed", errors.Wrap(err, "Failed to get zones and region for the cluster"))
-		return clusterStatus
-	}
-
-	// If new zone & region are empty, preserve the old ones so that user configured zone & region
-	// labels are effective
-	if len(zones) == 0 {
-		zones = cluster.Status.Zones
-	}
-	if len(region) == 0 && cluster.Status.Region != nil {
-		region = *cluster.Status.Region
-	}
-	clusterStatus.Zones = zones
-	clusterStatus.Region = &region
 	return clusterStatus
 }
 

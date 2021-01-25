@@ -394,8 +394,6 @@ spec:
     configuration: "Enabled"
   - name: SchedulerPreferences
     configuration: "Enabled"
-  - name: CrossClusterServiceDiscovery
-    configuration: "Enabled"
   - name: FederatedIngress
     configuration: "Enabled"
   clusterHealthCheck:

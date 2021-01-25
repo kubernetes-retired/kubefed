@@ -65,11 +65,10 @@ func SetUpFeatureGates() {
 	// Enable all the feature gates when running the control plane
 	// in-memory.
 	resetDefaultFeatureGates := map[string]bool{
-		string(features.SchedulerPreferences):         true,
-		string(features.PushReconciler):               true,
-		string(features.CrossClusterServiceDiscovery): true,
-		string(features.FederatedIngress):             true,
-		string(features.RawResourceStatusCollection):  true,
+		string(features.SchedulerPreferences):        true,
+		string(features.PushReconciler):              true,
+		string(features.FederatedIngress):            true,
+		string(features.RawResourceStatusCollection): true,
 	}
 	err := utilfeature.DefaultMutableFeatureGate.SetFromMap(resetDefaultFeatureGates)
 	Expect(err).NotTo(HaveOccurred())

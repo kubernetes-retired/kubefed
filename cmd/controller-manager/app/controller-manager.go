@@ -53,7 +53,6 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
 	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
-	"sigs.k8s.io/kubefed/pkg/controller/servicedns"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/features"
 	kubefedmetrics "sigs.k8s.io/kubefed/pkg/metrics"
@@ -185,18 +184,6 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		if _, err := schedulingmanager.StartSchedulingManager(opts.Config, stopChan); err != nil {
 			klog.Fatalf("Error starting scheduling manager: %v", err)
-		}
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.CrossClusterServiceDiscovery) {
-		klog.Warningf("The feature '%s' is deprecated and will be removed in a future release.", features.CrossClusterServiceDiscovery)
-
-		if err := servicedns.StartController(opts.Config, stopChan); err != nil {
-			klog.Fatalf("Error starting dns controller: %v", err)
-		}
-
-		if err := dnsendpoint.StartServiceDNSEndpointController(opts.Config, stopChan); err != nil {
-			klog.Fatalf("Error starting dns endpoint controller: %v", err)
 		}
 	}
 

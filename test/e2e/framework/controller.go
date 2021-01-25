@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
 	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
-	"sigs.k8s.io/kubefed/pkg/controller/servicedns"
 	"sigs.k8s.io/kubefed/pkg/controller/status"
 	"sigs.k8s.io/kubefed/pkg/controller/sync"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -75,22 +74,6 @@ func NewFederatedTypeConfigControllerFixture(tl common.TestLogger, config *util.
 	err := federatedtypeconfig.StartController(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting federatedtypeconfig controller: %v", err)
-	}
-	return f
-}
-
-// NewServiceDNSControllerFixture initializes a new service-dns controller fixture.
-func NewServiceDNSControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
-	f := &ControllerFixture{
-		stopChan: make(chan struct{}),
-	}
-	err := servicedns.StartController(config, f.stopChan)
-	if err != nil {
-		tl.Fatalf("Error starting service dns controller: %v", err)
-	}
-	err = dnsendpoint.StartServiceDNSEndpointController(config, f.stopChan)
-	if err != nil {
-		tl.Fatalf("Error starting service dns endpoint controller: %v", err)
 	}
 	return f
 }
