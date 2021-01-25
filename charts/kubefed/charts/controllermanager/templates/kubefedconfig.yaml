@@ -24,12 +24,13 @@ spec:
 {{- if .Values.featureGates }}
   - name: PushReconciler
     configuration: {{ .Values.featureGates.PushReconciler | default "Enabled" | quote }}
-  - name: RawResourceStatusCollection
-    configuration: {{ .Values.featureGates.RawResourceStatusCollection | default "Disabled" | quote }}
   - name: SchedulerPreferences
     configuration: {{ .Values.featureGates.SchedulerPreferences | default "Enabled" | quote }}
   - name: CrossClusterServiceDiscovery
     configuration: {{ .Values.featureGates.CrossClusterServiceDiscovery | default "Disabled" | quote }}
   - name: FederatedIngress
     configuration: {{ .Values.featureGates.FederatedIngress | default "Disabled" | quote }}
+  # NOTE: Commented feature gate to fix https://github.com/kubernetes-sigs/kubefed/issues/1333
+  #- name: RawResourceStatusCollection
+  #  configuration: {{ .Values.featureGates.RawResourceStatusCollection | default "Disabled" | quote }}
 {{- end }}
