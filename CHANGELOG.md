@@ -1,5 +1,12 @@
 # Unreleased
 
+# v0.6.1
+- [#1346](https://github.com/kubernetes-sigs/kubefed/pull/1346)
+  fix: upgrade path broken from older versions than v0.6.0.
+- [#1347](https://github.com/kubernetes-sigs/kubefed/pull/1347)
+  chore: retain healthCheckNodePort for service when updating.
+- [#1334](https://github.com/kubernetes-sigs/kubefed/pull/1334)
+  chore: exec enable cmd ignore some apiservices errors.
 # v0.6.0
 - [#1328](https://github.com/kubernetes-sigs/kubefed/pull/1328)
   docs: optimize chart readme. 
