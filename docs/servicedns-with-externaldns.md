@@ -49,7 +49,7 @@ MCSDNS is comprised of multiple types and controllers:
 Setting-up MCSDNS can be accomplished by referencing the following documentation:
 
 - The KubeFed [User Guide](userguide.md) to setup one or more Kubernetes clusters and the KubeFed
-  control-plane. Due to [Issue #370](https://github.com/kubernetes-sigs/kubefed/issues/370), the environment running
+  control-plane. CrossClusterServiceDiscovery must be enabled for KubeFed to discover the federated loadbalancer services. Add `--set controllermanager.featureGates.CrossClusterServiceDiscovery=Enabled` to your helm install. Due to [Issue #370](https://github.com/kubernetes-sigs/kubefed/issues/370), the environment running
   the clusters must support service `type: LoadBalancer`. For the GKE deployment option, the cluster hosting the ExternalDNS controller must have scope
   `https://www.googleapis.com/auth/ndev.clouddns.readwrite`.
 - If needed, create a domain name with one of the supported providers or delegate a DNS subdomain for use with
@@ -60,6 +60,99 @@ Setting-up MCSDNS can be accomplished by referencing the following documentation
   **Note**: If you do not deploy the external-dns controller to the same namespace and use the default service account
   of the KubeFed control-plane, you must setup RBAC permissions allowing the controller access to necessary
   resources.
+  Sample install of external-dns on host controller:
+  ```yaml
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: external-dns
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: external-dns
+    namespace: external-dns
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: external-dns
+  rules:
+    - apiGroups: [""]
+      resources: ["services", "endpoints", "pods"]
+      verbs: ["get", "watch", "list"]
+    - apiGroups: ["extensions", "networking.k8s.io"]
+      resources: ["ingresses"]
+      verbs: ["get", "watch", "list"]
+    - apiGroups: [""]
+      resources: ["nodes"]
+      verbs: ["list"]
+    - apiGroups: ["multiclusterdns.kubefed.io"]
+      resources: ["*"]
+      verbs: ["*"]
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: external-dns-viewer
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: external-dns
+  subjects:
+    - kind: ServiceAccount
+      name: external-dns
+      namespace: external-dns
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: external-dns
+    namespace: external-dns
+  spec:
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        app: external-dns
+    template:
+      metadata:
+        labels:
+          app: external-dns
+      spec:
+        containers:
+          - args:
+              - --source=crd
+              - --crd-source-apiversion=multiclusterdns.kubefed.io/v1alpha1
+              - --crd-source-kind=DNSEndpoint
+              - --domain-filter=<domain name>
+              - --provider=google
+              - --google-project=<project>
+              - --registry=txt
+              - --txt-owner-id=external-dns
+              - --log-level=debug
+            image: k8s.gcr.io/external-dns/external-dns:v0.7.6
+            name: external-dns
+            volumeMounts:
+              - mountPath: /secrets/external-dns-google-config
+                name: external-dns-google-config
+                readOnly: true
+            env:
+              - name: GOOGLE_APPLICATION_CREDENTIALS
+                value: /secrets/external-dns-google-config/clouddns.json
+        securityContext:
+          fsGroup: 65534
+          runAsUser: 65534
+        serviceAccountName: external-dns
+        volumes:
+          - name: external-dns-google-config
+            secret:
+              secretName: external-dns-google-config
+  ```
+  create secret with service account credentials with a `DNS Administrator` role
+  ```bash
+  kubectl -n external-dns create secret generic external-dns-google-config --from-file=clouddns.json
+  ```
 
 After the cluster, KubeFed control-plane, and external-dns controller are running, use the
 [sample](../example/sample1) federated deployment and service to test MCSDNS. You must change the sample service type to
