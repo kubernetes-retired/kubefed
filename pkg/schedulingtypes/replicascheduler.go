@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
@@ -286,7 +286,7 @@ func schedule(planner *planner.Planner, key string, clusterNames []string, curre
 		result[clusterName] += replicas
 	}
 
-	if klog.V(4) {
+	if klog.V(4).Enabled() {
 		buf := bytes.NewBufferString(fmt.Sprintf("Schedule - %q\n", key))
 		sort.Strings(clusterNames)
 		for _, clusterName := range clusterNames {

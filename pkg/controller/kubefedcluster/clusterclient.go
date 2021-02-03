@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	fedcommon "sigs.k8s.io/kubefed/pkg/apis/core/common"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"

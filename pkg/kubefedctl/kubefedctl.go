@@ -25,7 +25,7 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 	apiserverflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl/federate"
