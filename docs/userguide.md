@@ -45,7 +45,6 @@
     - [ServiceAccount](#serviceaccount)
   - [Higher order behaviour](#higher-order-behaviour)
     - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
-    - [Multi-Cluster Service DNS](#multi-cluster-service-dns)
     - [ReplicaSchedulingPreference](#replicaschedulingpreference)
       - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
@@ -111,7 +110,7 @@ See the [Cluster Registration documentation](./cluster-registration.md) for more
 You can enable federation of any Kubernetes API type (including CRDs) by using the
 `kubefedctl` command as follows.
 
-**NOTE:** Federation of a CRD requires the CRD Kubernetes type (`customresourcedefinitions`) to be enabled, to then 
+**NOTE:** Federation of a CRD requires the CRD Kubernetes type (`customresourcedefinitions`) to be enabled, to then
 federate any custom CRD on the member clusters. If the CRD Kubernetes type is not enabled and its Federated equivalent CRD is not federated, the propagation to that cluster will fail.
 
 ```bash
@@ -948,14 +947,6 @@ through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) inte
 different DNS provider to learn more.
 - [Multi-Cluster Ingress DNS with ExternalDNS Guide for Google Cloud DNS](./ingressdns-with-externaldns.md)
 - [Multi-Cluster Ingress DNS with ExternalDNS Guide for CoreDNS in minikube](./ingress-service-dns-with-coredns.md)
-
-### Multi-Cluster Service DNS
-
-Multi-Cluster Service DNS provides the ability to programmatically manage DNS resource records of Service objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the guides below for
-different DNS provider to learn more.
-- [Multi-Cluster Service DNS with ExternalDNS Guide for Google Cloud DNS](./servicedns-with-externaldns.md)
-- [Multi-Cluster Service DNS with ExternalDNS Guide for CoreDNS in minikube](./ingress-service-dns-with-coredns.md)
 
 ### ReplicaSchedulingPreference
 

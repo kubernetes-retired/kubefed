@@ -23,7 +23,6 @@ controllermanager:
   featureGates:
     PushReconciler:
     SchedulerPreferences:
-    CrossClusterServiceDiscovery:
     FederatedIngress:
     RawResourceStatusCollection:
 

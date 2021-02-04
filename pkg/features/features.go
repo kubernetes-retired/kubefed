@@ -41,13 +41,6 @@ const (
 	// Scheduler controllers which dynamically schedules workloads based on user preferences.
 	SchedulerPreferences featuregate.Feature = "SchedulerPreferences"
 
-	// owner: @kubernetes-sigs/kubefed-maintainers
-	// alpha: v0.1
-	//
-	// DNS based cross cluster service discovery.
-	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/multicluster/federated-services.md
-	CrossClusterServiceDiscovery featuregate.Feature = "CrossClusterServiceDiscovery"
-
 	// owner: @shashidharatd
 	// alpha: v0.1
 	//
@@ -71,9 +64,8 @@ func init() {
 // feature keys.  To add a new feature, define a key for it above and
 // add it here.
 var DefaultKubeFedFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-	SchedulerPreferences:         {Default: true, PreRelease: featuregate.Alpha},
-	PushReconciler:               {Default: true, PreRelease: featuregate.Beta},
-	CrossClusterServiceDiscovery: {Default: false, PreRelease: featuregate.Alpha},
-	FederatedIngress:             {Default: false, PreRelease: featuregate.Alpha},
-	RawResourceStatusCollection:  {Default: false, PreRelease: featuregate.Beta},
+	SchedulerPreferences:        {Default: true, PreRelease: featuregate.Alpha},
+	PushReconciler:              {Default: true, PreRelease: featuregate.Beta},
+	FederatedIngress:            {Default: false, PreRelease: featuregate.Alpha},
+	RawResourceStatusCollection: {Default: false, PreRelease: featuregate.Beta},
 }

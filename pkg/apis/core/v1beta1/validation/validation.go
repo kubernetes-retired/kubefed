@@ -311,7 +311,7 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 
 			allErrs = append(allErrs, validateEnumStrings(gatesPath.Child("name"), string(gate.Name),
 				[]string{string(features.PushReconciler), string(features.RawResourceStatusCollection), string(features.SchedulerPreferences),
-					string(features.CrossClusterServiceDiscovery), string(features.FederatedIngress)})...)
+					string(features.FederatedIngress)})...)
 
 			allErrs = append(allErrs, validateEnumStrings(gatesPath.Child("configuration"), string(gate.Configuration),
 				[]string{string(v1beta1.ConfigurationEnabled), string(v1beta1.ConfigurationDisabled)})...)
