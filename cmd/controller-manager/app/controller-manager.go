@@ -48,9 +48,7 @@ import (
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/validation"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
-	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
-	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
 	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -184,18 +182,6 @@ func startControllers(opts *options.Options, stopChan <-chan struct{}) {
 	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerPreferences) {
 		if _, err := schedulingmanager.StartSchedulingManager(opts.Config, stopChan); err != nil {
 			klog.Fatalf("Error starting scheduling manager: %v", err)
-		}
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.FederatedIngress) {
-		klog.Warningf("The feature '%s' is deprecated and will be removed in a future release.", features.FederatedIngress)
-
-		if err := ingressdns.StartController(opts.Config, stopChan); err != nil {
-			klog.Fatalf("Error starting ingress dns controller: %v", err)
-		}
-
-		if err := dnsendpoint.StartIngressDNSEndpointController(opts.Config, stopChan); err != nil {
-			klog.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 		}
 	}
 

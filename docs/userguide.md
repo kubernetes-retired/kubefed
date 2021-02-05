@@ -940,14 +940,6 @@ mechanics provided by the standard form of the federated API types (containing f
 `template`, `placement` and `override`) and associated controllers for a given resource.
 Further sections describe few of higher level APIs implemented as part of KubeFed.
 
-### Multi-Cluster Ingress DNS
-
-Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the guides below for
-different DNS provider to learn more.
-- [Multi-Cluster Ingress DNS with ExternalDNS Guide for Google Cloud DNS](./ingressdns-with-externaldns.md)
-- [Multi-Cluster Ingress DNS with ExternalDNS Guide for CoreDNS in minikube](./ingress-service-dns-with-coredns.md)
-
 ### ReplicaSchedulingPreference
 
 ReplicaSchedulingPreference provides an automated mechanism of distributing

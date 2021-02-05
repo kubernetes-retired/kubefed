@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +16,22 @@ limitations under the License.
 
 package common
 
+import (
+	"context"
+	"reflect"
+	"time"
+
+	apiv1 "k8s.io/api/core/v1"
+	extv1b1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	kubeclientset "k8s.io/client-go/kubernetes"
+
+	"sigs.k8s.io/kubefed/pkg/controller/util"
+)
+
 // TestLogger defines operations common across different types of testing
 type TestLogger interface {
 	Errorf(format string, args ...interface{})
@@ -23,4 +39,36 @@ type TestLogger interface {
 	Fatalf(format string, args ...interface{})
 	Log(args ...interface{})
 	Logf(format string, args ...interface{})
+}
+
+func Equivalent(actual, desired pkgruntime.Object) bool {
+	// Check for meta & spec equivalence
+	if !util.ObjectMetaAndSpecEquivalent(actual, desired) {
+		return false
+	}
+
+	// Check for status equivalence
+	statusActual := reflect.ValueOf(actual).Elem().FieldByName("Status").Interface()
+	statusDesired := reflect.ValueOf(desired).Elem().FieldByName("Status").Interface()
+	return reflect.DeepEqual(statusActual, statusDesired)
+}
+
+// WaitForNamespace waits for namespace to be created in a cluster.
+func WaitForNamespaceOrDie(tl TestLogger, client kubeclientset.Interface, clusterName, namespace string, interval, timeout time.Duration) {
+	err := wait.PollImmediate(interval, timeout, func() (exist bool, err error) {
+		_, err = client.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			tl.Errorf("Error waiting for namespace %q to be created in cluster %q: %v",
+				namespace, clusterName, err)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		tl.Fatalf("Timed out waiting for namespace %q to exist in cluster %q: %v",
+			namespace, clusterName, err)
+	}
 }

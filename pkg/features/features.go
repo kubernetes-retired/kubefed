@@ -41,12 +41,6 @@ const (
 	// Scheduler controllers which dynamically schedules workloads based on user preferences.
 	SchedulerPreferences featuregate.Feature = "SchedulerPreferences"
 
-	// owner: @shashidharatd
-	// alpha: v0.1
-	//
-	// DNS based federated ingress feature.
-	FederatedIngress featuregate.Feature = "FederatedIngress"
-
 	// owner: @hectorj2f
 	// beta: v0.5
 	//
@@ -66,6 +60,5 @@ func init() {
 var DefaultKubeFedFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	SchedulerPreferences:        {Default: true, PreRelease: featuregate.Alpha},
 	PushReconciler:              {Default: true, PreRelease: featuregate.Beta},
-	FederatedIngress:            {Default: false, PreRelease: featuregate.Alpha},
 	RawResourceStatusCollection: {Default: false, PreRelease: featuregate.Beta},
 }
