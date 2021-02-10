@@ -32,7 +32,7 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	versionhelper "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"

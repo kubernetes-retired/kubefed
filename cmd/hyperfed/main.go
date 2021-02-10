@@ -35,7 +35,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	ctrlapp "sigs.k8s.io/kubefed/cmd/controller-manager/app"
 	webhookapp "sigs.k8s.io/kubefed/cmd/webhook/app"

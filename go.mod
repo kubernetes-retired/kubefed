@@ -17,17 +17,16 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/zap v1.16.0 // indirect
-	golang.org/x/text v0.3.4 // indirect
-	k8s.io/api v0.19.3
-	k8s.io/apiextensions-apiserver v0.19.3
-	k8s.io/apimachinery v0.19.3
-	k8s.io/apiserver v0.19.3
-	k8s.io/client-go v0.19.3
-	k8s.io/component-base v0.19.3
-	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20200923155610-8b5066479488
-	k8s.io/kubectl v0.19.3
-	k8s.io/utils v0.0.0-20201005171033-6301aaf42dc7
+	k8s.io/api v0.20.2
+	k8s.io/apiextensions-apiserver v0.20.2
+	k8s.io/apimachinery v0.20.2
+	k8s.io/apiserver v0.20.2
+	k8s.io/client-go v0.20.2
+	k8s.io/component-base v0.20.2
+	k8s.io/klog/v2 v2.4.0
+	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
+	k8s.io/kubectl v0.20.2
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/yaml v1.2.0
 )

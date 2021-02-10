@@ -19,7 +19,7 @@ package e2e
 import (
 	"testing"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 	"sigs.k8s.io/kubefed/test/e2e/framework/ginkgowrapper"

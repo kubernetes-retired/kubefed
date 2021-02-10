@@ -19,7 +19,7 @@ package features
 import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/component-base/featuregate"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
