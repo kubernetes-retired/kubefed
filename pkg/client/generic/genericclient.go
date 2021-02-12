@@ -31,7 +31,7 @@ type Client interface {
 	Create(ctx context.Context, obj runtime.Object) error
 	Get(ctx context.Context, obj runtime.Object, namespace, name string) error
 	Update(ctx context.Context, obj runtime.Object) error
-	Delete(ctx context.Context, obj runtime.Object, namespace, name string) error
+	Delete(ctx context.Context, obj runtime.Object, namespace, name string, opts ...client.DeleteOption) error
 	List(ctx context.Context, obj runtime.Object, namespace string, opts ...client.ListOption) error
 	UpdateStatus(ctx context.Context, obj runtime.Object) error
 }
@@ -71,14 +71,14 @@ func (c *genericClient) Update(ctx context.Context, obj runtime.Object) error {
 	return c.client.Update(ctx, obj)
 }
 
-func (c *genericClient) Delete(ctx context.Context, obj runtime.Object, namespace, name string) error {
+func (c *genericClient) Delete(ctx context.Context, obj runtime.Object, namespace, name string, opts ...client.DeleteOption) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return err
 	}
 	accessor.SetNamespace(namespace)
 	accessor.SetName(name)
-	return c.client.Delete(ctx, obj)
+	return c.client.Delete(ctx, obj, opts...)
 }
 
 func (c *genericClient) List(ctx context.Context, obj runtime.Object, namespace string, opts ...client.ListOption) error {

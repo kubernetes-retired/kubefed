@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -41,7 +43,7 @@ const eventTemplate = "%s %s %q in cluster %q"
 type UnmanagedDispatcher interface {
 	OperationDispatcher
 
-	Delete(clusterName string)
+	Delete(clusterName string, opts ...client.DeleteOption)
 	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 }
 
@@ -72,7 +74,7 @@ func (d *unmanagedDispatcherImpl) Wait() (bool, error) {
 	return d.dispatcher.Wait()
 }
 
-func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
+func (d *unmanagedDispatcherImpl) Delete(clusterName string, opts ...client.DeleteOption) {
 	start := time.Now()
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "delete"
@@ -87,7 +89,7 @@ func (d *unmanagedDispatcherImpl) Delete(clusterName string) {
 
 		obj := &unstructured.Unstructured{}
 		obj.SetGroupVersionKind(d.targetGVK)
-		err := client.Delete(context.Background(), obj, targetName.Namespace, targetName.Name)
+		err := client.Delete(context.Background(), obj, targetName.Namespace, targetName.Name, opts...)
 		if apierrors.IsNotFound(err) {
 			err = nil
 		}
