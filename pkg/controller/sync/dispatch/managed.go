@@ -32,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -245,10 +247,10 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 	})
 }
 
-func (d *managedDispatcherImpl) Delete(clusterName string) {
+func (d *managedDispatcherImpl) Delete(clusterName string, opts ...client.DeleteOption) {
 	d.RecordStatus(clusterName, status.DeletionTimedOut, nil)
 
-	d.unmanagedDispatcher.Delete(clusterName)
+	d.unmanagedDispatcher.Delete(clusterName, opts...)
 }
 
 func (d *managedDispatcherImpl) RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured) {

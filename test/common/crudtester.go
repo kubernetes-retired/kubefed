@@ -25,6 +25,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
@@ -358,6 +361,66 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 		})
 		if err != nil {
 			c.tl.Fatalf("Failed to confirm whether %s %q is %s in cluster %q: %v", targetKind, qualifiedName, stateMsg, clusterName, err)
+		}
+	}
+}
+
+func (c *FederatedTypeCrudTester) SetDeleteOption(fedObject *unstructured.Unstructured, opts ...client.DeleteOption) {
+	apiResource := c.typeConfig.GetFederatedType()
+	qualifiedName := util.NewQualifiedName(fedObject)
+	kind := apiResource.Kind
+	_, err := c.updateObject(apiResource, fedObject, func(obj *unstructured.Unstructured) {
+		err := util.ApplyDeleteOptions(obj, opts...)
+		if err != nil {
+			c.tl.Fatalf("Error apply delete options for %s %q: %v", kind, qualifiedName, err)
+		}
+	})
+	if err != nil {
+		c.tl.Fatalf("Error updating %s %q: %v", kind, qualifiedName, err)
+	}
+}
+
+func (c *FederatedTypeCrudTester) CheckReplicaSet(fedObject *unstructured.Unstructured) {
+	lb, ok, _ := unstructured.NestedStringMap(fedObject.Object, "spec", "selector", "matchLabels")
+	if !ok {
+		c.tl.Fatal("Failed to get matchLabels on the target deployment")
+	}
+
+	matchingLabels := (client.MatchingLabels)(lb)
+
+	for clusterName := range c.testClusters {
+		clusterConfig := c.testClusters[clusterName].Config
+
+		kubeClient := kubeclientset.NewForConfigOrDie(clusterConfig)
+		WaitForNamespaceOrDie(c.tl, kubeClient, clusterName, fedObject.GetNamespace(),
+			c.waitInterval, 30*time.Second)
+
+		clusterClient := genericclient.NewForConfigOrDie(clusterConfig)
+
+		c.tl.Log("Checking that the ReplicaSet still exists in every cluster")
+
+		err := wait.PollImmediate(c.waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+			objList := &appsv1.ReplicaSetList{}
+			err := clusterClient.List(context.TODO(), objList, fedObject.GetNamespace(), matchingLabels)
+			if err != nil {
+				return false, errors.Errorf("Error retrieving ReplicatSet: %v", err)
+			}
+
+			if len(objList.Items) == 0 {
+				return false, errors.Errorf("ReplicatSet was unexpectedly deleted from cluster %q", clusterName)
+			}
+
+			c.tl.Log("Checking that OwnerReferences has been removed from the ReplicaSet")
+			hasOwner := false
+			for _, rs := range objList.Items {
+				if len(rs.OwnerReferences) > 0 {
+					hasOwner = true
+				}
+			}
+			return !hasOwner, nil
+		})
+		if err != nil {
+			c.tl.Fatalf("Failed to confirm whether ReplicatSet is in cluster %q: %v", clusterName, err)
 		}
 	}
 }
