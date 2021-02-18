@@ -54,16 +54,20 @@ func GetDeleteOptions(obj *unstructured.Unstructured) ([]client.DeleteOption, er
 }
 
 // ApplyDeleteOptions set the DeleteOptions on the annotation
-func ApplyDeleteOptions(obj *unstructured.Unstructured, opts ...client.DeleteOption) {
+func ApplyDeleteOptions(obj *unstructured.Unstructured, opts ...client.DeleteOption) error {
 	opt := client.DeleteOptions{}
 	opt.ApplyOptions(opts)
-
-	if optBytes, err := json.Marshal(opt.AsDeleteOptions()); err == nil {
-		annotations := obj.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string)
-		}
-		annotations[DeleteOptionAnnotation] = string(optBytes)
-		obj.SetAnnotations(annotations)
+	deleteOpts := opt.AsDeleteOptions()
+	optBytes, err := json.Marshal(deleteOpts)
+	if err != nil {
+		return errors.Wrapf(err, "could not serialize delete options from object '%v'", deleteOpts)
 	}
+
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations[DeleteOptionAnnotation] = string(optBytes)
+	obj.SetAnnotations(annotations)
+	return nil
 }
