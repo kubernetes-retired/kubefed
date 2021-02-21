@@ -21,8 +21,6 @@ import (
 	"reflect"
 	"time"
 
-	apiv1 "k8s.io/api/core/v1"
-	extv1b1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
