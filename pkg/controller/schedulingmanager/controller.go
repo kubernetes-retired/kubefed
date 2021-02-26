@@ -17,6 +17,7 @@ limitations under the License.
 package schedulingmanager
 
 import (
+	"k8s.io/klog"
 	"time"
 
 	"github.com/pkg/errors"
@@ -180,7 +181,7 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 	// Scheduling preference controller is started on demand
 	abstractScheduler, ok := c.schedulers.Get(schedulingKind)
 	if !ok {
-		klog.Infof("Starting schedulingpreference controller for %s", schedulingKind)
+		klog.InfoS("Starting schedulingpreference controller", "schedulingKind", schedulingKind)
 		stopChan := make(chan struct{})
 		schedulerInterface, err := schedulingpreference.StartSchedulingPreferenceController(c.config, *schedulingType, stopChan)
 		if err != nil {
