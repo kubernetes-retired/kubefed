@@ -18,6 +18,7 @@ package leaderelection
 
 import (
 	"context"
+	"k8s.io/klog"
 	"os"
 
 	v1 "k8s.io/api/core/v1"
@@ -62,7 +63,7 @@ func NewKubeFedLeaderElector(opts *options.Options, fnStartControllers func(*opt
 			EventRecorder: eventRecorder,
 		})
 	if err != nil {
-		klog.Infof("couldn't create resource lock: %v", err)
+		klog.InfoS("couldn't create resource lock", "error", err)
 		return nil, err
 	}
 
