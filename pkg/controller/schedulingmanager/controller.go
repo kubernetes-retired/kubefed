@@ -17,6 +17,7 @@ limitations under the License.
 package schedulingmanager
 
 import (
+	"k8s.io/klog"
 	"time"
 
 	"github.com/pkg/errors"
@@ -225,7 +226,7 @@ func (c *SchedulingManager) stopScheduler(schedulingKind, typeConfigName string)
 
 	// If all plugins associated with this scheduler are gone, the scheduler should also be stopped.
 	if scheduler.pluginMap.Size() == 0 {
-		klog.Infof("Stopping schedulingpreference controller for %q", schedulingKind)
+		klog.InfoS("Stopping schedulingpreference controller", "schedulingKind", schedulingKind)
 		// Indicate scheduler and associated goroutines to be stopped in schedulingpreference controller.
 		close(scheduler.stopChan)
 		c.schedulers.Delete(schedulingKind)
