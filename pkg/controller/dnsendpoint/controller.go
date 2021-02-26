@@ -18,6 +18,7 @@ package dnsendpoint
 
 import (
 	"context"
+	"k8s.io/klog"
 	"reflect"
 	"time"
 
@@ -110,7 +111,7 @@ func (d *controller) Run(stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	defer d.queue.ShutDown()
 
-	klog.Infof("Starting %q DNSEndpoint controller", d.dnsObjectKind)
+	klog.InfoS("Starting DNSEndpoint controller", "dns", d.dnsObjectKind)
 	defer klog.Infof("Shutting down %q DNSEndpoint controller", d.dnsObjectKind)
 
 	go d.dnsObjectController.Run(stopCh)
