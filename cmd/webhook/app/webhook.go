@@ -55,6 +55,7 @@ func NewWebhookCommand(stopChan <-chan struct{}) *cobra.Command {
 	cmd.Flags().StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	cmd.Flags().StringVar(&certDir, "cert-dir", "", "The directory where the TLS certs are located.")
 	cmd.Flags().IntVar(&port, "secure-port", port, "The port on which to serve HTTPS.")
+	cmd.Flags().BoolVar(&verFlag, "version", false, "Prints the Version info of webhook.")
 
 	return cmd
 }
