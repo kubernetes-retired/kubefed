@@ -25,6 +25,7 @@ Repeat this step to join any additional clusters.
 
 **NOTE:** `cluster-context` will default to use the joining cluster name if not
 specified.
+**NOTE:** Before the [PR](https://github.com/kubernetes-sigs/kubefed/pull/1361), `kubefed` automatically fetches apiserver's `certificate-authority-data` from member cluster, after that kubefed will use `certificate-authority-data` in joining cluster's kubeconfig file.
 
 # Checking status of joined clusters
 
