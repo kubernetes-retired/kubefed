@@ -21,5 +21,3 @@ spec:
     configuration: "Enabled"
   - name: SchedulerPreferences
     configuration: "Enabled"
-  - name: FederatedIngress
-    configuration: "Enabled"

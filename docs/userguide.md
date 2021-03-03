@@ -44,7 +44,6 @@
     - [Scalable](#scalable)
     - [ServiceAccount](#serviceaccount)
   - [Higher order behaviour](#higher-order-behaviour)
-    - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
     - [ReplicaSchedulingPreference](#replicaschedulingpreference)
       - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
