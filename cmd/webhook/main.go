@@ -30,7 +30,7 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	if err := app.NewWebhookCommand(signals.SetupSignalHandler()); err != nil {
+	if err := app.NewWebhookCommand(signals.SetupSignalHandler()).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1) //nolint:gocritic
 	}
