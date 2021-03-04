@@ -272,6 +272,10 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 		disabledTLSValidations = append(disabledTLSValidations, fedv1b1.TLSAll)
 	}
 
+	if clusterConfig.CAData != nil {
+		caBundle = clusterConfig.CAData
+	}
+
 	kubefedCluster, err := createKubeFedCluster(client, joiningClusterName, clusterConfig.Host,
 		secret.Name, kubefedNamespace, caBundle, disabledTLSValidations, dryRun, errorOnExisting)
 	if err != nil {
