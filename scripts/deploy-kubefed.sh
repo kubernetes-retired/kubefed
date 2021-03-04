@@ -80,7 +80,7 @@ function helm-deploy-cmd {
         --set controllermanager.webhook.repository=${repo} \
         --set controllermanager.webhook.image=${image} \
         --set controllermanager.webhook.tag=${tag} \
-        --set controllermanager.featureGates.FederatedIngress=Enabled,controllermanager.featureGates.RawResourceStatusCollection=Enabled \
+        --set controllermanager.featureGates.RawResourceStatusCollection=Enabled \
         ${force_redeploy_values:-} \
         --create-namespace \
         --wait"

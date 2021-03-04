@@ -67,7 +67,6 @@ func SetUpFeatureGates() {
 	resetDefaultFeatureGates := map[string]bool{
 		string(features.SchedulerPreferences):        true,
 		string(features.PushReconciler):              true,
-		string(features.FederatedIngress):            true,
 		string(features.RawResourceStatusCollection): true,
 	}
 	err := utilfeature.DefaultMutableFeatureGate.SetFromMap(resetDefaultFeatureGates)

@@ -94,7 +94,7 @@ function run-e2e-upgrade-test() {
   --set controllermanager.webhook.repository=${repository} \
   --set controllermanager.webhook.image=${image} \
   --set controllermanager.webhook.tag=${tag} \
-  --set controllermanager.featureGates.FederatedIngress=Enabled,controllermanager.featureGates.RawResourceStatusCollection=Enabled \
+  --set controllermanager.featureGates.RawResourceStatusCollection=Enabled \
   --wait
 
   deployment-image-as-expected "${KUBEFED_UPGRADE_TEST_NS}" kubefed-admission-webhook admission-webhook "local/kubefed:e2e"

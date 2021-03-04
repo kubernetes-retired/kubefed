@@ -44,7 +44,6 @@
     - [Scalable](#scalable)
     - [ServiceAccount](#serviceaccount)
   - [Higher order behaviour](#higher-order-behaviour)
-    - [Multi-Cluster Ingress DNS](#multi-cluster-ingress-dns)
     - [ReplicaSchedulingPreference](#replicaschedulingpreference)
       - [Distribute total replicas evenly in all available clusters](#distribute-total-replicas-evenly-in-all-available-clusters)
       - [Distribute total replicas in weighted proportions](#distribute-total-replicas-in-weighted-proportions)
@@ -939,14 +938,6 @@ The architecture of KubeFed API allows higher level APIs to be constructed using
 mechanics provided by the standard form of the federated API types (containing fields for
 `template`, `placement` and `override`) and associated controllers for a given resource.
 Further sections describe few of higher level APIs implemented as part of KubeFed.
-
-### Multi-Cluster Ingress DNS
-
-Multi-Cluster Ingress DNS provides the ability to programmatically manage DNS resource records of Ingress objects
-through [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) integration. Review the guides below for
-different DNS provider to learn more.
-- [Multi-Cluster Ingress DNS with ExternalDNS Guide for Google Cloud DNS](./ingressdns-with-externaldns.md)
-- [Multi-Cluster Ingress DNS with ExternalDNS Guide for CoreDNS in minikube](./ingress-service-dns-with-coredns.md)
 
 ### ReplicaSchedulingPreference
 

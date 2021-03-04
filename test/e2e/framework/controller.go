@@ -24,9 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
-	"sigs.k8s.io/kubefed/pkg/controller/dnsendpoint"
 	"sigs.k8s.io/kubefed/pkg/controller/federatedtypeconfig"
-	"sigs.k8s.io/kubefed/pkg/controller/ingressdns"
 	"sigs.k8s.io/kubefed/pkg/controller/kubefedcluster"
 	"sigs.k8s.io/kubefed/pkg/controller/schedulingmanager"
 	"sigs.k8s.io/kubefed/pkg/controller/status"
@@ -74,22 +72,6 @@ func NewFederatedTypeConfigControllerFixture(tl common.TestLogger, config *util.
 	err := federatedtypeconfig.StartController(config, f.stopChan)
 	if err != nil {
 		tl.Fatalf("Error starting federatedtypeconfig controller: %v", err)
-	}
-	return f
-}
-
-// NewIngressDNSControllerFixture initializes a new ingress-dns controller fixture.
-func NewIngressDNSControllerFixture(tl common.TestLogger, config *util.ControllerConfig) *ControllerFixture {
-	f := &ControllerFixture{
-		stopChan: make(chan struct{}),
-	}
-	err := ingressdns.StartController(config, f.stopChan)
-	if err != nil {
-		tl.Fatalf("Error starting ingress dns controller: %v", err)
-	}
-	err = dnsendpoint.StartIngressDNSEndpointController(config, f.stopChan)
-	if err != nil {
-		tl.Fatalf("Error starting ingress dns endpoint controller: %v", err)
 	}
 	return f
 }
