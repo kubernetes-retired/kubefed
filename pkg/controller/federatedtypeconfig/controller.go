@@ -90,7 +90,7 @@ func newController(config *util.ControllerConfig) (*Controller, error) {
 		stopChannels:     make(map[string]chan struct{}),
 	}
 
-	c.worker = util.NewReconcileWorker(c.reconcile, util.WorkerTiming{})
+	c.worker = util.NewReconcileWorker("federatedtypeconfig", c.reconcile, util.WorkerTiming{})
 
 	// Only watch the KubeFed namespace to ensure
 	// restrictive authz can be applied to a namespaced

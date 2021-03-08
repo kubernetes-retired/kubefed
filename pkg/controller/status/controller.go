@@ -123,7 +123,7 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 		fedNamespace:            controllerConfig.KubeFedNamespace,
 	}
 
-	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
+	s.worker = util.NewReconcileWorker(strings.ToLower(statusAPIResource.Kind), s.reconcile, util.WorkerTiming{
 		ClusterSyncDelay: s.clusterAvailableDelay,
 	})
 

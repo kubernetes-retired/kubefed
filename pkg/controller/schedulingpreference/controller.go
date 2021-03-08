@@ -18,6 +18,7 @@ package schedulingpreference
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -104,7 +105,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 		eventRecorder:           recorder,
 	}
 
-	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
+	s.worker = util.NewReconcileWorker(strings.ToLower(schedulingType.Kind), s.reconcile, util.WorkerTiming{
 		ClusterSyncDelay: s.clusterAvailableDelay,
 	})
 

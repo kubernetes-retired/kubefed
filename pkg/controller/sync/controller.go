@@ -132,7 +132,7 @@ func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfi
 		rawResourceStatusCollection: controllerConfig.RawResourceStatusCollection,
 	}
 
-	s.worker = util.NewReconcileWorker(s.reconcile, util.WorkerTiming{
+	s.worker = util.NewReconcileWorker(strings.ToLower(federatedTypeAPIResource.Kind), s.reconcile, util.WorkerTiming{
 		ClusterSyncDelay: s.clusterAvailableDelay,
 	})
 

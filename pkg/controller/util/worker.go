@@ -47,6 +47,8 @@ type WorkerTiming struct {
 }
 
 type asyncWorker struct {
+	name string
+
 	reconcile ReconcileFunc
 
 	timing WorkerTiming
@@ -64,7 +66,7 @@ type asyncWorker struct {
 	backoff *flowcontrol.Backoff
 }
 
-func NewReconcileWorker(reconcile ReconcileFunc, timing WorkerTiming) ReconcileWorker {
+func NewReconcileWorker(name string, reconcile ReconcileFunc, timing WorkerTiming) ReconcileWorker {
 	if timing.Interval == 0 {
 		timing.Interval = time.Second * 1
 	}
@@ -78,10 +80,11 @@ func NewReconcileWorker(reconcile ReconcileFunc, timing WorkerTiming) ReconcileW
 		timing.MaxBackoff = time.Minute
 	}
 	return &asyncWorker{
+		name:      name,
 		reconcile: reconcile,
 		timing:    timing,
 		deliverer: NewDelayingDeliverer(),
-		queue:     workqueue.New(),
+		queue:     workqueue.NewNamed(name),
 		backoff:   flowcontrol.NewBackOff(timing.InitialBackoff, timing.MaxBackoff),
 	}
 }
