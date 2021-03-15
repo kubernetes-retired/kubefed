@@ -44,6 +44,7 @@ const (
 	KubeAPIQPS   = 20.0
 	KubeAPIBurst = 30
 	TokenKey     = "token"
+	ProxyURLKey  = "proxy-url"
 
 	KubeFedConfigName = "kubefed"
 )
@@ -83,6 +84,14 @@ func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Clien
 	clusterConfig.BearerToken = string(token)
 	clusterConfig.QPS = KubeAPIQPS
 	clusterConfig.Burst = KubeAPIBurst
+
+	if fedCluster.Spec.ProxyURL != "" {
+		proxyURL, err := url.Parse(fedCluster.Spec.ProxyURL)
+		if err != nil {
+			return nil, errors.Errorf("Failed to parse provided proxy-url %s: %v", fedCluster.Spec.ProxyURL, err)
+		}
+		clusterConfig.Proxy = http.ProxyURL(proxyURL)
+	}
 
 	if len(fedCluster.Spec.DisabledTLSValidations) != 0 {
 		klog.V(1).Infof("Cluster %s will use a custom transport for TLS certificate validation", fedCluster.Name)
