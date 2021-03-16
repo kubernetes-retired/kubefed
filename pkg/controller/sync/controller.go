@@ -293,6 +293,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	// Enable raw resource status collection if the statusCollection is enabled for that type
 	// and the feature is also enabled.
 	enableRawResourceStatusCollection := s.typeConfig.GetStatusEnabled() && s.rawResourceStatusCollection
+	klog.V(4).Infof("typeconfigstatus for %v enabled: %v, rawresstatus: %v", fedResource.FederatedName(), s.typeConfig.GetStatusEnabled(), enableRawResourceStatusCollection)
 
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
@@ -387,7 +388,8 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	}
 
 	collectedStatus, collectedResourceStatus := dispatcher.CollectedStatus()
-	klog.V(4).Infof("Setting the federated status '%v'", collectedResourceStatus)
+	klog.V(4).Infof("Setting the federated status '%v' for %s %q", collectedResourceStatus, kind, key)
+	klog.V(4).Infof("Collected status '%v' for %s %q", collectedStatus, kind, key)
 	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus, &collectedResourceStatus, enableRawResourceStatusCollection)
 }
 
