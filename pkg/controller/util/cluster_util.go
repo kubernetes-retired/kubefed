@@ -44,7 +44,6 @@ const (
 	KubeAPIQPS   = 20.0
 	KubeAPIBurst = 30
 	TokenKey     = "token"
-	ProxyURLKey  = "proxy-url"
 
 	KubeFedConfigName = "kubefed"
 )
@@ -88,7 +87,7 @@ func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Clien
 	if fedCluster.Spec.ProxyURL != "" {
 		proxyURL, err := url.Parse(fedCluster.Spec.ProxyURL)
 		if err != nil {
-			return nil, errors.Errorf("Failed to parse provided proxy-url %s: %v", fedCluster.Spec.ProxyURL, err)
+			return nil, errors.Errorf("Failed to parse provided proxy URL %s: %v", fedCluster.Spec.ProxyURL, err)
 		}
 		clusterConfig.Proxy = http.ProxyURL(proxyURL)
 	}

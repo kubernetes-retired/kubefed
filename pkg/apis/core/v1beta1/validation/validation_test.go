@@ -480,6 +480,56 @@ func TestValidateAPIEndpoint(t *testing.T) {
 	}
 }
 
+func TestProxyURL(t *testing.T) {
+	tests := []struct {
+		proxyURL       string
+		expectedErrMsg string
+	}{
+		{
+			proxyURL: "socks5://example.com",
+		},
+		{
+			proxyURL: "https://example.com",
+		},
+		{
+			proxyURL: "http://example.com",
+		},
+		{
+			proxyURL:       "socks6://example.com",
+			expectedErrMsg: "proxyURL: Invalid value: \"socks6://example.com\": proxy URL scheme must be one of: [http, https, socks5]",
+		},
+		{
+			proxyURL:       "example.com",
+			expectedErrMsg: "proxyURL: Invalid value: \"example.com\": proxy URL scheme must be one of: [http, https, socks5]",
+		},
+		{
+			proxyURL:       "chewbacca@example.com",
+			expectedErrMsg: "proxyURL: Invalid value: \"chewbacca@example.com\": proxy URL scheme must be one of: [http, https, socks5]",
+		},
+	}
+
+	for _, test := range tests {
+		errs := validateProxyURL(test.proxyURL, field.NewPath("proxyURL"))
+		if len(errs) == 0 && test.expectedErrMsg == "" {
+			continue
+		}
+		if len(errs) == 0 && test.expectedErrMsg != "" {
+			t.Errorf("[%s] expected failure", test.expectedErrMsg)
+		} else {
+			matchedErr := false
+			for _, err := range errs {
+				if strings.Contains(err.Error(), test.expectedErrMsg) {
+					matchedErr = true
+					break
+				}
+			}
+			if !matchedErr {
+				t.Errorf("unexpected error: %v, expected: %q", errs, test.expectedErrMsg)
+			}
+		}
+	}
+}
+
 func TestValidateLocalSecretReference(t *testing.T) {
 	testCases := []struct {
 		secretName     string

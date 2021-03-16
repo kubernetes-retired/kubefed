@@ -19,7 +19,6 @@ package kubefedctl
 import (
 	"context"
 	goerrors "errors"
-	"fmt"
 	"io"
 	"net/http"
 	"reflect"
@@ -282,12 +281,12 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	if clusterConfig.Proxy != nil {
 		req, err := http.NewRequest("", clusterConfig.Host, nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create proxy URL request for kubefed cluster: %w", err)
+			return nil, errors.Errorf("failed to create proxy URL request for kubefed cluster: %v", err)
 		}
 		url, err := clusterConfig.Proxy(req)
 		if err != nil {
-			klog.V(2).Infof("Error getting Proxy URL for host %s: %w", clusterConfig.Host, err)
-			return nil, fmt.Errorf("failed to create proxy URL request for kubefed cluster: %w", err)
+			klog.V(2).Infof("Error getting proxy URL for host %s: %w", clusterConfig.Host, err)
+			return nil, errors.Errorf("failed to create proxy URL request for kubefed cluster: %v", err)
 		}
 		if url != nil {
 			proxyURL = url.String()

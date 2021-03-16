@@ -18,6 +18,7 @@ package validation
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -163,6 +164,9 @@ func validateKubeFedClusterSpec(spec *v1beta1.KubeFedClusterSpec, path *field.Pa
 	allErrs := validateAPIEndpoint(spec.APIEndpoint, path.Child("apiEndpoint"))
 	allErrs = append(allErrs, validateLocalSecretReference(&spec.SecretRef, path.Child("secretRef"))...)
 	allErrs = append(allErrs, validateDisabledTLSValidations(spec.DisabledTLSValidations, path.Child("disabledTLSValidations"))...)
+	if spec.ProxyURL != "" {
+		allErrs = append(allErrs, validateProxyURL(spec.ProxyURL, path.Child("proxyURL"))...)
+	}
 	return allErrs
 }
 
@@ -171,6 +175,21 @@ func validateKubeFedClusterStatus(status *v1beta1.KubeFedClusterStatus, path *fi
 
 	for i, condition := range status.Conditions {
 		allErrs = append(allErrs, validateClusterCondition(&condition, path.Child("conditions").Index(i))...)
+	}
+	return allErrs
+}
+
+func validateProxyURL(proxyURL string, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(path, proxyURL, "error parsing the proxy URL"))
+	}
+	switch u.Scheme {
+	case "http", "https", "socks5":
+	default:
+		allErrs = append(allErrs, field.Invalid(path, proxyURL, "proxy URL scheme must be one of: [http, https, socks5]"))
 	}
 	return allErrs
 }
