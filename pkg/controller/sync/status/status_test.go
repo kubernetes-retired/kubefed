@@ -58,26 +58,14 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			expectedChanged:  true,
 		},
 		"Cluster status not retrieved indicates changed with status collected enabled": {
-			statusMap: PropagationStatusMap{
-				"cluster1": ClusterPropagationOK,
-				"cluster2": ClusterPropagationOK,
-			},
-			resourceStatusMap: map[string]interface{}{
-				"cluster1": map[string]interface{}{},
-			},
+			statusMap: PropagationStatusMap{},
 			reason: AggregateSuccess,
 			resourcesUpdated: false,
 			resourceStatusCollection: true,
 			expectedChanged:  true,
 		},
 		"Cluster status not retrieved indicates changed with status collected disabled": {
-			statusMap: PropagationStatusMap{
-				"cluster1": ClusterPropagationOK,
-				"cluster2": ClusterPropagationOK,
-			},
-			resourceStatusMap: map[string]interface{}{
-				"cluster1": map[string]interface{}{},
-			},
+			statusMap: PropagationStatusMap{},
 			reason: AggregateSuccess,
 			resourcesUpdated: false,
 			resourceStatusCollection: false,
@@ -145,17 +133,22 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusCollection: false,
 			expectedChanged:  true,
 		},
-		//"Change in clusters indicates changed": {
-		//	statusMap: PropagationStatusMap{
-		//		"cluster1": ClusterPropagationOK,
-		//	},
-		//	resourceStatusMap: map[string]interface{}{
-		//		"ready": true,
-		//		"stage": "deployed",
-		//	},
-		//	resourceStatusCollection: true,
-		//	expectedChanged: true,
-		//},
+		"Change in clusters indicates changed with status collected enabled": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+				"cluster2": ClusterPropagationOK,
+			},
+			resourceStatusCollection: true,
+			expectedChanged: true,
+		},
+		"Change in clusters indicates changed with status collected disabled": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+				"cluster2": ClusterPropagationOK,
+			},
+			resourceStatusCollection: false,
+			expectedChanged: true,
+		},
 		"Transition indicates changed with remote status collection enabled": {
 			reason:          NamespaceNotFederated,
 			resourceStatusCollection: true,
