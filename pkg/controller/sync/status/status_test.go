@@ -123,18 +123,28 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusCollection: false,
 			expectedChanged:  true,
 		},
-		//"No change in clusters with update indicates changed": {
-		//	statusMap: PropagationStatusMap{
-		//		"cluster1": ClusterPropagationOK,
-		//	},
-		//	resourceStatusMap: map[string]interface{}{
-		//		"ready": false,
-		//		"stage": "absent",
-		//	},
-		//	resourcesUpdated: true,
-		//	resourceStatusCollection: true,
-		//	expectedChanged:  true,
-		//},
+		"No change in clusters with update indicates changed with status collected enabled": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+			},
+			resourceStatusMap: map[string]interface{}{
+				"cluster1": map[string]interface{}{},
+			},
+			resourcesUpdated: true,
+			resourceStatusCollection: true,
+			expectedChanged:  true,
+		},
+		"No change in clusters with update indicates changed with status collected disabled": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+			},
+			resourceStatusMap: map[string]interface{}{
+				"cluster1": map[string]interface{}{},
+			},
+			resourcesUpdated: true,
+			resourceStatusCollection: false,
+			expectedChanged:  true,
+		},
 		//"Change in clusters indicates changed": {
 		//	statusMap: PropagationStatusMap{
 		//		"cluster1": ClusterPropagationOK,
@@ -146,26 +156,26 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 		//	resourceStatusCollection: true,
 		//	expectedChanged: true,
 		//},
-		//"Transition indicates changed with remote status collection enabled": {
-		//	reason:          NamespaceNotFederated,
-		//	resourceStatusCollection: true,
-		//	expectedChanged: true,
-		//},
-		//"Transition indicates changed with remote status collection disabled": {
-		//	reason:          NamespaceNotFederated,
-		//	resourceStatusCollection: false,
-		//	expectedChanged: true,
-		//},
-		//"Changed generation indicates changed with remote status collection enabled": {
-		//	generation:      1,
-		//	resourceStatusCollection: true,
-		//	expectedChanged: true,
-		//},
-		//"Changed generation indicates changed with remote status collection disabled": {
-		//	generation:      1,
-		//	resourceStatusCollection: false,
-		//	expectedChanged: true,
-		//},
+		"Transition indicates changed with remote status collection enabled": {
+			reason:          NamespaceNotFederated,
+			resourceStatusCollection: true,
+			expectedChanged: true,
+		},
+		"Transition indicates changed with remote status collection disabled": {
+			reason:          NamespaceNotFederated,
+			resourceStatusCollection: false,
+			expectedChanged: true,
+		},
+		"Changed generation indicates changed with remote status collection enabled": {
+			generation:      1,
+			resourceStatusCollection: true,
+			expectedChanged: true,
+		},
+		"Changed generation indicates changed with remote status collection disabled": {
+			generation:      1,
+			resourceStatusCollection: false,
+			expectedChanged: true,
+		},
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
