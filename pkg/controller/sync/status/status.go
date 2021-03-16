@@ -177,7 +177,7 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 		}
 	}
 
-	clustersChanged := s.setClusters(collectedStatus.StatusMap, collectedResourceStatus.StatusMap)
+	clustersChanged := s.setClusters(collectedStatus.StatusMap, collectedResourceStatus.StatusMap, resourceStatusCollection)
 
 	// Indicate that changes were propagated if either status.clusters
 	// was changed or if existing resources were updated (which could
@@ -196,8 +196,8 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 // setClusters sets the status.clusters slice from propagation and resource status
 // maps. Returns a boolean indication of whether the status.clusters was
 // modified.
-func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
-	if !s.clustersDiffer(statusMap, resourceStatusMap) {
+func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}, resourceStatusCollection bool) bool {
+	if !s.clustersDiffer(statusMap, resourceStatusMap, resourceStatusCollection) {
 		return false
 	}
 	s.Clusters = []GenericClusterStatus{}
@@ -214,9 +214,9 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, res
 
 // clustersDiffer checks whether `status.clusters` differs from the
 // given status map.
-func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
-	if len(s.Clusters) != len(statusMap) || len(s.Clusters) != len(resourceStatusMap) {
-		klog.V(4).Info("Clusters differs from the size")
+func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}, resourceStatusCollection bool) bool {
+	if len(s.Clusters) != len(statusMap) || resourceStatusCollection && (len(s.Clusters) != len(resourceStatusMap)) {
+		klog.V(4).Infof("Clusters differs from the size: clusters = %v, statusMap = %v, resourceStatusMap = %v", s.Clusters, statusMap, resourceStatusMap )
 		return true
 	}
 	for _, status := range s.Clusters {
