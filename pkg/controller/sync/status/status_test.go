@@ -30,47 +30,112 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 		resourceStatusMap map[string]interface{}
 		resourcesUpdated  bool
 		expectedChanged   bool
+		resourceStatusCollection bool
 	}{
-		"No change in clusters indicates unchanged": {
+		"Cluster not propagated indicates changed with status collected enabled": {
 			statusMap: PropagationStatusMap{
-				"cluster1": ClusterPropagationOK,
+				"cluster1": ClusterNotReady,
 			},
 			resourceStatusMap: map[string]interface{}{
-				"ready": false,
-				"stage": "absent",
+				"cluster1": map[string]interface{}{},
 			},
+			reason: AggregateSuccess,
 			resourcesUpdated: false,
+			resourceStatusCollection: true,
 			expectedChanged:  true,
 		},
-		"No change in clusters with update indicates changed": {
+		"Cluster not propagated indicates changed with status collected disabled": {
 			statusMap: PropagationStatusMap{
-				"cluster1": ClusterPropagationOK,
+				"cluster1": ClusterNotReady,
 			},
 			resourceStatusMap: map[string]interface{}{
-				"ready": false,
-				"stage": "absent",
+				"cluster1": map[string]interface{}{},
 			},
-			resourcesUpdated: true,
+			reason: AggregateSuccess,
+			resourcesUpdated: false,
+			resourceStatusCollection: false,
 			expectedChanged:  true,
 		},
-		"Change in clusters indicates changed": {
+		"Cluster status not retrieved indicates changed with status collected enabled": {
 			statusMap: PropagationStatusMap{
 				"cluster1": ClusterPropagationOK,
+				"cluster2": ClusterPropagationOK,
 			},
 			resourceStatusMap: map[string]interface{}{
-				"ready": true,
-				"stage": "deployed",
+				"cluster1": map[string]interface{}{},
 			},
-			expectedChanged: true,
+			reason: AggregateSuccess,
+			resourcesUpdated: false,
+			resourceStatusCollection: true,
+			expectedChanged:  true,
 		},
-		"Transition indicates changed": {
-			reason:          NamespaceNotFederated,
-			expectedChanged: true,
+		"Cluster status not retrieved indicates changed with status collected disabled": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+				"cluster2": ClusterPropagationOK,
+			},
+			resourceStatusMap: map[string]interface{}{
+				"cluster1": map[string]interface{}{},
+			},
+			reason: AggregateSuccess,
+			resourcesUpdated: false,
+			resourceStatusCollection: false,
+			expectedChanged:  true,
 		},
-		"Changed generation indicates changed": {
-			generation:      1,
-			expectedChanged: true,
-		},
+		//"No change in clusters indicates unchanged": {
+		//	statusMap: PropagationStatusMap{
+		//		"cluster1": ClusterPropagationOK,
+		//	},
+		//	resourceStatusMap: map[string]interface{}{
+		//		"cluster1": map[string]interface{}{},
+		//	},
+		//	resourcesUpdated: false,
+		//	resourceStatusCollection: true,
+		//	expectedChanged:  true,
+		//},
+		//"No change in clusters with update indicates changed": {
+		//	statusMap: PropagationStatusMap{
+		//		"cluster1": ClusterPropagationOK,
+		//	},
+		//	resourceStatusMap: map[string]interface{}{
+		//		"ready": false,
+		//		"stage": "absent",
+		//	},
+		//	resourcesUpdated: true,
+		//	resourceStatusCollection: true,
+		//	expectedChanged:  true,
+		//},
+		//"Change in clusters indicates changed": {
+		//	statusMap: PropagationStatusMap{
+		//		"cluster1": ClusterPropagationOK,
+		//	},
+		//	resourceStatusMap: map[string]interface{}{
+		//		"ready": true,
+		//		"stage": "deployed",
+		//	},
+		//	resourceStatusCollection: true,
+		//	expectedChanged: true,
+		//},
+		//"Transition indicates changed with remote status collection enabled": {
+		//	reason:          NamespaceNotFederated,
+		//	resourceStatusCollection: true,
+		//	expectedChanged: true,
+		//},
+		//"Transition indicates changed with remote status collection disabled": {
+		//	reason:          NamespaceNotFederated,
+		//	resourceStatusCollection: false,
+		//	expectedChanged: true,
+		//},
+		//"Changed generation indicates changed with remote status collection enabled": {
+		//	generation:      1,
+		//	resourceStatusCollection: true,
+		//	expectedChanged: true,
+		//},
+		//"Changed generation indicates changed with remote status collection disabled": {
+		//	generation:      1,
+		//	resourceStatusCollection: false,
+		//	expectedChanged: true,
+		//},
 	}
 	for testName, tc := range testCases {
 		t.Run(testName, func(t *testing.T) {
@@ -95,10 +160,11 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				StatusMap:        tc.resourceStatusMap,
 				ResourcesUpdated: tc.resourcesUpdated,
 			}
-			changed := fedStatus.update(tc.generation, tc.reason, collectedStatus, collectedResourceStatus, true)
+			changed := fedStatus.update(tc.generation, tc.reason, collectedStatus, collectedResourceStatus, tc.resourceStatusCollection)
 			if tc.expectedChanged != changed {
 				t.Fatalf("Expected changed to be %v, got %v", tc.expectedChanged, changed)
 			}
 		})
 	}
 }
+
