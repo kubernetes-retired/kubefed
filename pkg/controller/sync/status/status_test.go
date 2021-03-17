@@ -24,13 +24,13 @@ import (
 
 func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 	testCases := map[string]struct {
-		generation        int64
-		reason            AggregateReason
-		statusMap         PropagationStatusMap
-		resourceStatusMap map[string]interface{}
-		remoteStatus interface{}
-		resourcesUpdated  bool
-		expectedChanged   bool
+		generation               int64
+		reason                   AggregateReason
+		statusMap                PropagationStatusMap
+		resourceStatusMap        map[string]interface{}
+		remoteStatus             interface{}
+		resourcesUpdated         bool
+		expectedChanged          bool
 		resourceStatusCollection bool
 	}{
 		"Cluster not propagated indicates changed with status collected enabled": {
@@ -40,10 +40,10 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusMap: map[string]interface{}{
 				"cluster1": map[string]interface{}{},
 			},
-			reason: AggregateSuccess,
-			resourcesUpdated: false,
+			reason:                   AggregateSuccess,
+			resourcesUpdated:         false,
 			resourceStatusCollection: true,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"Cluster not propagated indicates changed with status collected disabled": {
 			statusMap: PropagationStatusMap{
@@ -52,42 +52,42 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusMap: map[string]interface{}{
 				"cluster1": map[string]interface{}{},
 			},
-			reason: AggregateSuccess,
-			resourcesUpdated: false,
+			reason:                   AggregateSuccess,
+			resourcesUpdated:         false,
 			resourceStatusCollection: false,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"Cluster status not retrieved indicates changed with status collected enabled": {
-			statusMap: PropagationStatusMap{},
-			reason: AggregateSuccess,
-			resourcesUpdated: false,
+			statusMap:                PropagationStatusMap{},
+			reason:                   AggregateSuccess,
+			resourcesUpdated:         false,
 			resourceStatusCollection: true,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"Cluster status not retrieved indicates changed with status collected disabled": {
-			statusMap: PropagationStatusMap{},
-			reason: AggregateSuccess,
-			resourcesUpdated: false,
+			statusMap:                PropagationStatusMap{},
+			reason:                   AggregateSuccess,
+			resourcesUpdated:         false,
 			resourceStatusCollection: false,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"No collected remote status indicates changed with status collected enabled": {
 			statusMap: PropagationStatusMap{
 				"cluster1": ClusterPropagationOK,
 			},
-			reason: AggregateSuccess,
-			resourcesUpdated: false,
+			reason:                   AggregateSuccess,
+			resourcesUpdated:         false,
 			resourceStatusCollection: true,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"No collected remote status indicates unchanged with status collected disabled": {
 			statusMap: PropagationStatusMap{
 				"cluster1": ClusterPropagationOK,
 			},
-			reason: AggregateSuccess,
-			resourcesUpdated: false,
+			reason:                   AggregateSuccess,
+			resourcesUpdated:         false,
 			resourceStatusCollection: false,
-			expectedChanged:  false,
+			expectedChanged:          false,
 		},
 		"No change in clusters indicates unchanged with status collected enabled": {
 			statusMap: PropagationStatusMap{
@@ -96,9 +96,9 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusMap: map[string]interface{}{
 				"cluster1": map[string]interface{}{},
 			},
-			resourcesUpdated: false,
+			resourcesUpdated:         false,
 			resourceStatusCollection: true,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"No change in clusters indicates unchanged with status collected disabled": {
 			statusMap: PropagationStatusMap{
@@ -107,9 +107,9 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusMap: map[string]interface{}{
 				"cluster1": map[string]interface{}{},
 			},
-			resourcesUpdated: false,
+			resourcesUpdated:         false,
 			resourceStatusCollection: false,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"No change in clusters with update indicates changed with status collected enabled": {
 			statusMap: PropagationStatusMap{
@@ -118,9 +118,9 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusMap: map[string]interface{}{
 				"cluster1": map[string]interface{}{},
 			},
-			resourcesUpdated: true,
+			resourcesUpdated:         true,
 			resourceStatusCollection: true,
-			expectedChanged:  true,
+			expectedChanged:          true,
 		},
 		"No change in clusters with update indicates changed with status collected disabled": {
 			statusMap: PropagationStatusMap{
@@ -129,9 +129,29 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 			resourceStatusMap: map[string]interface{}{
 				"cluster1": map[string]interface{}{},
 			},
-			resourcesUpdated: true,
+			resourcesUpdated:         true,
 			resourceStatusCollection: false,
-			expectedChanged:  true,
+			expectedChanged:          true,
+		},
+		"No change in remote status indicates unchanged with status collected enabled": {
+			statusMap: PropagationStatusMap{
+				"cluster1": ClusterPropagationOK,
+			},
+			resourceStatusMap: map[string]interface{}{
+				"cluster1": map[string]interface{}{
+					"status": map[string]interface{}{
+						"status": "remoteStatus",
+					},
+				},
+			},
+			remoteStatus: map[string]interface{}{
+				"status": map[string]interface{}{
+					"status": "remoteStatus",
+				},
+			},
+			resourcesUpdated:         false,
+			resourceStatusCollection: true,
+			expectedChanged:          false,
 		},
 		"Change in clusters indicates changed with status collected enabled": {
 			statusMap: PropagationStatusMap{
@@ -139,7 +159,7 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				"cluster2": ClusterPropagationOK,
 			},
 			resourceStatusCollection: true,
-			expectedChanged: true,
+			expectedChanged:          true,
 		},
 		"Change in clusters indicates changed with status collected disabled": {
 			statusMap: PropagationStatusMap{
@@ -147,27 +167,27 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 				"cluster2": ClusterPropagationOK,
 			},
 			resourceStatusCollection: false,
-			expectedChanged: true,
+			expectedChanged:          true,
 		},
 		"Transition indicates changed with remote status collection enabled": {
-			reason:          NamespaceNotFederated,
+			reason:                   NamespaceNotFederated,
 			resourceStatusCollection: true,
-			expectedChanged: true,
+			expectedChanged:          true,
 		},
 		"Transition indicates changed with remote status collection disabled": {
-			reason:          NamespaceNotFederated,
+			reason:                   NamespaceNotFederated,
 			resourceStatusCollection: false,
-			expectedChanged: true,
+			expectedChanged:          true,
 		},
 		"Changed generation indicates changed with remote status collection enabled": {
-			generation:      1,
+			generation:               1,
 			resourceStatusCollection: true,
-			expectedChanged: true,
+			expectedChanged:          true,
 		},
 		"Changed generation indicates changed with remote status collection disabled": {
-			generation:      1,
+			generation:               1,
 			resourceStatusCollection: false,
-			expectedChanged: true,
+			expectedChanged:          true,
 		},
 	}
 	for testName, tc := range testCases {
@@ -201,4 +221,3 @@ func TestGenericPropagationStatusUpdateChanged(t *testing.T) {
 		})
 	}
 }
-

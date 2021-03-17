@@ -21,6 +21,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -125,15 +127,23 @@ type CollectedResourceStatus struct {
 // whether status should be written to the API.
 func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus, resourceStatusCollection bool) (bool, error) {
 	resource := &GenericFederatedResource{}
+
 	err := util.UnstructuredToInterface(fedObject, resource)
 	if err != nil {
 		return false, errors.Wrapf(err, "Failed to unmarshall to generic resource")
 	}
+
+	normalizedCollectedResourceStatus, err := normalizeStatus(collectedResourceStatus)
+	if err != nil {
+		return false, errors.Wrap(err, "Failed to normalize status")
+	}
+
 	if resource.Status == nil {
 		resource.Status = &GenericFederatedStatus{}
 	}
 
-	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus, resourceStatusCollection)
+	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, *normalizedCollectedResourceStatus, resourceStatusCollection)
+	//changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus, resourceStatusCollection)
 	if !changed {
 		return false, nil
 	}
@@ -216,7 +226,7 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, res
 // given status map.
 func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}, resourceStatusCollection bool) bool {
 	if len(s.Clusters) != len(statusMap) || resourceStatusCollection && (len(s.Clusters) != len(resourceStatusMap)) {
-		klog.V(4).Infof("Clusters differs from the size: clusters = %v, statusMap = %v, resourceStatusMap = %v", s.Clusters, statusMap, resourceStatusMap )
+		klog.V(4).Infof("Clusters differs from the size: clusters = %v, statusMap = %v, resourceStatusMap = %v", s.Clusters, statusMap, resourceStatusMap)
 		return true
 	}
 	for _, status := range s.Clusters {
@@ -224,7 +234,9 @@ func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, 
 			return true
 		}
 		if !reflect.DeepEqual(resourceStatusMap[status.Name], status.RemoteStatus) {
-			klog.V(4).Infof("Clusters resource status differ: %v VS %v", resourceStatusMap[status.Name], status.RemoteStatus)
+			diff := cmp.Diff(resourceStatusMap[status.Name], status.RemoteStatus)
+			klog.V(4).Infof("Clusters resource status differ: %#v VS %#v", resourceStatusMap[status.Name], status.RemoteStatus)
+			klog.V(4).Infof("Diff between clusters resources: %s", diff)
 			return true
 		}
 	}
@@ -277,4 +289,26 @@ func (s *GenericFederatedStatus) setPropagationCondition(reason AggregateReason,
 	}
 
 	return updateRequired
+}
+
+func normalizeStatus(collectedResourceStatus CollectedResourceStatus) (*CollectedResourceStatus, error) {
+	cleanedStatus := CollectedResourceStatus{
+		StatusMap:        map[string]interface{}{},
+		ResourcesUpdated: collectedResourceStatus.ResourcesUpdated,
+	}
+
+	for key, value := range collectedResourceStatus.StatusMap {
+		content, err := json.Marshal(value)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to marshall collected resource status for cluster %s", key)
+		}
+		var status interface{}
+		err = json.Unmarshal(content, &status)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to unmarshall collected resource status as interface for cluster %s", key)
+		}
+		cleanedStatus.StatusMap[key] = status
+	}
+
+	return &cleanedStatus, nil
 }

@@ -7,6 +7,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/go-logr/zapr v0.2.0 // indirect
+	github.com/google/go-cmp v0.5.2
 	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
