@@ -21,8 +21,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-
 	"github.com/pkg/errors"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -143,7 +141,7 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 	}
 
 	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, *normalizedCollectedResourceStatus, resourceStatusCollection)
-	//changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus, resourceStatusCollection)
+
 	if !changed {
 		return false, nil
 	}
@@ -234,9 +232,7 @@ func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, 
 			return true
 		}
 		if !reflect.DeepEqual(resourceStatusMap[status.Name], status.RemoteStatus) {
-			diff := cmp.Diff(resourceStatusMap[status.Name], status.RemoteStatus)
-			klog.V(4).Infof("Clusters resource status differ: %#v VS %#v", resourceStatusMap[status.Name], status.RemoteStatus)
-			klog.V(4).Infof("Diff between clusters resources: %s", diff)
+			klog.V(4).Infof("Clusters resource status differ: %v VS %v", resourceStatusMap[status.Name], status.RemoteStatus)
 			return true
 		}
 	}
