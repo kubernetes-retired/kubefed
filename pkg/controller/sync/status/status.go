@@ -288,6 +288,9 @@ func (s *GenericFederatedStatus) setPropagationCondition(reason AggregateReason,
 }
 
 func normalizeStatus(collectedResourceStatus CollectedResourceStatus) (*CollectedResourceStatus, error) {
+	if len(collectedResourceStatus.StatusMap) == 0 {
+		return &collectedResourceStatus, nil
+	}
 	cleanedStatus := CollectedResourceStatus{
 		StatusMap:        map[string]interface{}{},
 		ResourcesUpdated: collectedResourceStatus.ResourcesUpdated,
