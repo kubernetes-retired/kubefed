@@ -129,6 +129,14 @@ func federatedTypeValidationSchema(templateSchema map[string]v1.JSONSchemaProps)
 					},
 				},
 			},
+			"retainCustomFields": {
+				Type: "array",
+				Items: &v1.JSONSchemaPropsOrArray{
+					Schema: &v1.JSONSchemaProps{
+						Type: "string",
+					},
+				},
+			},
 		},
 	})
 	if templateSchema != nil {

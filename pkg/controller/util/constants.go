@@ -46,6 +46,9 @@ const (
 	ReplicasField       = "replicas"
 	RetainReplicasField = "retainReplicas"
 
+	// Custom fields
+	RetainCustomFields = "retainCustomFields"
+
 	// Template fields
 	TemplateField = "template"
 

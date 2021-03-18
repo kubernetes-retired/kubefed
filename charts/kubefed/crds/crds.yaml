@@ -78,6 +78,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -211,6 +215,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -344,6 +352,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               retainReplicas:
                 type: boolean
               template:
@@ -479,6 +491,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -610,6 +626,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -743,6 +763,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -876,6 +900,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               retainReplicas:
                 type: boolean
               template:
@@ -1009,6 +1037,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -1142,6 +1174,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -1275,6 +1311,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              retainCustomFields:
+                items:
+                  type: string
+                type: array
               template:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true

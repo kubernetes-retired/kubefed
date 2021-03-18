@@ -17,6 +17,8 @@ limitations under the License.
 package dispatch
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -41,6 +43,10 @@ func RetainClusterFields(targetKind string, desiredObj, clusterObj, fedObj *unst
 	}
 	if targetKind == util.ServiceAccountKind {
 		return retainServiceAccountFields(desiredObj, clusterObj)
+	}
+	err := retainCustomFields(desiredObj, clusterObj, fedObj)
+	if err != nil {
+		return nil
 	}
 	return retainReplicas(desiredObj, clusterObj, fedObj)
 }
@@ -161,6 +167,35 @@ func retainReplicas(desiredObj, clusterObj, fedObj *unstructured.Unstructured) e
 			err := unstructured.SetNestedField(desiredObj.Object, replicas, util.SpecField, util.ReplicasField)
 			if err != nil {
 				return err
+			}
+		}
+	}
+	return nil
+}
+
+func retainCustomFields(desiredObj, clusterObj, fedObj *unstructured.Unstructured) error {
+	fields, ok, err := unstructured.NestedStringSlice(fedObj.Object, util.SpecField, util.RetainCustomFields)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return nil
+	}
+	if len(fields) > 0 {
+		for _, field := range fields {
+			fieldArray := strings.Split(field, ".")
+			unstructured.RemoveNestedField(desiredObj.Object, fieldArray...)
+			var val interface{}
+			val, ok, err = unstructured.NestedFieldCopy(clusterObj.Object, fieldArray...)
+			if err != nil {
+				return err
+			}
+			if ok {
+				err = unstructured.SetNestedField(desiredObj.Object, val, fieldArray...)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

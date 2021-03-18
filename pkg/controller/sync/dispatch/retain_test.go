@@ -171,3 +171,88 @@ func TestRetainHealthCheckNodePortInServiceFields(t *testing.T) {
 		})
 	}
 }
+
+func TestRetainCustomFields(t *testing.T) {
+	fields := []interface{}{"spec.paused", "spec.replicas"}
+	testCases := map[string]struct {
+		retainCustomFields []interface{}
+		desiredPaused      bool
+		clusterPaused      bool
+		expectedPaused     bool
+		desiredReplicas    int64
+		clusterReplicas    int64
+		expectedReplicas   int64
+	}{
+		"replicas and pasued not retained when retainCustomFields=[]string{} or is not present": {
+			retainCustomFields: []interface{}{},
+			desiredReplicas:    1,
+			clusterReplicas:    2,
+			expectedReplicas:   1,
+			desiredPaused:      true,
+			clusterPaused:      false,
+			expectedPaused:     true,
+		},
+		"replicas and pasued retained when retainReplicas=[]string{\"spec.paused\", \"spec.replicas\"}": {
+			retainCustomFields: fields,
+			desiredReplicas:    1,
+			clusterReplicas:    2,
+			expectedReplicas:   2,
+			desiredPaused:      true,
+			clusterPaused:      false,
+			expectedPaused:     false,
+		},
+	}
+
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			desiredObj := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"replicas": testCase.desiredReplicas,
+						"paused":   testCase.desiredPaused,
+					},
+				},
+			}
+			clusterObj := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"replicas": testCase.clusterReplicas,
+						"paused":   testCase.clusterPaused,
+					},
+				},
+			}
+			fedObj := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"retainCustomFields": testCase.retainCustomFields,
+					},
+				},
+			}
+			if err := RetainClusterFields("", desiredObj, clusterObj, fedObj); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			paused, ok, err := unstructured.NestedBool(desiredObj.Object, util.SpecField, "paused")
+			if !ok {
+				t.Fatalf("Field 'spec.paused' not found")
+			}
+			if err != nil {
+				t.Fatalf("An unexpected error occurred")
+			}
+			if paused != testCase.expectedPaused {
+				t.Fatalf("Expected %v paused when retainCustomFields=%v, got %v", testCase.expectedPaused, testCase.retainCustomFields, paused)
+			}
+
+			replicas, ok, err := unstructured.NestedInt64(desiredObj.Object, util.SpecField, util.ReplicasField)
+			if !ok {
+				t.Fatalf("Field 'spec.replicas' not found")
+			}
+			if err != nil {
+				t.Fatalf("An unexpected error occurred")
+			}
+			if replicas != testCase.expectedReplicas {
+				t.Fatalf("Expected %d replicas when retainCustomFields=%v, got %d", testCase.expectedReplicas, testCase.retainCustomFields, replicas)
+			}
+		})
+	}
+}

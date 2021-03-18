@@ -904,9 +904,17 @@ conditional, an explanation will be provided in a subsequent section.
 | All            | metadata.annotations      | Always      | The annotations field is intended to be managed by controllers in member clusters. |
 | All            | metadata.finalizers       | Always      | The finalizers field is intended to be managed by controllers in member clusters.  |
 | All            | metadata.resourceVersion  | Always      | Updates require the most recent resourceVersion for concurrency control.           |
+| All            | custom fields             | Conditional | A controller may be managing this fields.                                          |
 | Scalable       | spec.replicas             | Conditional | The HPA controller may be managing the replica count of a scalable resource.       |
 | Service        | spec.clusterIP,spec.ports | Always      | A controller may be managing these fields.                                         |
 | ServiceAccount | secrets                   | Conditional | A controller may be managing this field.                                           |
+
+### Custom Fields Retention
+For some resources that the cluster controller may be managing some fields,
+retention of these fields is controlled by the `retainCustomFields` field 
+of the federated resource. `retainCustomFields` is a list of the field path.
+For example,  set `retainCustomFields` to `["spec.replicas", "spec.paused"]`,
+then it will retain `spec.replicas` and `spec.paused`.
 
 ### Scalable
 
