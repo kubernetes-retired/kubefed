@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"os"
 
+	_ "sigs.k8s.io/controller-runtime/pkg/metrics" // for workqueue metrics registration
+
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for GCP, Azure, Openstack, etc
 	"k8s.io/component-base/logs"
