@@ -131,6 +131,8 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 		return false, errors.Wrapf(err, "Failed to unmarshall to generic resource")
 	}
 
+	// we apply to collectedResourceStatus the same marshalling applied to GenericFederatedResource
+	// so the resources can be actually comparable later on
 	normalizedCollectedResourceStatus, err := normalizeStatus(collectedResourceStatus)
 	if err != nil {
 		return false, errors.Wrap(err, "Failed to normalize status")
