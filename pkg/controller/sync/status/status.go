@@ -225,7 +225,7 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, res
 // clustersDiffer checks whether `status.clusters` differs from the
 // given status map.
 func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}, resourceStatusCollection bool) bool {
-	if len(s.Clusters) != len(statusMap) || resourceStatusCollection && (len(s.Clusters) != len(resourceStatusMap)) {
+	if len(s.Clusters) != len(statusMap) || resourceStatusCollection && len(s.Clusters) != len(resourceStatusMap) {
 		klog.V(4).Infof("Clusters differs from the size: clusters = %v, statusMap = %v, resourceStatusMap = %v", s.Clusters, statusMap, resourceStatusMap)
 		return true
 	}
