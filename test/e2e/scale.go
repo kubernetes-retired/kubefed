@@ -20,6 +20,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/klog/v2"
 
@@ -33,6 +39,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 	"sigs.k8s.io/kubefed/pkg/kubefedctl"
 	kfenable "sigs.k8s.io/kubefed/pkg/kubefedctl/enable"
+	kfutil "sigs.k8s.io/kubefed/pkg/kubefedctl/util"
 	"sigs.k8s.io/kubefed/test/common"
 	"sigs.k8s.io/kubefed/test/e2e/framework"
 
@@ -120,12 +127,63 @@ var _ = Describe("Simulated Scale", func() {
 			joiningNamespace := memberCluster
 			secretName := memberCluster
 
-			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
+			_, errJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
 				hostConfig, hostConfig, hostNamespace,
 				joiningNamespace, hostCluster, memberCluster,
 				secretName, apiextv1.NamespaceScoped, false, false)
 
+			// rejoin cluster, and secret not change
 			_, errReJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, false)
+
+			// serviceaccount token recreate
+			saName := kfutil.ClusterServiceAccountName(memberCluster, hostCluster)
+			var deleteSecret sync.Once
+			err = wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+				sa, err := client.CoreV1().ServiceAccounts(joiningNamespace).Get(
+					context.Background(), saName, metav1.GetOptions{},
+				)
+				if err != nil {
+					return false, nil
+				}
+
+				// delete secret, make token regenerate
+				deleteSecret.Do(func() {
+					for _, objReference := range sa.Secrets {
+						saSecretName := objReference.Name
+						secret, err := client.CoreV1().Secrets(joiningNamespace).Get(
+							context.Background(), saSecretName, metav1.GetOptions{},
+						)
+						if err != nil {
+							tl.Fatalf("Error get sa secret %s: %v", saSecretName, err)
+						}
+						if secret.Type == corev1.SecretTypeServiceAccountToken {
+							if err := client.CoreV1().Secrets(joiningNamespace).Delete(context.TODO(), saSecretName, metav1.DeleteOptions{}); err != nil {
+								tl.Fatalf("Error delete secret %s: %v", secretName, err)
+							}
+						}
+					}
+				})
+				for _, objReference := range sa.Secrets {
+					saSecretName := objReference.Name
+					secret, err := client.CoreV1().Secrets(joiningNamespace).Get(
+						context.Background(), saSecretName, metav1.GetOptions{},
+					)
+					if err != nil {
+						return false, nil
+					}
+					if secret.Type == corev1.SecretTypeServiceAccountToken {
+						klog.V(2).Infof("Using secret named: %s", secret.Name)
+						return true, nil
+					}
+				}
+				return false, nil
+			})
+
+			// rejoin cluster, and secret change
+			_, errReJoinAfterChange := kubefedctl.TestOnlyJoinClusterForNamespace(
 				hostConfig, hostConfig, hostNamespace,
 				joiningNamespace, hostCluster, memberCluster,
 				secretName, apiextv1.NamespaceScoped, false, false)
@@ -133,10 +191,14 @@ var _ = Describe("Simulated Scale", func() {
 			defer func() {
 				framework.DeleteNamespace(client, joiningNamespace)
 			}()
-			if err != nil {
+			if errJoin != nil {
 				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
 			}
 			if errReJoin != nil {
+				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
+			}
+
+			if errReJoinAfterChange != nil {
 				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
 			}
 		}
@@ -147,7 +209,7 @@ var _ = Describe("Simulated Scale", func() {
 			joiningNamespace := memberCluster
 			secretName := memberCluster
 
-			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
+			_, errJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
 				hostConfig, hostConfig, hostNamespace,
 				joiningNamespace, hostCluster, memberCluster,
 				secretName, apiextv1.NamespaceScoped, false, true)
@@ -157,7 +219,7 @@ var _ = Describe("Simulated Scale", func() {
 				joiningNamespace, hostCluster, memberCluster,
 				secretName, apiextv1.NamespaceScoped, false, true)
 
-			if err != nil {
+			if errJoin != nil {
 				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
 			}
 

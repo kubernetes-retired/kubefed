@@ -899,7 +899,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 					klog.ErrorS(err, "Could not update secret in host cluster", "secretName", secretName)
 					return nil, nil, err
 				}
-				klog.V(2).InfoS("Updated secret in host cluster", "secretName", secretName)
+				klog.InfoS("Updated secret in host cluster as member cluster's token changed", "secretName", secretName)
 				return secretUpdateResult, caBundle, nil
 			}
 		case err != nil && !apierrors.IsNotFound(err):
