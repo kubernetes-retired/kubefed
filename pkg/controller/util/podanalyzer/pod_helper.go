@@ -20,6 +20,8 @@ import (
 	"time"
 
 	api_v1 "k8s.io/api/core/v1"
+
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 type PodAnalysisResult struct {
@@ -41,8 +43,9 @@ const (
 // AnalyzePods calculates how many pods from the list are in one of
 // the meaningful (from the replica set perspective) states. This function is
 // a temporary workaround against the current lack of ownerRef in pods.
-func AnalyzePods(podList *api_v1.PodList, currentTime time.Time) PodAnalysisResult {
+func AnalyzePods(podList *api_v1.PodList, currentTime time.Time) (PodAnalysisResult, ctlutil.ReconciliationStatus) {
 	result := PodAnalysisResult{}
+	unschedulableRightNow := 0
 	for _, pod := range podList.Items {
 		result.Total++
 		for _, condition := range pod.Status.Conditions {
@@ -52,11 +55,23 @@ func AnalyzePods(podList *api_v1.PodList, currentTime time.Time) PodAnalysisResu
 				}
 			} else if condition.Type == api_v1.PodScheduled &&
 				condition.Status == api_v1.ConditionFalse &&
-				condition.Reason == api_v1.PodReasonUnschedulable &&
-				condition.LastTransitionTime.Add(UnschedulableThreshold).Before(currentTime) {
-				result.Unschedulable++
+				condition.Reason == api_v1.PodReasonUnschedulable {
+				unschedulableRightNow++
+				if condition.LastTransitionTime.Add(UnschedulableThreshold).Before(currentTime) {
+					result.Unschedulable++
+				}
 			}
 		}
 	}
-	return result
+	if unschedulableRightNow != result.Unschedulable {
+		// We get the reconcile event almost immediately after  the status of a
+		// pod changes, however we will not consider the unschedulable pods as
+		// unschedulable immediately (until 60 secs), because we don't  want to
+		// change state frequently (it can lead to continuously moving replicas
+		// around). We need to reconcile again after a timeout. We use the return
+		// status to indicate retry for reconcile.
+		return result, ctlutil.StatusNeedsRecheck
+	}
+
+	return result, ctlutil.StatusAllOK
 }
