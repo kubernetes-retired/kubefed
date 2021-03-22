@@ -41,3 +41,7 @@ func main() {
 		os.Exit(1) //nolint:gocritic
 	}
 }
+
+// Without init, the _ imports do not initialize before app package
+func init() {
+}
