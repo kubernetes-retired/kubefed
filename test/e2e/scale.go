@@ -19,12 +19,12 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog/v2"
 	"strings"
 
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
-
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -111,34 +111,7 @@ var _ = Describe("Simulated Scale", func() {
 			}
 		}
 
-		for i := 0; i < framework.TestContext.ScaleClusterCount; i++ {
-			memberCluster := fmt.Sprintf("scale-member-rejoin-errset-%d-%s", i, nameToken)
-			joiningNamespace := memberCluster
-			secretName := memberCluster
-
-			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
-				hostConfig, hostConfig, hostNamespace,
-				joiningNamespace, hostCluster, memberCluster,
-				secretName, apiextv1.NamespaceScoped, false, true)
-
-			_, errReJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
-				hostConfig, hostConfig, hostNamespace,
-				joiningNamespace, hostCluster, memberCluster,
-				secretName, apiextv1.NamespaceScoped, false, true)
-
-			defer func() {
-				framework.DeleteNamespace(client, joiningNamespace)
-			}()
-			if err != nil {
-				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
-			}
-
-			if errReJoin == nil {
-				tl.Fatalf("Should error rejoining cluster %s", memberCluster)
-			}
-		}
-
-		// rejoin when errorOnExisting=false
+		// rejoin errorOnExisting=false
 		for i := 0; i < framework.TestContext.ScaleClusterCount; i++ {
 			memberCluster := fmt.Sprintf("scale-member-rejoin-%d-%s", i, nameToken)
 			memberClusters = append(memberClusters, memberCluster)
@@ -162,10 +135,34 @@ var _ = Describe("Simulated Scale", func() {
 			if err != nil {
 				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
 			}
-
 			if errReJoin != nil {
 				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
 			}
+		}
+		// rejoin errorOnExisting=true
+		for i := 0; i < framework.TestContext.ScaleClusterCount; i++ {
+			memberCluster := fmt.Sprintf("scale-member-rejoin-erroronexisting-%d-%s", i, nameToken)
+			joiningNamespace := memberCluster
+			secretName := memberCluster
+
+			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, true)
+
+			_, errReJoin := kubefedctl.TestOnlyJoinClusterForNamespace(
+				hostConfig, hostConfig, hostNamespace,
+				joiningNamespace, hostCluster, memberCluster,
+				secretName, apiextv1.NamespaceScoped, false, true)
+
+			if err != nil {
+				tl.Fatalf("Error joining cluster %s: %v", memberCluster, err)
+			}
+
+			if errReJoin == nil {
+				tl.Fatalf("Should error rejoining cluster %s", memberCluster)
+			}
+			klog.InfoS("expected error when rejoin cluster with errorOnExisting=true", "err", errReJoin)
 		}
 
 		// Override naming methods to allow the sync controller to

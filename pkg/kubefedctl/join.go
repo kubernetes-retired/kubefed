@@ -261,7 +261,7 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 	}
 
 	secret, caBundle, err := populateSecretInHostCluster(clusterClientset, hostClientset,
-		saName, kubefedNamespace, joiningNamespace, joiningClusterName, secretName, dryRun)
+		saName, kubefedNamespace, joiningNamespace, joiningClusterName, secretName, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Error creating secret in host cluster: %s due to: %v", hostClusterName, err)
 		return nil, err
@@ -813,8 +813,8 @@ func createHealthCheckClusterRoleAndBinding(clientset kubeclient.Interface, saNa
 // hostClientset, putting it in a secret named secretName in the provided
 // namespace.
 func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Interface,
-	saName, hostNamespace, joiningNamespace, joiningClusterName, secretName string, errorOnExisting bool,
-	dryRun bool) (*corev1.Secret, []byte, error) {
+	saName, hostNamespace, joiningNamespace, joiningClusterName, secretName string,
+	dryRun bool, errorOnExisting bool) (*corev1.Secret, []byte, error) {
 	klog.V(2).Infof("Creating cluster credentials secret in host cluster")
 
 	if dryRun {
@@ -878,7 +878,7 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 
 	// caBundle is optional so no error is suggested if it is not
 	// found in the secret.
-	caBundle := secret.Data["ca.crt"]
+	caBundle := secret.Data[ctlutil.CaCrtKey]
 
 	//--error-on-existing is set to true and the secret exists, return an error.
 	//--error-on-existing is set to false and the secret exists, just update it.
@@ -889,23 +889,23 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 			return nil, nil, errors.Errorf("host cluster secret %s already exists", secretName)
 		case err == nil && !errorOnExisting:
 			if reflect.DeepEqual(getHostSecret.Data[ctlutil.TokenKey], token) {
-				klog.V(2).Infof("Not need update secret in host cluster named: %s", secretName)
+				klog.V(2).InfoS("Not need update secret in host cluster", "secretName", secretName)
 				return getHostSecret, caBundle, nil
 			} else {
 				secretUpdateResult, err := hostClientset.CoreV1().Secrets(hostNamespace).Update(
 					context.Background(), &v1Secret, metav1.UpdateOptions{},
 				)
 				if err != nil {
-					klog.Errorf("Could not update secret: %s in host cluster: %v", secretName, err)
+					klog.ErrorS(err, "Could not update secret in host cluster", "secretName", secretName)
 					return nil, nil, err
 				}
-				klog.V(2).Infof("Updated secret in host cluster named: %s", secretName)
+				klog.V(2).InfoS("Updated secret in host cluster", "secretName", secretName)
 				return secretUpdateResult, caBundle, nil
 			}
 		case err != nil && !apierrors.IsNotFound(err):
 			return nil, nil, err
 		case err != nil && apierrors.IsNotFound(err):
-			klog.V(2).Infof("Need create secret in host cluster named: %s", secretName)
+			klog.V(2).InfoS("Need create secret in host cluster", "secretName", secretName)
 		}
 	}
 
