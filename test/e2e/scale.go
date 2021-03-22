@@ -19,12 +19,14 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"k8s.io/klog/v2"
 	"strings"
+
+	"k8s.io/klog/v2"
 
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
+
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -116,7 +118,6 @@ var _ = Describe("Simulated Scale", func() {
 			memberCluster := fmt.Sprintf("scale-member-rejoin-%d-%s", i, nameToken)
 			memberClusters = append(memberClusters, memberCluster)
 			joiningNamespace := memberCluster
-
 			secretName := memberCluster
 
 			_, err := kubefedctl.TestOnlyJoinClusterForNamespace(
@@ -142,6 +143,7 @@ var _ = Describe("Simulated Scale", func() {
 		// rejoin errorOnExisting=true
 		for i := 0; i < framework.TestContext.ScaleClusterCount; i++ {
 			memberCluster := fmt.Sprintf("scale-member-rejoin-erroronexisting-%d-%s", i, nameToken)
+			memberClusters = append(memberClusters, memberCluster)
 			joiningNamespace := memberCluster
 			secretName := memberCluster
 
