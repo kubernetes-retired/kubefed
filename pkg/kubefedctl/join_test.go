@@ -97,7 +97,6 @@ var _ = Describe("Kubefedctl", func() {
 				Expect(err).To(BeNil())
 			}
 
-
 			// Set a fakeProxyServer as URL
 			clusterConfig.Proxy = http.ProxyURL(u)
 

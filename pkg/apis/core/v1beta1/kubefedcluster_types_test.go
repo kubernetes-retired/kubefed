@@ -32,17 +32,8 @@ var _ = Describe("KubefedCluster", func() {
 		created, fetched *KubeFedCluster
 	)
 
-	BeforeEach(func() {
-
-	})
-
-	AfterEach(func() {
-
-	})
-
 	Context("Create API", func() {
-
-		It("should create a kubefed cluster successfully", func() {
+		It("should create a kubefed cluster setting a proxy url", func() {
 
 			created = &KubeFedCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -54,6 +45,35 @@ var _ = Describe("KubefedCluster", func() {
 					ProxyURL:    "socks5://example.com",
 					SecretRef: LocalSecretReference{
 						Name: "foo",
+					},
+				},
+			}
+
+			key, _ = client.ObjectKeyFromObject(created)
+
+			By("creating an API obj")
+			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
+
+			fetched = &KubeFedCluster{}
+			Expect(k8sClient.Get(context.TODO(), key, fetched)).To(Succeed())
+			Expect(fetched).To(Equal(created))
+
+			By("deleting the created object")
+			Expect(k8sClient.Delete(context.TODO(), created)).To(Succeed())
+			Expect(k8sClient.Get(context.TODO(), key, created)).ToNot(Succeed())
+		})
+
+		It("should create a kubefed cluster without a proxy url and an empty secret", func() {
+
+			created = &KubeFedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: KubeFedClusterSpec{
+					APIEndpoint: "https://my.example.com:80/path/to/endpoint",
+					SecretRef: LocalSecretReference{
+						Name: "",
 					},
 				},
 			}
