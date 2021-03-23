@@ -276,8 +276,20 @@ func joinClusterForNamespace(hostConfig, clusterConfig *rest.Config, kubefedName
 		caBundle = clusterConfig.CAData
 	}
 
+	var proxyURL string
+	if clusterConfig.Proxy != nil {
+		url, err := clusterConfig.Proxy(nil)
+		if err != nil {
+			klog.V(2).Infof("Error getting proxy URL for host %s: %w", clusterConfig.Host, err)
+			return nil, errors.Errorf("failed to create proxy URL request for kubefed cluster: %v", err)
+		}
+		if url != nil {
+			proxyURL = url.String()
+		}
+	}
+
 	kubefedCluster, err := createKubeFedCluster(client, joiningClusterName, clusterConfig.Host,
-		secret.Name, kubefedNamespace, caBundle, disabledTLSValidations, dryRun, errorOnExisting)
+		secret.Name, kubefedNamespace, caBundle, disabledTLSValidations, proxyURL, dryRun, errorOnExisting)
 	if err != nil {
 		klog.V(2).Infof("Failed to create federated cluster resource: %v", err)
 		return nil, err
@@ -319,7 +331,7 @@ func performPreflightChecks(clusterClientset kubeclient.Interface, name, hostClu
 // the cluster and secret.
 func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEndpoint,
 	secretName, kubefedNamespace string, caBundle []byte, disabledTLSValidations []fedv1b1.TLSValidation,
-	dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
+	proxyURL string, dryRun, errorOnExisting bool) (*fedv1b1.KubeFedCluster, error) {
 	fedCluster := &fedv1b1.KubeFedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: kubefedNamespace,
@@ -332,6 +344,7 @@ func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEn
 				Name: secretName,
 			},
 			DisabledTLSValidations: disabledTLSValidations,
+			ProxyURL:               proxyURL,
 		},
 	}
 

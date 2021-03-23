@@ -503,6 +503,9 @@ spec:
                 items:
                   type: string
                 type: array
+              proxyURL:
+                description: ProxyURL allows to set proxy URL for the cluster.
+                type: string
               secretRef:
                 description: Name of the secret containing the token required to access
                   the member cluster. The secret needs to exist in the same namespace
