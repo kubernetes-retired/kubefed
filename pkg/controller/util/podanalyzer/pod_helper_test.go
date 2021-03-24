@@ -24,6 +24,8 @@ import (
 
 	api_v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -38,7 +40,7 @@ func TestAnalyze(t *testing.T) {
 				},
 			},
 		})
-	podUnschedulable := newPod("pU",
+	podUnschedulableTimeElapsed := newPod("pU",
 		api_v1.PodStatus{
 			Phase: api_v1.PodPending,
 			Conditions: []api_v1.PodCondition{
@@ -50,25 +52,40 @@ func TestAnalyze(t *testing.T) {
 				},
 			},
 		})
+	podUnschedulableRightNow := newPod("pU",
+		api_v1.PodStatus{
+			Phase: api_v1.PodPending,
+			Conditions: []api_v1.PodCondition{
+				{
+					Type:               api_v1.PodScheduled,
+					Status:             api_v1.ConditionFalse,
+					Reason:             api_v1.PodReasonUnschedulable,
+					LastTransitionTime: metav1.Time{Time: now},
+				},
+			},
+		})
 	podOther := newPod("pO",
 		api_v1.PodStatus{
 			Phase:      api_v1.PodPending,
 			Conditions: []api_v1.PodCondition{},
 		})
 
-	result := AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podRunning, *podRunning, *podRunning, *podUnschedulable, *podUnschedulable}}, now)
+	result, status := AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podRunning, *podRunning,
+		*podRunning, *podUnschedulableTimeElapsed, *podUnschedulableTimeElapsed, *podUnschedulableRightNow}}, now)
 	assert.Equal(t, PodAnalysisResult{
-		Total:           5,
+		Total:           6,
 		RunningAndReady: 3,
 		Unschedulable:   2,
 	}, result)
+	assert.Equal(t, status, ctlutil.StatusNeedsRecheck)
 
-	result = AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podOther}}, now)
+	result, status = AnalyzePods(&api_v1.PodList{Items: []api_v1.Pod{*podOther}}, now)
 	assert.Equal(t, PodAnalysisResult{
 		Total:           1,
 		RunningAndReady: 0,
 		Unschedulable:   0,
 	}, result)
+	assert.Equal(t, status, ctlutil.StatusAllOK)
 }
 
 func newPod(name string, status api_v1.PodStatus) *api_v1.Pod {

@@ -190,7 +190,7 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctluti
 	}
 
 	key := qualifiedName.String()
-	result, err := s.GetSchedulingResult(rsp, qualifiedName, clusterNames)
+	result, status, err := s.GetSchedulingResult(rsp, qualifiedName, clusterNames)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to compute the schedule information while reconciling RSP named %q", key))
 		return ctlutil.StatusError
@@ -202,7 +202,7 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctluti
 		return ctlutil.StatusError
 	}
 
-	return ctlutil.StatusAllOK
+	return status
 }
 
 // The list of clusters could come from any target informer
@@ -219,7 +219,8 @@ func (s *ReplicaScheduler) clusterNames() ([]string, error) {
 	return clusterNames, nil
 }
 
-func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference, qualifiedName ctlutil.QualifiedName, clusterNames []string) (map[string]int64, error) {
+func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference,
+	qualifiedName ctlutil.QualifiedName, clusterNames []string) (map[string]int64, ctlutil.ReconciliationStatus, error) {
 	key := qualifiedName.String()
 
 	objectGetter := func(clusterName, key string) (interface{}, bool, error) {
@@ -250,9 +251,9 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		return podList, nil
 	}
 
-	currentReplicasPerCluster, estimatedCapacity, err := clustersReplicaState(clusterNames, key, objectGetter, podsGetter)
+	currentReplicasPerCluster, estimatedCapacity, status, err := clustersReplicaState(clusterNames, key, objectGetter, podsGetter)
 	if err != nil {
-		return nil, err
+		return nil, status, err
 	}
 
 	// TODO: Move this to API defaulting logic
@@ -263,7 +264,11 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 	}
 
 	plnr := planner.NewPlanner(rsp)
-	return schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity)
+	scheduleResult, err := schedule(plnr, key, clusterNames, currentReplicasPerCluster, estimatedCapacity)
+	if err != nil {
+		return nil, status, err
+	}
+	return scheduleResult, status, err
 }
 
 func schedule(planner *planner.Planner, key string, clusterNames []string, currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64) (map[string]int64, error) {
@@ -311,14 +316,16 @@ func clustersReplicaState(
 	clusterNames []string,
 	key string,
 	objectGetter func(clusterName string, key string) (interface{}, bool, error),
-	podsGetter func(clusterName string, obj *unstructured.Unstructured) (*corev1.PodList, error)) (currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64, err error) {
+	podsGetter func(clusterName string, obj *unstructured.Unstructured) (*corev1.PodList, error)) (
+	currentReplicasPerCluster map[string]int64, estimatedCapacity map[string]int64,
+	status ctlutil.ReconciliationStatus, err error) {
 	currentReplicasPerCluster = make(map[string]int64)
 	estimatedCapacity = make(map[string]int64)
 
 	for _, clusterName := range clusterNames {
 		obj, exists, err := objectGetter(clusterName, key)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, status, err
 		}
 		if !exists {
 			continue
@@ -327,14 +334,14 @@ func clustersReplicaState(
 		unstructuredObj := obj.(*unstructured.Unstructured)
 		replicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "spec", "replicas")
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "Error retrieving 'replicas' field")
+			return nil, nil, status, errors.Wrap(err, "Error retrieving 'replicas' field")
 		}
 		if !ok {
 			replicas = int64(0)
 		}
-		readyReplicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyreplicas")
+		readyReplicas, ok, err := unstructured.NestedInt64(unstructuredObj.Object, "status", "readyReplicas")
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "Error retrieving 'readyreplicas' field")
+			return nil, nil, status, errors.Wrap(err, "Error retrieving 'readyreplicas' field")
 		}
 		if !ok {
 			readyReplicas = int64(0)
@@ -346,16 +353,17 @@ func clustersReplicaState(
 			currentReplicasPerCluster[clusterName] = int64(0)
 			podList, err := podsGetter(clusterName, unstructuredObj)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, status, err
 			}
 
-			podStatus := podanalyzer.AnalyzePods(podList, time.Now())
-			currentReplicasPerCluster[clusterName] = int64(podStatus.RunningAndReady) // include pending as well?
-			unschedulable := int64(podStatus.Unschedulable)
+			podResult := podanalyzer.PodAnalysisResult{}
+			podResult, status = podanalyzer.AnalyzePods(podList, time.Now())
+			currentReplicasPerCluster[clusterName] = int64(podResult.RunningAndReady) // include pending as well?
+			unschedulable := int64(podResult.Unschedulable)
 			if unschedulable > 0 {
 				estimatedCapacity[clusterName] = replicas - unschedulable
 			}
 		}
 	}
-	return currentReplicasPerCluster, estimatedCapacity, nil
+	return currentReplicasPerCluster, estimatedCapacity, status, nil
 }
