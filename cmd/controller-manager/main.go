@@ -42,6 +42,4 @@ func main() {
 	}
 }
 
-// Without init, the _ imports do not initialize before app package
-func init() {
-}
+func init() {}
