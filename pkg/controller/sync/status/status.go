@@ -125,15 +125,25 @@ type CollectedResourceStatus struct {
 // whether status should be written to the API.
 func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateReason, collectedStatus CollectedPropagationStatus, collectedResourceStatus CollectedResourceStatus, resourceStatusCollection bool) (bool, error) {
 	resource := &GenericFederatedResource{}
+
 	err := util.UnstructuredToInterface(fedObject, resource)
 	if err != nil {
 		return false, errors.Wrapf(err, "Failed to unmarshall to generic resource")
 	}
+
+	// we apply to collectedResourceStatus the same marshalling applied to GenericFederatedResource
+	// so the resources can be actually comparable later on
+	normalizedCollectedResourceStatus, err := normalizeStatus(collectedResourceStatus)
+	if err != nil {
+		return false, errors.Wrap(err, "Failed to normalize status")
+	}
+
 	if resource.Status == nil {
 		resource.Status = &GenericFederatedStatus{}
 	}
 
-	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, collectedResourceStatus, resourceStatusCollection)
+	changed := resource.Status.update(fedObject.GetGeneration(), reason, collectedStatus, *normalizedCollectedResourceStatus, resourceStatusCollection)
+
 	if !changed {
 		return false, nil
 	}
@@ -177,7 +187,7 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 		}
 	}
 
-	clustersChanged := s.setClusters(collectedStatus.StatusMap, collectedResourceStatus.StatusMap)
+	clustersChanged := s.setClusters(collectedStatus.StatusMap, collectedResourceStatus.StatusMap, resourceStatusCollection)
 
 	// Indicate that changes were propagated if either status.clusters
 	// was changed or if existing resources were updated (which could
@@ -196,8 +206,8 @@ func (s *GenericFederatedStatus) update(generation int64, reason AggregateReason
 // setClusters sets the status.clusters slice from propagation and resource status
 // maps. Returns a boolean indication of whether the status.clusters was
 // modified.
-func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
-	if !s.clustersDiffer(statusMap, resourceStatusMap) {
+func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}, resourceStatusCollection bool) bool {
+	if !s.clustersDiffer(statusMap, resourceStatusMap, resourceStatusCollection) {
 		return false
 	}
 	s.Clusters = []GenericClusterStatus{}
@@ -214,9 +224,9 @@ func (s *GenericFederatedStatus) setClusters(statusMap PropagationStatusMap, res
 
 // clustersDiffer checks whether `status.clusters` differs from the
 // given status map.
-func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}) bool {
-	if len(s.Clusters) != len(statusMap) || len(s.Clusters) != len(resourceStatusMap) {
-		klog.V(4).Info("Clusters differs from the size")
+func (s *GenericFederatedStatus) clustersDiffer(statusMap PropagationStatusMap, resourceStatusMap map[string]interface{}, resourceStatusCollection bool) bool {
+	if len(s.Clusters) != len(statusMap) || resourceStatusCollection && len(s.Clusters) != len(resourceStatusMap) {
+		klog.V(4).Infof("Clusters differs from the size: clusters = %v, statusMap = %v, resourceStatusMap = %v", s.Clusters, statusMap, resourceStatusMap)
 		return true
 	}
 	for _, status := range s.Clusters {
@@ -277,4 +287,29 @@ func (s *GenericFederatedStatus) setPropagationCondition(reason AggregateReason,
 	}
 
 	return updateRequired
+}
+
+func normalizeStatus(collectedResourceStatus CollectedResourceStatus) (*CollectedResourceStatus, error) {
+	if len(collectedResourceStatus.StatusMap) == 0 {
+		return &collectedResourceStatus, nil
+	}
+	cleanedStatus := CollectedResourceStatus{
+		StatusMap:        map[string]interface{}{},
+		ResourcesUpdated: collectedResourceStatus.ResourcesUpdated,
+	}
+
+	for key, value := range collectedResourceStatus.StatusMap {
+		content, err := json.Marshal(value)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to marshall collected resource status for cluster %s", key)
+		}
+		var status interface{}
+		err = json.Unmarshal(content, &status)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to unmarshall collected resource status as interface for cluster %s", key)
+		}
+		cleanedStatus.StatusMap[key] = status
+	}
+
+	return &cleanedStatus, nil
 }

@@ -387,7 +387,7 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	}
 
 	collectedStatus, collectedResourceStatus := dispatcher.CollectedStatus()
-	klog.V(4).Infof("Setting the federated status '%v'", collectedResourceStatus)
+	klog.V(4).Infof("Setting the federated status '%v' for %s %q", collectedResourceStatus, kind, key)
 	return s.setFederatedStatus(fedResource, status.AggregateSuccess, &collectedStatus, &collectedResourceStatus, enableRawResourceStatusCollection)
 }
 
