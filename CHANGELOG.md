@@ -1,5 +1,29 @@
 # Unreleased
 
+# v0.7.0
+- [#1380](https://github.com/kubernetes-sigs/kubefed/pull/1380) 
+  fix: infinite reconciliation loop.
+- [#1385](https://github.com/kubernetes-sigs/kubefed/pull/1385) 
+  fix: replica rebalance reconciliation.
+- [#1377](https://github.com/kubernetes-sigs/kubefed/pull/1377) 
+  feat: add a proxy url field to kubefed clusters.
+- [#1382](https://github.com/kubernetes-sigs/kubefed/pull/1382) 
+  fix: register workqueue metrics in controller-runtime firstly.
+- [#1371](https://github.com/kubernetes-sigs/kubefed/pull/1371) 
+  chore: enable workqueue metrics for all controllers.
+- [#1360](https://github.com/kubernetes-sigs/kubefed/pull/1360) 
+  chore: remove FederatedIngress feature.
+- [#1367](https://github.com/kubernetes-sigs/kubefed/pull/1367) 
+  fix: webhook command.
+- [#1361](https://github.com/kubernetes-sigs/kubefed/pull/1361) 
+  feature: kubefedcluster use cadata in kubeconfig file.
+- [#1355](https://github.com/kubernetes-sigs/kubefed/pull/1355) 
+  feature: support DeleteOptions when deleting resources in member clusters.
+- [#1357](https://github.com/kubernetes-sigs/kubefed/pull/1357) 
+  chore: Upgrade dependencies.
+- [#1351](https://github.com/kubernetes-sigs/kubefed/pull/1351) 
+  chore: remove feature CrossClusterServiceDiscovery.
+
 # v0.6.1
 - [#1346](https://github.com/kubernetes-sigs/kubefed/pull/1346)
   fix: upgrade path broken from older versions than v0.6.0.
