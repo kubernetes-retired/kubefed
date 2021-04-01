@@ -117,7 +117,10 @@ func (w *asyncWorker) EnqueueWithDelay(qualifiedName QualifiedName, delay time.D
 func (w *asyncWorker) Run(stopChan <-chan struct{}) {
 	StartBackoffGC(w.backoff, stopChan)
 	w.deliverer.StartWithHandler(func(item *DelayingDelivererItem) {
-		w.queue.Add(item)
+		qualifiedName, ok := item.Value.(*QualifiedName)
+		if ok {
+			w.queue.Add(*qualifiedName)
+		}
 	})
 	go wait.Until(w.worker, w.timing.Interval, stopChan)
 
@@ -148,26 +151,32 @@ func (w *asyncWorker) deliver(qualifiedName QualifiedName, delay time.Duration, 
 }
 
 func (w *asyncWorker) worker() {
-	for {
-		obj, quit := w.queue.Get()
-		if quit {
-			return
-		}
-
-		item := obj.(*DelayingDelivererItem)
-		qualifiedName := item.Value.(*QualifiedName)
-		status := w.reconcile(*qualifiedName)
-		w.queue.Done(item)
-
-		switch status {
-		case StatusAllOK:
-			break
-		case StatusError:
-			w.EnqueueForError(*qualifiedName)
-		case StatusNeedsRecheck:
-			w.EnqueueForRetry(*qualifiedName)
-		case StatusNotSynced:
-			w.EnqueueForClusterSync(*qualifiedName)
-		}
+	for w.reconcileOnce() {
 	}
+}
+
+func (w *asyncWorker) reconcileOnce() bool {
+	obj, quit := w.queue.Get()
+	if quit {
+		return false
+	}
+	defer w.queue.Done(obj)
+
+	qualifiedName, ok := obj.(QualifiedName)
+	if !ok {
+		return true
+	}
+
+	status := w.reconcile(qualifiedName)
+	switch status {
+	case StatusAllOK:
+		break
+	case StatusError:
+		w.EnqueueForError(qualifiedName)
+	case StatusNeedsRecheck:
+		w.EnqueueForRetry(qualifiedName)
+	case StatusNotSynced:
+		w.EnqueueForClusterSync(qualifiedName)
+	}
+	return true
 }
