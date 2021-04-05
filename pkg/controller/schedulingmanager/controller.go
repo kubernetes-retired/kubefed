@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -198,8 +199,15 @@ func (c *SchedulingManager) reconcile(qualifiedName util.QualifiedName) util.Rec
 	}
 
 	federatedKind := typeConfig.GetFederatedType().Kind
+
+	fedNsAPIResource, err := c.getFederatedNamespaceAPIResource()
+	if err != nil {
+		runtime.HandleError(errors.Wrapf(err, "Unable to start plugin %s for %s due to missing FederatedTypeConfig for namespaces", federatedKind, schedulingKind))
+		return util.StatusError
+	}
+
 	klog.Infof("Starting plugin %s for %s", federatedKind, schedulingKind)
-	err = scheduler.StartPlugin(typeConfig)
+	err = scheduler.StartPlugin(typeConfig, fedNsAPIResource)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Error starting plugin %s for %s", federatedKind, schedulingKind))
 		return util.StatusError
@@ -230,4 +238,25 @@ func (c *SchedulingManager) stopScheduler(schedulingKind, typeConfigName string)
 		close(scheduler.stopChan)
 		c.schedulers.Delete(schedulingKind)
 	}
+}
+
+func (c *SchedulingManager) getFederatedNamespaceAPIResource() (*metav1.APIResource, error) {
+	qualifiedName := util.QualifiedName{
+		Namespace: c.config.KubeFedNamespace,
+		Name:      util.NamespaceName,
+	}
+
+	key := qualifiedName.String()
+	cachedObj, exists, err := c.store.GetByKey(key)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error retrieving %q from the informer cache", key)
+	}
+	if !exists {
+		return nil, errors.Errorf("Unable to find %q in the informer cache", key)
+	}
+
+	namespaceTypeConfig := cachedObj.(*corev1b1.FederatedTypeConfig)
+	apiResource := namespaceTypeConfig.GetFederatedType()
+
+	return &apiResource, nil
 }
