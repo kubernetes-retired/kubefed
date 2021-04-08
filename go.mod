@@ -5,8 +5,6 @@ go 1.14
 require (
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-logr/logr v0.3.0 // indirect
-	github.com/go-logr/zapr v0.2.0 // indirect
 	github.com/json-iterator/go v1.1.10
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
@@ -27,7 +25,7 @@ require (
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
 	k8s.io/kubectl v0.20.2
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
-	sigs.k8s.io/controller-runtime v0.6.3
+	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
+	sigs.k8s.io/controller-runtime v0.8.3
 	sigs.k8s.io/yaml v1.2.0
 )
