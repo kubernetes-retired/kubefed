@@ -92,7 +92,7 @@ func TestSelectedClusterNames(t *testing.T) {
 				}
 			}
 
-			selectedNames, err := selectedClusterNames(obj, clusters)
+			selectedNames, err := selectedClusterNames(obj, clusters, false)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}

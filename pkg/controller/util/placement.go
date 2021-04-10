@@ -90,6 +90,10 @@ func SetClusterNames(obj *unstructured.Unstructured, clusterNames []string) erro
 	return unstructured.SetNestedSlice(obj.Object, clusters, SpecField, PlacementField, ClustersField)
 }
 
+func SetClusterSelector(obj *unstructured.Unstructured, clusterSelector map[string]string) error {
+	return unstructured.SetNestedStringMap(obj.Object, clusterSelector, SpecField, PlacementField, ClusterSelectorField, MatchLabelsField)
+}
+
 // ComputeNamespacedPlacement determines placement for namespaced
 // federated resources (e.g. FederatedConfigMap).
 //
