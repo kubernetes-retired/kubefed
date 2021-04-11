@@ -61,7 +61,7 @@ func TestDeduplicate(t *testing.T) {
 			})
 			return StatusAllOK
 		},
-		WorkerTiming{},
+		WorkerOptions{},
 	)
 
 	// run worker

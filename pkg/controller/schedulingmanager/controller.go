@@ -92,7 +92,7 @@ func newSchedulingManager(config *util.ControllerConfig) (*SchedulingManager, er
 		schedulers: util.NewSafeMap(),
 	}
 
-	c.worker = util.NewReconcileWorker("schedulingmanager", c.reconcile, util.WorkerTiming{})
+	c.worker = util.NewReconcileWorker("schedulingmanager", c.reconcile, util.WorkerOptions{})
 
 	var err error
 	c.store, c.controller, err = util.NewGenericInformer(
