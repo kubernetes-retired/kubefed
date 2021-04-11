@@ -35,7 +35,7 @@ help you get started.
 
 The KubeFed deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
 `kube-apiserver` >= v1.13 being installed in the path. The `kubebuilder`
-([v1.0.8](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.8)
+([v2.3.1](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v2.3.1)
 as of this writing) release packages all of these dependencies together.
 
 These binaries can be installed via the `download-binaries.sh` script, which
@@ -177,7 +177,7 @@ KubeFed controller manager:
    ```bash
    cd test/e2e
    go test -race -args -kubeconfig=/path/to/kubeconfig -in-memory-controllers=true \
-       --v=4 -test.v --ginkgo.focus='Federated "secrets"'
+       -test.v --ginkgo.focus='Federated "secrets"'
    ```
 
    Additionally, you can run delve to debug the test:
@@ -185,7 +185,7 @@ KubeFed controller manager:
    ```bash
    cd test/e2e
    dlv test -- -kubeconfig=/path/to/kubeconfig -in-memory-controllers=true \
-       -v=4 -test.v --ginkgo.focus='Federated "secrets"'
+       -test.v --ginkgo.focus='Federated "secrets"'
    ```
 
 ### Simulating large numbers of clusters
