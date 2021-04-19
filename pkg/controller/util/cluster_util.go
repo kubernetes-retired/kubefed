@@ -41,10 +41,10 @@ import (
 const (
 	DefaultKubeFedSystemNamespace = "kube-federation-system"
 
-	KubeAPIQPS   = 20.0
-	KubeAPIBurst = 30
-	TokenKey     = "token"
-
+	KubeAPIQPS        = 20.0
+	KubeAPIBurst      = 30
+	TokenKey          = "token"
+	CaCrtKey          = "ca.crt"
 	KubeFedConfigName = "kubefed"
 )
 
