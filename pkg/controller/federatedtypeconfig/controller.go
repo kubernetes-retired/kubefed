@@ -23,14 +23,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -376,33 +376,23 @@ func (c *Controller) refreshSyncController(tc *corev1b1.FederatedTypeConfig) err
 }
 
 func (c *Controller) ensureFinalizer(tc *corev1b1.FederatedTypeConfig) (bool, error) {
-	accessor, err := meta.Accessor(tc)
-	if err != nil {
-		return false, err
-	}
-	finalizers := sets.NewString(accessor.GetFinalizers()...)
-	if finalizers.Has(finalizer) {
+	if controllerutil.ContainsFinalizer(tc, finalizer) {
 		return false, nil
 	}
-	finalizers.Insert(finalizer)
-	accessor.SetFinalizers(finalizers.List())
-	err = c.client.Update(context.TODO(), tc)
-	return true, err
+
+	patch := client.MergeFrom(tc.DeepCopy())
+	controllerutil.AddFinalizer(tc, finalizer)
+	return true, c.client.Patch(context.TODO(), tc, patch)
 }
 
 func (c *Controller) removeFinalizer(tc *corev1b1.FederatedTypeConfig) error {
-	accessor, err := meta.Accessor(tc)
-	if err != nil {
-		return err
-	}
-	finalizers := sets.NewString(accessor.GetFinalizers()...)
-	if !finalizers.Has(finalizer) {
+	if !controllerutil.ContainsFinalizer(tc, finalizer) {
 		return nil
 	}
-	finalizers.Delete(finalizer)
-	accessor.SetFinalizers(finalizers.List())
-	err = c.client.Update(context.TODO(), tc)
-	return err
+
+	patch := client.MergeFrom(tc.DeepCopy())
+	controllerutil.RemoveFinalizer(tc, finalizer)
+	return c.client.Patch(context.TODO(), tc, patch)
 }
 
 func (c *Controller) namespaceFTCExists() bool {

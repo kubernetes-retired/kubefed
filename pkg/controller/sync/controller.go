@@ -40,6 +40,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -47,7 +48,6 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/sync/dispatch"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
-	finalizersutil "sigs.k8s.io/kubefed/pkg/controller/util/finalizers"
 	"sigs.k8s.io/kubefed/pkg/metrics"
 )
 
@@ -657,20 +657,24 @@ func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersion
 
 func (s *KubeFedSyncController) ensureFinalizer(fedResource FederatedResource) error {
 	obj := fedResource.Object()
-	isUpdated, err := finalizersutil.AddFinalizers(obj, sets.NewString(FinalizerSyncController))
-	if err != nil || !isUpdated {
-		return err
+	if controllerutil.ContainsFinalizer(obj, FinalizerSyncController) {
+		return nil
 	}
+
+	patch := client.MergeFrom(obj.DeepCopy())
+	controllerutil.AddFinalizer(obj, FinalizerSyncController)
 	klog.V(2).Infof("Adding finalizer %s to %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
-	return s.hostClusterClient.Update(context.TODO(), obj)
+	return s.hostClusterClient.Patch(context.TODO(), obj, patch)
 }
 
 func (s *KubeFedSyncController) removeFinalizer(fedResource FederatedResource) error {
 	obj := fedResource.Object()
-	isUpdated, err := finalizersutil.RemoveFinalizers(obj, sets.NewString(FinalizerSyncController))
-	if err != nil || !isUpdated {
-		return err
+	if !controllerutil.ContainsFinalizer(obj, FinalizerSyncController) {
+		return nil
 	}
+
+	patch := client.MergeFrom(obj.DeepCopy())
+	controllerutil.RemoveFinalizer(obj, FinalizerSyncController)
 	klog.V(2).Infof("Removing finalizer %s from %s %q", FinalizerSyncController, fedResource.FederatedKind(), fedResource.FederatedName())
-	return s.hostClusterClient.Update(context.TODO(), obj)
+	return s.hostClusterClient.Patch(context.TODO(), obj, patch)
 }

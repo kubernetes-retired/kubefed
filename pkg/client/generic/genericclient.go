@@ -34,6 +34,7 @@ type Client interface {
 	Delete(ctx context.Context, obj runtime.Object, namespace, name string, opts ...client.DeleteOption) error
 	List(ctx context.Context, obj runtime.Object, namespace string, opts ...client.ListOption) error
 	UpdateStatus(ctx context.Context, obj runtime.Object) error
+	Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error
 }
 
 type genericClient struct {
@@ -88,4 +89,8 @@ func (c *genericClient) List(ctx context.Context, obj runtime.Object, namespace 
 
 func (c *genericClient) UpdateStatus(ctx context.Context, obj runtime.Object) error {
 	return c.client.Status().Update(ctx, obj)
+}
+
+func (c *genericClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+	return c.client.Patch(ctx, obj, patch, opts...)
 }
