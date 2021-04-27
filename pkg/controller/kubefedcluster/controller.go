@@ -184,7 +184,9 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
 	if err != nil || restClient == nil {
-		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this cluster may be malformed"))
+		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this " +
+			"cluster may be malformed"))
+		utilruntime.HandleError(errors.Wrapf(err, "the configuration for this cluster may be malformed"))
 		return
 	}
 	cc.clusterDataMap[obj.Name] = &ClusterData{clusterKubeClient: restClient, cachedObj: obj.DeepCopy()}
@@ -245,6 +247,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
 	if err != nil {
 		cc.RecordError(cluster, "RetrievingClusterHealthFailed", errors.Wrap(err, "Failed to retrieve health of the cluster"))
+		utilruntime.HandleError(errors.Wrapf(err, "failed to retrieve health of the cluster"))
 	}
 
 	currentClusterStatus = thresholdAdjustedClusterStatus(currentClusterStatus, storedData, cc.clusterHealthCheckConfig)
