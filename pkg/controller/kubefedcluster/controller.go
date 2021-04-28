@@ -184,7 +184,7 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
 	if err != nil || restClient == nil {
-		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this " +
+		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this "+
 			"cluster may be malformed"))
 		utilruntime.HandleError(errors.Wrapf(err, "the configuration for this cluster may be malformed"))
 		return
