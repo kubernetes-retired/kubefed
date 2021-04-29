@@ -34,6 +34,7 @@ import (
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -338,9 +339,10 @@ func CreateResources(cmdOut io.Writer, config *rest.Config, resources *typeResou
 			}
 		}
 	} else {
+		patch := runtimeclient.MergeFrom(existingTypeConfig.DeepCopy())
 		existingTypeConfig.Spec = concreteTypeConfig.Spec
 		if !dryRun {
-			err = client.Update(context.TODO(), existingTypeConfig)
+			err := client.Patch(context.TODO(), existingTypeConfig, patch)
 			if err != nil {
 				return errors.Wrapf(err, "Error updating FederatedTypeConfig %q", concreteTypeConfig.Name)
 			}

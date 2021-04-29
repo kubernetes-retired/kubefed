@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -262,8 +263,9 @@ func checkFederatedTypeConfigExists(client genericclient.Client, typeConfig *fed
 
 func disablePropagation(client genericclient.Client, typeConfig *fedv1b1.FederatedTypeConfig, typeConfigName ctlutil.QualifiedName, write func(string)) error {
 	if typeConfig.GetPropagationEnabled() {
+		patch := runtimeclient.MergeFrom(typeConfig.DeepCopy())
 		typeConfig.Spec.Propagation = fedv1b1.PropagationDisabled
-		err := client.Update(context.TODO(), typeConfig)
+		err := client.Patch(context.TODO(), typeConfig, patch)
 		if err != nil {
 			return errors.Wrapf(err, "Error disabling propagation for FederatedTypeConfig %q", typeConfigName)
 		}

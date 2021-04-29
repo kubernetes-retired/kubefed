@@ -37,6 +37,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -361,8 +362,9 @@ func createKubeFedCluster(client genericclient.Client, joiningClusterName, apiEn
 	case err == nil && errorOnExisting:
 		return nil, errors.Errorf("federated cluster %s already exists in host cluster", joiningClusterName)
 	case err == nil:
+		patch := runtimeclient.MergeFrom(existingFedCluster.DeepCopy())
 		existingFedCluster.Spec = fedCluster.Spec
-		err = client.Update(context.TODO(), existingFedCluster)
+		err := client.Patch(context.TODO(), existingFedCluster, patch)
 		if err != nil {
 			klog.V(2).Infof("Could not update federated cluster %s due to %v", fedCluster.Name, err)
 			return nil, err

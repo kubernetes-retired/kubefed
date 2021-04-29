@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,6 +83,13 @@ func runValidationResourceTests(f framework.KubeFedFramework, vrt validationReso
 		err = client.Update(context.TODO(), invalidObj)
 		if err == nil {
 			f.Logger().Fatalf("Expected error updating invalid %s = %+v", resourceName, vrt)
+		}
+
+		By(fmt.Sprintf("Patching with an invalid %s", resourceName))
+		patch := runtimeclient.MergeFrom(validObj.DeepCopyObject())
+		err = client.Patch(context.TODO(), invalidObj, patch)
+		if err == nil {
+			f.Logger().Fatalf("Expected error patching invalid %s = %+v", resourceName, vrt)
 		}
 
 		// Immediately delete the created test resource to avoid errors in
