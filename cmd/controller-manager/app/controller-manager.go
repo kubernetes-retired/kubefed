@@ -77,7 +77,7 @@ func NewControllerManagerCommand(stopChan <-chan struct{}) *cobra.Command {
 which watch KubeFed CRD's and the corresponding resources in
 member clusters and do the necessary reconciliation`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintf(os.Stdout, "KubeFed controller-manager version: %s\n", fmt.Sprintf("%#v", version.Get()))
+			fmt.Fprintf(os.Stdout, "KubeFed controller-manager version: %#v\n", version.Get())
 			if verFlag {
 				os.Exit(0)
 			}
@@ -247,23 +247,27 @@ func setDefaultKubeFedConfigScope(fedConfig *corev1b1.KubeFedConfig) bool {
 	// Its continued existence should not be relied upon.
 	const defaultScopeEnv = "DEFAULT_KUBEFED_SCOPE"
 	defaultScope := os.Getenv(defaultScopeEnv)
-	if len(defaultScope) != 0 {
-		if defaultScope != string(apiextv1.ClusterScoped) && defaultScope != string(apiextv1.NamespaceScoped) {
-			klog.Fatalf("%s must be one of %s or %s; got %q", defaultScopeEnv,
-				string(apiextv1.ClusterScoped), string(apiextv1.NamespaceScoped), defaultScope)
-			return false
-		}
+	if len(defaultScope) == 0 {
+		return false
+	}
 
-		if len(fedConfig.Spec.Scope) == 0 {
-			fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
-			klog.Infof("Setting the scope of KubeFedConfig spec to %s", defaultScope)
-			return true
-		} else if fedConfig.Spec.Scope != apiextv1.ResourceScope(defaultScope) {
-			klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
-				string(fedConfig.Spec.Scope), defaultScope)
-			fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
-			return true
-		}
+	if defaultScope != string(apiextv1.ClusterScoped) && defaultScope != string(apiextv1.NamespaceScoped) {
+		klog.Fatalf("%s must be one of %s or %s; got %q", defaultScopeEnv,
+			string(apiextv1.ClusterScoped), string(apiextv1.NamespaceScoped), defaultScope)
+		return false
+	}
+
+	if len(fedConfig.Spec.Scope) == 0 {
+		fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
+		klog.Infof("Setting the scope of KubeFedConfig spec to %s", defaultScope)
+		return true
+	}
+
+	if fedConfig.Spec.Scope != apiextv1.ResourceScope(defaultScope) {
+		klog.Infof("Setting the scope of KubeFedConfig spec from %s to %s",
+			string(fedConfig.Spec.Scope), defaultScope)
+		fedConfig.Spec.Scope = apiextv1.ResourceScope(defaultScope)
+		return true
 	}
 	return false
 }
@@ -342,9 +346,8 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	errs := validation.ValidateKubeFedConfig(fedConfig, nil)
 	if len(errs) != 0 {
 		klog.Fatalf("Error: invalid KubeFedConfig %q: %v", qualifedName, errs)
-	} else {
-		klog.Infof("Using valid KubeFedConfig %q", qualifedName)
 	}
+	klog.Infof("Using valid KubeFedConfig %q", qualifedName)
 
 	spec := fedConfig.Spec
 	opts.Scope = spec.Scope
