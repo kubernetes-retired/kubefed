@@ -400,7 +400,10 @@ spec:
     successThreshold: 1
     timeout: 3s
   syncController:
+    maxConcurrentReconciles: 1
     adoptResources: Enabled
+  statusController:
+    maxConcurrentReconciles: 1
 `)
 
 func configKubefedconfigYamlBytes() ([]byte, error) {
