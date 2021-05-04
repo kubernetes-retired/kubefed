@@ -131,7 +131,7 @@ func TestSetDefaultKubeFedConfig(t *testing.T) {
 	*adoptResourcesKFC.Spec.SyncController.AdoptResources = v1beta1.AdoptResourcesDisabled
 	modifiedAdoptResourcesKFC := adoptResourcesKFC.DeepCopyObject().(*v1beta1.KubeFedConfig)
 	SetDefaultKubeFedConfig(modifiedAdoptResourcesKFC)
-	successCases["spec.leaderElect.adoptResources is preserved"] = KubeFedConfigComparison{adoptResourcesKFC, modifiedAdoptResourcesKFC}
+	successCases["spec.syncController.adoptResources is preserved"] = KubeFedConfigComparison{adoptResourcesKFC, modifiedAdoptResourcesKFC}
 
 	// StatusController
 	statusControllerMaxConcurrentReconcilesKFC := defaultKubeFedConfig()
