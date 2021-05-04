@@ -18,7 +18,10 @@ controllermanager:
   ## Supported options are `configmaps` and `endpoints`
   leaderElectResourceLock:
   syncController:
+    maxConcurrentReconciles:
     adoptResources:
+  statusController:
+    maxConcurrentReconciles:
   ## Value of feature gates item should be either `Enabled` or `Disabled`
   featureGates:
     PushReconciler:

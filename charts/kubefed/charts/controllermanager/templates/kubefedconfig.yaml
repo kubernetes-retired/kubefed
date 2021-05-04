@@ -19,7 +19,10 @@ spec:
     successThreshold: {{ .Values.clusterHealthCheckSuccessThreshold | default 1 }}
     timeout: {{ .Values.clusterHealthCheckTimeout | default "3s" | quote }}
   syncController:
+    maxConcurrentReconciles: {{ .Values.syncController.maxConcurrentReconciles | default 1 }}
     adoptResources: {{ .Values.syncController.adoptResources | default "Enabled" | quote }}
+  statusController:
+    maxConcurrentReconciles: {{ .Values.statusController.maxConcurrentReconciles | default 1 }}
   featureGates:
 {{- if .Values.featureGates }}
   - name: PushReconciler
