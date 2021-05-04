@@ -39,6 +39,9 @@ const (
 	DefaultClusterHealthCheckFailureThreshold = 3
 	DefaultClusterHealthCheckSuccessThreshold = 1
 	DefaultClusterHealthCheckTimeout          = 3 * time.Second
+
+	DefaultSyncControllerMaxConcurrentReconciles   = 1
+	DefaultStatusControllerMaxConcurrentReconciles = 1
 )
 
 func SetDefaultKubeFedConfig(fedConfig *v1beta1.KubeFedConfig) {
@@ -87,10 +90,18 @@ func SetDefaultKubeFedConfig(fedConfig *v1beta1.KubeFedConfig) {
 		spec.SyncController = &v1beta1.SyncControllerConfig{}
 	}
 
+	setInt64(&spec.SyncController.MaxConcurrentReconciles, DefaultSyncControllerMaxConcurrentReconciles)
+
 	if spec.SyncController.AdoptResources == nil {
 		spec.SyncController.AdoptResources = new(v1beta1.ResourceAdoption)
 		*spec.SyncController.AdoptResources = v1beta1.AdoptResourcesEnabled
 	}
+
+	if spec.StatusController == nil {
+		spec.StatusController = &v1beta1.StatusControllerConfig{}
+	}
+
+	setInt64(&spec.StatusController.MaxConcurrentReconciles, DefaultStatusControllerMaxConcurrentReconciles)
 }
 
 func setDefaultKubeFedFeatureGates(fgc []v1beta1.FeatureGatesConfig) []v1beta1.FeatureGatesConfig {

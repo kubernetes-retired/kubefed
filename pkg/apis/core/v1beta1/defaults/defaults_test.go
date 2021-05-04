@@ -120,11 +120,26 @@ func TestSetDefaultKubeFedConfig(t *testing.T) {
 	successCases["spec.clusterHealthCheck.timeout is preserved"] = KubeFedConfigComparison{timeoutKFC, modifiedTimeoutKFC}
 
 	// SyncController
+	syncControllerMaxConcurrentReconcilesKFC := defaultKubeFedConfig()
+	syncControllerMaxConcurrentReconciles := int64(DefaultSyncControllerMaxConcurrentReconciles + 3)
+	syncControllerMaxConcurrentReconcilesKFC.Spec.SyncController.MaxConcurrentReconciles = &syncControllerMaxConcurrentReconciles
+	modifiedSyncControllerMaxConcurrentReconcilesKFC := syncControllerMaxConcurrentReconcilesKFC.DeepCopyObject().(*v1beta1.KubeFedConfig)
+	SetDefaultKubeFedConfig(modifiedSyncControllerMaxConcurrentReconcilesKFC)
+	successCases["spec.syncController.maxConcurrentReconciles is preserved"] = KubeFedConfigComparison{syncControllerMaxConcurrentReconcilesKFC, modifiedSyncControllerMaxConcurrentReconcilesKFC}
+
 	adoptResourcesKFC := defaultKubeFedConfig()
 	*adoptResourcesKFC.Spec.SyncController.AdoptResources = v1beta1.AdoptResourcesDisabled
 	modifiedAdoptResourcesKFC := adoptResourcesKFC.DeepCopyObject().(*v1beta1.KubeFedConfig)
 	SetDefaultKubeFedConfig(modifiedAdoptResourcesKFC)
 	successCases["spec.leaderElect.adoptResources is preserved"] = KubeFedConfigComparison{adoptResourcesKFC, modifiedAdoptResourcesKFC}
+
+	// StatusController
+	statusControllerMaxConcurrentReconcilesKFC := defaultKubeFedConfig()
+	statusControllerMaxConcurrentReconciles := int64(DefaultStatusControllerMaxConcurrentReconciles + 3)
+	statusControllerMaxConcurrentReconcilesKFC.Spec.StatusController.MaxConcurrentReconciles = &statusControllerMaxConcurrentReconciles
+	modifiedStatusControllerMaxConcurrentReconcilesKFC := statusControllerMaxConcurrentReconcilesKFC.DeepCopyObject().(*v1beta1.KubeFedConfig)
+	SetDefaultKubeFedConfig(modifiedStatusControllerMaxConcurrentReconcilesKFC)
+	successCases["spec.statusController.maxConcurrentReconciles is preserved"] = KubeFedConfigComparison{statusControllerMaxConcurrentReconcilesKFC, modifiedStatusControllerMaxConcurrentReconcilesKFC}
 
 	for k, v := range successCases {
 		if !reflect.DeepEqual(v.original, v.modified) {

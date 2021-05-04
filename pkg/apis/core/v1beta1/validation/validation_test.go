@@ -844,6 +844,14 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	invalidSyncControllerNil.Spec.SyncController = nil
 	errorCases["spec.syncController: Required value"] = invalidSyncControllerNil
 
+	invalidSyncControllerMaxConcurrentReconcilesNil := testcommon.ValidKubeFedConfig()
+	invalidSyncControllerMaxConcurrentReconcilesNil.Spec.SyncController.MaxConcurrentReconciles = nil
+	errorCases["spec.syncController.maxConcurrentReconciles: Required value"] = invalidSyncControllerMaxConcurrentReconcilesNil
+
+	invalidSyncControllerMaxConcurrentReconcilesGreaterThan0 := testcommon.ValidKubeFedConfig()
+	invalidSyncControllerMaxConcurrentReconcilesGreaterThan0.Spec.SyncController.MaxConcurrentReconciles = zeroIntPtr
+	errorCases["spec.syncController.maxConcurrentReconciles: Invalid value"] = invalidSyncControllerMaxConcurrentReconcilesGreaterThan0
+
 	invalidAdoptResourcesNil := testcommon.ValidKubeFedConfig()
 	invalidAdoptResourcesNil.Spec.SyncController.AdoptResources = nil
 	errorCases["spec.syncController.adoptResources: Required value"] = invalidAdoptResourcesNil
@@ -852,6 +860,18 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	invalidAdoptResourcesValue := v1beta1.ResourceAdoption("NeitherEnableOrDisable")
 	invalidAdoptResources.Spec.SyncController.AdoptResources = &invalidAdoptResourcesValue
 	errorCases["spec.syncController.adoptResources: Unsupported value"] = invalidAdoptResources
+
+	invalidStatusControllerNil := testcommon.ValidKubeFedConfig()
+	invalidStatusControllerNil.Spec.StatusController = nil
+	errorCases["spec.statusController: Required value"] = invalidStatusControllerNil
+
+	invalidStatusControllerMaxConcurrentReconcilesNil := testcommon.ValidKubeFedConfig()
+	invalidStatusControllerMaxConcurrentReconcilesNil.Spec.StatusController.MaxConcurrentReconciles = nil
+	errorCases["spec.statusController.maxConcurrentReconciles: Required value"] = invalidStatusControllerMaxConcurrentReconcilesNil
+
+	invalidStatusControllerMaxConcurrentReconcilesGreaterThan0 := testcommon.ValidKubeFedConfig()
+	invalidStatusControllerMaxConcurrentReconcilesGreaterThan0.Spec.StatusController.MaxConcurrentReconciles = zeroIntPtr
+	errorCases["spec.statusController.maxConcurrentReconciles: Invalid value"] = invalidStatusControllerMaxConcurrentReconcilesGreaterThan0
 
 	for k, v := range errorCases {
 		errs := ValidateKubeFedConfig(v, testcommon.ValidKubeFedConfig())

@@ -127,6 +127,7 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 		WorkerTiming: util.WorkerTiming{
 			ClusterSyncDelay: s.clusterAvailableDelay,
 		},
+		MaxConcurrentReconciles: int(controllerConfig.MaxConcurrentStatusReconciles),
 	})
 
 	// Build deliverer for triggering cluster reconciliations.

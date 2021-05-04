@@ -774,12 +774,25 @@ spec:
                   `Namespaced` or `Cluster`. `Namespaced` indicates that the KubeFed
                   namespace will be the only target of the control plane.
                 type: string
+              statusController:
+                properties:
+                  maxConcurrentReconciles:
+                    description: The maximum number of concurrent Reconciles of status
+                      controller which can be run. Defaults to 1.
+                    format: int64
+                    type: integer
+                type: object
               syncController:
                 properties:
                   adoptResources:
                     description: Whether to adopt pre-existing resources in member
                       clusters. Defaults to "Enabled".
                     type: string
+                  maxConcurrentReconciles:
+                    description: The maximum number of concurrent Reconciles of sync
+                      controller which can be run. Defaults to 1.
+                    format: int64
+                    type: integer
                 type: object
             required:
             - scope

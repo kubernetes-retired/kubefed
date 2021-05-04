@@ -356,8 +356,17 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 	case sync.AdoptResources == nil:
 		allErrs = append(allErrs, field.Required(adoptPath, ""))
 	default:
+		allErrs = append(allErrs, validateIntPtrGreaterThan0(syncPath.Child("maxConcurrentReconciles"), sync.MaxConcurrentReconciles)...)
 		allErrs = append(allErrs, validateEnumStrings(adoptPath, string(*sync.AdoptResources),
 			[]string{string(v1beta1.AdoptResourcesEnabled), string(v1beta1.AdoptResourcesDisabled)})...)
+	}
+
+	statusController := spec.StatusController
+	statusControllerPath := specPath.Child("statusController")
+	if statusController == nil {
+		allErrs = append(allErrs, field.Required(statusControllerPath, ""))
+	} else {
+		allErrs = append(allErrs, validateIntPtrGreaterThan0(statusControllerPath.Child("maxConcurrentReconciles"), statusController.MaxConcurrentReconciles)...)
 	}
 
 	return allErrs
