@@ -281,6 +281,7 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 	err = s.ensureFinalizer(fedResource)
 	if err != nil {
 		fedResource.RecordError("EnsureFinalizerError", errors.Wrap(err, "Failed to ensure finalizer"))
+		runtime.HandleError(errors.Wrapf(err, "failed to ensure finalizer"))
 		return util.StatusError
 	}
 
@@ -297,12 +298,14 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	clusters, err := s.informer.GetClusters()
 	if err != nil {
 		fedResource.RecordError(string(status.ClusterRetrievalFailed), errors.Wrap(err, "Failed to retrieve list of clusters"))
+		runtime.HandleError(errors.Wrapf(err, "failed to retrieve list of clusters"))
 		return s.setFederatedStatus(fedResource, status.ClusterRetrievalFailed, nil, nil, enableRawResourceStatusCollection)
 	}
 
 	selectedClusterNames, err := fedResource.ComputePlacement(clusters)
 	if err != nil {
 		fedResource.RecordError(string(status.ComputePlacementFailed), errors.Wrap(err, "Failed to compute placement"))
+		runtime.HandleError(errors.Wrapf(err, "failed to compute placement"))
 		return s.setFederatedStatus(fedResource, status.ComputePlacementFailed, nil, nil, enableRawResourceStatusCollection)
 	}
 
@@ -374,8 +377,8 @@ func (s *KubeFedSyncController) syncToClusters(fedResource FederatedResource) ut
 	_, timeoutErr := dispatcher.Wait()
 	if timeoutErr != nil {
 		fedResource.RecordError("OperationTimeoutError", timeoutErr)
+		runtime.HandleError(errors.Wrapf(timeoutErr, "operation timeout"))
 	}
-
 	// Write updated versions to the API.
 	updatedVersionMap := dispatcher.VersionMap()
 	err = fedResource.UpdateVersions(selectedClusterNames.List(), updatedVersionMap)
