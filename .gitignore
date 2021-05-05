@@ -6,3 +6,10 @@
 # Ignore binaries built by the makefile to avoid accidentally committing them
 /images/kubefed/hyperfed
 /images/kubefed/controller-manager
+
+# editor and IDE paraphernalia
+.idea
+.vscode
+
+# macOS paraphernalia
+.DS_Store

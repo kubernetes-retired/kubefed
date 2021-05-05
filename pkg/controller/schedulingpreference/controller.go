@@ -105,8 +105,10 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 		eventRecorder:           recorder,
 	}
 
-	s.worker = util.NewReconcileWorker(strings.ToLower(schedulingType.Kind), s.reconcile, util.WorkerTiming{
-		ClusterSyncDelay: s.clusterAvailableDelay,
+	s.worker = util.NewReconcileWorker(strings.ToLower(schedulingType.Kind), s.reconcile, util.WorkerOptions{
+		WorkerTiming: util.WorkerTiming{
+			ClusterSyncDelay: s.clusterAvailableDelay,
+		},
 	})
 
 	eventHandlers := schedulingtypes.SchedulerEventHandlers{

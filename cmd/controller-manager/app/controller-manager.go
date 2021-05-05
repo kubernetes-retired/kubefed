@@ -365,6 +365,9 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 	opts.ClusterHealthCheckConfig.FailureThreshold = *spec.ClusterHealthCheck.FailureThreshold
 	opts.ClusterHealthCheckConfig.SuccessThreshold = *spec.ClusterHealthCheck.SuccessThreshold
 
+	opts.Config.MaxConcurrentSyncReconciles = *spec.SyncController.MaxConcurrentReconciles
+	opts.Config.MaxConcurrentStatusReconciles = *spec.StatusController.MaxConcurrentReconciles
+
 	opts.Config.SkipAdoptingResources = *spec.SyncController.AdoptResources == corev1b1.AdoptResourcesDisabled
 
 	var featureGates = make(map[string]bool)

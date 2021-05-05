@@ -132,8 +132,11 @@ func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfi
 		rawResourceStatusCollection: controllerConfig.RawResourceStatusCollection,
 	}
 
-	s.worker = util.NewReconcileWorker(strings.ToLower(federatedTypeAPIResource.Kind), s.reconcile, util.WorkerTiming{
-		ClusterSyncDelay: s.clusterAvailableDelay,
+	s.worker = util.NewReconcileWorker(strings.ToLower(federatedTypeAPIResource.Kind), s.reconcile, util.WorkerOptions{
+		WorkerTiming: util.WorkerTiming{
+			ClusterSyncDelay: s.clusterAvailableDelay,
+		},
+		MaxConcurrentReconciles: int(controllerConfig.MaxConcurrentSyncReconciles),
 	})
 
 	// Build deliverer for triggering cluster reconciliations.
