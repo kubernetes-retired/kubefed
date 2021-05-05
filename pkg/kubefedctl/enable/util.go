@@ -135,7 +135,10 @@ func LookupAPIResource(config *rest.Config, key, targetVersion string) (*metav1.
 	}
 
 	if targetResource != nil {
-		klog.Warningf("Api resource found with err %v, and error could ignore.", apierrors.NewAggregate(errs))
+		if len(errs) != 0 {
+			klog.Warningf("Api resource found with err %v, and error could ignore.", apierrors.NewAggregate(errs))
+		}
+		klog.Info("Api resource found.")
 		return targetResource, nil
 	}
 
