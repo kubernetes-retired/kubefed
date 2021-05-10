@@ -120,7 +120,7 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 
 		// Avoid mutating the resource in the informer cache
 		updateObj := clusterObj.DeepCopy()
-		patch := runtimeclient.MergeFrom(updateObj)
+		patch := runtimeclient.MergeFrom(updateObj.DeepCopy())
 
 		util.RemoveManagedLabel(updateObj)
 
