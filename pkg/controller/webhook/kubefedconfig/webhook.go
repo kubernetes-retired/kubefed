@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"reflect"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
@@ -49,7 +49,7 @@ func (a *KubeFedConfigValidator) Handle(ctx context.Context, admissionSpec admis
 
 	if webhook.Allowed(admissionSpec, resourcePluralName) {
 		return admission.Response{
-			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+			AdmissionResponse: admissionv1.AdmissionResponse{
 				Allowed: true,
 			},
 		}
@@ -58,7 +58,7 @@ func (a *KubeFedConfigValidator) Handle(ctx context.Context, admissionSpec admis
 	admittingObject := &v1beta1.KubeFedConfig{}
 	if err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject); err != nil {
 		return admission.Response{
-			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+			AdmissionResponse: admissionv1.AdmissionResponse{
 				Allowed: false,
 				Result: &metav1.Status{
 					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
@@ -69,11 +69,11 @@ func (a *KubeFedConfigValidator) Handle(ctx context.Context, admissionSpec admis
 	}
 
 	var oldObject *v1beta1.KubeFedConfig
-	if admissionSpec.Operation == admissionv1beta1.Update {
+	if admissionSpec.Operation == admissionv1.Update {
 		oldObject = &v1beta1.KubeFedConfig{}
 		if err := json.Unmarshal(admissionSpec.OldObject.Raw, oldObject); err != nil {
 			return admission.Response{
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed: false,
 					Result: &metav1.Status{
 						Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
@@ -102,7 +102,7 @@ func (a *KubeFedConfigDefaulter) Handle(ctx context.Context, admissionSpec admis
 	admittingObject := &v1beta1.KubeFedConfig{}
 	if err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject); err != nil {
 		return admission.Response{
-			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+			AdmissionResponse: admissionv1.AdmissionResponse{
 				Allowed: false,
 				Result: &metav1.Status{
 					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
@@ -143,8 +143,8 @@ func (a *KubeFedConfigDefaulter) Handle(ctx context.Context, admissionSpec admis
 		return status
 	}
 
-	status.PatchType = new(admissionv1beta1.PatchType)
-	*status.PatchType = admissionv1beta1.PatchTypeJSONPatch
+	status.PatchType = new(admissionv1.PatchType)
+	*status.PatchType = admissionv1.PatchTypeJSONPatch
 	status.Patch = patchBytes
 	status.Allowed = true
 	return status

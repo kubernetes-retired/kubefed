@@ -22,8 +22,8 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/storage/names"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -121,24 +121,24 @@ func runValidationResourceTests(f framework.KubeFedFramework, vrt validationReso
 }
 
 type validationResourceTest interface {
-	initialize() pkgruntime.Object
+	initialize() client.Object
 	getObjectMeta() *metav1.ObjectMeta
-	invalidObject(namespace string) pkgruntime.Object
-	setInvalidField(obj pkgruntime.Object)
-	validObject() pkgruntime.Object
-	invalidObjectFromValid(obj pkgruntime.Object) pkgruntime.Object
+	invalidObject(namespace string) client.Object
+	setInvalidField(obj client.Object)
+	validObject() client.Object
+	invalidObjectFromValid(obj client.Object) client.Object
 }
 
 type ftcValidationTest struct {
-	object pkgruntime.Object
+	object client.Object
 }
 
 type kfClusterValidationTest struct {
-	object pkgruntime.Object
+	object client.Object
 }
 
 type kfConfigValidationTest struct {
-	object pkgruntime.Object
+	object client.Object
 }
 
 func newValidationResourceTest(resourceName string) validationResourceTest {
@@ -154,7 +154,7 @@ func newValidationResourceTest(resourceName string) validationResourceTest {
 	return vrt
 }
 
-func (ftc *ftcValidationTest) initialize() pkgruntime.Object {
+func (ftc *ftcValidationTest) initialize() client.Object {
 	if ftc.object != nil {
 		return ftc.object
 	}
@@ -179,7 +179,7 @@ func (ftc *ftcValidationTest) getObjectMeta() *metav1.ObjectMeta {
 	return &ftc.object.(*v1beta1.FederatedTypeConfig).ObjectMeta
 }
 
-func (ftc *ftcValidationTest) invalidObject(namespace string) pkgruntime.Object {
+func (ftc *ftcValidationTest) invalidObject(namespace string) client.Object {
 	invalidFtc := ftc.object.DeepCopyObject().(*v1beta1.FederatedTypeConfig)
 	if namespace != "" {
 		invalidFtc.Namespace = namespace
@@ -189,21 +189,21 @@ func (ftc *ftcValidationTest) invalidObject(namespace string) pkgruntime.Object 
 	return invalidFtc
 }
 
-func (ftc *ftcValidationTest) setInvalidField(obj pkgruntime.Object) {
+func (ftc *ftcValidationTest) setInvalidField(obj client.Object) {
 	obj.(*v1beta1.FederatedTypeConfig).Spec.FederatedType.Group = ""
 }
 
-func (ftc *ftcValidationTest) validObject() pkgruntime.Object {
-	return ftc.object.DeepCopyObject()
+func (ftc *ftcValidationTest) validObject() client.Object {
+	return ftc.object.DeepCopyObject().(client.Object)
 }
 
-func (ftc *ftcValidationTest) invalidObjectFromValid(obj pkgruntime.Object) pkgruntime.Object {
+func (ftc *ftcValidationTest) invalidObjectFromValid(obj client.Object) client.Object {
 	invalidFtc := obj.DeepCopyObject().(*v1beta1.FederatedTypeConfig)
 	ftc.setInvalidField(invalidFtc)
 	return invalidFtc
 }
 
-func (kfc *kfClusterValidationTest) initialize() pkgruntime.Object {
+func (kfc *kfClusterValidationTest) initialize() client.Object {
 	if kfc.object != nil {
 		return kfc.object
 	}
@@ -216,7 +216,7 @@ func (kfc *kfClusterValidationTest) getObjectMeta() *metav1.ObjectMeta {
 	return &kfc.object.(*v1beta1.KubeFedCluster).ObjectMeta
 }
 
-func (kfc *kfClusterValidationTest) invalidObject(namespace string) pkgruntime.Object {
+func (kfc *kfClusterValidationTest) invalidObject(namespace string) client.Object {
 	invalidKfc := kfc.object.DeepCopyObject().(*v1beta1.KubeFedCluster)
 	if namespace != "" {
 		invalidKfc.Namespace = namespace
@@ -226,21 +226,21 @@ func (kfc *kfClusterValidationTest) invalidObject(namespace string) pkgruntime.O
 	return invalidKfc
 }
 
-func (kfc *kfClusterValidationTest) setInvalidField(obj pkgruntime.Object) {
+func (kfc *kfClusterValidationTest) setInvalidField(obj client.Object) {
 	obj.(*v1beta1.KubeFedCluster).Spec.APIEndpoint = ""
 }
 
-func (kfc *kfClusterValidationTest) validObject() pkgruntime.Object {
-	return kfc.object.DeepCopyObject()
+func (kfc *kfClusterValidationTest) validObject() client.Object {
+	return kfc.object.DeepCopyObject().(client.Object)
 }
 
-func (kfc *kfClusterValidationTest) invalidObjectFromValid(obj pkgruntime.Object) pkgruntime.Object {
+func (kfc *kfClusterValidationTest) invalidObjectFromValid(obj client.Object) client.Object {
 	invalidKfc := obj.DeepCopyObject().(*v1beta1.KubeFedCluster)
 	kfc.setInvalidField(invalidKfc)
 	return invalidKfc
 }
 
-func (kfc *kfConfigValidationTest) initialize() pkgruntime.Object {
+func (kfc *kfConfigValidationTest) initialize() client.Object {
 	if kfc.object != nil {
 		return kfc.object
 	}
@@ -255,7 +255,7 @@ func (kfc *kfConfigValidationTest) getObjectMeta() *metav1.ObjectMeta {
 	return &kfc.object.(*v1beta1.KubeFedConfig).ObjectMeta
 }
 
-func (kfc *kfConfigValidationTest) invalidObject(namespace string) pkgruntime.Object {
+func (kfc *kfConfigValidationTest) invalidObject(namespace string) client.Object {
 	invalidKfc := kfc.object.DeepCopyObject().(*v1beta1.KubeFedConfig)
 	if namespace != "" {
 		invalidKfc.Namespace = namespace
@@ -265,15 +265,15 @@ func (kfc *kfConfigValidationTest) invalidObject(namespace string) pkgruntime.Ob
 	return invalidKfc
 }
 
-func (kfc *kfConfigValidationTest) setInvalidField(obj pkgruntime.Object) {
+func (kfc *kfConfigValidationTest) setInvalidField(obj client.Object) {
 	*obj.(*v1beta1.KubeFedConfig).Spec.SyncController.AdoptResources = "Unknown"
 }
 
-func (kfc *kfConfigValidationTest) validObject() pkgruntime.Object {
-	return kfc.object.DeepCopyObject()
+func (kfc *kfConfigValidationTest) validObject() client.Object {
+	return kfc.object.DeepCopyObject().(client.Object)
 }
 
-func (kfc *kfConfigValidationTest) invalidObjectFromValid(obj pkgruntime.Object) pkgruntime.Object {
+func (kfc *kfConfigValidationTest) invalidObjectFromValid(obj client.Object) client.Object {
 	invalidKfc := obj.DeepCopyObject().(*v1beta1.KubeFedConfig)
 	kfc.setInvalidField(invalidKfc)
 	return invalidKfc

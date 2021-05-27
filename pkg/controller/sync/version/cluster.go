@@ -19,6 +19,7 @@ package version
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -30,15 +31,15 @@ func (*clusterVersionAdapter) TypeName() string {
 	return "ClusterPropagatedVersion"
 }
 
-func (*clusterVersionAdapter) NewListObject() pkgruntime.Object {
+func (*clusterVersionAdapter) NewListObject() client.ObjectList {
 	return &fedv1a1.ClusterPropagatedVersionList{}
 }
 
-func (*clusterVersionAdapter) NewObject() pkgruntime.Object {
+func (*clusterVersionAdapter) NewObject() client.Object {
 	return &fedv1a1.ClusterPropagatedVersion{}
 }
 
-func (*clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
+func (*clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) client.Object {
 	return &fedv1a1.ClusterPropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            qualifiedName.Name,

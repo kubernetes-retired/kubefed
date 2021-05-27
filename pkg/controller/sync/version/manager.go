@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -63,19 +64,19 @@ type VersionManager struct {
 
 	hasSynced bool
 
-	versions map[string]pkgruntime.Object
+	versions map[string]client.Object
 
 	client generic.Client
 }
 
-func NewVersionManager(client generic.Client, namespaced bool, federatedKind, targetKind, namespace string) *VersionManager {
+func NewVersionManager(c generic.Client, namespaced bool, federatedKind, targetKind, namespace string) *VersionManager {
 	v := &VersionManager{
 		targetKind:    targetKind,
 		federatedKind: federatedKind,
 		namespace:     namespace,
 		adapter:       NewVersionAdapter(namespaced),
-		versions:      make(map[string]pkgruntime.Object),
-		client:        client,
+		versions:      make(map[string]client.Object),
+		client:        c,
 	}
 
 	return v
@@ -203,9 +204,9 @@ func (m *VersionManager) Delete(qualifiedName util.QualifiedName) {
 	m.Unlock()
 }
 
-func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool) {
+func (m *VersionManager) list(stopChan <-chan struct{}) (client.ObjectList, bool) {
 	// Attempt retrieval of list of versions until success or the channel is closed.
-	var versionList pkgruntime.Object
+	var versionList client.ObjectList
 	err := wait.PollImmediateInfinite(1*time.Second, func() (bool, error) {
 		select {
 		case <-stopChan:
@@ -231,7 +232,7 @@ func (m *VersionManager) list(stopChan <-chan struct{}) (pkgruntime.Object, bool
 // load processes a list of versions into in-memory cache.  Since the
 // version manager should not be used in advance of HasSynced
 // returning true, locking is assumed to be unnecessary.
-func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan struct{}) bool {
+func (m *VersionManager) load(versionList client.ObjectList, stopChan <-chan struct{}) bool {
 	typePrefix := common.PropagatedVersionPrefix(m.targetKind)
 	items, err := meta.ExtractList(versionList)
 	if err != nil {
@@ -249,7 +250,7 @@ func (m *VersionManager) load(versionList pkgruntime.Object, stopChan <-chan str
 		qualifiedName := util.NewQualifiedName(obj)
 		// Ignore propagated version for other types
 		if strings.HasPrefix(qualifiedName.Name, typePrefix) {
-			m.versions[qualifiedName.String()] = obj
+			m.versions[qualifiedName.String()] = obj.(client.Object)
 		}
 	}
 	m.Lock()
@@ -274,7 +275,7 @@ func (m *VersionManager) versionQualifiedName(qualifiedName util.QualifiedName) 
 // resource is updated by at most one thread at a time.  This should
 // guarantee safe manipulation of an object retrieved from the
 // version map.
-func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.QualifiedName) error {
+func (m *VersionManager) writeVersion(obj client.Object, qualifiedName util.QualifiedName) error {
 	key := qualifiedName.String()
 	adapterType := m.adapter.TypeName()
 
@@ -300,7 +301,7 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 		if resourceVersion == "" {
 			// Version resource needs to be created
 
-			createdObj := obj.DeepCopyObject()
+			createdObj := obj.DeepCopyObject().(client.Object)
 			err := setResourceVersion(createdObj, "")
 			if err != nil {
 				runtime.HandleError(errors.Wrapf(err, "Failed to clear the resourceVersion for %s %q", adapterType, key))
@@ -335,7 +336,7 @@ func (m *VersionManager) writeVersion(obj pkgruntime.Object, qualifiedName util.
 
 		// Update the status of an existing object
 
-		updatedObj := obj.DeepCopyObject()
+		updatedObj := obj.DeepCopyObject().(client.Object)
 		err := setResourceVersion(updatedObj, resourceVersion)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Failed to set the resourceVeresion for %s %q", adapterType, key))

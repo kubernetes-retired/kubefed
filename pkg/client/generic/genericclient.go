@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -28,13 +27,13 @@ import (
 )
 
 type Client interface {
-	Create(ctx context.Context, obj runtime.Object) error
-	Get(ctx context.Context, obj runtime.Object, namespace, name string) error
-	Update(ctx context.Context, obj runtime.Object) error
-	Delete(ctx context.Context, obj runtime.Object, namespace, name string, opts ...client.DeleteOption) error
-	List(ctx context.Context, obj runtime.Object, namespace string, opts ...client.ListOption) error
-	UpdateStatus(ctx context.Context, obj runtime.Object) error
-	Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error
+	Create(ctx context.Context, obj client.Object) error
+	Get(ctx context.Context, obj client.Object, namespace, name string) error
+	Update(ctx context.Context, obj client.Object) error
+	Delete(ctx context.Context, obj client.Object, namespace, name string, opts ...client.DeleteOption) error
+	List(ctx context.Context, obj client.ObjectList, namespace string, opts ...client.ListOption) error
+	UpdateStatus(ctx context.Context, obj client.Object) error
+	Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error
 }
 
 type genericClient struct {
@@ -60,19 +59,19 @@ func NewForConfigOrDieWithUserAgent(config *rest.Config, userAgent string) Clien
 	return NewForConfigOrDie(configCopy)
 }
 
-func (c *genericClient) Create(ctx context.Context, obj runtime.Object) error {
+func (c *genericClient) Create(ctx context.Context, obj client.Object) error {
 	return c.client.Create(ctx, obj)
 }
 
-func (c *genericClient) Get(ctx context.Context, obj runtime.Object, namespace, name string) error {
+func (c *genericClient) Get(ctx context.Context, obj client.Object, namespace, name string) error {
 	return c.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, obj)
 }
 
-func (c *genericClient) Update(ctx context.Context, obj runtime.Object) error {
+func (c *genericClient) Update(ctx context.Context, obj client.Object) error {
 	return c.client.Update(ctx, obj)
 }
 
-func (c *genericClient) Delete(ctx context.Context, obj runtime.Object, namespace, name string, opts ...client.DeleteOption) error {
+func (c *genericClient) Delete(ctx context.Context, obj client.Object, namespace, name string, opts ...client.DeleteOption) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return err
@@ -82,15 +81,15 @@ func (c *genericClient) Delete(ctx context.Context, obj runtime.Object, namespac
 	return c.client.Delete(ctx, obj, opts...)
 }
 
-func (c *genericClient) List(ctx context.Context, obj runtime.Object, namespace string, opts ...client.ListOption) error {
+func (c *genericClient) List(ctx context.Context, obj client.ObjectList, namespace string, opts ...client.ListOption) error {
 	opts = append(opts, client.InNamespace(namespace))
 	return c.client.List(ctx, obj, opts...)
 }
 
-func (c *genericClient) UpdateStatus(ctx context.Context, obj runtime.Object) error {
+func (c *genericClient) UpdateStatus(ctx context.Context, obj client.Object) error {
 	return c.client.Status().Update(ctx, obj)
 }
 
-func (c *genericClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (c *genericClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	return c.client.Patch(ctx, obj, patch, opts...)
 }

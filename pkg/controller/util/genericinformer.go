@@ -53,7 +53,7 @@ func NewGenericInformerWithEventHandler(config *rest.Config, namespace string, o
 		return nil, nil, err
 	}
 
-	client, err := apiutil.RESTClientForGVK(gvk, config, scheme.Codecs)
+	client, err := apiutil.RESTClientForGVK(gvk, false, config, scheme.Codecs)
 	if err != nil {
 		return nil, nil, err
 	}
