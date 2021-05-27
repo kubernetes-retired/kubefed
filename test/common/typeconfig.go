@@ -19,6 +19,8 @@ package common
 import (
 	"context"
 
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	client "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -34,8 +36,12 @@ func GetTypeConfig(genericClient client.Client, name, namespace string) (typecon
 	return typeConfig, nil
 }
 
-func UpdateTypeConfig(genericClient client.Client, typeConfig *fedv1b1.FederatedTypeConfig, namespace string) error {
-	err := genericClient.Update(context.Background(), typeConfig)
+func EnableStatusCollection(genericClient client.Client, typeConfig *fedv1b1.FederatedTypeConfig) error {
+	patch := runtimeclient.MergeFrom(typeConfig.DeepCopy())
+	statusCollection := fedv1b1.StatusCollectionEnabled
+	typeConfig.Spec.StatusCollection = &statusCollection
+
+	err := genericClient.Patch(context.Background(), typeConfig, patch)
 	if err != nil {
 		return err
 	}

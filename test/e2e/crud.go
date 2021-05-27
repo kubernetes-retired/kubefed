@@ -284,11 +284,9 @@ func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 		tl.Logf("TypeConfig name: %s", tc.GetName())
 		if tc.GetName() == typeName {
 			tl.Logf("Enabling remote status collection for %v", typeConfig.GetFederatedType().Kind)
-			statusCollection := v1beta1.StatusCollectionEnabled
-			tc.Spec.StatusCollection = &statusCollection
-			err = common.UpdateTypeConfig(client, tc, f.KubeFedSystemNamespace())
+			err = common.EnableStatusCollection(client, tc)
 			if err != nil {
-				tl.Fatalf("Error updating the federatedtypeconfig %q: %v", typeConfigName, err)
+				tl.Fatalf("Error enabling the federatedtypeconfig %q: %v", typeConfigName, err)
 			}
 		}
 	}

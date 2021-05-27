@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
@@ -43,7 +43,7 @@ const eventTemplate = "%s %s %q in cluster %q"
 type UnmanagedDispatcher interface {
 	OperationDispatcher
 
-	Delete(clusterName string, opts ...client.DeleteOption)
+	Delete(clusterName string, opts ...runtimeclient.DeleteOption)
 	RemoveManagedLabel(clusterName string, clusterObj *unstructured.Unstructured)
 }
 
@@ -74,7 +74,7 @@ func (d *unmanagedDispatcherImpl) Wait() (bool, error) {
 	return d.dispatcher.Wait()
 }
 
-func (d *unmanagedDispatcherImpl) Delete(clusterName string, opts ...client.DeleteOption) {
+func (d *unmanagedDispatcherImpl) Delete(clusterName string, opts ...runtimeclient.DeleteOption) {
 	start := time.Now()
 	d.dispatcher.incrementOperationsInitiated()
 	const op = "delete"
@@ -120,10 +120,11 @@ func (d *unmanagedDispatcherImpl) RemoveManagedLabel(clusterName string, cluster
 
 		// Avoid mutating the resource in the informer cache
 		updateObj := clusterObj.DeepCopy()
+		patch := runtimeclient.MergeFrom(updateObj.DeepCopy())
 
 		util.RemoveManagedLabel(updateObj)
 
-		err := client.Update(context.Background(), updateObj)
+		err := client.Patch(context.Background(), updateObj, patch)
 		if err != nil {
 			if d.recorder == nil {
 				wrappedErr := d.wrapOperationError(err, clusterName, op)
