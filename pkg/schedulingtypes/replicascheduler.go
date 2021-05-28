@@ -24,14 +24,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
-	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -84,7 +82,7 @@ func NewReplicaScheduler(controllerConfig *ctlutil.ControllerConfig, eventHandle
 		controllerConfig,
 		client,
 		PodResource,
-		func(pkgruntime.Object) {},
+		func(runtimeclient.Object) {},
 		eventHandlers.ClusterLifecycleHandlers,
 	)
 	if err != nil {
@@ -123,7 +121,7 @@ func (s *ReplicaScheduler) StopPlugin(kind string) {
 	s.plugins.Delete(kind)
 }
 
-func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
+func (s *ReplicaScheduler) ObjectType() runtimeclient.Object {
 	return &fedschedulingv1a1.ReplicaSchedulingPreference{}
 }
 
@@ -158,7 +156,7 @@ func (s *ReplicaScheduler) Stop() {
 	s.podInformer.Stop()
 }
 
-func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctlutil.QualifiedName) ctlutil.ReconciliationStatus {
+func (s *ReplicaScheduler) Reconcile(obj runtimeclient.Object, qualifiedName ctlutil.QualifiedName) ctlutil.ReconciliationStatus {
 	rsp, ok := obj.(*fedschedulingv1a1.ReplicaSchedulingPreference)
 	if !ok {
 		runtime.HandleError(errors.Errorf("Incorrect runtime object for RSP: %v", rsp))
@@ -266,7 +264,7 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 
 		podList := &corev1.PodList{}
-		err = client.List(context.Background(), podList, unstructuredObj.GetNamespace(), crclient.MatchingLabels(selectorLabels))
+		err = client.List(context.Background(), podList, unstructuredObj.GetNamespace(), runtimeclient.MatchingLabels(selectorLabels))
 		if err != nil {
 			return nil, err
 		}

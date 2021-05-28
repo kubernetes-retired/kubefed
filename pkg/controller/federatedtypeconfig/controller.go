@@ -24,12 +24,11 @@ import (
 	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	corev1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -273,7 +272,7 @@ func (c *Controller) reconcile(qualifiedName util.QualifiedName) util.Reconcilia
 	return util.StatusAllOK
 }
 
-func (c *Controller) objCopyFromCache(key string) (pkgruntime.Object, error) {
+func (c *Controller) objCopyFromCache(key string) (runtimeclient.Object, error) {
 	cachedObj, exist, err := c.store.GetByKey(key)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "Failed to query FederatedTypeConfig store for %q", key)
@@ -283,7 +282,7 @@ func (c *Controller) objCopyFromCache(key string) (pkgruntime.Object, error) {
 	if !exist {
 		return nil, nil
 	}
-	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
+	return cachedObj.(runtimeclient.Object).DeepCopyObject().(runtimeclient.Object), nil
 }
 
 func (c *Controller) shutDown() {
@@ -380,7 +379,7 @@ func (c *Controller) ensureFinalizer(tc *corev1b1.FederatedTypeConfig) (bool, er
 		return false, nil
 	}
 
-	patch := client.MergeFrom(tc.DeepCopy())
+	patch := runtimeclient.MergeFrom(tc.DeepCopy())
 	controllerutil.AddFinalizer(tc, finalizer)
 	return true, c.client.Patch(context.TODO(), tc, patch)
 }
@@ -390,7 +389,7 @@ func (c *Controller) removeFinalizer(tc *corev1b1.FederatedTypeConfig) error {
 		return nil
 	}
 
-	patch := client.MergeFrom(tc.DeepCopy())
+	patch := runtimeclient.MergeFrom(tc.DeepCopy())
 	controllerutil.RemoveFinalizer(tc, finalizer)
 	return c.client.Patch(context.TODO(), tc, patch)
 }

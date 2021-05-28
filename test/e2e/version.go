@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/pborman/uuid"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -31,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
 
@@ -52,12 +52,12 @@ type testVersionAdapter interface {
 	version.VersionAdapter
 
 	// Type-agnostic template methods
-	CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error)
+	CreateFederatedObject(obj runtimeclient.Object) (runtimeclient.Object, error)
 	DeleteFederatedObject(qualifiedName util.QualifiedName) error
-	GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error)
+	GetFederatedObject(qualifiedName util.QualifiedName) (runtimeclient.Object, error)
 	FederatedType() string
 	FederatedObjectYAML() string
-	FederatedTypeInstance() pkgruntime.Object
+	FederatedTypeInstance() runtimeclient.Object
 }
 
 type testNamespacedVersionAdapter struct {
@@ -65,7 +65,7 @@ type testNamespacedVersionAdapter struct {
 	kubeClient kubeclientset.Interface
 }
 
-func (a *testNamespacedVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (a *testNamespacedVersionAdapter) CreateFederatedObject(obj runtimeclient.Object) (runtimeclient.Object, error) {
 	configMap := obj.(*corev1.ConfigMap)
 	return a.kubeClient.CoreV1().ConfigMaps(configMap.Namespace).Create(context.Background(), configMap, metav1.CreateOptions{})
 }
@@ -74,7 +74,7 @@ func (a *testNamespacedVersionAdapter) DeleteFederatedObject(qualifiedName util.
 	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Delete(context.Background(), qualifiedName.Name, metav1.DeleteOptions{})
 }
 
-func (a *testNamespacedVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
+func (a *testNamespacedVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (runtimeclient.Object, error) {
 	return a.kubeClient.CoreV1().ConfigMaps(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
 }
 
@@ -93,7 +93,7 @@ data:
 `
 }
 
-func (a *testNamespacedVersionAdapter) FederatedTypeInstance() pkgruntime.Object {
+func (a *testNamespacedVersionAdapter) FederatedTypeInstance() runtimeclient.Object {
 	return &corev1.ConfigMap{}
 }
 
@@ -102,7 +102,7 @@ type testClusterVersionAdapter struct {
 	kubeClient kubeclientset.Interface
 }
 
-func (a *testClusterVersionAdapter) CreateFederatedObject(obj pkgruntime.Object) (pkgruntime.Object, error) {
+func (a *testClusterVersionAdapter) CreateFederatedObject(obj runtimeclient.Object) (runtimeclient.Object, error) {
 	role := obj.(*rbacv1.ClusterRole)
 	return a.kubeClient.RbacV1().ClusterRoles().Create(context.Background(), role, metav1.CreateOptions{})
 }
@@ -111,7 +111,7 @@ func (a *testClusterVersionAdapter) DeleteFederatedObject(qualifiedName util.Qua
 	return a.kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), qualifiedName.String(), metav1.DeleteOptions{})
 }
 
-func (a *testClusterVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (pkgruntime.Object, error) {
+func (a *testClusterVersionAdapter) GetFederatedObject(qualifiedName util.QualifiedName) (runtimeclient.Object, error) {
 	return a.kubeClient.RbacV1().ClusterRoles().Get(context.Background(), qualifiedName.String(), metav1.GetOptions{})
 }
 
@@ -128,7 +128,7 @@ metadata:
 `
 }
 
-func (a *testClusterVersionAdapter) FederatedTypeInstance() pkgruntime.Object {
+func (a *testClusterVersionAdapter) FederatedTypeInstance() runtimeclient.Object {
 	return &rbacv1.ClusterRole{}
 }
 

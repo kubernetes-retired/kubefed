@@ -22,7 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -37,7 +37,7 @@ var PodResource = &metav1.APIResource{
 	Namespaced: true,
 }
 
-func GetResourceKind(obj pkgruntime.Object) string {
+func GetResourceKind(obj runtimeclient.Object) string {
 	t := reflect.TypeOf(obj)
 	if t.Kind() != reflect.Ptr {
 		panic("All types must be pointers to structs.")

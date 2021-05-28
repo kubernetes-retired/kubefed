@@ -18,7 +18,7 @@ package version
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -30,15 +30,15 @@ func (*namespacedVersionAdapter) TypeName() string {
 	return "PropagatedVersion"
 }
 
-func (*namespacedVersionAdapter) NewListObject() pkgruntime.Object {
+func (*namespacedVersionAdapter) NewListObject() runtimeclient.ObjectList {
 	return &fedv1a1.PropagatedVersionList{}
 }
 
-func (*namespacedVersionAdapter) NewObject() pkgruntime.Object {
+func (*namespacedVersionAdapter) NewObject() runtimeclient.Object {
 	return &fedv1a1.PropagatedVersion{}
 }
 
-func (*namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
+func (*namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) runtimeclient.Object {
 	return &fedv1a1.PropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       qualifiedName.Namespace,
@@ -49,13 +49,13 @@ func (*namespacedVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ow
 	}
 }
 
-func (*namespacedVersionAdapter) GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus {
+func (*namespacedVersionAdapter) GetStatus(obj runtimeclient.Object) *fedv1a1.PropagatedVersionStatus {
 	version := obj.(*fedv1a1.PropagatedVersion)
 	status := version.Status
 	return &status
 }
 
-func (*namespacedVersionAdapter) SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus) {
+func (*namespacedVersionAdapter) SetStatus(obj runtimeclient.Object, status *fedv1a1.PropagatedVersionStatus) {
 	version := obj.(*fedv1a1.PropagatedVersion)
 	version.Status = *status
 }

@@ -27,12 +27,10 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
@@ -52,7 +50,7 @@ type FederatedResourceForDispatch interface {
 	ApplyOverrides(obj *unstructured.Unstructured, clusterName string) error
 	RecordError(errorCode string, err error)
 	RecordEvent(reason, messageFmt string, args ...interface{})
-	IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool
+	IsNamespaceInHostCluster(clusterObj runtimeclient.Object) bool
 }
 
 // ManagedDispatcher dispatches operations to member clusters for resources
@@ -247,7 +245,7 @@ func (d *managedDispatcherImpl) Update(clusterName string, clusterObj *unstructu
 	})
 }
 
-func (d *managedDispatcherImpl) Delete(clusterName string, opts ...client.DeleteOption) {
+func (d *managedDispatcherImpl) Delete(clusterName string, opts ...runtimeclient.DeleteOption) {
 	d.RecordStatus(clusterName, status.DeletionTimedOut, nil)
 
 	d.unmanagedDispatcher.Delete(clusterName, opts...)

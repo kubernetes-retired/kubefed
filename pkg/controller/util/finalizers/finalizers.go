@@ -18,13 +18,13 @@ limitations under the License.
 package finalizers
 
 import (
-	meta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // HasFinalizer returns true if the given object has the given finalizer in its ObjectMeta.
-func HasFinalizer(obj runtime.Object, finalizer string) (bool, error) {
+func HasFinalizer(obj runtimeclient.Object, finalizer string) (bool, error) {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return false, err
@@ -35,7 +35,7 @@ func HasFinalizer(obj runtime.Object, finalizer string) (bool, error) {
 
 // AddFinalizers adds the given finalizers to the given objects ObjectMeta.
 // Returns true if the object was updated.
-func AddFinalizers(obj runtime.Object, newFinalizers sets.String) (bool, error) {
+func AddFinalizers(obj runtimeclient.Object, newFinalizers sets.String) (bool, error) {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return false, err
@@ -51,7 +51,7 @@ func AddFinalizers(obj runtime.Object, newFinalizers sets.String) (bool, error) 
 
 // RemoveFinalizers removes the given finalizers from the given objects ObjectMeta.
 // Returns true if the object was updated.
-func RemoveFinalizers(obj runtime.Object, finalizers sets.String) (bool, error) {
+func RemoveFinalizers(obj runtimeclient.Object, finalizers sets.String) (bool, error) {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return false, err

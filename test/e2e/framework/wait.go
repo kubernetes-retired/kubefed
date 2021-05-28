@@ -23,15 +23,15 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/test/common"
 )
 
 // WaitForObject waits for object to match the desired status.
-func WaitForObject(tl common.TestLogger, namespace, name string, objectGetter func(namespace, name string) (pkgruntime.Object, error), desired pkgruntime.Object, equivalent func(actual, desired pkgruntime.Object) bool) {
-	var actual pkgruntime.Object
+func WaitForObject(tl common.TestLogger, namespace, name string, objectGetter func(namespace, name string) (runtimeclient.Object, error), desired runtimeclient.Object, equivalent func(actual, desired runtimeclient.Object) bool) {
+	var actual runtimeclient.Object
 	interval := PollInterval
 	timeout := TestContext.SingleCallTimeout
 	err := wait.PollImmediate(interval, timeout, func() (exist bool, err error) {

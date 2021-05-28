@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiv1 "k8s.io/api/core/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
@@ -106,7 +106,7 @@ func BuildClusterConfig(fedCluster *fedv1b1.KubeFedCluster, client generic.Clien
 // primary cluster by checking if the UIDs match for both ObjectMetas passed
 // in.
 // TODO (font): Need to revisit this when cluster ID is available.
-func IsPrimaryCluster(obj, clusterObj pkgruntime.Object) bool {
+func IsPrimaryCluster(obj, clusterObj runtimeclient.Object) bool {
 	meta := MetaAccessor(obj)
 	clusterMeta := MetaAccessor(clusterObj)
 	return meta.GetUID() == clusterMeta.GetUID()
