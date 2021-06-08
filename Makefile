@@ -26,6 +26,7 @@ HOST_PLATFORM ?= $(shell uname -s | tr A-Z a-z)-$(HOST_ARCH)
 GIT_VERSION ?= $(shell git describe --always --dirty)
 GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
 GIT_HASH ?= $(shell git rev-parse HEAD)
+GIT_BRANCH ?= $(filter-out HEAD,$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 # Note: this is allowed to be overridden for scripts/deploy-kubefed.sh
@@ -42,8 +43,8 @@ VERBOSE_FLAG = -v
 endif
 BUILDMNT = /go/src/$(GOTARGET)
 # The version here should match the version of go configured in
-# .travis.yml
-BUILD_IMAGE ?= golang:1.15.3
+# .github/workflows files.
+BUILD_IMAGE ?= golang:1.16.5
 
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
@@ -136,27 +137,22 @@ generate: generate-code kubefedctl
 	./scripts/update-bindata.sh
 
 push: container
-
-	if [[ -z "$(TRAVIS_PULL_REQUEST)" ]]; \
-	then \
-		$(DOCKER) push $(IMAGE):$(GIT_VERSION); \
-	elif [[ "$(TRAVIS_PULL_REQUEST)" == "false" && "$(TRAVIS_SECURE_ENV_VARS)" == "true" ]]; \
-	then \
-		$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io; \
-		if [[ "$(TRAVIS_BRANCH)" == "master" ]]; \
-		then \
-			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):canary; \
-			$(DOCKER) push $(IMAGE):canary; \
-		fi; \
-		\
-		if git describe --tags --exact-match >/dev/null 2>&1; \
-		then \
-			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):$(GIT_TAG); \
-			$(DOCKER) push $(IMAGE):$(GIT_TAG); \
-			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):latest; \
-			$(DOCKER) push $(IMAGE):latest; \
-		fi \
-	fi
+ifdef QUAY_USERNAME
+ifdef QUAY_PASSWORD
+	$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io
+endif
+endif
+	$(DOCKER) push $(IMAGE):$(GIT_VERSION)
+ifeq ($(GIT_BRANCH),master)
+	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):canary
+	$(DOCKER) push $(IMAGE):canary
+endif
+ifneq ($(GIT_TAG),)
+	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):$(GIT_TAG)
+	$(DOCKER) push $(IMAGE):$(GIT_TAG)
+	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):latest
+	$(DOCKER) push $(IMAGE):latest
+endif
 
 clean:
 	rm -f $(ALL_BINS)
