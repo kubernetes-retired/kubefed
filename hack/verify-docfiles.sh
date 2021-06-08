@@ -16,7 +16,9 @@
 
 set -eou pipefail
 
-CHANGED_FILES=`git diff --name-only master...${TRAVIS_COMMIT}`
+GIT_COMMIT_SHA=${GITHUB_SHA:-$(git rev-parse HEAD)}
+
+CHANGED_FILES=$(git diff --name-only master..."${GIT_COMMIT_SHA}")
 
 [[ -z $CHANGED_FILES ]] && exit 1
 
