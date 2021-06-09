@@ -65,7 +65,9 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
-DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
+ISTTY := $(shell [ -t 0 ] && echo 1)
+
+DOCKER_BUILD ?= $(DOCKER) run --rm $(if $(ISTTY),-it) -u $(shell id -u):$(shell id -g) -e GOCACHE=/tmp/gocache -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE)
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
 .PHONY: all container push clean hyperfed controller kubefedctl test local-test vet lint build bindir generate webhook e2e deploy.kind
@@ -98,14 +100,14 @@ ALL_BINS :=
 
 define PLATFORM_template
 $(1)-$(2): bindir
-	$(DOCKER_BUILD) 'GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
+	$(DOCKER_BUILD) env GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go
 ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
 $(foreach cmd, $(COMMANDS), $(foreach platform, $(PLATFORMS), $(eval $(call PLATFORM_template, $(cmd),$(platform),$(notdir $(cmd))))))
 
 define E2E_PLATFORM_template
 $(1)-$(2): bindir
-	$(DOCKER_BUILD) 'GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) go test -c $(LDFLAG_OPTIONS) -o $(1)-$(2) ./test/$(3)'
+	$(DOCKER_BUILD) env GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) go test -c $(LDFLAG_OPTIONS) -o $(1)-$(2) ./test/$(3)
 ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
 $(foreach platform, $(PLATFORMS), $(eval $(call E2E_PLATFORM_template, $(E2E_BINARY_TARGET),$(platform),$(notdir $(E2E_BINARY_TARGET)))))
