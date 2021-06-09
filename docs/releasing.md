@@ -41,7 +41,7 @@ prereqs:
 
     - This step builds the release artifacts, creates the annotated
       `RELEASE_TAG` and pushes it to master at `GITHUB_REMOTE_UPSTREAM_NAME`.
-      It then verifies the Travis build starts and completes successfully
+      It then verifies the Github Action starts and completes successfully
       followed by verification that the container image built is successfully
       pushed to Quay.
 
@@ -65,21 +65,17 @@ Creating a KubeFed release involves the following steps:
 2. Push the tag to master
    - `git push origin <tag>` (this requires write access to the repo)
 3. Verify image builds, tags and pushes successfully
-   1. Go to the [Travis branches](https://travis-ci.org/kubernetes-sigs/kubefed/branches)
+   1. Go to the [Github Actions](https://github.com/kubernetes-sigs/kubefed/actions)
       view to verify the build succeeded for the `<tag>` that was just pushed.
    2. If the latest build for the `<tag>` was successful, then navigate to the
       build view for the tag in question
-      ([here](https://travis-ci.org/kubernetes-sigs/kubefed/builds/537843474)
+      ([here](https://github.com/kubernetes-sigs/kubefed/runs/2782637960)
       for example). At the bottom of the logs you should see the
-      `after_success` section; which contains the logs for the step that
-      handles building, tagging and pushing the built container image to the
-      quay.io container registry. After expanding this section to view the
+      step that handles building, tagging and pushing the built container image to
+      the quay.io container registry. After expanding this section to view the
       detailed log and verifying the tagging and pushing was successful, you
       should note the sha256 digest for both the
-      [`<tag>`](https://travis-ci.org/kubernetes-sigs/kubefed/builds/537843474#L3750)
-      and the
-      [`latest`](https://travis-ci.org/kubernetes-sigs/kubefed/builds/537843474#L3760)
-      tags.
+      `<tag>` and the `latest` image tags.
    3. You can verify the `kubefed` image with these tags were successfully
       pushed to the [quay.io/kubernetes-multicluster
       repository](https://quay.io/repository/kubernetes-multicluster/kubefed)
@@ -110,10 +106,7 @@ Creating a KubeFed release involves the following steps:
 
 ### How Image is Automatically Published
 
-Our Travis CI system handles automatically building, tagging, and pushing the
+Our Github Actions workflows handle automatic building, tagging, and pushing of the
 `quay.io/kubernetes-multicluster/kubefed:<tag>` container image to our
-repository whenever Travis detects that it's running on a commit from `master`
+repository whenever Github Actions detects that it's running on a commit from `master`
 (uses `canary` image tag) or a git tag (uses `<tag>` and `latest` image tags).
-This step is handled in the last phase of the Travis build within the
-[`after_success` section of the Travis configuration
-file](https://github.com/kubernetes-sigs/kubefed/blob/3e9223df55bfbf801bdd51da9a7ca79183fdff6d/.travis.yml#L28-L42).
