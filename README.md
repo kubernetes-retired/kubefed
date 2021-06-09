@@ -14,8 +14,7 @@ should be. The mechanisms that KubeFed provides are intentionally low-level, and
 intended to be foundational for more complex multicluster use cases such as
 deploying multi-geo applications and disaster recovery.
 
-KubeFed is currently **alpha** and moving rapidly toward its initial
-[beta release](https://github.com/kubernetes-sigs/kubefed/milestone/4).
+KubeFed is currently **beta**.
 
 ## Concepts
 
