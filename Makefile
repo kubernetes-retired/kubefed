@@ -139,11 +139,6 @@ generate: generate-code kubefedctl
 	./scripts/update-bindata.sh
 
 push: container
-ifdef QUAY_USERNAME
-ifdef QUAY_PASSWORD
-	$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io
-endif
-endif
 	$(DOCKER) push $(IMAGE):$(GIT_VERSION)
 ifeq ($(GIT_BRANCH),master)
 	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):canary
