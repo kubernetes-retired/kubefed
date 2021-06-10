@@ -17,8 +17,8 @@ limitations under the License.
 package schedulingtypes
 
 import (
-	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
