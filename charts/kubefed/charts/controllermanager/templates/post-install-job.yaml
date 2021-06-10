@@ -42,12 +42,21 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.commonNodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.commonTolerations | nindent 8 }}
       restartPolicy: Never
       serviceAccountName: kubefed-config-hook
       automountServiceAccountToken: true
       containers:
       - name: post-install-job
-        image: "bitnami/kubectl:1.17.16"
+        image: "{{ .Values.postInstallJob.repository }}/{{ .Values.postInstallJob.image }}:{{ .Values.postInstallJob.tag }}"
+        imagePullPolicy: "{{ .Values.postInstallJob.imagePullPolicy }}"
         command: ["/bin/bash"]
         args: ["/opt/scripts/setup.sh"]
         volumeMounts:
