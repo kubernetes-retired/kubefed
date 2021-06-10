@@ -17,6 +17,7 @@ limitations under the License.
 package schedulingtypes
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
@@ -32,7 +33,7 @@ type Scheduler interface {
 	Stop()
 	Reconcile(obj pkgruntime.Object, qualifiedName util.QualifiedName) util.ReconciliationStatus
 
-	StartPlugin(typeConfig typeconfig.Interface) error
+	StartPlugin(typeConfig typeconfig.Interface, nsAPIResource *metav1.APIResource) error
 	StopPlugin(kind string)
 }
 

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sync
+package util
 
 import (
 	"reflect"
@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
-	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func TestSelectedClusterNames(t *testing.T) {
@@ -84,16 +83,16 @@ func TestSelectedClusterNames(t *testing.T) {
 					"spec": make(map[string]interface{}),
 				},
 			}
-			if err := util.SetClusterNames(obj, testCase.clusterNames); err != nil {
+			if err := SetClusterNames(obj, testCase.clusterNames); err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 			if testCase.clusterSelector != nil {
-				if err := unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, util.SpecField, util.PlacementField, util.ClusterSelectorField, util.MatchLabelsField); err != nil {
+				if err := unstructured.SetNestedStringMap(obj.Object, testCase.clusterSelector, SpecField, PlacementField, ClusterSelectorField, MatchLabelsField); err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
 			}
 
-			selectedNames, err := selectedClusterNames(obj, clusters)
+			selectedNames, err := selectedClusterNames(obj, clusters, false)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}

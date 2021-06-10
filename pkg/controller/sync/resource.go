@@ -131,9 +131,9 @@ func (r *federatedResource) DeleteVersions() {
 
 func (r *federatedResource) ComputePlacement(clusters []*fedv1b1.KubeFedCluster) (sets.String, error) {
 	if r.typeConfig.GetNamespaced() {
-		return computeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope)
+		return util.ComputeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope, false)
 	}
-	return computePlacement(r.federatedResource, clusters)
+	return util.ComputePlacement(r.federatedResource, clusters, false)
 }
 
 func (r *federatedResource) NamespaceNotFederated() bool {
