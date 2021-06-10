@@ -18,7 +18,7 @@ package version
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -30,15 +30,15 @@ func (*clusterVersionAdapter) TypeName() string {
 	return "ClusterPropagatedVersion"
 }
 
-func (*clusterVersionAdapter) NewListObject() pkgruntime.Object {
+func (*clusterVersionAdapter) NewListObject() runtimeclient.ObjectList {
 	return &fedv1a1.ClusterPropagatedVersionList{}
 }
 
-func (*clusterVersionAdapter) NewObject() pkgruntime.Object {
+func (*clusterVersionAdapter) NewObject() runtimeclient.Object {
 	return &fedv1a1.ClusterPropagatedVersion{}
 }
 
-func (*clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object {
+func (*clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) runtimeclient.Object {
 	return &fedv1a1.ClusterPropagatedVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            qualifiedName.Name,
@@ -48,13 +48,13 @@ func (*clusterVersionAdapter) NewVersion(qualifiedName util.QualifiedName, owner
 	}
 }
 
-func (*clusterVersionAdapter) GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus {
+func (*clusterVersionAdapter) GetStatus(obj runtimeclient.Object) *fedv1a1.PropagatedVersionStatus {
 	version := obj.(*fedv1a1.ClusterPropagatedVersion)
 	status := version.Status
 	return &status
 }
 
-func (*clusterVersionAdapter) SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus) {
+func (*clusterVersionAdapter) SetStatus(obj runtimeclient.Object, status *fedv1a1.PropagatedVersionStatus) {
 	version := obj.(*fedv1a1.ClusterPropagatedVersion)
 	version.Status = *status
 }

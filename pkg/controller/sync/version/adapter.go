@@ -18,7 +18,7 @@ package version
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -28,15 +28,15 @@ type VersionAdapter interface {
 	TypeName() string
 
 	// Create an empty instance of the version type
-	NewObject() pkgruntime.Object
+	NewObject() runtimeclient.Object
 	// Create an empty instance of list version type
-	NewListObject() pkgruntime.Object
+	NewListObject() runtimeclient.ObjectList
 	// Create a populated instance of the version type
-	NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) pkgruntime.Object
+	NewVersion(qualifiedName util.QualifiedName, ownerReference metav1.OwnerReference, status *fedv1a1.PropagatedVersionStatus) runtimeclient.Object
 
 	// Type-agnostic access / mutation of the Status field of a version resource
-	GetStatus(obj pkgruntime.Object) *fedv1a1.PropagatedVersionStatus
-	SetStatus(obj pkgruntime.Object, status *fedv1a1.PropagatedVersionStatus)
+	GetStatus(obj runtimeclient.Object) *fedv1a1.PropagatedVersionStatus
+	SetStatus(obj runtimeclient.Object, status *fedv1a1.PropagatedVersionStatus)
 }
 
 func NewVersionAdapter(namespaced bool) VersionAdapter {

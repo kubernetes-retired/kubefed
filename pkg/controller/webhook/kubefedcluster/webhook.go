@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
@@ -49,7 +49,7 @@ func (a *KubeFedClusterAdmissionHook) Handle(ctx context.Context, admissionSpec 
 	// - Requests for things that are not FederatedTypeConfigs
 	if webhook.Allowed(admissionSpec, resourcePluralName) {
 		return admission.Response{
-			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+			AdmissionResponse: admissionv1.AdmissionResponse{
 				Allowed: true,
 			},
 		}
@@ -58,7 +58,7 @@ func (a *KubeFedClusterAdmissionHook) Handle(ctx context.Context, admissionSpec 
 	admittingObject := &v1beta1.KubeFedCluster{}
 	if err := json.Unmarshal(admissionSpec.Object.Raw, admittingObject); err != nil {
 		return admission.Response{
-			AdmissionResponse: admissionv1beta1.AdmissionResponse{
+			AdmissionResponse: admissionv1.AdmissionResponse{
 				Allowed: false,
 				Result: &metav1.Status{
 					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,

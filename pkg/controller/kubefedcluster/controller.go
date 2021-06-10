@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclient "k8s.io/client-go/kubernetes"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
@@ -260,7 +260,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 	wg.Done()
 }
 
-func (cc *ClusterController) RecordError(cluster runtime.Object, errorCode string, err error) {
+func (cc *ClusterController) RecordError(cluster runtimeclient.Object, errorCode string, err error) {
 	cc.eventRecorder.Eventf(cluster, corev1.EventTypeWarning, errorCode, err.Error())
 }
 

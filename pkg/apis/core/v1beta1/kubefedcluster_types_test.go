@@ -49,7 +49,7 @@ var _ = Describe("KubefedCluster", func() {
 				},
 			}
 
-			key, _ = client.ObjectKeyFromObject(created)
+			key = client.ObjectKeyFromObject(created)
 
 			By("creating an API obj")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())
@@ -78,7 +78,7 @@ var _ = Describe("KubefedCluster", func() {
 				},
 			}
 
-			key, _ = client.ObjectKeyFromObject(created)
+			key = client.ObjectKeyFromObject(created)
 
 			By("creating an API obj")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())

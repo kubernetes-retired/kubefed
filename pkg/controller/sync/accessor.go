@@ -19,10 +19,10 @@ package sync
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -77,7 +77,7 @@ func NewFederatedResourceAccessor(
 	typeConfig typeconfig.Interface,
 	fedNamespaceAPIResource *metav1.APIResource,
 	client genericclient.Client,
-	enqueueObj func(pkgruntime.Object),
+	enqueueObj func(runtimeclient.Object),
 	eventRecorder record.EventRecorder) (FederatedResourceAccessor, error) {
 	a := &resourceAccessor{
 		limitedScope:            controllerConfig.LimitedScope(),
@@ -110,7 +110,7 @@ func NewFederatedResourceAccessor(
 	}
 
 	if typeConfig.GetNamespaced() {
-		fedNamespaceEnqueue := func(fedNamespaceObj pkgruntime.Object) {
+		fedNamespaceEnqueue := func(fedNamespaceObj runtimeclient.Object) {
 			// When a federated namespace changes, every resource in
 			// the namespace needs to be reconciled.
 			//
@@ -119,7 +119,7 @@ func NewFederatedResourceAccessor(
 			// placement for the federated namespace.
 			namespace := util.NewQualifiedName(fedNamespaceObj).Namespace
 			for _, rawObj := range a.federatedStore.List() {
-				obj := rawObj.(pkgruntime.Object)
+				obj := rawObj.(runtimeclient.Object)
 				qualifiedName := util.NewQualifiedName(obj)
 				if qualifiedName.Namespace == namespace {
 					enqueueObj(obj)
