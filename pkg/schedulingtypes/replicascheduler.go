@@ -376,7 +376,7 @@ func clustersReplicaState(
 				return nil, nil, status, err
 			}
 
-			podResult := podanalyzer.PodAnalysisResult{}
+			var podResult podanalyzer.PodAnalysisResult
 			podResult, status = podanalyzer.AnalyzePods(podList, time.Now())
 			currentReplicasPerCluster[clusterName] = int64(podResult.RunningAndReady) // include pending as well?
 			unschedulable := int64(podResult.Unschedulable)

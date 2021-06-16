@@ -71,13 +71,11 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 	if err != nil {
 		return nil, err
 	}
-	clusterConfig.Timeout = timeout //nolint:staticcheck
+	clusterConfig.Timeout = timeout
 	var clusterClientSet = ClusterClient{clusterName: c.Name}
-	if clusterConfig != nil {
-		clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
-		if clusterClientSet.kubeClient == nil {
-			return nil, nil
-		}
+	clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
+	if clusterClientSet.kubeClient == nil {
+		return nil, nil
 	}
 	return &clusterClientSet, nil
 }
