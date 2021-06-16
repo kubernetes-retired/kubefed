@@ -37,7 +37,7 @@ bad_files=$(find_files | xargs $ERRORPKG) || true
 popd > /dev/null
 
 if [[ -n "${bad_files}" ]]; then
-  echo "Please Switch from fmt.errorf to github/pkg/errors to fix the following files:"
+  echo "Please Switch from fmt.Errorf to \`errors\` to fix the following files:"
   echo "${bad_files}"
   exit 1
 fi
