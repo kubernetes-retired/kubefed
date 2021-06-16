@@ -198,7 +198,7 @@ func (s *ReplicaScheduler) Reconcile(obj runtimeclient.Object, qualifiedName ctl
 
 		resultClusters, err := plugin.(*Plugin).GetResourceClusters(qualifiedName, fedClusters)
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Failed to get prefrerred clusters while reconciling RSP named %q", key))
+			runtime.HandleError(errors.Wrapf(err, "Failed to get preferred clusters while reconciling RSP named %q", key))
 			return ctlutil.StatusError
 		}
 
