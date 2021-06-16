@@ -85,7 +85,7 @@ func runValidationResourceTests(f framework.KubeFedFramework, vrt validationReso
 		}
 
 		By(fmt.Sprintf("Patching with an invalid %s", resourceName))
-		patch := runtimeclient.MergeFrom(validObj.DeepCopyObject())
+		patch := runtimeclient.MergeFrom(validObj)
 		err = client.Patch(context.TODO(), invalidObj, patch)
 		if err == nil {
 			f.Logger().Fatalf("Expected error patching invalid %s = %+v", resourceName, vrt)
