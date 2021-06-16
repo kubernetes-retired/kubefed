@@ -52,7 +52,7 @@ curl "${curl_args}" "${kb_url}" \
 export KUBEBUILDER_ASSETS="${dest_dir}"
 echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
 
-helm_version="3.3.4"
+helm_version="3.6.0"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://get.helm.sh/$helm_tgz"
 curl "${curl_args}" "${helm_url}" \
