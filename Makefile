@@ -75,13 +75,10 @@ DOCKER_BUILD ?= $(DOCKER) run --rm $(if $(ISTTY),-it) -u $(shell id -u):$(shell 
 all: container hyperfed controller kubefedctl webhook e2e
 
 # Unit tests
-test: vet
+test:
 	go test $(TEST_PKGS)
 
 build: hyperfed controller kubefedctl webhook
-
-vet:
-	go vet $(TEST_PKGS)
 
 lint:
 	golangci-lint run -c .golangci.yml --fix
