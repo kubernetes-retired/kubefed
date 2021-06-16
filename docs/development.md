@@ -34,7 +34,7 @@ help you get started.
 ### Binaries
 
 The KubeFed deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
-`kube-apiserver` >= v1.13 being installed in the path. The `kubebuilder`
+`kube-apiserver` >= v1.16 being installed in the path. The `kubebuilder`
 ([v2.3.1](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v2.3.1)
 as of this writing) release packages all of these dependencies together.
 
@@ -48,7 +48,7 @@ export PATH=$(pwd)/bin:${PATH}
 
 ### kubernetes
 
-The KubeFed deployment requires kubernetes version >= 1.13. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
+The KubeFed deployment requires kubernetes version >= 1.16. To see a detailed list of binaries required, see the prerequisites section in the [user guide](./userguide.md#prerequisites)
 
 ## Prerequisites
 
