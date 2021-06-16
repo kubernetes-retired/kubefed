@@ -159,7 +159,7 @@ func apiResourceGroupMatchesSkipName(skipAPIResourceNames []string, group string
 }
 
 func apiResourceMatchesSkipName(apiResource metav1.APIResource, skipAPIResourceNames []string, group string) bool {
-	names := append(controllerCreatedAPIResourceNames, skipAPIResourceNames...)
+	names := append(controllerCreatedAPIResourceNames, skipAPIResourceNames...) //nolint:gocritic
 	for _, name := range names {
 		if name == "" {
 			continue
