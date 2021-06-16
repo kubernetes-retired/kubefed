@@ -3,7 +3,7 @@
 {{- $altName1 := printf "kubefed-admission-webhook.%s" .Release.Namespace }}
 {{- $altName2 := printf "kubefed-admission-webhook.%s.svc" .Release.Namespace }}
 {{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
 # For namespace scoped deployments, create a unique cluster-scoped resource
@@ -19,6 +19,8 @@ metadata:
   {{- end }}
 webhooks:
 - name: federatedtypeconfigs.core.kubefed.io
+  admissionReviewVersions:
+    - v1
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -39,6 +41,7 @@ webhooks:
     - federatedtypeconfigs
     - federatedtypeconfigs/status
   failurePolicy: Fail
+  sideEffects: None
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
 # For namespace scoped deployments: filter admission webhook requests for
 # resources whose namespace matches the default namespace label applied by helm
@@ -51,6 +54,8 @@ webhooks:
       name: {{ .Release.Namespace }}
 {{ end }}
 - name: kubefedclusters.core.kubefed.io
+  admissionReviewVersions:
+    - v1
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -71,6 +76,7 @@ webhooks:
     - kubefedclusters
     - kubefedclusters/status
   failurePolicy: Fail
+  sideEffects: None
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
 # See comment above.
   namespaceSelector:
@@ -78,6 +84,8 @@ webhooks:
       name: {{ .Release.Namespace }}
 {{ end }}
 - name: kubefedconfigs.core.kubefed.io
+  admissionReviewVersions:
+    - v1
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -97,6 +105,7 @@ webhooks:
     resources:
     - kubefedconfigs
   failurePolicy: Fail
+  sideEffects: None
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
 # See comment above.
   namespaceSelector:
@@ -106,7 +115,7 @@ webhooks:
 ---
 # The same comments for ValidatingWebhookConfiguration apply here to
 # MutatingWebhookConfiguration.
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
@@ -116,6 +125,8 @@ metadata:
 {{- end }}
 webhooks:
 - name: kubefedconfigs.core.kubefed.io
+  admissionReviewVersions:
+    - v1
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -134,6 +145,7 @@ webhooks:
     resources:
     - kubefedconfigs
   failurePolicy: Fail
+  sideEffects: None
 {{- if and .Values.global.scope (eq .Values.global.scope "Namespaced") }}
   namespaceSelector:
     matchLabels:
