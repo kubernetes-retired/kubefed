@@ -164,6 +164,24 @@ func SetFederatedStatus(fedObject *unstructured.Unstructured, reason AggregateRe
 	return true, nil
 }
 
+// IsRecoverableError returns whether the given PropagationStatus is a possibly recoverable error.
+func IsRecoverableError(status PropagationStatus) bool {
+	switch status {
+	case
+		CreationFailed,
+		UpdateFailed,
+		DeletionFailed,
+		LabelRemovalFailed,
+		RetrievalFailed,
+		CreationTimedOut,
+		UpdateTimedOut,
+		DeletionTimedOut,
+		LabelRemovalTimedOut:
+		return true
+	}
+	return false
+}
+
 // update ensures that the status reflects the given generation, reason
 // and collected status. Returns a boolean indication of whether the
 // status has been changed.
