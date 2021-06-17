@@ -390,6 +390,7 @@ func FederatedResourceFromTargetResource(typeConfig typeconfig.Interface, resour
 				}
 			}
 			unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIP")
+			unstructured.RemoveNestedField(targetResource.Object, "spec", "clusterIPs")
 		}
 	}
 

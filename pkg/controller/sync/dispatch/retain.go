@@ -59,7 +59,7 @@ func retainServiceFields(desiredObj, clusterObj *unstructured.Unstructured) erro
 
 	// ClusterIP and NodePort are allocated to Service by cluster, so retain the same if any while updating
 
-	// Retain clusterip
+	// Retain clusterip and clusterips
 	clusterIP, ok, err := unstructured.NestedString(clusterObj.Object, "spec", "clusterIP")
 	if err != nil {
 		return errors.Wrap(err, "Error retrieving clusterIP from cluster service")
@@ -69,6 +69,17 @@ func retainServiceFields(desiredObj, clusterObj *unstructured.Unstructured) erro
 		err := unstructured.SetNestedField(desiredObj.Object, clusterIP, "spec", "clusterIP")
 		if err != nil {
 			return errors.Wrap(err, "Error setting clusterIP for service")
+		}
+	}
+	clusterIPs, ok, err := unstructured.NestedStringSlice(clusterObj.Object, "spec", "clusterIPs")
+	if err != nil {
+		return errors.Wrap(err, "Error retrieving clusterIPs from cluster service")
+	}
+	// !ok could indicate that cluster ips was not assigned
+	if ok && len(clusterIPs) > 0 {
+		err := unstructured.SetNestedStringSlice(desiredObj.Object, clusterIPs, "spec", "clusterIPs")
+		if err != nil {
+			return errors.Wrap(err, "Error setting clusterIPs for service")
 		}
 	}
 
