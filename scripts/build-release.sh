@@ -33,8 +33,8 @@ GITHUB_REPO="${GITHUB_REPO:-kubernetes-sigs/kubefed}"
 GITHUB_REMOTE_UPSTREAM_NAME="${GITHUB_REMOTE_UPSTREAM_NAME:-upstream}"
 
 function verify-command-installed() {
-  if ! util::command-installed jq; then
-    echo "jq command not found. Please add jq to your PATH and try again." >&2
+  if ! util::command-installed gh; then
+    echo "gh command not found. Please add gh to your PATH and try again." >&2
     return 1
   fi
 }
@@ -61,17 +61,17 @@ function create-and-push-tag() {
 }
 
 function build-status() {
-  local buildStatusAPIURL="https://api.github.com/repos/${GITHUB_REPO}/actions/runs?per_page=1&event=push&branch=${RELEASE_TAG}"
-  curl -sH 'Accept: application/vnd.github.v3+json' "${buildStatusAPIURL}" | jq -r '.workflow_runs[0].status'
+  local buildStatusAPIURL="/repos/${GITHUB_REPO}/actions/runs?per_page=1&event=push&branch=${RELEASE_TAG}"
+  gh api --jq '.workflow_runs[0].status' "${buildStatusAPIURL}"
 }
 
 function build-conclusion() {
-  local buildStatusAPIURL="https://api.github.com/repos/${GITHUB_REPO}/actions/runs?per_page=1&event=push&branch=${RELEASE_TAG}"
-  curl -sH 'Accept: application/vnd.github.v3+json' "${buildStatusAPIURL}" | jq -r '.workflow_runs[0].conclusion'
+  local buildStatusAPIURL="/repos/${GITHUB_REPO}/actions/runs?per_page=1&event=push&branch=${RELEASE_TAG}"
+  gh api --jq '.workflow_runs[0].conclusion' "${buildStatusAPIURL}"
 }
 
 function build-started() {
-  if [[ "$(build-status)" == "in-progress" ]]; then
+  if [[ "$(build-status)" == "in_progress" ]]; then
     return 0
   fi
   return 1
@@ -118,7 +118,7 @@ if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
   exit 1
 fi
 
-util::log "Verifying jq CLI command installed"
+util::log "Verifying gh CLI command installed"
 verify-command-installed
 
 util::log "Building release artifacts first to make sure build succeeds"
