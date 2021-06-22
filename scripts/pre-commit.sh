@@ -31,7 +31,7 @@ PLATFORM="${OS}-${ARCH}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 JOIN_CLUSTERS="${JOIN_CLUSTERS:-}"
 DOWNLOAD_BINARIES="${DOWNLOAD_BINARIES:-}"
-COMMON_TEST_ARGS="-kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+COMMON_TEST_ARGS="-kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=2m -ginkgo.trace -ginkgo.randomizeAllSpecs"
 E2E_TEST_CMD="${TEMP_DIR}/e2e-${PLATFORM} ${COMMON_TEST_ARGS}"
 # Disable limited scope in-memory controllers to ensure the controllers in the
 # race detection test behave consistently with deployed controllers for a
