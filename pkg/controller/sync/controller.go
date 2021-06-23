@@ -450,6 +450,15 @@ func (s *KubeFedSyncController) setFederatedStatus(fedResource FederatedResource
 		return util.StatusError
 	}
 
+	// return Error to trigger a retry with back off on recoverable propagation failure
+	if reason == status.AggregateSuccess {
+		for _, value := range collectedStatus.StatusMap {
+			if status.IsRecoverableError(value) {
+				return util.StatusError
+			}
+		}
+	}
+
 	return util.StatusAllOK
 }
 
