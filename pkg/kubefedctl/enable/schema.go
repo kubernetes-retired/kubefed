@@ -90,9 +90,13 @@ func newOpenAPISchemaAccessor(config *rest.Config, apiResource metav1.APIResourc
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating discovery client")
 	}
-	resources, err := openapi.NewOpenAPIGetter(client).Get()
+	openAPISchema, err := openapi.NewOpenAPIGetter(client).OpenAPISchema()
 	if err != nil {
 		return nil, errors.Wrap(err, "Error loading openapi schema")
+	}
+	resources, err := openapi.NewOpenAPIData(openAPISchema)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error loading resources from openapi schema")
 	}
 	gvk := schema.GroupVersionKind{
 		Group:   apiResource.Group,
