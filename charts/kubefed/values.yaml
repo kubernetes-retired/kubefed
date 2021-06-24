@@ -86,6 +86,12 @@ controllermanager:
         - ca.webhook.kubefed
       commonName: ca.webhook.kubefed
 
+  postInstallJob:
+    repository: bitnami
+    image: kubectl
+    tag: 1.17.16
+    imagePullPolicy: IfNotPresent
+
   service:
     labels: {}
 
