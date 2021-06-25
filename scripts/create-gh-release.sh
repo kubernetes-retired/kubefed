@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source "$(dirname "${BASH_SOURCE}")/util.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 
 # Arguments
@@ -51,7 +51,7 @@ function verify-assets-file-exists() {
 
 function github-release-template() {
   # Add leading # for markdown heading level 1 (h1)
-  local regex="$(echo ${RELEASE_TAG_REGEX/^/^\# })"
+  local regex="${RELEASE_TAG_REGEX/^/^\# })"
   cat <<EOF
 ${RELEASE_TAG}
 
@@ -82,23 +82,23 @@ function create-github-release() {
   github-release-template > "${releaseFile}"
 
   # Build asset attach arguments for gh release command
-  local assetFiles
+  local assetFiles=()
   for asset in $(cat "${RELEASE_ASSETS_FILE}"); do
-    assetFiles+=" ${asset} "
+    assetFiles+=("${asset}")
   done
 
   # TODO(font): Add draft and prerelease options to this script.
-  gh release create --draft --prerelease -F "${releaseFile}" "${RELEASE_TAG}" "${assetFiles}"
+  gh release create --draft --prerelease -F "${releaseFile}" "${RELEASE_TAG}" "${assetFiles[@]}"
 }
 
 # TODO(font): Consider performing this step BEFORE tagging and pushing a new
 # release so that the release tag contains all the necessary artifacts.
 function create-release-pr() {
-  local commitFiles="${ROOT_DIR}/CHANGELOG.md ${ROOT_DIR}/charts/index.yaml"
+  local commitFiles=("${ROOT_DIR}/CHANGELOG.md" "${ROOT_DIR}/charts/index.yaml")
 
   # Use the origin and upstream git remote convention names used by gh.
   git checkout -b "${RELEASE_TAG}-rel" --no-track "${GITHUB_REMOTE_UPSTREAM_NAME}/master"
-  git commit ${commitFiles} -m "Update repo for release ${RELEASE_TAG}"
+  git commit "${commitFiles[@]}" -m "Update repo for release ${RELEASE_TAG}"
   git push --set-upstream "${GITHUB_REMOTE_FORK_NAME}" "${RELEASE_TAG}-rel"
   PR_URL="$(gh pr create --base "${GITHUB_PR_BASE_BRANCH}" --title "Update repo for release ${RELEASE_TAG}" -b "" --fill)"
 
