@@ -1,5 +1,16 @@
 # Unreleased
 
+# v0.8.1
+- [#1435](https://github.com/kubernetes-sigs/kubefed/pull/1435)
+  fix: Support Kubernetes pre-release versions in kubefed chart
+- [#1432](https://github.com/kubernetes-sigs/kubefed/pull/1432)
+  build(deps): Upgrade and align k8s.io dependency versions
+- [#1424](https://github.com/kubernetes-sigs/kubefed/pull/1424)
+  fix(postinstall-job): Allow postinstall job to choose a docker repo/image
+- [#1428](https://github.com/kubernetes-sigs/kubefed/pull/1428)
+  fix: retry on recoverable propagation failure
+- [#1416](https://github.com/kubernetes-sigs/kubefed/pull/1416)
+  feat: Make restclient config configurable
 # v0.8.0
 - [#1332](https://github.com/kubernetes-sigs/kubefed/pull/1332)
   fix: Error on existing secrets
