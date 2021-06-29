@@ -27,7 +27,7 @@ RELEASE_TAG="${1-}"
 # Globals
 GITHUB_REMOTE_FORK_NAME="${GITHUB_REMOTE_FORK_NAME:-origin}"
 GITHUB_REMOTE_UPSTREAM_NAME="${GITHUB_REMOTE_UPSTREAM_NAME:-upstream}"
-GITHUB_PR_BASE_BRANCH="${GITHUB_PR_BASE_BRANCH:-kubernetes-sigs:master}"
+GITHUB_PR_BASE_BRANCH="${GITHUB_PR_BASE_BRANCH:-master}"
 
 function verify-command-installed() {
   if ! util::command-installed gh; then
