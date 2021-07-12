@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script will verify that the specified script files have 
+# This script will verify that the specified script files have
 # "set -o errexit" turned on at some point.
 #
 # Usage: verify-errexit.sh [ dir | file ... ]
