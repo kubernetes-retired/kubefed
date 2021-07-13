@@ -28,7 +28,7 @@ spec:
   - name: PushReconciler
     configuration: {{ .Values.featureGates.PushReconciler | default "Enabled" | quote }}
   - name: SchedulerPreferences
-    configuration: {{ .Values.featureGates.SchedulerPreferences | default "Enabled" | quote }}
+    configuration: {{ .Values.featureGates.SchedulerPreferences | default "Disabled" | quote }}
   # NOTE: Commented feature gate to fix https://github.com/kubernetes-sigs/kubefed/issues/1333
   #- name: RawResourceStatusCollection
   #  configuration: {{ .Values.featureGates.RawResourceStatusCollection | default "Disabled" | quote }}

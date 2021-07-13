@@ -58,7 +58,7 @@ func init() {
 // feature keys.  To add a new feature, define a key for it above and
 // add it here.
 var DefaultKubeFedFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-	SchedulerPreferences:        {Default: true, PreRelease: featuregate.Alpha},
+	SchedulerPreferences:        {Default: false, PreRelease: featuregate.Alpha},
 	PushReconciler:              {Default: true, PreRelease: featuregate.Beta},
 	RawResourceStatusCollection: {Default: false, PreRelease: featuregate.Beta},
 }
