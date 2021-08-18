@@ -18,9 +18,9 @@ metadata:
     cert-manager.io/inject-ca-from: {{ printf "%s/%s%s" .Release.Namespace .Release.Name "-root-certificate" | quote }}
   {{- end }}
 webhooks:
-- name: federatedtypeconfigs.core.kubefed.io
-  admissionReviewVersions:
-    - v1
+- admissionReviewVersions:
+  - v1beta1
+  name: federatedtypeconfigs.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -53,9 +53,9 @@ webhooks:
     matchLabels:
       name: {{ .Release.Namespace }}
 {{ end }}
-- name: kubefedclusters.core.kubefed.io
-  admissionReviewVersions:
-    - v1
+- admissionReviewVersions:
+  - v1beta1
+  name: kubefedclusters.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -83,9 +83,9 @@ webhooks:
     matchLabels:
       name: {{ .Release.Namespace }}
 {{ end }}
-- name: kubefedconfigs.core.kubefed.io
-  admissionReviewVersions:
-    - v1
+- admissionReviewVersions:
+  - v1beta1
+  name: kubefedconfigs.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
@@ -124,9 +124,9 @@ metadata:
   name: mutation.core.kubefed.io
 {{- end }}
 webhooks:
-- name: kubefedconfigs.core.kubefed.io
-  admissionReviewVersions:
-    - v1
+- admissionReviewVersions:
+  - v1beta1
+  name: kubefedconfigs.core.kubefed.io
   clientConfig:
     service:
       namespace: {{ .Release.Namespace | quote }}
