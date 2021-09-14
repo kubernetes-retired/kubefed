@@ -63,6 +63,7 @@ controllermanager:
         memory: 64Mi
   webhook:
     annotations: {}
+    replicaCount: 2
     repository: quay.io/kubernetes-multicluster
     image: kubefed
     tag: canary
