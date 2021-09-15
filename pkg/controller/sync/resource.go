@@ -180,7 +180,7 @@ func (r *federatedResource) ObjectForCluster(clusterName string) (*unstructured.
 		"in member clusters. Consider using an override to add or remove elements from this collection."
 	if len(obj.GetAnnotations()) > 0 {
 		r.RecordError("AnnotationsNotSupported", errors.Errorf(notSupportedTemplate, "annotations"))
-		obj.SetAnnotations(nil)
+		obj.SetAnnotations(map[string]string{})
 	}
 	if len(obj.GetFinalizers()) > 0 {
 		r.RecordError("FinalizersNotSupported", errors.Errorf(notSupportedTemplate, "finalizers"))
