@@ -22,12 +22,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
-	meta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func newObj(finalizers []string) runtime.Object {
+func newObj(finalizers []string) runtimeclient.Object {
 	pod := v1.Pod{}
 	pod.ObjectMeta.Finalizers = finalizers
 	return &pod
@@ -35,7 +35,7 @@ func newObj(finalizers []string) runtime.Object {
 
 func TestHasFinalizer(t *testing.T) {
 	testCases := []struct {
-		obj       runtime.Object
+		obj       runtimeclient.Object
 		finalizer string
 		result    bool
 	}{
@@ -78,7 +78,7 @@ func TestHasFinalizer(t *testing.T) {
 
 func TestAddFinalizers(t *testing.T) {
 	testCases := []struct {
-		obj           runtime.Object
+		obj           runtimeclient.Object
 		finalizers    sets.String
 		isUpdated     bool
 		newFinalizers []string
@@ -125,7 +125,7 @@ func TestAddFinalizers(t *testing.T) {
 
 func TestRemoveFinalizers(t *testing.T) {
 	testCases := []struct {
-		obj           runtime.Object
+		obj           runtimeclient.Object
 		finalizers    sets.String
 		isUpdated     bool
 		newFinalizers []string

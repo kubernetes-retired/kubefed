@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -59,7 +59,7 @@ func Allowed(a admission.Request, pluralResourceName string) bool {
 	// We want to let through:
 	// - Requests that are not for create, update
 	// - Requests for things that are not <pluralResourceName>
-	createOrUpdate := a.Operation == admissionv1beta1.Create || a.Operation == admissionv1beta1.Update
+	createOrUpdate := a.Operation == admissionv1.Create || a.Operation == admissionv1.Update
 	isMyGroupAndResource := a.Resource.Group == v1beta1.SchemeGroupVersion.Group && a.Resource.Resource == pluralResourceName
 	return !createOrUpdate || !isMyGroupAndResource
 }

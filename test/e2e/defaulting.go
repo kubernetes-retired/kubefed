@@ -24,8 +24,8 @@ import (
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/storage/names"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1/defaults"
@@ -46,7 +46,7 @@ var _ = Describe("Default", func() {
 	var defaultKubeFedConfig *v1beta1.KubeFedConfig
 	var qualifiedName *util.QualifiedName
 
-	kubeFedConfigGetter := func(namespace, name string) (pkgruntime.Object, error) {
+	kubeFedConfigGetter := func(namespace, name string) (runtimeclient.Object, error) {
 		kubeFedConfig := &v1beta1.KubeFedConfig{}
 		err := client.Get(context.TODO(), kubeFedConfig, namespace, name)
 		return kubeFedConfig, err

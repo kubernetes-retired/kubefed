@@ -24,15 +24,15 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
-	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	fedschedulingv1a1 "sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	ctlutil "sigs.k8s.io/kubefed/pkg/controller/util"
@@ -82,7 +82,7 @@ func NewReplicaScheduler(controllerConfig *ctlutil.ControllerConfig, eventHandle
 		controllerConfig,
 		client,
 		PodResource,
-		func(pkgruntime.Object) {},
+		func(runtimeclient.Object) {},
 		eventHandlers.ClusterLifecycleHandlers,
 	)
 	if err != nil {
@@ -96,11 +96,11 @@ func (s *ReplicaScheduler) SchedulingKind() string {
 	return RSPKind
 }
 
-func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface) error {
+func (s *ReplicaScheduler) StartPlugin(typeConfig typeconfig.Interface, nsAPIResource *metav1.APIResource) error {
 	kind := typeConfig.GetFederatedType().Kind
 	// TODO(marun) Return an error if the kind is not supported
 
-	plugin, err := NewPlugin(s.controllerConfig, s.eventHandlers, typeConfig)
+	plugin, err := NewPlugin(s.controllerConfig, s.eventHandlers, typeConfig, nsAPIResource)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to initialize replica scheduling plugin for %q", kind)
 	}
@@ -121,7 +121,7 @@ func (s *ReplicaScheduler) StopPlugin(kind string) {
 	s.plugins.Delete(kind)
 }
 
-func (s *ReplicaScheduler) ObjectType() pkgruntime.Object {
+func (s *ReplicaScheduler) ObjectType() runtimeclient.Object {
 	return &fedschedulingv1a1.ReplicaSchedulingPreference{}
 }
 
@@ -156,18 +156,20 @@ func (s *ReplicaScheduler) Stop() {
 	s.podInformer.Stop()
 }
 
-func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctlutil.QualifiedName) ctlutil.ReconciliationStatus {
+func (s *ReplicaScheduler) Reconcile(obj runtimeclient.Object, qualifiedName ctlutil.QualifiedName) ctlutil.ReconciliationStatus {
 	rsp, ok := obj.(*fedschedulingv1a1.ReplicaSchedulingPreference)
 	if !ok {
 		runtime.HandleError(errors.Errorf("Incorrect runtime object for RSP: %v", rsp))
 		return ctlutil.StatusError
 	}
 
-	clusterNames, err := s.clusterNames()
+	fedClusters, err := s.podInformer.GetReadyClusters()
 	if err != nil {
 		runtime.HandleError(errors.Wrap(err, "Failed to get cluster list"))
 		return ctlutil.StatusError
 	}
+
+	clusterNames := s.clusterNames(fedClusters)
 	if len(clusterNames) == 0 {
 		// no joined clusters, nothing to do
 		return ctlutil.StatusAllOK
@@ -190,6 +192,28 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctluti
 	}
 
 	key := qualifiedName.String()
+
+	if rsp.Spec.IntersectWithClusterSelector {
+		klog.V(3).Infof("Computing placement of resource %q", qualifiedName)
+
+		resultClusters, err := plugin.(*Plugin).GetResourceClusters(qualifiedName, fedClusters)
+		if err != nil {
+			runtime.HandleError(errors.Wrapf(err, "Failed to get preferred clusters while reconciling RSP named %q", key))
+			return ctlutil.StatusError
+		}
+
+		preferredClusters := []string{}
+		for clusterName := range resultClusters {
+			preferredClusters = append(preferredClusters, clusterName)
+		}
+		if len(preferredClusters) == 0 {
+			return ctlutil.StatusAllOK
+		}
+		clusterNames = preferredClusters
+
+		klog.V(3).Infof("Preferred clusters %q", clusterNames)
+	}
+
 	result, status, err := s.GetSchedulingResult(rsp, qualifiedName, clusterNames)
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to compute the schedule information while reconciling RSP named %q", key))
@@ -206,17 +230,13 @@ func (s *ReplicaScheduler) Reconcile(obj pkgruntime.Object, qualifiedName ctluti
 }
 
 // The list of clusters could come from any target informer
-func (s *ReplicaScheduler) clusterNames() ([]string, error) {
-	clusters, err := s.podInformer.GetReadyClusters()
-	if err != nil {
-		return nil, err
-	}
+func (s *ReplicaScheduler) clusterNames(clusters []*fedv1b1.KubeFedCluster) []string {
 	clusterNames := []string{}
 	for _, cluster := range clusters {
 		clusterNames = append(clusterNames, cluster.Name)
 	}
 
-	return clusterNames, nil
+	return clusterNames
 }
 
 func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSchedulingPreference,
@@ -244,7 +264,7 @@ func (s *ReplicaScheduler) GetSchedulingResult(rsp *fedschedulingv1a1.ReplicaSch
 		}
 
 		podList := &corev1.PodList{}
-		err = client.List(context.Background(), podList, unstructuredObj.GetNamespace(), crclient.MatchingLabels(selectorLabels))
+		err = client.List(context.Background(), podList, unstructuredObj.GetNamespace(), runtimeclient.MatchingLabels(selectorLabels))
 		if err != nil {
 			return nil, err
 		}
@@ -356,7 +376,7 @@ func clustersReplicaState(
 				return nil, nil, status, err
 			}
 
-			podResult := podanalyzer.PodAnalysisResult{}
+			var podResult podanalyzer.PodAnalysisResult
 			podResult, status = podanalyzer.AnalyzePods(podList, time.Now())
 			currentReplicasPerCluster[clusterName] = int64(podResult.RunningAndReady) // include pending as well?
 			unschedulable := int64(podResult.Unschedulable)

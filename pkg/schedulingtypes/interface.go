@@ -17,7 +17,8 @@ limitations under the License.
 package schedulingtypes
 
 import (
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -25,20 +26,20 @@ import (
 
 type Scheduler interface {
 	SchedulingKind() string
-	ObjectType() pkgruntime.Object
+	ObjectType() runtimeclient.Object
 
 	Start()
 	HasSynced() bool
 	Stop()
-	Reconcile(obj pkgruntime.Object, qualifiedName util.QualifiedName) util.ReconciliationStatus
+	Reconcile(obj runtimeclient.Object, qualifiedName util.QualifiedName) util.ReconciliationStatus
 
-	StartPlugin(typeConfig typeconfig.Interface) error
+	StartPlugin(typeConfig typeconfig.Interface, nsAPIResource *metav1.APIResource) error
 	StopPlugin(kind string)
 }
 
 type SchedulerEventHandlers struct {
-	KubeFedEventHandler      func(pkgruntime.Object)
-	ClusterEventHandler      func(pkgruntime.Object)
+	KubeFedEventHandler      func(runtimeclient.Object)
+	ClusterEventHandler      func(runtimeclient.Object)
 	ClusterLifecycleHandlers *util.ClusterLifecycleHandlerFuncs
 }
 

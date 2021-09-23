@@ -1,0 +1,32 @@
+name: Test and Push
+
+on:
+  push:
+    tags:
+      - "v*"
+    branches:
+      - "master"
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.6'
+
+      - name: Run tests
+        run: DOWNLOAD_BINARIES=y bash -x ./scripts/pre-commit.sh
+
+      - name: Login to quay.io
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Push Docker images
+        run: make push

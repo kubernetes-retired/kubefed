@@ -2,8 +2,10 @@ apiVersion: v2
 description: KubeFed helm chart
 name: kubefed
 version: 0.0.3
+kubeVersion: ">= 1.16.0-0"
 dependencies:
 - name: controllermanager
   version: 0.0.3
   repository: "https://localhost/" # Required but unused.
   condition: controllermanager.enabled
+

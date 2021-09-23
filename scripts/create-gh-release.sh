@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source "$(dirname "${BASH_SOURCE}")/util.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/util.sh"
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 
 # Arguments
@@ -27,18 +27,17 @@ RELEASE_TAG="${1-}"
 # Globals
 GITHUB_REMOTE_FORK_NAME="${GITHUB_REMOTE_FORK_NAME:-origin}"
 GITHUB_REMOTE_UPSTREAM_NAME="${GITHUB_REMOTE_UPSTREAM_NAME:-upstream}"
-GITHUB_PR_BASE_BRANCH="${GITHUB_PR_BASE_BRANCH:-kubernetes-sigs:master}"
+GITHUB_PR_BASE_BRANCH="${GITHUB_PR_BASE_BRANCH:-master}"
 
 function verify-command-installed() {
-  if ! util::command-installed hub; then
-    echo "hub command not found. Please add hub to your PATH and try again." >&2
+  if ! util::command-installed gh; then
+    echo "gh command not found. Please add gh to your PATH and try again." >&2
     return 1
   fi
 }
 
 function prime-command-for-auth() {
-  # Run valid but benign hub command to prompt user for github auth
-  hub release show -f "%n" v0.1.0-rc5
+  gh auth status
 }
 
 RELEASE_ASSETS_FILE="kubefed-${RELEASE_TAG}-asset-files.txt"
@@ -52,7 +51,7 @@ function verify-assets-file-exists() {
 
 function github-release-template() {
   # Add leading # for markdown heading level 1 (h1)
-  local regex="$(echo ${RELEASE_TAG_REGEX/^/^\# })"
+  local regex="${RELEASE_TAG_REGEX/^/^\# })"
   cat <<EOF
 ${RELEASE_TAG}
 
@@ -82,29 +81,26 @@ function create-github-release() {
   local releaseFile="kubefed-${RELEASE_TAG}-github-release.md"
   github-release-template > "${releaseFile}"
 
-  # Build asset attach arguments for hub release command
-  local assetArgs
+  # Build asset attach arguments for gh release command
+  local assetFiles=()
   for asset in $(cat "${RELEASE_ASSETS_FILE}"); do
-    assetArgs+="--attach ${asset} "
+    assetFiles+=("${asset}")
   done
 
-  # Remove trailing whitespace
-  assetArgs="$(echo ${assetArgs})"
-
   # TODO(font): Add draft and prerelease options to this script.
-  hub release create --draft --prerelease ${assetArgs} -F "${releaseFile}" "${RELEASE_TAG}"
+  gh release create --draft --prerelease -F "${releaseFile}" "${RELEASE_TAG}" "${assetFiles[@]}"
 }
 
 # TODO(font): Consider performing this step BEFORE tagging and pushing a new
 # release so that the release tag contains all the necessary artifacts.
 function create-release-pr() {
-  local commitFiles="${ROOT_DIR}/CHANGELOG.md ${ROOT_DIR}/charts/index.yaml"
+  local commitFiles=("${ROOT_DIR}/CHANGELOG.md" "${ROOT_DIR}/charts/index.yaml")
 
-  # Use the origin and upstream git remote convention names used by hub.
+  # Use the origin and upstream git remote convention names used by gh.
   git checkout -b "${RELEASE_TAG}-rel" --no-track "${GITHUB_REMOTE_UPSTREAM_NAME}/master"
-  git commit ${commitFiles} -m "Update repo for release ${RELEASE_TAG}"
+  git commit "${commitFiles[@]}" -m "Update repo for release ${RELEASE_TAG}"
   git push --set-upstream "${GITHUB_REMOTE_FORK_NAME}" "${RELEASE_TAG}-rel"
-  PR_URL="$(hub pull-request --base "${GITHUB_PR_BASE_BRANCH}" -m "Update repo for release ${RELEASE_TAG}")"
+  PR_URL="$(gh pr create --base "${GITHUB_PR_BASE_BRANCH}" --title "Update repo for release ${RELEASE_TAG}" -b "" --fill)"
 
 }
 
@@ -113,10 +109,10 @@ if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
   exit 1
 fi
 
-util::log "Verifying hub CLI command installed"
+util::log "Verifying gh CLI command installed"
 verify-command-installed
 
-util::log "Priming hub CLI command for authentication"
+util::log "Priming gh CLI command for authentication"
 prime-command-for-auth
 
 util::log "Verifying release assets file exists"
@@ -130,4 +126,4 @@ create-github-release
 
 echo -e "\nCreated kubefed ${RELEASE_TAG} pull request and github draft release. Go merge and publish at the following URLs when ready:"
 echo "${PR_URL}"
-hub release show --format "%U%n" "${RELEASE_TAG}"
+gh release view --json url --jq .url "${RELEASE_TAG}"

@@ -28,10 +28,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -48,12 +50,14 @@ type Plugin struct {
 
 	federatedTypeClient util.ResourceClient
 
-	typeConfig typeconfig.Interface
+	typeConfig   typeconfig.Interface
+	fedNsClient  util.ResourceClient
+	limitedScope bool
 
 	stopChannel chan struct{}
 }
 
-func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface) (*Plugin, error) {
+func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface, nsAPIResource *metav1.APIResource) (*Plugin, error) {
 	targetAPIResource := typeConfig.GetTargetType()
 	userAgent := fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind))
 	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
@@ -72,6 +76,7 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 	p := &Plugin{
 		targetInformer: targetInformer,
 		typeConfig:     typeConfig,
+		limitedScope:   controllerConfig.LimitedScope(),
 		stopChannel:    make(chan struct{}),
 	}
 
@@ -84,6 +89,11 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 		return nil, err
 	}
 	p.federatedStore, p.federatedController = util.NewResourceInformer(p.federatedTypeClient, targetNamespace, &federatedTypeAPIResource, kubeFedEventHandler)
+
+	p.fedNsClient, err = util.NewResourceClient(controllerConfig.KubeConfig, nsAPIResource)
+	if err != nil {
+		return nil, err
+	}
 
 	return p, nil
 }
@@ -131,6 +141,24 @@ func (p *Plugin) FederatedTypeExists(key string) bool {
 		return false
 	}
 	return exist
+}
+
+func (p *Plugin) GetResourceClusters(qualifiedName util.QualifiedName, clusters []*fedv1b1.KubeFedCluster) (selectedClusters sets.String, err error) {
+	fedObject, err := p.federatedTypeClient.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// get FederatedNamespace with namespace name of the object
+	fedNsObject, err := p.fedNsClient.Resources(qualifiedName.Namespace).Get(context.Background(), qualifiedName.Namespace, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if p.typeConfig.GetNamespaced() {
+		return util.ComputeNamespacedPlacement(fedObject, fedNsObject, clusters, p.limitedScope, true)
+	}
+	return util.ComputePlacement(fedObject, clusters, true)
 }
 
 func (p *Plugin) Reconcile(qualifiedName util.QualifiedName, result map[string]int64) error {

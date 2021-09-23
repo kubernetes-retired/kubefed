@@ -25,14 +25,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -147,7 +146,7 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 		controllerConfig,
 		client,
 		&targetAPIResource,
-		func(obj pkgruntime.Object) {
+		func(obj runtimeclient.Object) {
 			qualifiedName := util.NewQualifiedName(obj)
 			s.worker.EnqueueForRetry(qualifiedName)
 		},
@@ -229,7 +228,7 @@ func (s *KubeFedStatusController) reconcileOnClusterChange() {
 		s.clusterDeliverer.DeliverAt(allClustersKey, nil, time.Now().Add(s.clusterAvailableDelay))
 	}
 	for _, obj := range s.federatedStore.List() {
-		qualifiedName := util.NewQualifiedName(obj.(pkgruntime.Object))
+		qualifiedName := util.NewQualifiedName(obj.(runtimeclient.Object))
 		s.worker.EnqueueWithDelay(qualifiedName, s.smallDelay)
 	}
 }
@@ -326,7 +325,7 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 	return util.StatusAllOK
 }
 
-func (s *KubeFedStatusController) rawObjFromCache(store cache.Store, kind, key string) (pkgruntime.Object, error) {
+func (s *KubeFedStatusController) rawObjFromCache(store cache.Store, kind, key string) (runtimeclient.Object, error) {
 	cachedObj, exist, err := store.GetByKey(key)
 	if err != nil {
 		wrappedErr := errors.Wrapf(err, "Failed to query %s store for %q", kind, key)
@@ -336,7 +335,7 @@ func (s *KubeFedStatusController) rawObjFromCache(store cache.Store, kind, key s
 	if !exist {
 		return nil, nil
 	}
-	return cachedObj.(pkgruntime.Object).DeepCopyObject(), nil
+	return cachedObj.(runtimeclient.Object).DeepCopyObject().(runtimeclient.Object), nil
 }
 
 func (s *KubeFedStatusController) objFromCache(store cache.Store, kind, key string) (*unstructured.Unstructured, error) {

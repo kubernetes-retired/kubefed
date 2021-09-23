@@ -68,6 +68,7 @@ var _ = Describe("Scheduler", func() {
 				for targetTypeName := range schedulingTypes {
 					enableTypeConfigResource(targetTypeName, namespace, kubeConfig, tl)
 				}
+				enableTypeConfigResource(util.NamespaceName, namespace, kubeConfig, tl)
 
 				// make sure scheduler/plugin initialization are done before our test
 				By("Waiting for scheduler/plugin controllers are initialized in scheduling manager")

@@ -64,6 +64,8 @@ const (
 
 var (
 	kubeconfig, kubeFedConfig, masterURL, metricsAddr, healthzAddr string
+	restConfigQPS                                                  float32
+	restConfigBurst                                                int
 )
 
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
@@ -98,6 +100,8 @@ member clusters and do the necessary reconciliation`,
 	flags.StringVar(&kubeFedConfig, "kubefed-config", "", "Path to a KubeFedConfig yaml file. Test only.")
 	flags.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flags.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flags.Float32Var(&restConfigQPS, "rest-config-qps", 5.0, "Maximum QPS to the api-server from this client.")
+	flags.IntVar(&restConfigBurst, "rest-config-burst", 10, "Maximum burst for throttle to the api-server from this client.")
 
 	local := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	klog.InitFlags(local)
@@ -120,6 +124,12 @@ func Run(opts *options.Options, stopChan <-chan struct{}) error {
 	opts.Config.KubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		panic(err)
+	}
+	if restConfigQPS > 0 {
+		opts.Config.KubeConfig.QPS = restConfigQPS
+	}
+	if restConfigBurst > 0 {
+		opts.Config.KubeConfig.Burst = restConfigBurst
 	}
 
 	runningInCluster := len(masterURL) == 0 && len(kubeconfig) == 0

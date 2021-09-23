@@ -24,11 +24,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
@@ -131,16 +131,16 @@ func (r *federatedResource) DeleteVersions() {
 
 func (r *federatedResource) ComputePlacement(clusters []*fedv1b1.KubeFedCluster) (sets.String, error) {
 	if r.typeConfig.GetNamespaced() {
-		return computeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope)
+		return util.ComputeNamespacedPlacement(r.federatedResource, r.fedNamespace, clusters, r.limitedScope, false)
 	}
-	return computePlacement(r.federatedResource, clusters)
+	return util.ComputePlacement(r.federatedResource, clusters, false)
 }
 
 func (r *federatedResource) NamespaceNotFederated() bool {
 	return r.typeConfig.GetNamespaced() && r.fedNamespace == nil
 }
 
-func (r *federatedResource) IsNamespaceInHostCluster(clusterObj pkgruntime.Object) bool {
+func (r *federatedResource) IsNamespaceInHostCluster(clusterObj runtimeclient.Object) bool {
 	// TODO(marun) This comment should be added to the documentation
 	// and removed from this function (where it is no longer
 	// relevant).

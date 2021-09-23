@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/kubernetes-sigs/kubefed.svg?branch=master)](https://travis-ci.org/kubernetes-sigs/kubefed "Travis")
+[![Github Actions](https://github.com/kubernetes-sigs/kubefed/actions/workflows/test-and-push.yml/badge.svg?branch=master)](https://github.com/kubernetes-sigs/kubefed/actions?query=branch%3Amaster "Github Actions")
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/kubefed)](https://goreportcard.com/report/github.com/kubernetes-sigs/kubefed)
 [![Image Repository on Quay](https://quay.io/repository/kubernetes-multicluster/kubefed/status "Image Repository on Quay")](https://quay.io/repository/kubernetes-multicluster/kubefed)
 [![LICENSE](https://img.shields.io/badge/license-apache2.0-green.svg)](https://github.com/kubernetes-sigs/kubefed/blob/master/LICENSE)
@@ -14,8 +14,7 @@ should be. The mechanisms that KubeFed provides are intentionally low-level, and
 intended to be foundational for more complex multicluster use cases such as
 deploying multi-geo applications and disaster recovery.
 
-KubeFed is currently **alpha** and moving rapidly toward its initial
-[beta release](https://github.com/kubernetes-sigs/kubefed/milestone/4).
+KubeFed is currently **beta**.
 
 ## Concepts
 

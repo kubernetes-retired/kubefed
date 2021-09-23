@@ -33,14 +33,14 @@ GITHUB_REPO="${GITHUB_REPO:-kubernetes-sigs/kubefed}"
 GITHUB_REMOTE_UPSTREAM_NAME="${GITHUB_REMOTE_UPSTREAM_NAME:-upstream}"
 
 function verify-command-installed() {
-  if ! util::command-installed jq; then
-    echo "jq command not found. Please add jq to your PATH and try again." >&2
+  if ! util::command-installed gh; then
+    echo "gh command not found. Please add gh to your PATH and try again." >&2
     return 1
   fi
 }
 
 function build-release-artifacts() {
-  ${ROOT_DIR}/scripts/build-release-artifacts.sh ${RELEASE_TAG}
+  "${ROOT_DIR}/scripts/build-release-artifacts.sh" "${RELEASE_TAG}"
 }
 
 function create-and-push-tag() {
@@ -60,75 +60,47 @@ function create-and-push-tag() {
   git push "${GITHUB_REMOTE_UPSTREAM_NAME}" "${RELEASE_TAG}"
 }
 
-# url-encode <string> will perform URL encoding on the string passed in.
-function url-encode() {
-  local length="${#1}"
-  for (( i = 0; i < length; i++ )); do
-    local c="${1:i:1}"
-    case ${c} in
-      [a-zA-Z0-9]) printf "${c}"            ;;
-                *) printf '%%%02X' "'${c}"  ;;
-    esac
-  done
+function build-status() {
+  local buildStatusAPIURL="/repos/${GITHUB_REPO}/actions/runs?per_page=1&event=push&branch=${RELEASE_TAG}"
+  gh api --jq '.workflow_runs[0].status' "${buildStatusAPIURL}"
 }
 
-REPO_SLUG=""
-function travis-build-status() {
-  # The Travis API requires the repository slug to be formatted using standard
-  # URL encoding, including any special characters.
-  if [[ ! "${REPO_SLUG}" ]]; then
-    REPO_SLUG="$(url-encode ${GITHUB_REPO})"
+function build-conclusion() {
+  local buildStatusAPIURL="/repos/${GITHUB_REPO}/actions/runs?per_page=1&event=push&branch=${RELEASE_TAG}"
+  gh api --jq '.workflow_runs[0].conclusion' "${buildStatusAPIURL}"
+}
+
+function build-started() {
+  if [[ "$(build-status)" == "in_progress" ]]; then
+    return 0
   fi
-
-  local travisBuildStatusApi="https://api.travis-ci.org/repo/${REPO_SLUG}/branch/${RELEASE_TAG}"
-  curl -sH 'Travis-API-Version: 3' ${travisBuildStatusApi} | jq -r .last_build.state
-}
-
-CI_PASSED_STATUS="passed"
-CI_COMPLETED_STATUSES="${CI_PASSED_STATUS} failed errored canceled"
-
-function travis-build-started() {
-  local startedStatuses="started ${CI_COMPLETED_STATUSES}"
-  local buildStatus="$(travis-build-status)"
-
-  for status in ${startedStatuses}; do
-    if [[ "${status}" == "${buildStatus}" ]]; then
-      return 0
-    fi
-  done
-
   return 1
 }
 
-function travis-build-completed() {
-  local buildStatus="$(travis-build-status)"
-
-  for status in ${CI_COMPLETED_STATUSES}; do
-    if [[ "${status}" == "${buildStatus}" ]]; then
-      return 0
-    fi
-  done
-
+function build-completed() {
+  if [[ "$(build-status)" == "completed" ]]; then
+    return 0
+  fi
   return 1
 }
 
 function verify-continuous-integration() {
-  util::wait-for-condition "kubefed CI build to start" "travis-build-started" 1200
-  util::wait-for-condition "kubefed CI build to complete" "travis-build-completed" 3600
+  util::wait-for-condition "kubefed CI build to start" "build-started" 1200
+  util::wait-for-condition "kubefed CI build to complete" "build-completed" 3600
 
-  local buildStatus="$(travis-build-status)"
+  local buildConclusion="$(build-conclusion)"
 
-  if [[ "${buildStatus}" == "${CI_PASSED_STATUS}" ]]; then
-    echo "kubefed CI build ${CI_PASSED_STATUS}"
+  if [[ "${buildConclusion}" == "success" ]]; then
+    echo "kubefed CI build success"
   else
-    echo "kubefed CI build ${buildStatus}. Exiting."
+    echo "kubefed CI build ${buildConclusion}. Exiting."
     exit 1
   fi
 }
 
 function quay-image-status() {
-  local quayImagesApi="https://quay.io/api/v1/repository/${QUAY_REPO}/tag/${RELEASE_TAG}/images"
-  curl -fsSL ${quayImagesApi} &> /dev/null
+  local quayImagesAPIURL="https://quay.io/api/v1/repository/${QUAY_REPO}/tag/${RELEASE_TAG}/images"
+  curl -fsSL "${quayImagesAPIURL}" &> /dev/null
 }
 
 function verify-container-image() {
@@ -146,7 +118,7 @@ if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
   exit 1
 fi
 
-util::log "Verifying jq CLI command installed"
+util::log "Verifying gh CLI command installed"
 verify-command-installed
 
 util::log "Building release artifacts first to make sure build succeeds"
@@ -155,7 +127,7 @@ build-release-artifacts
 util::log "Creating local git signed and annotated tag and pushing tag to kick off build process"
 create-and-push-tag
 
-util::log "Verifying image builds and completes successfully in Travis. This can take a while (~1 hour)"
+util::log "Verifying image builds and completes successfully in Github Actions. This can take a while (~1 hour)"
 verify-continuous-integration
 
 util::log "Verifying container image tags and pushes successfully to Quay"

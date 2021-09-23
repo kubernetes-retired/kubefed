@@ -43,17 +43,17 @@ script if you'd like to change the default:
 NUM_CLUSTERS=<num> ./scripts/create-clusters.sh
 ```
 
-The `KIND_TAG` is `v1.19.4@sha256:796d09e217d93bed01ecf8502633e48fd806fe42f9d02fdd468b81cd4e3bd40b` by default.
-Image `kindest/node:v1.19.4@sha256:796d09e217d93bed01ecf8502633e48fd806fe42f9d02fdd468b81cd4e3bd40b` is used as
+The `KIND_TAG` is `v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6` by default.
+Image `kindest/node:v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6` is used as
 node docker image for booting the cluster.
 
 You can use `KIND_IMAGE` or `KIND_TAG` to specify the image as you want.
 ```bash
-KIND_TAG=v1.18.8 ./scripts/create-clusters.sh
+KIND_TAG=v1.19.4@sha256:796d09e217d93bed01ecf8502633e48fd806fe42f9d02fdd468b81cd4e3bd40b ./scripts/create-clusters.sh
 ```
 
 ```bash
-KIND_IMAGE=kindest/node:v1.18.8 ./scripts/create-clusters.sh
+KIND_IMAGE=kindest/node:v1.19.4@sha256:796d09e217d93bed01ecf8502633e48fd806fe42f9d02fdd468b81cd4e3bd40b ./scripts/create-clusters.sh
 ```
 
 ## Delete Clusters

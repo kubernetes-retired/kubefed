@@ -26,6 +26,7 @@ HOST_PLATFORM ?= $(shell uname -s | tr A-Z a-z)-$(HOST_ARCH)
 GIT_VERSION ?= $(shell git describe --always --dirty)
 GIT_TAG ?= $(shell git describe --tags --exact-match 2>/dev/null)
 GIT_HASH ?= $(shell git rev-parse HEAD)
+GIT_BRANCH ?= $(filter-out HEAD,$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
 BUILDDATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 # Note: this is allowed to be overridden for scripts/deploy-kubefed.sh
@@ -42,8 +43,8 @@ VERBOSE_FLAG = -v
 endif
 BUILDMNT = /go/src/$(GOTARGET)
 # The version here should match the version of go configured in
-# .travis.yml
-BUILD_IMAGE ?= golang:1.15.3
+# .github/workflows files.
+BUILD_IMAGE ?= golang:1.16.6
 
 HYPERFED_TARGET = bin/hyperfed
 CONTROLLER_TARGET = bin/controller-manager
@@ -64,7 +65,9 @@ TEST_PKGS ?= $(GOTARGET)/cmd/... $(GOTARGET)/pkg/...
 TEST_CMD = go test $(TESTARGS)
 TEST = $(TEST_CMD) $(TEST_PKGS)
 
-DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE) /bin/sh -c
+ISTTY := $(shell [ -t 0 ] && echo 1)
+
+DOCKER_BUILD ?= $(DOCKER) run --rm $(if $(ISTTY),-it) -u $(shell id -u):$(shell id -g) -e GOCACHE=/tmp/gocache -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BUILD_IMAGE)
 
 # TODO (irfanurrehman): can add local compile, and auto-generate targets also if needed
 .PHONY: all container push clean hyperfed controller kubefedctl test local-test vet lint build bindir generate webhook e2e deploy.kind
@@ -72,13 +75,10 @@ DOCKER_BUILD ?= $(DOCKER) run -it --rm -v $(DIR):$(BUILDMNT) -w $(BUILDMNT) $(BU
 all: container hyperfed controller kubefedctl webhook e2e
 
 # Unit tests
-test: vet
+test:
 	go test $(TEST_PKGS)
 
 build: hyperfed controller kubefedctl webhook
-
-vet:
-	go vet $(TEST_PKGS)
 
 lint:
 	golangci-lint run -c .golangci.yml --fix
@@ -97,14 +97,14 @@ ALL_BINS :=
 
 define PLATFORM_template
 $(1)-$(2): bindir
-	$(DOCKER_BUILD) 'GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go'
+	$(DOCKER_BUILD) env GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) $(GO_BUILDCMD) -o $(1)-$(2) cmd/$(3)/main.go
 ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
 $(foreach cmd, $(COMMANDS), $(foreach platform, $(PLATFORMS), $(eval $(call PLATFORM_template, $(cmd),$(platform),$(notdir $(cmd))))))
 
 define E2E_PLATFORM_template
 $(1)-$(2): bindir
-	$(DOCKER_BUILD) 'GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) go test -c $(LDFLAG_OPTIONS) -o $(1)-$(2) ./test/$(3)'
+	$(DOCKER_BUILD) env GOARCH=$(word 2,$(subst -, ,$(2))) GOOS=$(word 1,$(subst -, ,$(2))) go test -c $(LDFLAG_OPTIONS) -o $(1)-$(2) ./test/$(3)
 ALL_BINS := $(ALL_BINS) $(1)-$(2)
 endef
 $(foreach platform, $(PLATFORMS), $(eval $(call E2E_PLATFORM_template, $(E2E_BINARY_TARGET),$(platform),$(notdir $(E2E_BINARY_TARGET)))))
@@ -136,27 +136,17 @@ generate: generate-code kubefedctl
 	./scripts/update-bindata.sh
 
 push: container
-
-	if [[ -z "$(TRAVIS_PULL_REQUEST)" ]]; \
-	then \
-		$(DOCKER) push $(IMAGE):$(GIT_VERSION); \
-	elif [[ "$(TRAVIS_PULL_REQUEST)" == "false" && "$(TRAVIS_SECURE_ENV_VARS)" == "true" ]]; \
-	then \
-		$(DOCKER) login -u "$(QUAY_USERNAME)" -p "$(QUAY_PASSWORD)" quay.io; \
-		if [[ "$(TRAVIS_BRANCH)" == "master" ]]; \
-		then \
-			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):canary; \
-			$(DOCKER) push $(IMAGE):canary; \
-		fi; \
-		\
-		if git describe --tags --exact-match >/dev/null 2>&1; \
-		then \
-			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):$(GIT_TAG); \
-			$(DOCKER) push $(IMAGE):$(GIT_TAG); \
-			$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):latest; \
-			$(DOCKER) push $(IMAGE):latest; \
-		fi \
-	fi
+	$(DOCKER) push $(IMAGE):$(GIT_VERSION)
+ifeq ($(GIT_BRANCH),master)
+	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):canary
+	$(DOCKER) push $(IMAGE):canary
+endif
+ifneq ($(GIT_TAG),)
+	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):$(GIT_TAG)
+	$(DOCKER) push $(IMAGE):$(GIT_TAG)
+	$(DOCKER) tag $(IMAGE):$(GIT_VERSION) $(IMAGE):latest
+	$(DOCKER) push $(IMAGE):latest
+endif
 
 clean:
 	rm -f $(ALL_BINS)

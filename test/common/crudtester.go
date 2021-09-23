@@ -630,6 +630,14 @@ func (c *FederatedTypeCrudTester) waitForResource(client util.ResourceClient, qu
 					c.tl.Fatalf("Failed to apply json patch: %v", err)
 				}
 
+				// Kubernetes 1.21 introduced a label kubernetes.io/metadata.name to all namespaces so regardless of what we
+				// override we should always add this label here to this check.
+				if expectedClusterObject.GetObjectKind().GroupVersionKind() == apiv1.SchemeGroupVersion.WithKind("Namespace") {
+					labels := expectedClusterObject.GetLabels()
+					labels[apiv1.LabelMetadataName] = expectedClusterObject.GetName()
+					expectedClusterObject.SetLabels(labels)
+				}
+
 				expectedClusterObjectJSON, err := expectedClusterObject.MarshalJSON()
 				if err != nil {
 					c.tl.Fatalf("Failed to marshal expected cluster object to json: %v", err)

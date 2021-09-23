@@ -1,5 +1,50 @@
 # Unreleased
 
+# v0.8.1
+- [#1435](https://github.com/kubernetes-sigs/kubefed/pull/1435)
+  fix: Support Kubernetes pre-release versions in kubefed chart
+- [#1432](https://github.com/kubernetes-sigs/kubefed/pull/1432)
+  build(deps): Upgrade and align k8s.io dependency versions
+- [#1424](https://github.com/kubernetes-sigs/kubefed/pull/1424)
+  fix(postinstall-job): Allow postinstall job to choose a docker repo/image
+- [#1428](https://github.com/kubernetes-sigs/kubefed/pull/1428)
+  fix: retry on recoverable propagation failure
+- [#1416](https://github.com/kubernetes-sigs/kubefed/pull/1416)
+  feat: Make restclient config configurable
+# v0.8.0
+- [#1332](https://github.com/kubernetes-sigs/kubefed/pull/1332)
+  fix: Error on existing secrets
+- [#1379](https://github.com/kubernetes-sigs/kubefed/pull/1379)
+  feat: make objects in workqueue "comparable" to avoid multiple reconciliations on one object at same time
+- [#1388](https://github.com/kubernetes-sigs/kubefed/pull/1388)
+  fix: added blank import to ensure correct workqueue metric registration
+- [#1389](https://github.com/kubernetes-sigs/kubefed/pull/1389)
+  fix: use merge-patch on finalizer operations to resolve racing conflicts
+- [#1393](https://github.com/kubernetes-sigs/kubefed/pull/1393)
+  feat: add intersection behavior for RSP
+- [#1399](https://github.com/kubernetes-sigs/kubefed/pull/1399)
+  docs: correct command line example for test
+- [#1400](https://github.com/kubernetes-sigs/kubefed/pull/1400)
+  feat: make concurrency of the worker configurable
+- [#1409](https://github.com/kubernetes-sigs/kubefed/pull/1409)
+  feat: Use patch to replace update in generic client
+- [#1410](https://github.com/kubernetes-sigs/kubefed/pull/1410)
+  fix: fixed false api resource error log in kubefedctl
+- [#1415](https://github.com/kubernetes-sigs/kubefed/pull/1415)
+  feat: Update controller-runtime to v0.8.3
+- [#1420](https://github.com/kubernetes-sigs/kubefed/pull/1420)
+  build: Switch to Github Actions from Travis
+- [#1421](https://github.com/kubernetes-sigs/kubefed/pull/1421)
+  docs: update README.md to reflect current projectstate
+- [#1422](https://github.com/kubernetes-sigs/kubefed/pull/1422)
+  build: Remove need for TTY when running in Github Actions
+- [#1425](https://github.com/kubernetes-sigs/kubefed/pull/1425)
+  feat: Upgrade to controller-runtime 0.9.0
+- [#1426](https://github.com/kubernetes-sigs/kubefed/pull/1426)
+  chore: Upgrade golangci-lint and helm
+- [#1427](https://github.com/kubernetes-sigs/kubefed/pull/1427)
+  chore: Kind and Kubernetes upgrade
+
 # v0.7.0
 - [#1380](https://github.com/kubernetes-sigs/kubefed/pull/1380) 
   fix: infinite reconciliation loop.

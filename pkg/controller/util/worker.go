@@ -19,10 +19,10 @@ package util
 import (
 	"time"
 
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ReconcileFunc func(qualifiedName QualifiedName) ReconciliationStatus
@@ -32,7 +32,7 @@ type ReconcileWorker interface {
 	EnqueueForClusterSync(qualifiedName QualifiedName)
 	EnqueueForError(qualifiedName QualifiedName)
 	EnqueueForRetry(qualifiedName QualifiedName)
-	EnqueueObject(obj pkgruntime.Object)
+	EnqueueObject(obj runtimeclient.Object)
 	EnqueueWithDelay(qualifiedName QualifiedName, delay time.Duration)
 	Run(stopChan <-chan struct{})
 	SetDelay(retryDelay, clusterSyncDelay time.Duration)
@@ -118,7 +118,7 @@ func (w *asyncWorker) EnqueueForClusterSync(qualifiedName QualifiedName) {
 	w.deliver(qualifiedName, w.timing.ClusterSyncDelay, false)
 }
 
-func (w *asyncWorker) EnqueueObject(obj pkgruntime.Object) {
+func (w *asyncWorker) EnqueueObject(obj runtimeclient.Object) {
 	qualifiedName := NewQualifiedName(obj)
 	w.Enqueue(qualifiedName)
 }

@@ -20,10 +20,10 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
-type isNamespaceInHostClusterFunc func(clusterObj pkgruntime.Object) bool
+type isNamespaceInHostClusterFunc func(clusterObj runtimeclient.Object) bool
 
 type CheckUnmanagedDispatcher interface {
 	OperationDispatcher

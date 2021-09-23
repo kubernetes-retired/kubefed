@@ -31,7 +31,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -174,7 +173,7 @@ func (j *enableType) Run(cmdOut io.Writer, config util.FedConfig) error {
 
 	if j.enableTypeOptions.outputYAML {
 		concreteTypeConfig := resources.TypeConfig.(*fedv1b1.FederatedTypeConfig)
-		objects := []pkgruntime.Object{concreteTypeConfig, resources.CRD}
+		objects := []runtimeclient.Object{concreteTypeConfig, resources.CRD}
 		err := writeObjectsToYAML(objects, cmdOut)
 		if err != nil {
 			return errors.Wrap(err, "Failed to write objects to YAML")
@@ -403,7 +402,7 @@ func federatedTypeCRD(typeConfig typeconfig.Interface, accessor schemaAccessor, 
 	return CrdForAPIResource(typeConfig.GetFederatedType(), schema, shortNames)
 }
 
-func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
+func writeObjectsToYAML(objects []runtimeclient.Object, w io.Writer) error {
 	for _, obj := range objects {
 		if _, err := w.Write([]byte("---\n")); err != nil {
 			return errors.Wrap(err, "Error encoding object to yaml")
@@ -416,7 +415,7 @@ func writeObjectsToYAML(objects []pkgruntime.Object, w io.Writer) error {
 	return nil
 }
 
-func writeObjectToYAML(obj pkgruntime.Object, w io.Writer) error {
+func writeObjectToYAML(obj runtimeclient.Object, w io.Writer) error {
 	json, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(obj)
 	if err != nil {
 		return err

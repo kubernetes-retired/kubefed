@@ -55,7 +55,7 @@ var stopControllerCh chan struct{}
 var config *util.ClusterHealthCheckConfig
 
 var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	testenv = &envtest.Environment{
 		CRDDirectoryPaths: []string{

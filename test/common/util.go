@@ -23,9 +23,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclientset "k8s.io/client-go/kubernetes"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
@@ -39,7 +39,7 @@ type TestLogger interface {
 	Logf(format string, args ...interface{})
 }
 
-func Equivalent(actual, desired pkgruntime.Object) bool {
+func Equivalent(actual, desired runtimeclient.Object) bool {
 	// Check for meta & spec equivalence
 	if !util.ObjectMetaAndSpecEquivalent(actual, desired) {
 		return false

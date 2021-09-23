@@ -24,10 +24,13 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
+	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	fedschedulingv1a1 "sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
@@ -88,6 +91,7 @@ var _ = Describe("Scheduling", func() {
 			cluster1      int32
 			cluster2      int32
 			noPreferences bool
+			intersection  bool
 		}{
 			"replicas spread equally in clusters with no explicit per cluster preferences": {
 				total:         int32(4),
@@ -112,6 +116,15 @@ var _ = Describe("Scheduling", func() {
 				min2:     int64(3),
 				cluster1: int32(3),
 				cluster2: int32(3),
+			},
+			"target clusters are the intersection of the RSP clusters and federated resource placement": {
+				intersection: true,
+				total:        int32(6),
+				weight1:      int64(2),
+				weight2:      int64(1),
+				min1:         int64(3),
+				min2:         int64(3),
+				cluster1:     int32(6),
 			},
 		}
 
@@ -142,6 +155,21 @@ var _ = Describe("Scheduling", func() {
 						expected := map[string]int32{
 							clusterNames[0]: tc.cluster1,
 							clusterNames[1]: tc.cluster2,
+						}
+
+						if tc.intersection {
+							testNs := f.EnsureTestFederatedNamespace(true)
+							fedNs := f.KubeFedSystemNamespace()
+							createIntersectionEnvironment(tl, genericClient, fedNs, clusterNames[0])
+
+							rspSpec.IntersectWithClusterSelector = true
+							expected = map[string]int32{
+								clusterNames[0]: tc.cluster1,
+							}
+
+							defer func() {
+								destroyIntersectionEnvironment(tl, genericClient, testNs, fedNs, clusterNames[0])
+							}()
 						}
 
 						name, err := createTestObjs(tl, genericClient, typeConfig, kubeConfig, rspSpec, namespace)
@@ -202,10 +230,23 @@ func createTestObjs(tl common.TestLogger, client genericclient.Client, typeConfi
 	if !ok {
 		return "", errors.Errorf("Unable to find fixture for %q", typeConfigName)
 	}
+
 	fedObject, err := common.NewTestObject(typeConfig, namespace, []string{}, fixture)
 	if err != nil {
 		return "", err
 	}
+
+	if rspSpec.IntersectWithClusterSelector {
+		clusterSelector := map[string]string{
+			"foo": "bar",
+		}
+
+		err = util.SetClusterSelector(fedObject, clusterSelector)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	createdFedObject, err := federatedTypeClient.Resources(namespace).Create(context.Background(), fedObject, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
@@ -284,10 +325,75 @@ func waitForMatchingFederatedObject(tl common.TestLogger, typeConfig typeconfig.
 	})
 }
 
+func createIntersectionEnvironment(tl common.TestLogger, client genericclient.Client, kubefedNamespace string, clusterName string) {
+	fedCluster := &unstructured.Unstructured{}
+	fedCluster.SetGroupVersionKind(schema.GroupVersionKind{
+		Kind:    "KubeFedCluster",
+		Group:   fedv1b1.SchemeGroupVersion.Group,
+		Version: fedv1b1.SchemeGroupVersion.Version,
+	})
+
+	err := client.Get(context.Background(), fedCluster, kubefedNamespace, clusterName)
+	if err != nil {
+		tl.Fatalf("Cannot get KubeFedCluster %q from namespace %q: %v", clusterName, kubefedNamespace, err)
+	}
+
+	addLabel(fedCluster, "foo", "bar")
+	err = client.Update(context.TODO(), fedCluster)
+	if err != nil {
+		tl.Fatalf("Error updating label %q to KubeFedCluster %q: %v", "foo:bar", clusterName, err)
+	}
+}
+
+func destroyIntersectionEnvironment(tl common.TestLogger, client genericclient.Client, testNamespace *unstructured.Unstructured, kubefedNamespace string, clusterName string) {
+	testNamespaceKey := util.NewQualifiedName(testNamespace).String()
+	err := client.Delete(context.Background(), testNamespace, testNamespace.GetNamespace(), testNamespace.GetName())
+	if err != nil && !apierrors.IsNotFound(err) {
+		tl.Fatalf("Error deleting FederatedNamespace %q: %v", testNamespaceKey, err)
+	}
+
+	fedCluster := &unstructured.Unstructured{}
+	fedCluster.SetGroupVersionKind(schema.GroupVersionKind{
+		Kind:    "KubeFedCluster",
+		Group:   fedv1b1.SchemeGroupVersion.Group,
+		Version: fedv1b1.SchemeGroupVersion.Version,
+	})
+
+	err = client.Get(context.Background(), fedCluster, kubefedNamespace, clusterName)
+	if err != nil {
+		tl.Fatalf("Cannot get KubeFedCluster %q from namespace %q: %v", clusterName, kubefedNamespace, err)
+	}
+
+	removeLabel(fedCluster, "foo", "bar")
+	err = client.Update(context.TODO(), fedCluster)
+	if err != nil {
+		tl.Fatalf("Error deleting label %q of KubeFedCluster %q: %v", "foo:bar", clusterName, err)
+	}
+}
+
 func int32MapToInt64(original map[string]int32) map[string]int64 {
 	result := make(map[string]int64)
 	for k, v := range original {
 		result[k] = int64(v)
 	}
 	return result
+}
+
+func addLabel(obj *unstructured.Unstructured, key, value string) {
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	labels[key] = value
+	obj.SetLabels(labels)
+}
+
+func removeLabel(obj *unstructured.Unstructured, key, value string) {
+	labels := obj.GetLabels()
+	if labels == nil || labels[key] != value {
+		return
+	}
+	delete(labels, key)
+	obj.SetLabels(labels)
 }

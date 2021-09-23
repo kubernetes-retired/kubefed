@@ -20,10 +20,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -63,7 +63,7 @@ func TestHandlers(t *testing.T) {
 	}
 
 	trigger := NewTriggerOnAllChanges(
-		func(obj pkgruntime.Object) {
+		func(obj runtimeclient.Object) {
 			triggerChan <- obj
 		})
 

@@ -52,13 +52,13 @@ curl "${curl_args}" "${kb_url}" \
 export KUBEBUILDER_ASSETS="${dest_dir}"
 echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
 
-helm_version="3.3.4"
+helm_version="3.6.0"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://get.helm.sh/$helm_tgz"
 curl "${curl_args}" "${helm_url}" \
     | tar xzP -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm"
 
-golint_version="1.31.0"
+golint_version="1.40.1"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
 golint_tgz="${golint_dir}.tar.gz"
 golint_url="https://github.com/golangci/golangci-lint/releases/download/v${golint_version}/${golint_tgz}"

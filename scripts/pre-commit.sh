@@ -31,7 +31,7 @@ PLATFORM="${OS}-${ARCH}"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 JOIN_CLUSTERS="${JOIN_CLUSTERS:-}"
 DOWNLOAD_BINARIES="${DOWNLOAD_BINARIES:-}"
-COMMON_TEST_ARGS="-kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=1m -ginkgo.trace -ginkgo.randomizeAllSpecs"
+COMMON_TEST_ARGS="-kubeconfig=${HOME}/.kube/config -ginkgo.v -single-call-timeout=2m -ginkgo.trace -ginkgo.randomizeAllSpecs"
 E2E_TEST_CMD="${TEMP_DIR}/e2e-${PLATFORM} ${COMMON_TEST_ARGS}"
 # Disable limited scope in-memory controllers to ensure the controllers in the
 # race detection test behave consistently with deployed controllers for a
@@ -175,7 +175,7 @@ run-unit-tests
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
-KIND_TAG="v1.19.4@sha256:796d09e217d93bed01ecf8502633e48fd806fe42f9d02fdd468b81cd4e3bd40b" ./scripts/create-clusters.sh
+KIND_TAG="v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6" ./scripts/create-clusters.sh
 
 declare -a join_cluster_list=()
 if [[ -z "${JOIN_CLUSTERS}" ]]; then
