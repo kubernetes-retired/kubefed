@@ -223,6 +223,7 @@ func (s *KubeFedSyncController) isSynced() bool {
 		return false
 	}
 	if !s.informer.GetTargetStore().ClustersSynced(clusters) {
+		klog.V(2).Info("Target clusters' informers not synced")
 		return false
 	}
 	return true
