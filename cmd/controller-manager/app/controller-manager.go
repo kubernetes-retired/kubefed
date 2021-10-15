@@ -364,6 +364,7 @@ func setOptionsByKubeFedConfig(opts *options.Options) {
 
 	opts.Config.ClusterAvailableDelay = spec.ControllerDuration.AvailableDelay.Duration
 	opts.Config.ClusterUnavailableDelay = spec.ControllerDuration.UnavailableDelay.Duration
+	opts.Config.CacheSyncTimeout = spec.ControllerDuration.CacheSyncTimeout.Duration
 
 	opts.LeaderElection.ResourceLock = *spec.LeaderElect.ResourceLock
 	opts.LeaderElection.RetryPeriod = spec.LeaderElect.RetryPeriod.Duration

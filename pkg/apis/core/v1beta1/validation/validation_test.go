@@ -732,6 +732,14 @@ func TestValidateKubeFedConfig(t *testing.T) {
 	invalidUnavailableDelayGreaterThan0.Spec.ControllerDuration.UnavailableDelay.Duration = 0
 	errorCases["spec.controllerDuration.unavailableDelay: Invalid value"] = invalidUnavailableDelayGreaterThan0
 
+	invalidCacheSyncTimeoutNil := testcommon.ValidKubeFedConfig()
+	invalidCacheSyncTimeoutNil.Spec.ControllerDuration.CacheSyncTimeout = nil
+	errorCases["spec.controllerDuration.cacheSyncTimeout: Required value"] = invalidCacheSyncTimeoutNil
+
+	invalidCacheSyncTimeoutGreaterThan0 := testcommon.ValidKubeFedConfig()
+	invalidCacheSyncTimeoutGreaterThan0.Spec.ControllerDuration.CacheSyncTimeout.Duration = 0
+	errorCases["spec.controllerDuration.cacheSyncTimeout: Invalid value"] = invalidCacheSyncTimeoutGreaterThan0
+
 	invalidLeaderElectNil := testcommon.ValidKubeFedConfig()
 	invalidLeaderElectNil.Spec.LeaderElect = nil
 	errorCases["spec.leaderElect: Required value"] = invalidLeaderElectNil
