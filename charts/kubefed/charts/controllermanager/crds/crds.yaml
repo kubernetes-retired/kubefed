@@ -645,6 +645,9 @@ spec:
                   availableDelay:
                     description: Time to wait before reconciling on a healthy cluster.
                     type: string
+                  cacheSyncTimeout:
+                    description: Time to wait for all caches to sync before exit.
+                    type: string
                   unavailableDelay:
                     description: Time to wait before giving up on an unhealthy cluster.
                     type: string

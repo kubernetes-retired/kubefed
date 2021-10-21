@@ -285,6 +285,7 @@ func ValidateKubeFedConfig(kubeFedConfig, oldKubeFedConfig *v1beta1.KubeFedConfi
 	} else {
 		allErrs = append(allErrs, validateDurationGreaterThan0(durationPath.Child("availableDelay"), duration.AvailableDelay)...)
 		allErrs = append(allErrs, validateDurationGreaterThan0(durationPath.Child("unavailableDelay"), duration.UnavailableDelay)...)
+		allErrs = append(allErrs, validateDurationGreaterThan0(durationPath.Child("cacheSyncTimeout"), duration.CacheSyncTimeout)...)
 	}
 
 	elect := spec.LeaderElect

@@ -382,6 +382,7 @@ spec:
   controllerDuration:
     availableDelay: 20s
     unavailableDelay: 60s
+    cacheSyncTimeout: 5m
   leaderElect:
     leaseDuration: 1500ms
     renewDeadline: 1000ms
