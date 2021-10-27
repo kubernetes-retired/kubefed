@@ -3,7 +3,7 @@ module sigs.k8s.io/kubefed
 go 1.16
 
 require (
-	github.com/evanphx/json-patch v4.11.0+incompatible
+	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/json-iterator/go v1.1.11
 	github.com/onsi/ginkgo v1.16.4
