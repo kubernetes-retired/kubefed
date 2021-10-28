@@ -8,6 +8,7 @@ controllermanager:
   enabled: true
   clusterAvailableDelay:
   clusterUnavailableDelay:
+  cacheSyncTimeout:
   leaderElectLeaseDuration:
   leaderElectRenewDeadline:
   leaderElectRetryPeriod:

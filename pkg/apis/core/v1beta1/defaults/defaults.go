@@ -29,6 +29,7 @@ import (
 const (
 	DefaultClusterAvailableDelay   = 20 * time.Second
 	DefaultClusterUnavailableDelay = 60 * time.Second
+	DefaultCacheSyncTimeout        = 5 * time.Minute
 
 	DefaultLeaderElectionLeaseDuration = 15 * time.Second
 	DefaultLeaderElectionRenewDeadline = 10 * time.Second
@@ -54,6 +55,7 @@ func SetDefaultKubeFedConfig(fedConfig *v1beta1.KubeFedConfig) {
 	duration := spec.ControllerDuration
 	setDuration(&duration.AvailableDelay, DefaultClusterAvailableDelay)
 	setDuration(&duration.UnavailableDelay, DefaultClusterUnavailableDelay)
+	setDuration(&duration.CacheSyncTimeout, DefaultCacheSyncTimeout)
 
 	if spec.LeaderElect == nil {
 		spec.LeaderElect = &v1beta1.LeaderElectConfig{}

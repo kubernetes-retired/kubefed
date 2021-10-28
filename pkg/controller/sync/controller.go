@@ -79,6 +79,8 @@ type KubeFedSyncController struct {
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
 
+	cacheSyncTimeout time.Duration
+
 	typeConfig typeconfig.Interface
 
 	fedAccessor FederatedResourceAccessor
@@ -123,6 +125,7 @@ func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfi
 		clusterAvailableDelay:       controllerConfig.ClusterAvailableDelay,
 		clusterUnavailableDelay:     controllerConfig.ClusterUnavailableDelay,
 		smallDelay:                  time.Second * 3,
+		cacheSyncTimeout:            controllerConfig.CacheSyncTimeout,
 		eventRecorder:               recorder,
 		typeConfig:                  typeConfig,
 		hostClusterClient:           client,
@@ -203,6 +206,13 @@ func (s *KubeFedSyncController) Run(stopChan <-chan struct{}) {
 	}()
 }
 
+// Wait until all data stores are in sync for a definitive timeout, and returns if there is an error or a timeout.
+func (s *KubeFedSyncController) waitForSync() error {
+	return wait.PollImmediate(util.SyncedPollPeriod, s.cacheSyncTimeout, func() (bool, error) {
+		return s.isSynced(), nil
+	})
+}
+
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
 func (s *KubeFedSyncController) isSynced() bool {
@@ -223,6 +233,7 @@ func (s *KubeFedSyncController) isSynced() bool {
 		return false
 	}
 	if !s.informer.GetTargetStore().ClustersSynced(clusters) {
+		klog.V(2).Info("Target clusters' informers not synced")
 		return false
 	}
 	return true
@@ -240,8 +251,8 @@ func (s *KubeFedSyncController) reconcileOnClusterChange() {
 }
 
 func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
-	if !s.isSynced() {
-		return util.StatusNotSynced
+	if err := s.waitForSync(); err != nil {
+		klog.Fatalf("failed to wait for all data stores to sync: %v", err)
 	}
 
 	kind := s.typeConfig.GetFederatedType().Kind

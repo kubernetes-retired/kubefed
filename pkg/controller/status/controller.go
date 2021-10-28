@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -69,6 +71,8 @@ type KubeFedStatusController struct {
 	clusterAvailableDelay   time.Duration
 	clusterUnavailableDelay time.Duration
 	smallDelay              time.Duration
+
+	cacheSyncTimeout time.Duration
 
 	typeConfig typeconfig.Interface
 
@@ -116,6 +120,7 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 		clusterAvailableDelay:   controllerConfig.ClusterAvailableDelay,
 		clusterUnavailableDelay: controllerConfig.ClusterUnavailableDelay,
 		smallDelay:              time.Second * 3,
+		cacheSyncTimeout:        controllerConfig.CacheSyncTimeout,
 		typeConfig:              typeConfig,
 		client:                  client,
 		statusClient:            statusClient,
@@ -195,6 +200,13 @@ func (s *KubeFedStatusController) Run(stopChan <-chan struct{}) {
 	}()
 }
 
+// Wait until all data stores are in sync for a definitive timeout, and returns if there is an error or a timeout.
+func (s *KubeFedStatusController) waitForSync() error {
+	return wait.PollImmediate(util.SyncedPollPeriod, s.cacheSyncTimeout, func() (bool, error) {
+		return s.isSynced(), nil
+	})
+}
+
 // Check whether all data stores are in sync. False is returned if any of the informer/stores is not yet
 // synced with the corresponding api server.
 func (s *KubeFedStatusController) isSynced() bool {
@@ -217,6 +229,7 @@ func (s *KubeFedStatusController) isSynced() bool {
 		return false
 	}
 	if !s.informer.GetTargetStore().ClustersSynced(clusters) {
+		klog.V(2).Info("Target clusters' informers not synced")
 		return false
 	}
 	return true
@@ -234,10 +247,8 @@ func (s *KubeFedStatusController) reconcileOnClusterChange() {
 }
 
 func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) util.ReconciliationStatus {
-	defer metrics.UpdateControllerReconcileDurationFromStart("statuscontroller", time.Now())
-
-	if !s.isSynced() {
-		return util.StatusNotSynced
+	if err := s.waitForSync(); err != nil {
+		klog.Fatalf("failed to wait for all data stores to sync: %v", err)
 	}
 
 	federatedKind := s.typeConfig.GetFederatedType().Kind
@@ -248,6 +259,7 @@ func (s *KubeFedStatusController) reconcile(qualifiedName util.QualifiedName) ut
 	startTime := time.Now()
 	defer func() {
 		klog.V(4).Infof("Finished reconciling %v %v (duration: %v)", statusKind, key, time.Since(startTime))
+		metrics.UpdateControllerReconcileDurationFromStart("statuscontroller", startTime)
 	}()
 
 	fedObject, err := s.objFromCache(s.federatedStore, federatedKind, key)

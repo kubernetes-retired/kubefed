@@ -8,6 +8,7 @@ spec:
   controllerDuration:
     availableDelay: {{ .Values.clusterAvailableDelay | default "20s" | quote }}
     unavailableDelay: {{ .Values.clusterUnavailableDelay | default "60s" | quote }}
+    cacheSyncTimeout: {{ .Values.cacheSyncTimeout | default "5m" | quote }}
   leaderElect:
     leaseDuration: {{ .Values.leaderElectLeaseDuration | default "15s" | quote }}
     renewDeadline: {{ .Values.leaderElectRenewDeadline | default "10s" | quote }}

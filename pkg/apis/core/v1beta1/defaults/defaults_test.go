@@ -50,6 +50,12 @@ func TestSetDefaultKubeFedConfig(t *testing.T) {
 	SetDefaultKubeFedConfig(modifiedUnavailableDelayKFC)
 	successCases["spec.controllerDuration.unavailableDelay is preserved"] = KubeFedConfigComparison{unavailableDelayKFC, modifiedUnavailableDelayKFC}
 
+	cacheSyncTimeoutKFC := defaultKubeFedConfig()
+	cacheSyncTimeoutKFC.Spec.ControllerDuration.CacheSyncTimeout.Duration = DefaultCacheSyncTimeout + 31*time.Second
+	modifiedCacheSyncTimeoutKFC := cacheSyncTimeoutKFC.DeepCopyObject().(*v1beta1.KubeFedConfig)
+	SetDefaultKubeFedConfig(modifiedCacheSyncTimeoutKFC)
+	successCases["spec.controllerDuration.cacheSyncTimeout is preserved"] = KubeFedConfigComparison{cacheSyncTimeoutKFC, modifiedCacheSyncTimeoutKFC}
+
 	// LeaderElect
 	leaseDurationKFC := defaultKubeFedConfig()
 	leaseDurationKFC.Spec.LeaderElect.LeaseDuration.Duration = DefaultLeaderElectionLeaseDuration + 11*time.Second
