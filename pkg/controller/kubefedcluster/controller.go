@@ -175,7 +175,7 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	clusterData := cc.clusterDataMap[obj.Name]
-	if clusterData != nil && clusterData.clusterKubeClient != nil {
+	if clusterData != nil && clusterData.clusterKubeClient.kubeClient != nil {
 		return
 	}
 
@@ -183,10 +183,9 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
-	if err != nil || restClient == nil {
+	if err != nil || restClient.kubeClient == nil {
 		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this cluster may be malformed"))
 		klog.Errorf("The configuration for cluster %s may be malformed", obj.Name)
-		return
 	}
 	cc.clusterDataMap[obj.Name] = &ClusterData{clusterKubeClient: restClient, cachedObj: obj.DeepCopy()}
 }
@@ -217,7 +216,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cluster := obj.DeepCopy()
 		clusterData := cc.clusterDataMap[cluster.Name]
 		cc.mu.RUnlock()
-		if clusterData == nil {
+		if clusterData == nil || clusterData.clusterKubeClient.kubeClient == nil {
 			// Retry adding cluster client
 			cc.addToClusterSet(cluster)
 			cc.mu.RLock()
