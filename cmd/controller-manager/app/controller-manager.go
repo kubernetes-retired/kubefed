@@ -100,8 +100,8 @@ member clusters and do the necessary reconciliation`,
 	flags.StringVar(&kubeFedConfig, "kubefed-config", "", "Path to a KubeFedConfig yaml file. Test only.")
 	flags.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flags.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
-	flags.Float32Var(&restConfigQPS, "rest-config-qps", 5.0, "Maximum QPS to the api-server from this client.")
-	flags.IntVar(&restConfigBurst, "rest-config-burst", 10, "Maximum burst for throttle to the api-server from this client.")
+	flags.Float32Var(&restConfigQPS, "rest-config-qps", 100.0, "Maximum QPS to the api-server from this client.")
+	flags.IntVar(&restConfigBurst, "rest-config-burst", 200, "Maximum burst for throttle to the api-server from this client.")
 
 	local := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	klog.InitFlags(local)
