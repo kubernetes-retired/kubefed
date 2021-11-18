@@ -1,5 +1,14 @@
 # Unreleased
 
+# v0.9.0
+- [#1460](https://github.com/kubernetes-sigs/kubefed/pull/1460)
+  feat: introduce informer cache sync timeout
+- [#1468](https://github.com/kubernetes-sigs/kubefed/pull/1468)
+  feat: Add pod level annotations
+- [#1467](https://github.com/kubernetes-sigs/kubefed/pull/1467)
+  fix: KubeFed controller crash when meeting negative array index in overrides
+- [#1461](https://github.com/kubernetes-sigs/kubefed/pull/1461)
+  fix: Increase the default QPS and Burst value of the controller manager
 # v0.8.1
 - [#1435](https://github.com/kubernetes-sigs/kubefed/pull/1435)
   fix: Support Kubernetes pre-release versions in kubefed chart
