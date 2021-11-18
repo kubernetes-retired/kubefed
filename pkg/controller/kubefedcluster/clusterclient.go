@@ -75,8 +75,8 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 		return &clusterClientSet, err
 	}
 	clusterConfig.Timeout = timeout
-	clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
-	return &clusterClientSet, nil
+	clusterClientSet.kubeClient, err = kubeclientset.NewForConfig(restclient.AddUserAgent(clusterConfig, UserAgentName))
+	return &clusterClientSet, err
 }
 
 // GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
