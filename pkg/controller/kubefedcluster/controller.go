@@ -185,7 +185,7 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
 	if err != nil || restClient.kubeClient == nil {
 		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this cluster may be malformed"))
-		klog.Errorf("The configuration for cluster %s may be malformed", obj.Name)
+		klog.Errorf("The configuration for cluster %q may be malformed: %v", obj.Name, err)
 	}
 	cc.clusterDataMap[obj.Name] = &ClusterData{clusterKubeClient: restClient, cachedObj: obj.DeepCopy()}
 }
