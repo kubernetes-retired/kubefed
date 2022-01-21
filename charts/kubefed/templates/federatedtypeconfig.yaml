@@ -3,6 +3,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: clusterroles.rbac.authorization.k8s.io
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -22,6 +23,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: configmaps
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -40,6 +42,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: deployments.apps
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -59,6 +62,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: ingresses.extensions
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -78,6 +82,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: jobs.batch
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -97,6 +102,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: namespaces
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -115,6 +121,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: replicasets.apps
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -134,6 +141,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: secrets
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -152,6 +160,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: serviceaccounts
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
@@ -170,6 +179,7 @@ apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
   name: services
+  namespace: {{ .Release.Namespace }}
 spec:
   federatedType:
     group: types.kubefed.io
