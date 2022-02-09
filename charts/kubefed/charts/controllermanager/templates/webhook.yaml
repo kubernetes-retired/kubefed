@@ -123,6 +123,10 @@ metadata:
 {{- else }}
   name: mutation.core.kubefed.io
 {{- end }}
+  annotations:
+  {{- if .Values.certManager.enabled }}
+    cert-manager.io/inject-ca-from: {{ printf "%s/%s%s" .Release.Namespace .Release.Name "-root-certificate" | quote }}
+  {{- end }}
 webhooks:
 - name: kubefedconfigs.core.kubefed.io
   admissionReviewVersions:
