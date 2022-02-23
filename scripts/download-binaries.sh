@@ -67,6 +67,7 @@ curl "${curl_args}" "${golint_url}" \
 
 # Install go-bindata tool
 pushd ${root_dir}/tools
+go get -u github.com/go-bindata/go-bindata/...
 GOBIN=${dest_dir} go install github.com/go-bindata/go-bindata/v3/go-bindata
 popd
 

@@ -45,7 +45,7 @@ do
   if [[ "${LOCAL_TESTING}" ]]; then
     ENDPOINT="$(kubectl config view -o jsonpath='{.clusters[?(@.name == "'"${cluster}"'")].cluster.server}')"
   else
-    IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "${cluster}-control-plane")"
+    IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "kind-control-plane")"
     ENDPOINT="https://${IP_ADDR}:6443"
   fi
   kubectl patch kubefedclusters -n "${NS}" "${cluster}" --type merge \
