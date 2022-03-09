@@ -276,6 +276,14 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 		threshold = clusterHealthCheckConfig.SuccessThreshold
 	}
 
+	if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
+		// Increment the result run has there is no change in cluster condition
+		storedData.resultRun++
+	} else {
+		// Reset the result run
+		storedData.resultRun = 1
+	}
+
 	if storedData.resultRun < threshold {
 		// Success/Failure is below threshold - leave the probe state unchanged.
 		probeTime := clusterStatus.Conditions[0].LastProbeTime
@@ -284,14 +292,6 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 	} else if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
 		// preserve the last transition time
 		setTransitionTime(clusterStatus, *storedData.clusterStatus.Conditions[0].LastTransitionTime)
-	}
-
-	if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
-		// Increment the result run has there is no change in cluster condition
-		storedData.resultRun++
-	} else {
-		// Reset the result run
-		storedData.resultRun = 1
 	}
 
 	return clusterStatus
