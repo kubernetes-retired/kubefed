@@ -255,7 +255,7 @@ func validateDisabledTLSValidations(disabledTLSValidations []v1beta1.TLSValidati
 func validateClusterCondition(cc *v1beta1.ClusterCondition, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, validateEnumStrings(path.Child("type"), string(cc.Type), []string{string(common.ClusterReady), string(common.ClusterOffline)})...)
+	allErrs = append(allErrs, validateEnumStrings(path.Child("type"), string(cc.Type), []string{string(common.ClusterReady), string(common.ClusterOffline), string(common.ClusterConfigMalformed)})...)
 	allErrs = append(allErrs, validateEnumStrings(path.Child("status"), string(cc.Status), []string{string(corev1.ConditionTrue), string(corev1.ConditionFalse), string(corev1.ConditionUnknown)})...)
 
 	if cc.LastProbeTime.IsZero() {

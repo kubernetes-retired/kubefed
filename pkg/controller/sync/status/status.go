@@ -173,6 +173,7 @@ func IsRecoverableError(status PropagationStatus) bool {
 		DeletionFailed,
 		LabelRemovalFailed,
 		RetrievalFailed,
+		ClientRetrievalFailed,
 		CreationTimedOut,
 		UpdateTimedOut,
 		DeletionTimedOut,
