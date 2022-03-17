@@ -268,7 +268,19 @@ func (s *KubeFedSyncController) reconcile(qualifiedName util.QualifiedName) util
 		apiResource := s.typeConfig.GetTargetType()
 		gvk := apiResourceToGVK(&apiResource)
 		klog.V(2).Infof("Ensuring the removal of the label %q from %s %q in member clusters.", util.ManagedByKubeFedLabelKey, gvk.Kind, qualifiedName)
-		err = s.removeManagedLabel(gvk, qualifiedName)
+		// We can't compute resource placement, therefore we try to
+		// remove it from all member clusters.
+		clusters, err := s.informer.GetClusters()
+		if err != nil {
+			wrappedErr := errors.Wrap(err, "failed to get member clusters")
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
+		clusterNames := sets.NewString()
+		for _, cluster := range clusters {
+			clusterNames = clusterNames.Insert(cluster.Name)
+		}
+		err = s.removeManagedLabel(gvk, qualifiedName, clusterNames)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from %s %q in member clusters", util.ManagedByKubeFedLabelKey, gvk.Kind, qualifiedName)
 			runtime.HandleError(wrappedErr)
@@ -501,7 +513,19 @@ func (s *KubeFedSyncController) ensureDeletion(fedResource FederatedResource) ut
 			return util.StatusError
 		}
 		klog.V(2).Infof("Initiating the removal of the label %q from resources previously managed by %s %q.", util.ManagedByKubeFedLabelKey, kind, key)
-		err = s.removeManagedLabel(fedResource.TargetGVK(), fedResource.TargetName())
+		clusters, err := s.informer.GetClusters()
+		if err != nil {
+			wrappedErr := errors.Wrap(err, "failed to get member clusters")
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
+		targetClusters, err := fedResource.ComputePlacement(clusters)
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "failed to compute placement for %s %q", kind, key)
+			runtime.HandleError(wrappedErr)
+			return util.StatusError
+		}
+		err = s.removeManagedLabel(fedResource.TargetGVK(), fedResource.TargetName(), targetClusters)
 		if err != nil {
 			wrappedErr := errors.Wrapf(err, "failed to remove the label %q from all resources previously managed by %s %q", util.ManagedByKubeFedLabelKey, kind, key)
 			runtime.HandleError(wrappedErr)
@@ -533,8 +557,8 @@ func (s *KubeFedSyncController) ensureDeletion(fedResource FederatedResource) ut
 
 // removeManagedLabel attempts to remove the managed label from
 // resources with the given name in member clusters.
-func (s *KubeFedSyncController) removeManagedLabel(gvk schema.GroupVersionKind, qualifiedName util.QualifiedName) error {
-	ok, err := s.handleDeletionInClusters(gvk, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+func (s *KubeFedSyncController) removeManagedLabel(gvk schema.GroupVersionKind, qualifiedName util.QualifiedName, clusters sets.String) error {
+	ok, err := s.handleDeletionInClusters(gvk, qualifiedName, clusters, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
 		if clusterObj.GetDeletionTimestamp() != nil {
 			return
 		}
@@ -554,8 +578,17 @@ func (s *KubeFedSyncController) deleteFromClusters(fedResource FederatedResource
 	gvk := fedResource.TargetGVK()
 	qualifiedName := fedResource.TargetName()
 
+	clusters, err := s.informer.GetClusters()
+	if err != nil {
+		return false, err
+	}
+	targetClusters, err := fedResource.ComputePlacement(clusters)
+	if err != nil {
+		return false, err
+	}
+
 	remainingClusters := []string{}
-	ok, err := s.handleDeletionInClusters(gvk, qualifiedName, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
+	ok, err := s.handleDeletionInClusters(gvk, qualifiedName, targetClusters, func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured) {
 		// If the containing namespace of a FederatedNamespace is
 		// marked for deletion, it is impossible to require the
 		// removal of the namespace in advance of removal of the sync
@@ -615,9 +648,17 @@ func (s *KubeFedSyncController) ensureRemovedOrUnmanaged(fedResource FederatedRe
 		return errors.Wrap(err, "failed to get a list of clusters")
 	}
 
+	targetClusters, err := fedResource.ComputePlacement(clusters)
+	if err != nil {
+		return errors.Wrapf(err, "failed to compute placement for %s %q", fedResource.FederatedKind(), fedResource.FederatedName().Name)
+	}
+
 	dispatcher := dispatch.NewCheckUnmanagedDispatcher(s.informer.GetClientForCluster, fedResource.TargetGVK(), fedResource.TargetName())
 	unreadyClusters := []string{}
 	for _, cluster := range clusters {
+		if !targetClusters.Has(cluster.Name) {
+			continue
+		}
 		if !util.IsClusterReady(&cluster.Status) {
 			unreadyClusters = append(unreadyClusters, cluster.Name)
 			continue
@@ -639,9 +680,9 @@ func (s *KubeFedSyncController) ensureRemovedOrUnmanaged(fedResource FederatedRe
 
 // handleDeletionInClusters invokes the provided deletion handler for
 // each managed resource in member clusters.
-func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersionKind, qualifiedName util.QualifiedName,
+func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersionKind, qualifiedName util.QualifiedName, clusters sets.String,
 	deletionFunc func(dispatcher dispatch.UnmanagedDispatcher, clusterName string, clusterObj *unstructured.Unstructured)) (bool, error) {
-	clusters, err := s.informer.GetClusters()
+	memberClusters, err := s.informer.GetClusters()
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get a list of clusters")
 	}
@@ -649,8 +690,11 @@ func (s *KubeFedSyncController) handleDeletionInClusters(gvk schema.GroupVersion
 	dispatcher := dispatch.NewUnmanagedDispatcher(s.informer.GetClientForCluster, gvk, qualifiedName)
 	retrievalFailureClusters := []string{}
 	unreadyClusters := []string{}
-	for _, cluster := range clusters {
+	for _, cluster := range memberClusters {
 		clusterName := cluster.Name
+		if !clusters.Has(clusterName) {
+			continue
+		}
 
 		if !util.IsClusterReady(&cluster.Status) {
 			unreadyClusters = append(unreadyClusters, clusterName)
