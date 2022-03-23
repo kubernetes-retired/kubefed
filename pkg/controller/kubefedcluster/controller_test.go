@@ -65,17 +65,17 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 		"ClusterNotReadyButWithinFailureThreshold": {
 			clusterStatus: clusterStatus(corev1.ConditionFalse, t3, t3),
 			storedClusterData: &ClusterData{
-				clusterStatus: clusterStatus(corev1.ConditionTrue, t2, t1),
-				resultRun:     2},
-			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t3, t1),
-			expectedResultRun:     3,
+				clusterStatus: clusterStatus(corev1.ConditionFalse, t2, t1),
+				resultRun:     1},
+			expectedClusterStatus: clusterStatus(corev1.ConditionFalse, t3, t1),
+			expectedResultRun:     2,
 		},
 		"ClusterNotReadyAndCrossedFailureThreshold": {
 			clusterStatus: clusterStatus(corev1.ConditionFalse, t4, t4),
 			storedClusterData: &ClusterData{
 				clusterStatus: clusterStatus(corev1.ConditionTrue, t3, t1),
 				resultRun:     3},
-			expectedClusterStatus: clusterStatus(corev1.ConditionFalse, t4, t4),
+			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t4, t1),
 			expectedResultRun:     1,
 		},
 		"ClusterReturnToReadyState": {
