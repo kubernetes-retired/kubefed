@@ -52,39 +52,51 @@ func TestThresholdCheckedClusterStatus(t *testing.T) {
 	}{
 		"ClusterReadyAtBegining": {
 			clusterStatus:         clusterStatus(corev1.ConditionTrue, t1, t1),
-			storedClusterData:     &ClusterData{clusterStatus: nil, resultRun: 0},
+			storedClusterData:     &ClusterData{clusterStatus: nil, lastProbeStatus: nil, resultRun: 0},
 			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t1, t1),
 			expectedResultRun:     1,
 		},
 		"ClusterNotReadyAtBegining": {
 			clusterStatus:         clusterStatus(corev1.ConditionFalse, t1, t1),
-			storedClusterData:     &ClusterData{clusterStatus: nil, resultRun: 0},
+			storedClusterData:     &ClusterData{clusterStatus: nil, lastProbeStatus: nil, resultRun: 0},
 			expectedClusterStatus: clusterStatus(corev1.ConditionFalse, t1, t1),
+			expectedResultRun:     1,
+		},
+		"ClusterFirstProbeNotReady": {
+			clusterStatus: clusterStatus(corev1.ConditionFalse, t3, t3),
+			storedClusterData: &ClusterData{
+				clusterStatus:   clusterStatus(corev1.ConditionTrue, t2, t1),
+				lastProbeStatus: clusterStatus(corev1.ConditionTrue, t2, t1),
+				resultRun:       1000},
+			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t3, t1),
 			expectedResultRun:     1,
 		},
 		"ClusterNotReadyButWithinFailureThreshold": {
 			clusterStatus: clusterStatus(corev1.ConditionFalse, t3, t3),
 			storedClusterData: &ClusterData{
-				clusterStatus: clusterStatus(corev1.ConditionFalse, t2, t1),
-				resultRun:     1},
-			expectedClusterStatus: clusterStatus(corev1.ConditionFalse, t3, t1),
-			expectedResultRun:     2,
+				clusterStatus:   clusterStatus(corev1.ConditionTrue, t2, t1),
+				lastProbeStatus: clusterStatus(corev1.ConditionFalse, t2, t1),
+				resultRun:       2},
+			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t3, t1),
+			expectedResultRun:     3,
 		},
 		"ClusterNotReadyAndCrossedFailureThreshold": {
 			clusterStatus: clusterStatus(corev1.ConditionFalse, t4, t4),
 			storedClusterData: &ClusterData{
-				clusterStatus: clusterStatus(corev1.ConditionTrue, t3, t1),
-				resultRun:     3},
-			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t4, t1),
-			expectedResultRun:     1,
+				clusterStatus:   clusterStatus(corev1.ConditionTrue, t3, t1),
+				lastProbeStatus: clusterStatus(corev1.ConditionFalse, t3, t1),
+				resultRun:       3},
+			expectedClusterStatus: clusterStatus(corev1.ConditionFalse, t4, t1),
+			expectedResultRun:     4,
 		},
 		"ClusterReturnToReadyState": {
 			clusterStatus: clusterStatus(corev1.ConditionTrue, t5, t5),
 			storedClusterData: &ClusterData{
-				clusterStatus: clusterStatus(corev1.ConditionFalse, t4, t1),
-				resultRun:     1},
-			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t5, t5),
-			expectedResultRun:     1,
+				clusterStatus:   clusterStatus(corev1.ConditionFalse, t4, t1),
+				lastProbeStatus: clusterStatus(corev1.ConditionTrue, t4, t1),
+				resultRun:       1},
+			expectedClusterStatus: clusterStatus(corev1.ConditionTrue, t5, t1),
+			expectedResultRun:     2,
 		},
 	}
 

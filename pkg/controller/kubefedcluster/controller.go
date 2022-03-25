@@ -50,6 +50,9 @@ type ClusterData struct {
 	// clusterStatus is the cluster status as of last sampling.
 	clusterStatus *fedv1b1.KubeFedClusterStatus
 
+	// lastProbeStatus is the last check probe result
+	lastProbeStatus *fedv1b1.KubeFedClusterStatus
+
 	// How many times in a row the probe has returned the same result.
 	resultRun int64
 
@@ -268,6 +271,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 	clusterHealthCheckConfig *util.ClusterHealthCheckConfig) *fedv1b1.KubeFedClusterStatus {
 	if storedData.clusterStatus == nil {
 		storedData.resultRun = 1
+		storedData.lastProbeStatus = clusterStatus
 		return clusterStatus
 	}
 
@@ -276,20 +280,21 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 		threshold = clusterHealthCheckConfig.SuccessThreshold
 	}
 
-	if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
+	if clusterStatusEqual(clusterStatus, storedData.lastProbeStatus) {
 		// Increment the result run has there is no change in cluster condition
 		storedData.resultRun++
 	} else {
-		// Reset the result run
+		storedData.lastProbeStatus = clusterStatus
 		storedData.resultRun = 1
 	}
 
-	if storedData.resultRun < threshold {
+	if storedData.resultRun < threshold+1 {
 		// Success/Failure is below threshold - leave the probe state unchanged.
 		probeTime := clusterStatus.Conditions[0].LastProbeTime
 		clusterStatus = storedData.clusterStatus
 		setProbeTime(clusterStatus, probeTime)
-	} else if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
+		setProbeTime(storedData.lastProbeStatus, probeTime)
+	} else if !clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
 		// preserve the last transition time
 		setTransitionTime(clusterStatus, *storedData.clusterStatus.Conditions[0].LastTransitionTime)
 	}
