@@ -105,6 +105,19 @@ function run-e2e-tests-with-in-memory-controllers() {
   ${IN_MEMORY_E2E_TEST_CMD}
 }
 
+function run-e2e-tests-with-not-ready-clusters() {
+  # Run the tests without any verbosity. The unhealthy nodes generate
+  # too much logs.
+  go test -timeout 900s ./test/e2e \
+    -args -kubeconfig=${HOME}/.kube/config \
+    -single-call-timeout=2m \
+    -ginkgo.randomizeAllSpecs \
+    -limited-scope=true \
+    -in-memory-controllers=true \
+    -simulate-federation=true \
+    -ginkgo.focus='\[NOT_READY\]'
+}
+
 function run-namespaced-e2e-tests() {
   local namespaced_e2e_test_cmd="${E2E_TEST_CMD} -kubefed-namespace=foo -limited-scope=true"
   # Run the placement test separately to avoid crud failures if
@@ -199,6 +212,9 @@ kubectl scale deployments kubefed-controller-manager -n kube-federation-system -
 
 echo "Running e2e tests with race detector against cluster-scoped kubefed with in-memory controllers"
 run-e2e-tests-with-in-memory-controllers
+
+echo "Running e2e tests with not-ready clusters"
+run-e2e-tests-with-not-ready-clusters
 
 # FederatedTypeConfig controller is needed to remove finalizers from
 # FederatedTypeConfigs in order to successfully delete the KubeFed
