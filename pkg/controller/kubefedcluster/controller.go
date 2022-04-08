@@ -242,7 +242,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 
 	clusterClient := storedData.clusterKubeClient
 
-	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
+	currentClusterStatus, err := clusterClient.GetClusterStatus()
 	if err != nil {
 		cc.RecordError(cluster, "RetrievingClusterHealthFailed", errors.Wrap(err, "Failed to retrieve health of the cluster"))
 		klog.Errorf("Failed to retrieve health of the cluster %s: %v", cluster.Name, err)
@@ -278,7 +278,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 	if storedData.resultRun < threshold {
 		// Success/Failure is below threshold - leave the probe state unchanged.
 		probeTime := clusterStatus.Conditions[0].LastProbeTime
-		clusterStatus = storedData.clusterStatus
+		clusterStatus.Conditions = storedData.clusterStatus.Conditions
 		setProbeTime(clusterStatus, probeTime)
 	} else if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
 		// preserve the last transition time

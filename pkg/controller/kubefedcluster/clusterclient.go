@@ -79,8 +79,8 @@ func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNa
 	return &clusterClientSet, err
 }
 
-// GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus, error) {
+// GetClusterStatus gets the kubernetes cluster's health and version status
+func (c *ClusterClient) GetClusterStatus() (*fedv1b1.KubeFedClusterStatus, error) {
 	clusterStatus := fedv1b1.KubeFedClusterStatus{}
 	currentTime := metav1.Now()
 	clusterReady := ClusterReady
@@ -150,6 +150,13 @@ func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus,
 		} else {
 			metrics.RegisterKubefedClusterTotal(metrics.ClusterReady, c.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
+
+			version, err := c.kubeClient.DiscoveryClient.ServerVersion()
+			if err != nil {
+				runtime.HandleError(errors.Wrapf(err, "Failed to get Kubernetes version of cluster %q", c.clusterName))
+			} else {
+				clusterStatus.KubernetesVersion = version.GitVersion
+			}
 		}
 	}
 
