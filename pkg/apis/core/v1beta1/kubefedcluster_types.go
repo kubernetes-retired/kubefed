@@ -85,7 +85,7 @@ type KubeFedClusterStatus struct {
 // +kubebuilder:printcolumn:name=age,type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name=ready,type=string,JSONPath=.status.conditions[?(@.type=='Ready')].status
 // +kubebuilder:printcolumn:name=kubernetes-version,type=string,JSONPath=.status.kubernetesVersion
-// +kubebuilder:resource:path=kubefedclusters
+// +kubebuilder:resource:path=kubefedclusters,shortName=kfc
 // +kubebuilder:subresource:status
 
 // KubeFedCluster configures KubeFed to be aware of a Kubernetes
