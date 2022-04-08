@@ -589,7 +589,9 @@ func (s *KubeFedSyncController) deleteFromClusters(fedResource FederatedResource
 	if len(remainingClusters) > 0 {
 		fedKind := fedResource.FederatedKind()
 		fedName := fedResource.FederatedName()
-		klog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
+		remainingClustersStr := strings.Join(remainingClusters, ", ")
+		klog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, remainingClustersStr)
+		fedResource.RecordEvent("WaitForRemovalInCluster", "Waiting for managed resources to be removed from the following clusters: %s", remainingClustersStr)
 		return true, nil
 	}
 	err = s.ensureRemovedOrUnmanaged(fedResource)
