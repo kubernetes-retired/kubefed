@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -60,7 +61,9 @@ type Plugin struct {
 func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerEventHandlers, typeConfig typeconfig.Interface, nsAPIResource *metav1.APIResource) (*Plugin, error) {
 	targetAPIResource := typeConfig.GetTargetType()
 	userAgent := fmt.Sprintf("%s-replica-scheduler", strings.ToLower(targetAPIResource.Kind))
-	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
+	kubeConfig := restclient.CopyConfig(controllerConfig.KubeConfig)
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	client := genericclient.NewForConfigOrDie(kubeConfig)
 
 	targetInformer, err := util.NewFederatedInformer(
 		controllerConfig,
@@ -84,13 +87,13 @@ func NewPlugin(controllerConfig *util.ControllerConfig, eventHandlers SchedulerE
 	kubeFedEventHandler := eventHandlers.KubeFedEventHandler
 
 	federatedTypeAPIResource := typeConfig.GetFederatedType()
-	p.federatedTypeClient, err = util.NewResourceClient(controllerConfig.KubeConfig, &federatedTypeAPIResource)
+	p.federatedTypeClient, err = util.NewResourceClient(kubeConfig, &federatedTypeAPIResource)
 	if err != nil {
 		return nil, err
 	}
 	p.federatedStore, p.federatedController = util.NewResourceInformer(p.federatedTypeClient, targetNamespace, &federatedTypeAPIResource, kubeFedEventHandler)
 
-	p.fedNsClient, err = util.NewResourceClient(controllerConfig.KubeConfig, nsAPIResource)
+	p.fedNsClient, err = util.NewResourceClient(kubeConfig, nsAPIResource)
 	if err != nil {
 		return nil, err
 	}

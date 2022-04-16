@@ -137,7 +137,7 @@ func newSchedulingPreferenceController(config *util.ControllerConfig, scheduling
 	s.clusterDeliverer = util.NewDelayingDeliverer()
 
 	s.store, s.controller, err = util.NewGenericInformer(
-		config.KubeConfig,
+		kubeConfig,
 		config.TargetNamespace,
 		s.scheduler.ObjectType(),
 		util.NoResyncPeriod,

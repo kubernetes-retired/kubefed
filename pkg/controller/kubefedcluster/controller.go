@@ -96,7 +96,8 @@ func StartClusterController(config *util.ControllerConfig, clusterHealthCheckCon
 func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig *util.ClusterHealthCheckConfig) (*ClusterController, error) {
 	kubeConfig := restclient.CopyConfig(config.KubeConfig)
 	kubeConfig.Timeout = clusterHealthCheckConfig.Timeout
-	client := genericclient.NewForConfigOrDieWithUserAgent(kubeConfig, "cluster-controller")
+	restclient.AddUserAgent(kubeConfig, "cluster-controller")
+	client := genericclient.NewForConfigOrDie(kubeConfig)
 
 	cc := &ClusterController{
 		client:                   client,
