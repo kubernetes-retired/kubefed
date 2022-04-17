@@ -18,6 +18,7 @@ package kubefedcluster
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -141,6 +142,8 @@ func (c *ClusterClient) GetClusterStatus() (*fedv1b1.KubeFedClusterStatus, error
 	body, err := c.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do(context.Background()).Raw()
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", c.clusterName))
+		msg := fmt.Sprintf("%s: %v", ClusterNotReachableMsg, err)
+		newClusterOfflineCondition.Message = &msg
 		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
 		metrics.RegisterKubefedClusterTotal(metrics.ClusterOffline, c.clusterName)
 	} else {
