@@ -34,11 +34,13 @@ Check the status of the joined clusters by using the following command.
 ```bash
 kubectl -n kube-federation-system get kubefedclusters
 
-NAME       READY   AGE
-cluster1   True    1m
-cluster2   True    1m
+NAME       AGE   READY   KUBERNETES-VERSION
+cluster1   1m    True    v1.21.2
+cluster2   1m    True    v1.22.0
 
 ```
+
+The Kubernetes version is checked periodically along with the cluster health check so that it would be automatically updated within the cluster health check period after a Kubernetes upgrade/downgrade of the cluster.
 
 # Joining kind clusters on MacOS
 

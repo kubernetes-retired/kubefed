@@ -41,6 +41,12 @@ const (
 	StatusField   = "status"
 	MetadataField = "metadata"
 
+	// Service fields
+	HealthCheckNodePortField = "healthCheckNodePort"
+	ClusterIPField           = "clusterIP"
+	ClusterIPsField          = "clusterIPs"
+	PortsField               = "ports"
+
 	// ServiceAccount fields
 	SecretsField = "secrets"
 

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	restclient "k8s.io/client-go/rest"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -113,9 +114,10 @@ func newKubeFedSyncController(controllerConfig *util.ControllerConfig, typeConfi
 	federatedTypeAPIResource := typeConfig.GetFederatedType()
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(federatedTypeAPIResource.Kind))
 
-	// Initialize non-dynamic clients first to avoid polluting config
-	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
-	kubeClient := kubeclient.NewForConfigOrDie(controllerConfig.KubeConfig)
+	kubeConfig := restclient.CopyConfig(controllerConfig.KubeConfig)
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	client := genericclient.NewForConfigOrDie(kubeConfig)
+	kubeClient := kubeclient.NewForConfigOrDie(kubeConfig)
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
@@ -589,7 +591,9 @@ func (s *KubeFedSyncController) deleteFromClusters(fedResource FederatedResource
 	if len(remainingClusters) > 0 {
 		fedKind := fedResource.FederatedKind()
 		fedName := fedResource.FederatedName()
-		klog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, strings.Join(remainingClusters, ", "))
+		remainingClustersStr := strings.Join(remainingClusters, ", ")
+		klog.V(2).Infof("Waiting for resources managed by %s %q to be removed from the following clusters: %s", fedKind, fedName, remainingClustersStr)
+		fedResource.RecordEvent("WaitForRemovalInCluster", "Waiting for managed resources to be removed from the following clusters: %s", remainingClustersStr)
 		return true, nil
 	}
 	err = s.ensureRemovedOrUnmanaged(fedResource)
