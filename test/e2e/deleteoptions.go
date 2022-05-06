@@ -39,8 +39,8 @@ var _ = Describe("DeleteOptions", func() {
 	It("Deployment should be created and deleted successfully, but ReplicaSet that created by Deployment won't be deleted", func() {
 
 		typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
-		crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
-		fedObject := crudTester.CheckCreate(targetObject, overrides)
+		crudTester, targetObject, overrides := initCrudTest(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc)
+		fedObject := crudTester.CheckCreate(targetObject, overrides, nil)
 
 		By("Set PropagationPolicy property as 'Orphan' on the DeleteOptions for Federated Deployment")
 		orphan := metav1.DeletePropagationOrphan

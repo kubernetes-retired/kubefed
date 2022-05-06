@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/kubefed/pkg/apis/core/common"
 	"sigs.k8s.io/kubefed/pkg/apis/core/typeconfig"
 	fedv1a1 "sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1"
+	"sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
 	genericclient "sigs.k8s.io/kubefed/pkg/client/generic"
 	"sigs.k8s.io/kubefed/pkg/controller/sync"
 	"sigs.k8s.io/kubefed/pkg/controller/sync/status"
@@ -65,6 +66,7 @@ type FederatedTypeCrudTester struct {
 	// operation that involves member clusters may take longer due to
 	// propagation latency.
 	clusterWaitTimeout time.Duration
+	clustersNamespace  string
 }
 
 type TestClusterConfig struct {
@@ -77,7 +79,7 @@ type TestCluster struct {
 	Client util.ResourceClient
 }
 
-func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
+func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Interface, kubeConfig *rest.Config, testClusters map[string]TestCluster, clustersNamespace string, waitInterval, clusterWaitTimeout time.Duration) (*FederatedTypeCrudTester, error) {
 	return &FederatedTypeCrudTester{
 		tl:                 testLogger,
 		typeConfig:         typeConfig,
@@ -87,11 +89,12 @@ func NewFederatedTypeCrudTester(testLogger TestLogger, typeConfig typeconfig.Int
 		testClusters:       testClusters,
 		waitInterval:       waitInterval,
 		clusterWaitTimeout: clusterWaitTimeout,
+		clustersNamespace:  clustersNamespace,
 	}, nil
 }
 
-func (c *FederatedTypeCrudTester) CheckLifecycle(targetObject *unstructured.Unstructured, overrides []interface{}) {
-	fedObject := c.CheckCreate(targetObject, overrides)
+func (c *FederatedTypeCrudTester) CheckLifecycle(targetObject *unstructured.Unstructured, overrides []interface{}, selectors map[string]string) {
+	fedObject := c.CheckCreate(targetObject, overrides, selectors)
 
 	c.CheckStatusCreated(util.NewQualifiedName(fedObject))
 
@@ -104,7 +107,7 @@ func (c *FederatedTypeCrudTester) CheckLifecycle(targetObject *unstructured.Unst
 	c.CheckDelete(fedObject, false)
 }
 
-func (c *FederatedTypeCrudTester) Create(targetObject *unstructured.Unstructured, overrides []interface{}) *unstructured.Unstructured {
+func (c *FederatedTypeCrudTester) Create(targetObject *unstructured.Unstructured, overrides []interface{}, selectors map[string]string) *unstructured.Unstructured {
 	qualifiedName := util.NewQualifiedName(targetObject)
 	kind := c.typeConfig.GetTargetType().Kind
 	fedKind := c.typeConfig.GetFederatedType().Kind
@@ -113,10 +116,7 @@ func (c *FederatedTypeCrudTester) Create(targetObject *unstructured.Unstructured
 		c.tl.Fatalf("Error obtaining %s from %s %q: %v", fedKind, kind, qualifiedName, err)
 	}
 
-	fedObject, err = c.setAdditionalTestData(fedObject, overrides, targetObject.GetGenerateName())
-	if err != nil {
-		c.tl.Fatalf("Error setting overrides and placement on %s %q: %v", fedKind, qualifiedName, err)
-	}
+	fedObject = c.setAdditionalTestData(fedObject, overrides, selectors, targetObject.GetGenerateName())
 
 	return c.createResource(c.typeConfig.GetFederatedType(), fedObject)
 }
@@ -141,15 +141,15 @@ func (c *FederatedTypeCrudTester) resourceClient(apiResource metav1.APIResource)
 	return client
 }
 
-func (c *FederatedTypeCrudTester) CheckCreate(targetObject *unstructured.Unstructured, overrides []interface{}) *unstructured.Unstructured {
-	fedObject := c.Create(targetObject, overrides)
+func (c *FederatedTypeCrudTester) CheckCreate(targetObject *unstructured.Unstructured, overrides []interface{}, selectors map[string]string) *unstructured.Unstructured {
+	fedObject := c.Create(targetObject, overrides, selectors)
 
 	c.CheckPropagation(fedObject)
 	return fedObject
 }
 
 // AdditionalTestData additionally sets fixture overrides and placement clusternames into federated object
-func (c *FederatedTypeCrudTester) setAdditionalTestData(fedObject *unstructured.Unstructured, overrides []interface{}, generateName string) (*unstructured.Unstructured, error) {
+func (c *FederatedTypeCrudTester) setAdditionalTestData(fedObject *unstructured.Unstructured, overrides []interface{}, selectors map[string]string, generateName string) *unstructured.Unstructured {
 	fedKind := c.typeConfig.GetFederatedType().Kind
 	qualifiedName := util.NewQualifiedName(fedObject)
 
@@ -159,17 +159,23 @@ func (c *FederatedTypeCrudTester) setAdditionalTestData(fedObject *unstructured.
 			c.tl.Fatalf("Error updating overrides in %s %q: %v", fedKind, qualifiedName, err)
 		}
 	}
-	clusterNames := []string{}
-	for name := range c.testClusters {
-		clusterNames = append(clusterNames, name)
-	}
-	err := util.SetClusterNames(fedObject, clusterNames)
-	if err != nil {
-		c.tl.Fatalf("Error setting cluster names in %s %q: %v", fedKind, qualifiedName, err)
+	if selectors != nil {
+		if err := util.SetClusterSelector(fedObject, selectors); err != nil {
+			c.tl.Fatalf("Error setting cluster selectors for %s/%s: %v", fedObject.GetKind(), fedObject.GetName(), err)
+		}
+	} else {
+		clusterNames := []string{}
+		for name := range c.testClusters {
+			clusterNames = append(clusterNames, name)
+		}
+		err := util.SetClusterNames(fedObject, clusterNames)
+		if err != nil {
+			c.tl.Fatalf("Error setting cluster names in %s %q: %v", fedKind, qualifiedName, err)
+		}
 	}
 	fedObject.SetGenerateName(generateName)
 
-	return fedObject, err
+	return fedObject
 }
 
 func (c *FederatedTypeCrudTester) CheckUpdate(fedObject *unstructured.Unstructured) {
@@ -334,7 +340,14 @@ func (c *FederatedTypeCrudTester) CheckDelete(fedObject *unstructured.Unstructur
 	if deletingInCluster {
 		stateMsg = "not present"
 	}
+	clusters, err := util.ComputePlacement(fedObject, c.getClusters(), false)
+	if err != nil {
+		c.tl.Fatalf("Couldn't retrieve clusters for %s/%s: %v", federatedKind, name, err)
+	}
 	for clusterName, testCluster := range c.testClusters {
+		if !clusters.Has(clusterName) {
+			continue
+		}
 		namespace = util.QualifiedNameForCluster(clusterName, qualifiedName).Namespace
 		err = wait.PollImmediate(c.waitInterval, waitTimeout, func() (bool, error) {
 			obj, err := testCluster.Client.Resources(namespace).Get(context.Background(), name, metav1.GetOptions{})
@@ -425,16 +438,33 @@ func (c *FederatedTypeCrudTester) CheckReplicaSet(fedObject *unstructured.Unstru
 	}
 }
 
+func (c *FederatedTypeCrudTester) getClusters() []*v1beta1.KubeFedCluster {
+	client, err := genericclient.New(c.kubeConfig)
+	if err != nil {
+		c.tl.Fatalf("Failed to get kubefed clientset: %v", err)
+	}
+
+	fedClusters := []*v1beta1.KubeFedCluster{}
+	for cluster := range c.testClusters {
+		clusterResource := &v1beta1.KubeFedCluster{}
+		err = client.Get(context.Background(), clusterResource, c.clustersNamespace, cluster)
+		if err != nil {
+			c.tl.Fatalf("Cannot get cluster %s: %v", cluster, err)
+		}
+		fedClusters = append(fedClusters, clusterResource)
+	}
+	return fedClusters
+}
+
 // CheckPropagation checks propagation for the crud tester's clients
 func (c *FederatedTypeCrudTester) CheckPropagation(fedObject *unstructured.Unstructured) {
 	federatedKind := c.typeConfig.GetFederatedType().Kind
 	qualifiedName := util.NewQualifiedName(fedObject)
 
-	clusterNames, err := util.GetClusterNames(fedObject)
+	selectedClusters, err := util.ComputePlacement(fedObject, c.getClusters(), false)
 	if err != nil {
 		c.tl.Fatalf("Error retrieving cluster names for %s %q: %v", federatedKind, qualifiedName, err)
 	}
-	selectedClusters := sets.NewString(clusterNames...)
 
 	templateVersion, err := sync.GetTemplateHash(fedObject.Object)
 	if err != nil {

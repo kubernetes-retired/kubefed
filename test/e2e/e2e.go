@@ -49,9 +49,9 @@ func RunE2ETests(t *testing.T) {
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only on Ginkgo node 1
 
-	if framework.TestContext.ScaleTest {
-		// Scale testing will initialize an in-memory control plane
-		// after the creation of a simulated federation.
+	// Some tests require simulated federation and will initialize an
+	// in-memory control plane.
+	if framework.TestContext.SimulateFederation {
 		return nil
 	}
 

@@ -61,8 +61,8 @@ var _ = Describe("Federated", func() {
 		Describe(fmt.Sprintf("%q", typeConfigName), func() {
 			It("should be created, read, updated and deleted successfully", func() {
 				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
-				crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
-				crudTester.CheckLifecycle(targetObject, overrides)
+				crudTester, targetObject, overrides := initCrudTest(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc)
+				crudTester.CheckLifecycle(targetObject, overrides, nil)
 			})
 
 			for _, remoteStatusTypeName := range containedTypeNames {
@@ -78,8 +78,8 @@ var _ = Describe("Federated", func() {
 						tl.Logf("Show the content of the kubefedconfig file: '%v'", kubeFedConfig)
 
 						typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
-						crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
-						fedObject := crudTester.CheckCreate(targetObject, overrides)
+						crudTester, targetObject, overrides := initCrudTest(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc)
+						fedObject := crudTester.CheckCreate(targetObject, overrides, nil)
 
 						By("Checking the remote status filled for each federated resource for every cluster")
 						tl.Logf("Checking the existence of a remote status for each fedObj in every cluster: %v", fedObject)
@@ -105,12 +105,12 @@ var _ = Describe("Federated", func() {
 
 				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
 				// Initialize the test without creating a federated namespace.
-				crudTester, targetObject, overrides := initCrudTestWithPropagation(f, tl, typeConfig, testObjectsFunc, false)
+				crudTester, targetObject, overrides := initCrudTestWithPropagation(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc, false)
 
 				kind := typeConfig.GetFederatedType().Kind
 
 				By(fmt.Sprintf("Creating a %s whose containing namespace is not federated", kind))
-				fedObject := crudTester.Create(targetObject, overrides)
+				fedObject := crudTester.Create(targetObject, overrides, nil)
 
 				qualifiedName := util.NewQualifiedName(fedObject)
 
@@ -143,7 +143,7 @@ var _ = Describe("Federated", func() {
 
 			It("should have the managed label removed if not managed", func() {
 				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
-				crudTester, targetObject, _ := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+				crudTester, targetObject, _ := initCrudTest(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc)
 
 				testClusters := crudTester.TestClusters()
 
@@ -192,7 +192,7 @@ var _ = Describe("Federated", func() {
 
 			It("should not be deleted if unlabeled", func() {
 				typeConfig, testObjectsFunc := getCrudTestInput(f, tl, typeConfigName, fixture)
-				crudTester, targetObject, _ := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+				crudTester, targetObject, _ := initCrudTest(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc)
 
 				testClusters := crudTester.TestClusters()
 
@@ -315,13 +315,13 @@ func getCrudTestInput(f framework.KubeFedFramework, tl common.TestLogger,
 	return typeConfig, testObjectsFunc
 }
 
-func initCrudTest(f framework.KubeFedFramework, tl common.TestLogger,
+func initCrudTest(f framework.KubeFedFramework, tl common.TestLogger, clustersNamespace string,
 	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor) (
 	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
-	return initCrudTestWithPropagation(f, tl, typeConfig, testObjectsFunc, true)
+	return initCrudTestWithPropagation(f, tl, clustersNamespace, typeConfig, testObjectsFunc, true)
 }
 
-func initCrudTestWithPropagation(f framework.KubeFedFramework, tl common.TestLogger,
+func initCrudTestWithPropagation(f framework.KubeFedFramework, tl common.TestLogger, clustersNamespace string,
 	typeConfig typeconfig.Interface, testObjectsFunc testObjectsAccessor,
 	ensureNamespacePropagation bool) (
 	*common.FederatedTypeCrudTester, *unstructured.Unstructured, []interface{}) {
@@ -343,7 +343,7 @@ func initCrudTestWithPropagation(f framework.KubeFedFramework, tl common.TestLog
 	targetAPIResource := typeConfig.GetTargetType()
 
 	testClusters := f.ClusterDynamicClients(&targetAPIResource, userAgent)
-	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, framework.PollInterval, framework.TestContext.SingleCallTimeout)
+	crudTester, err := common.NewFederatedTypeCrudTester(tl, typeConfig, kubeConfig, testClusters, clustersNamespace, framework.PollInterval, framework.TestContext.SingleCallTimeout)
 	if err != nil {
 		tl.Fatalf("Error creating crudtester for %q: %v", federatedKind, err)
 	}
