@@ -1,5 +1,9 @@
 # Unreleased
 
+# v0.10.0
+- [#1492](https://github.com/kubernetes-sigs/kubefed/pull/1492)
+  feat: Upgrade to controller-runtime 0.10.3
+
 # v0.9.1
 - [#1490](https://github.com/kubernetes-sigs/kubefed/pull/1490)
   fix: Fix mutatingwebhookconfiguration CA cert when cert-manager is enabled
