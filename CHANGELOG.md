@@ -1,14 +1,17 @@
-# Unreleased
-
 # v0.9.2
-- [#1476](https://github.com/kubernetes-sigs/kubefed/pull/1476)
-  feat: Introduce cluster config malformed condition to KubeFedCluster
-- [#1492](https://github.com/kubernetes-sigs/kubefed/pull/1492)
-  feat: Upgrade to controller-runtime 0.10.3
-- [#1499](https://github.com/kubernetes-sigs/kubefed/pull/1499)
-  fix: Ignore non-targeted clusters during deletion
-- [#1501](https://github.com/kubernetes-sigs/kubefed/pull/1501)
-  feat: Introduce Kubernetes version to status of KubeFedCluster
+
+## What's Changed
+* Introduce cluster config malformed condition to KubeFedCluster by @zqzten in https://github.com/kubernetes-sigs/kubefed/pull/1476
+* Handle possible conflict in updating test labels on cluster by @irfanurrehman in https://github.com/kubernetes-sigs/kubefed/pull/1500
+* Introduce Kubernetes version to status of KubeFedCluster by @zqzten in https://github.com/kubernetes-sigs/kubefed/pull/1501
+* Ignore non-targeted clusters during deletion by @jonathanbeber in https://github.com/kubernetes-sigs/kubefed/pull/1499
+* Update runtime-controller v0.10.3 by @tehlers320 in https://github.com/kubernetes-sigs/kubefed/pull/1492
+
+## New Contributors
+* @jonathanbeber made their first contribution in https://github.com/kubernetes-sigs/kubefed/pull/1499
+* @tehlers320 made their first contribution in https://github.com/kubernetes-sigs/kubefed/pull/1492
+
+**Full Changelog**: https://github.com/kubernetes-sigs/kubefed/compare/v0.9.1...v0.9.2
 
 # v0.9.1
 - [#1490](https://github.com/kubernetes-sigs/kubefed/pull/1490)

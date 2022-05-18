@@ -108,9 +108,11 @@ function verify-container-image() {
 }
 
 function update-changelog() {
-  if ! grep "^# ${RELEASE_TAG}" CHANGELOG.md &> /dev/null; then
-    sed -i "/# Unreleased/a \\\n# ${RELEASE_TAG}" CHANGELOG.md
-  fi
+  printf "%s\n\n%s\n" \
+    "$(gh api --method POST -H "Accept: application/vnd.github.v3+json" \
+      /repos/"${GITHUB_REPO}"/releases/generate-notes -f tag_name="${RELEASE_TAG}" \
+      -q '"# "+.name+"\n\n"+.body')" \
+    "$(cat CHANGELOG.md)" > CHANGELOG.md
 }
 
 if [[ ! "${RELEASE_TAG}" =~ ${RELEASE_TAG_REGEX} ]]; then
