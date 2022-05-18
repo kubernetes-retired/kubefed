@@ -51,13 +51,9 @@ function verify-assets-file-exists() {
 
 function github-release-template() {
   # Add leading # for markdown heading level 1 (h1)
-  local regex="${RELEASE_TAG_REGEX/^/^\# })"
+  local regex="${RELEASE_TAG_REGEX/^/^\# }"
   cat <<EOF
-${RELEASE_TAG}
-
-## Changelog
-
-$(sed -E "1,/${regex}/d ; /${regex}/,\$d" CHANGELOG.md)
+$(sed -En "/^# ${RELEASE_TAG}/,/${regex}/p" CHANGELOG.md | head -n-2)
 
 ## Artifacts
 
