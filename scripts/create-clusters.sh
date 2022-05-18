@@ -26,6 +26,7 @@ source "${BASH_SOURCE%/*}/util.sh"
 NUM_CLUSTERS="${NUM_CLUSTERS:-2}"
 KIND_IMAGE="${KIND_IMAGE:-}"
 KIND_TAG="${KIND_TAG:-v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6}"
+KIND_CONFIG_PATH="${KIND_CONFIG_PATH:-}"
 OS="$(uname)"
 
 function create-clusters() {
@@ -37,8 +38,12 @@ function create-clusters() {
   elif [[ "${KIND_TAG}" ]]; then
     image_arg="--image=kindest/node:${KIND_TAG}"
   fi
+  local config_arg=""
+  if [[ "${KIND_CONFIG_PATH}" ]]; then
+    config_arg="--config=${KIND_CONFIG_PATH}"
+  fi
   for i in $(seq "${num_clusters}"); do
-    kind create cluster --name "cluster${i}" "${image_arg}"
+    kind create cluster --name "cluster${i}" "${image_arg}" ${config_arg:+"$config_arg"}
     fixup-cluster "${i}"
     echo
 
