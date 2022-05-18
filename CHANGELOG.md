@@ -1,8 +1,14 @@
 # Unreleased
 
-# v0.10.0
+# v0.9.2
+- [#1476](https://github.com/kubernetes-sigs/kubefed/pull/1476)
+  feat: Introduce cluster config malformed condition to KubeFedCluster
 - [#1492](https://github.com/kubernetes-sigs/kubefed/pull/1492)
   feat: Upgrade to controller-runtime 0.10.3
+- [#1499](https://github.com/kubernetes-sigs/kubefed/pull/1499)
+  fix: Ignore non-targeted clusters during deletion
+- [#1501](https://github.com/kubernetes-sigs/kubefed/pull/1501)
+  feat: Introduce Kubernetes version to status of KubeFedCluster
 
 # v0.9.1
 - [#1490](https://github.com/kubernetes-sigs/kubefed/pull/1490)
