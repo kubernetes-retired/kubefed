@@ -88,8 +88,8 @@ var _ = Describe("Placement", func() {
 			}
 			return targetObject, nil, err
 		}
-		crudTester, desiredTargetObject, _ := initCrudTest(f, tl, selectedTypeConfig, testObjectsFunc)
-		fedObject := crudTester.CheckCreate(desiredTargetObject, nil)
+		crudTester, desiredTargetObject, _ := initCrudTest(f, tl, f.KubeFedSystemNamespace(), selectedTypeConfig, testObjectsFunc)
+		fedObject := crudTester.CheckCreate(desiredTargetObject, nil, nil)
 		defer func() {
 			crudTester.CheckDelete(fedObject, false)
 		}()

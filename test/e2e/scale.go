@@ -280,8 +280,8 @@ var _ = Describe("Simulated Scale", func() {
 			}
 			return targetObject, nil, err
 		}
-		crudTester, targetObject, overrides := initCrudTestWithPropagation(f, tl, typeConfig, testObjectsFunc, false)
-		crudTester.CheckLifecycle(targetObject, overrides)
+		crudTester, targetObject, overrides := initCrudTestWithPropagation(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc, false)
+		crudTester.CheckLifecycle(targetObject, overrides, nil)
 
 		// Delete clusters to minimize errors logged by the cluster
 		// controller.

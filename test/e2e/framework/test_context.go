@@ -38,6 +38,7 @@ type TestContextType struct {
 	WaitForFinalization             bool
 	ScaleTest                       bool
 	ScaleClusterCount               int
+	SimulateFederation              bool
 }
 
 func (t *TestContextType) RunControllers() bool {
@@ -72,6 +73,7 @@ func registerFlags(t *TestContextType) {
 	flag.BoolVar(&t.WaitForFinalization, "wait-for-finalization", true,
 		"Whether the test suite should wait for finalization before stopping fixtures or exiting.  Setting this to false will speed up test execution but likely result in wedged namespaces and is only recommended for disposeable clusters.")
 	flag.BoolVar(&t.ScaleTest, "scale-test", false, "Whether the test suite should be configured for scale testing.  Not compatible with most tests.")
+	flag.BoolVar(&t.SimulateFederation, "simulate-federation", false, "Whether the tests require a simulated federation.")
 	flag.IntVar(&t.ScaleClusterCount, "scale-cluster-count", 1, "How many member clusters to simulate when scale testing.")
 }
 
@@ -83,6 +85,9 @@ func validateFlags(t *TestContextType) {
 	if t.ScaleTest {
 		t.InMemoryControllers = true
 		t.LimitedScope = true
+		// Scale testing will initialize an in-memory control plane
+		// after the creation of a simulated federation.
+		t.SimulateFederation = true
 		// Scale testing will create a namespace per simulated cluster
 		// and for large numbers of such namespaces the finalization
 		// wait could be considerable.

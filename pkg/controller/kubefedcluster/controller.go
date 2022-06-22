@@ -96,7 +96,8 @@ func StartClusterController(config *util.ControllerConfig, clusterHealthCheckCon
 func newClusterController(config *util.ControllerConfig, clusterHealthCheckConfig *util.ClusterHealthCheckConfig) (*ClusterController, error) {
 	kubeConfig := restclient.CopyConfig(config.KubeConfig)
 	kubeConfig.Timeout = clusterHealthCheckConfig.Timeout
-	client := genericclient.NewForConfigOrDieWithUserAgent(kubeConfig, "cluster-controller")
+	restclient.AddUserAgent(kubeConfig, "cluster-controller")
+	client := genericclient.NewForConfigOrDie(kubeConfig)
 
 	cc := &ClusterController{
 		client:                   client,
@@ -175,7 +176,7 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	clusterData := cc.clusterDataMap[obj.Name]
-	if clusterData != nil && clusterData.clusterKubeClient != nil {
+	if clusterData != nil && clusterData.clusterKubeClient.kubeClient != nil {
 		return
 	}
 
@@ -183,10 +184,9 @@ func (cc *ClusterController) addToClusterSet(obj *fedv1b1.KubeFedCluster) {
 
 	// create the restclient of cluster
 	restClient, err := NewClusterClientSet(obj, cc.client, cc.fedNamespace, cc.clusterHealthCheckConfig.Timeout)
-	if err != nil || restClient == nil {
+	if err != nil || restClient.kubeClient == nil {
 		cc.RecordError(obj, "MalformedClusterConfig", errors.Wrap(err, "The configuration for this cluster may be malformed"))
-		klog.Errorf("The configuration for cluster %s may be malformed", obj.Name)
-		return
+		klog.Errorf("The configuration for cluster %q may be malformed: %v", obj.Name, err)
 	}
 	cc.clusterDataMap[obj.Name] = &ClusterData{clusterKubeClient: restClient, cachedObj: obj.DeepCopy()}
 }
@@ -217,7 +217,7 @@ func (cc *ClusterController) updateClusterStatus() error {
 		cluster := obj.DeepCopy()
 		clusterData := cc.clusterDataMap[cluster.Name]
 		cc.mu.RUnlock()
-		if clusterData == nil {
+		if clusterData == nil || clusterData.clusterKubeClient.kubeClient == nil {
 			// Retry adding cluster client
 			cc.addToClusterSet(cluster)
 			cc.mu.RLock()
@@ -243,7 +243,7 @@ func (cc *ClusterController) updateIndividualClusterStatus(cluster *fedv1b1.Kube
 
 	clusterClient := storedData.clusterKubeClient
 
-	currentClusterStatus, err := clusterClient.GetClusterHealthStatus()
+	currentClusterStatus, err := clusterClient.GetClusterStatus()
 	if err != nil {
 		cc.RecordError(cluster, "RetrievingClusterHealthFailed", errors.Wrap(err, "Failed to retrieve health of the cluster"))
 		klog.Errorf("Failed to retrieve health of the cluster %s: %v", cluster.Name, err)
@@ -279,7 +279,7 @@ func thresholdAdjustedClusterStatus(clusterStatus *fedv1b1.KubeFedClusterStatus,
 	if storedData.resultRun < threshold {
 		// Success/Failure is below threshold - leave the probe state unchanged.
 		probeTime := clusterStatus.Conditions[0].LastProbeTime
-		clusterStatus = storedData.clusterStatus
+		clusterStatus.Conditions = storedData.clusterStatus.Conditions
 		setProbeTime(clusterStatus, probeTime)
 	} else if clusterStatusEqual(clusterStatus, storedData.clusterStatus) {
 		// preserve the last transition time

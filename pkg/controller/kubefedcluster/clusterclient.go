@@ -18,6 +18,7 @@ package kubefedcluster
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -46,14 +47,16 @@ const (
 	LabelZoneRegion        = "failure-domain.beta.kubernetes.io/region"
 
 	// Common ClusterConditions for KubeFedClusterStatus
-	ClusterReady              = "ClusterReady"
-	HealthzOk                 = "/healthz responded with ok"
-	ClusterNotReady           = "ClusterNotReady"
-	HealthzNotOk              = "/healthz responded without ok"
-	ClusterNotReachableReason = "ClusterNotReachable"
-	ClusterNotReachableMsg    = "cluster is not reachable"
-	ClusterReachableReason    = "ClusterReachable"
-	ClusterReachableMsg       = "cluster is reachable"
+	ClusterReady                 = "ClusterReady"
+	HealthzOk                    = "/healthz responded with ok"
+	ClusterNotReady              = "ClusterNotReady"
+	HealthzNotOk                 = "/healthz responded without ok"
+	ClusterNotReachableReason    = "ClusterNotReachable"
+	ClusterNotReachableMsg       = "cluster is not reachable"
+	ClusterReachableReason       = "ClusterReachable"
+	ClusterReachableMsg          = "cluster is reachable"
+	ClusterConfigMalformedReason = "ClusterConfigMalformed"
+	ClusterConfigMalformedMsg    = "cluster's configuration may be malformed"
 )
 
 // ClusterClient provides methods for determining the status and zones of a
@@ -67,21 +70,18 @@ type ClusterClient struct {
 // The kubeClient is used to configure the ClusterClient's internal client
 // with information from a kubeconfig stored in a kubernetes secret.
 func NewClusterClientSet(c *fedv1b1.KubeFedCluster, client generic.Client, fedNamespace string, timeout time.Duration) (*ClusterClient, error) {
+	var clusterClientSet = ClusterClient{clusterName: c.Name}
 	clusterConfig, err := util.BuildClusterConfig(c, client, fedNamespace)
 	if err != nil {
-		return nil, err
+		return &clusterClientSet, err
 	}
 	clusterConfig.Timeout = timeout
-	var clusterClientSet = ClusterClient{clusterName: c.Name}
-	clusterClientSet.kubeClient = kubeclientset.NewForConfigOrDie((restclient.AddUserAgent(clusterConfig, UserAgentName)))
-	if clusterClientSet.kubeClient == nil {
-		return nil, nil
-	}
-	return &clusterClientSet, nil
+	clusterClientSet.kubeClient, err = kubeclientset.NewForConfig(restclient.AddUserAgent(clusterConfig, UserAgentName))
+	return &clusterClientSet, err
 }
 
-// GetClusterHealthStatus gets the kubernetes cluster health status by requesting "/healthz"
-func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus, error) {
+// GetClusterStatus gets the kubernetes cluster's health and version status
+func (c *ClusterClient) GetClusterStatus() (*fedv1b1.KubeFedClusterStatus, error) {
 	clusterStatus := fedv1b1.KubeFedClusterStatus{}
 	currentTime := metav1.Now()
 	clusterReady := ClusterReady
@@ -124,9 +124,26 @@ func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus,
 		LastProbeTime:      currentTime,
 		LastTransitionTime: &currentTime,
 	}
+	clusterConfigMalformedReason := ClusterConfigMalformedReason
+	clusterConfigMalformedMsg := ClusterConfigMalformedMsg
+	newClusterConfigMalformedCondition := fedv1b1.ClusterCondition{
+		Type:               fedcommon.ClusterConfigMalformed,
+		Status:             corev1.ConditionTrue,
+		Reason:             &clusterConfigMalformedReason,
+		Message:            &clusterConfigMalformedMsg,
+		LastProbeTime:      currentTime,
+		LastTransitionTime: &currentTime,
+	}
+	if c.kubeClient == nil {
+		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterConfigMalformedCondition)
+		metrics.RegisterKubefedClusterTotal(metrics.ClusterNotReady, c.clusterName)
+		return &clusterStatus, nil
+	}
 	body, err := c.kubeClient.DiscoveryClient.RESTClient().Get().AbsPath("/healthz").Do(context.Background()).Raw()
 	if err != nil {
 		runtime.HandleError(errors.Wrapf(err, "Failed to do cluster health check for cluster %q", c.clusterName))
+		msg := fmt.Sprintf("%s: %v", ClusterNotReachableMsg, err)
+		newClusterOfflineCondition.Message = &msg
 		clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterOfflineCondition)
 		metrics.RegisterKubefedClusterTotal(metrics.ClusterOffline, c.clusterName)
 	} else {
@@ -136,6 +153,13 @@ func (c *ClusterClient) GetClusterHealthStatus() (*fedv1b1.KubeFedClusterStatus,
 		} else {
 			metrics.RegisterKubefedClusterTotal(metrics.ClusterReady, c.clusterName)
 			clusterStatus.Conditions = append(clusterStatus.Conditions, newClusterReadyCondition)
+
+			version, err := c.kubeClient.DiscoveryClient.ServerVersion()
+			if err != nil {
+				runtime.HandleError(errors.Wrapf(err, "Failed to get Kubernetes version of cluster %q", c.clusterName))
+			} else {
+				clusterStatus.KubernetesVersion = version.GitVersion
+			}
 		}
 	}
 

@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -326,23 +327,7 @@ func waitForMatchingFederatedObject(tl common.TestLogger, typeConfig typeconfig.
 }
 
 func createIntersectionEnvironment(tl common.TestLogger, client genericclient.Client, kubefedNamespace string, clusterName string) {
-	fedCluster := &unstructured.Unstructured{}
-	fedCluster.SetGroupVersionKind(schema.GroupVersionKind{
-		Kind:    "KubeFedCluster",
-		Group:   fedv1b1.SchemeGroupVersion.Group,
-		Version: fedv1b1.SchemeGroupVersion.Version,
-	})
-
-	err := client.Get(context.Background(), fedCluster, kubefedNamespace, clusterName)
-	if err != nil {
-		tl.Fatalf("Cannot get KubeFedCluster %q from namespace %q: %v", clusterName, kubefedNamespace, err)
-	}
-
-	addLabel(fedCluster, "foo", "bar")
-	err = client.Update(context.TODO(), fedCluster)
-	if err != nil {
-		tl.Fatalf("Error updating label %q to KubeFedCluster %q: %v", "foo:bar", clusterName, err)
-	}
+	updateClusterLabel(tl, client, kubefedNamespace, clusterName, true)
 }
 
 func destroyIntersectionEnvironment(tl common.TestLogger, client genericclient.Client, testNamespace *unstructured.Unstructured, kubefedNamespace string, clusterName string) {
@@ -352,22 +337,40 @@ func destroyIntersectionEnvironment(tl common.TestLogger, client genericclient.C
 		tl.Fatalf("Error deleting FederatedNamespace %q: %v", testNamespaceKey, err)
 	}
 
+	updateClusterLabel(tl, client, kubefedNamespace, clusterName, false)
+}
+
+func updateClusterLabel(tl common.TestLogger, client genericclient.Client, kubefedNamespace string, clusterName string, addTestLabel bool) {
 	fedCluster := &unstructured.Unstructured{}
 	fedCluster.SetGroupVersionKind(schema.GroupVersionKind{
 		Kind:    "KubeFedCluster",
 		Group:   fedv1b1.SchemeGroupVersion.Group,
 		Version: fedv1b1.SchemeGroupVersion.Version,
 	})
+	// We retry couple of times on conflict
+	err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+		err := client.Get(context.Background(), fedCluster, kubefedNamespace, clusterName)
+		if err != nil {
+			tl.Fatalf("Cannot get KubeFedCluster %q from namespace %q: %v", clusterName, kubefedNamespace, err)
+		}
 
-	err = client.Get(context.Background(), fedCluster, kubefedNamespace, clusterName)
+		if addTestLabel {
+			addLabel(fedCluster, "foo", "bar")
+		} else {
+			removeLabel(fedCluster, "foo", "bar")
+		}
+		err = client.Update(context.TODO(), fedCluster)
+		if err == nil {
+			return true, nil
+		}
+		if apierrors.IsConflict(err) {
+			tl.Logf("Got conflit updating label %q (add=%t) to KubeFedCluster %q", "foo:bar. Will Retry.", addTestLabel, clusterName)
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to update resource")
+	})
 	if err != nil {
-		tl.Fatalf("Cannot get KubeFedCluster %q from namespace %q: %v", clusterName, kubefedNamespace, err)
-	}
-
-	removeLabel(fedCluster, "foo", "bar")
-	err = client.Update(context.TODO(), fedCluster)
-	if err != nil {
-		tl.Fatalf("Error deleting label %q of KubeFedCluster %q: %v", "foo:bar", clusterName, err)
+		tl.Fatalf("Error updating label %q (add=%t) to KubeFedCluster %q: %v", "foo:bar", addTestLabel, clusterName, err)
 	}
 }
 

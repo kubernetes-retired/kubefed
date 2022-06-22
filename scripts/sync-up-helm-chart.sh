@@ -81,7 +81,7 @@ EOF
 ${ROOT_DIR}/bin/etcd --data-dir ${WORKDIR} --log-output stdout > ${WORKDIR}/etcd.log 2>&1 &
 util::wait-for-condition 'etcd' "curl http://127.0.0.1:2379/version &> /dev/null" 30
 
-${ROOT_DIR}/bin/kube-apiserver --etcd-servers=http://127.0.0.1:2379 --service-cluster-ip-range=10.0.0.0/16 --cert-dir=${WORKDIR} --log-file=${WORKDIR}/kube-apiserver.log --logtostderr=false 2> /dev/null &
+${ROOT_DIR}/bin/kube-apiserver --etcd-servers=http://127.0.0.1:2379 --service-cluster-ip-range=10.0.0.0/16 --cert-dir=${WORKDIR} 2> ${WORKDIR}/kube-apiserver.log &
 util::wait-for-condition 'kube-apiserver' "kubectl --kubeconfig ${WORKDIR}/kubeconfig --context kubefed get --raw=/healthz &> /dev/null" 60
 
 # Generate YAML templates to enable resource propagation for helm chart.

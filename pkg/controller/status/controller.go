@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,14 +105,16 @@ func newKubeFedStatusController(controllerConfig *util.ControllerConfig, typeCon
 		return nil, errors.Errorf("Status collection is not supported for %q", federatedAPIResource.Kind)
 	}
 	userAgent := fmt.Sprintf("%s-controller", strings.ToLower(statusAPIResource.Kind))
-	client := genericclient.NewForConfigOrDieWithUserAgent(controllerConfig.KubeConfig, userAgent)
+	kubeConfig := restclient.CopyConfig(controllerConfig.KubeConfig)
+	restclient.AddUserAgent(kubeConfig, userAgent)
+	client := genericclient.NewForConfigOrDie(kubeConfig)
 
-	federatedTypeClient, err := util.NewResourceClient(controllerConfig.KubeConfig, &federatedAPIResource)
+	federatedTypeClient, err := util.NewResourceClient(kubeConfig, &federatedAPIResource)
 	if err != nil {
 		return nil, err
 	}
 
-	statusClient, err := util.NewResourceClient(controllerConfig.KubeConfig, statusAPIResource)
+	statusClient, err := util.NewResourceClient(kubeConfig, statusAPIResource)
 	if err != nil {
 		return nil, err
 	}

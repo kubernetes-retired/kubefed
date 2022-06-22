@@ -457,6 +457,8 @@ spec:
     kind: KubeFedCluster
     listKind: KubeFedClusterList
     plural: kubefedclusters
+    shortNames:
+    - kfc
     singular: kubefedcluster
   scope: Namespaced
   versions:
@@ -466,6 +468,9 @@ spec:
       type: date
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
       name: ready
+      type: string
+    - jsonPath: .status.kubernetesVersion
+      name: kubernetes-version
       type: string
     name: v1beta1
     schema:
@@ -559,6 +564,10 @@ spec:
                   - type
                   type: object
                 type: array
+              kubernetesVersion:
+                description: KubernetesVersion is the Kubernetes git version of the
+                  cluster.
+                type: string
               region:
                 description: Region is the name of the region in which all of the
                   nodes in the cluster exist.  e.g. 'us-east1'.

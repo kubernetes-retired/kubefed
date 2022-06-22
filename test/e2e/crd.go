@@ -215,10 +215,10 @@ overrides:
 		return targetObj, overrides, nil
 	}
 
-	crudTester, targetObject, overrides := initCrudTest(f, tl, typeConfig, testObjectsFunc)
+	crudTester, targetObject, overrides := initCrudTest(f, tl, f.KubeFedSystemNamespace(), typeConfig, testObjectsFunc)
 	// Make a copy for use in the orphan check.
 	deletionTargetObject := targetObject.DeepCopy()
-	crudTester.CheckLifecycle(targetObject, overrides)
+	crudTester.CheckLifecycle(targetObject, overrides, nil)
 
 	if namespaced {
 		// This check should not fail so long as the main test loop
@@ -228,7 +228,7 @@ overrides:
 			tl.Fatalf("Test of orphaned deletion assumes deletion of the containing namespace")
 		}
 		// Perform a check of orphan deletion.
-		fedObject := crudTester.CheckCreate(deletionTargetObject, nil)
+		fedObject := crudTester.CheckCreate(deletionTargetObject, nil, nil)
 		orphanDeletion := true
 		crudTester.CheckDelete(fedObject, orphanDeletion)
 	}
