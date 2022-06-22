@@ -2,4 +2,4 @@ apiVersion: v2
 appVersion: "0.8.1"
 description: A Helm chart for KubeFed Controller Manager
 name: controllermanager
-version: 0.0.5
+version: 0.0.6
