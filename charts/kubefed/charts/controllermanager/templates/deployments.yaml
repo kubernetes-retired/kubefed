@@ -82,7 +82,7 @@ metadata:
 {{ toYaml .Values.webhook.annotations | indent 4 }}
 {{- end }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.webhook.replicaCount }}
   selector:
     matchLabels:
       kubefed-admission-webhook: "true"
