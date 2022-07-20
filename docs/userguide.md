@@ -626,7 +626,9 @@ for c in cluster1 cluster2; do
     NODE_PORT=$(kubectl --context=${c} -n test-namespace get service \
         test-service -o jsonpath='{.spec.ports[0].nodePort}')
     echo; echo ------------ ${c} ------------; echo
-    curl $(echo -n $(minikube ip -p ${c})):${NODE_PORT}
+    NODE_IP=$(kubectl get node --context=${c} \
+        -o jsonpath='{.items[].status.addresses[*].address}'|sed 's/\S*cluster\S*//'|tr -d " ")
+    curl ${NODE_IP}:${NODE_PORT}
     echo; echo
 done
 ```
