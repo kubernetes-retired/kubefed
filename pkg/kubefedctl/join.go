@@ -37,6 +37,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	fedv1b1 "sigs.k8s.io/kubefed/pkg/apis/core/v1beta1"
@@ -417,8 +418,8 @@ func createKubeFedNamespace(clusterClientset kubeclient.Interface, kubefedNamesp
 	return fedNamespace, nil
 }
 
-// createAuthorizedServiceAccount creates a service account and grants
-// the privileges required by the KubeFed control plane to manage
+// createAuthorizedServiceAccount creates a service account and service account token secret
+// and grants the privileges required by the KubeFed control plane to manage
 // resources in the joining cluster.  The name of the created service
 // account is returned on success.
 func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface,
@@ -435,6 +436,16 @@ func createAuthorizedServiceAccount(joiningClusterClientset kubeclient.Interface
 	}
 
 	klog.V(2).Infof("Created service account: %s in joining cluster: %s", saName, joiningClusterName)
+
+	secretName, err := createServiceAccountTokenSecret(saName, joiningClusterClientset, namespace,
+		joiningClusterName, hostClusterName, dryRun, errorOnExisting)
+	if err != nil {
+		klog.V(2).Infof("Error creating service account: %s in joining cluster: %s due to: %v",
+			saName, joiningClusterName, err)
+		return "", err
+	}
+
+	klog.V(2).Infof("Created service account token secret: %s in joining cluster: %s", secretName, joiningClusterName)
 
 	if scope == apiextv1.NamespaceScoped {
 		klog.V(2).Infof("Creating role and binding for service account: %s in joining cluster: %s", saName, joiningClusterName)
@@ -487,7 +498,11 @@ func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      saName,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				"kubernetes.io/enforce-mountable-secrets": "true",
+			},
 		},
+		AutomountServiceAccountToken: pointer.Bool(false),
 	}
 
 	if dryRun {
@@ -507,6 +522,43 @@ func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
 		return "", err
 	default:
 		return saName, nil
+	}
+} // createServiceAccount creates a service account in the cluster associated
+// with clusterClientset with credentials that will be used by the host cluster
+// to access its API server.
+func createServiceAccountTokenSecret(saName string, clusterClientset kubeclient.Interface, namespace,
+	joiningClusterName, hostClusterName string, dryRun, errorOnExisting bool) (string, error) {
+	saTokenSecretName := util.ClusterServiceAccountTokenSecretName(joiningClusterName, hostClusterName)
+	saTokenSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      saTokenSecretName,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": saName,
+			},
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+	}
+
+	if dryRun {
+		return saName, nil
+	}
+
+	// Create a new service account.
+	_, err := clusterClientset.CoreV1().Secrets(namespace).Create(
+		context.Background(), saTokenSecret, metav1.CreateOptions{},
+	)
+	switch {
+	case apierrors.IsAlreadyExists(err) && errorOnExisting:
+		klog.V(2).Infof("Service account token secret %s/%s already exists in target cluster %s",
+			namespace, saName, joiningClusterName)
+		return "", err
+	case err != nil && !apierrors.IsAlreadyExists(err):
+		klog.V(2).Infof("Could not create service account token secret %s/%s in target cluster %s due to: %v",
+			namespace, saName, joiningClusterName, err)
+		return "", err
+	default:
+		return saTokenSecretName, nil
 	}
 }
 
@@ -841,32 +893,20 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 	// Get the secret from the joining cluster.
 	var secret *corev1.Secret
 	err := wait.PollImmediate(1*time.Second, serviceAccountSecretTimeout, func() (bool, error) {
-		sa, err := clusterClientset.CoreV1().ServiceAccounts(joiningNamespace).Get(
+		joiningClusterSASecret, err := clusterClientset.CoreV1().Secrets(joiningNamespace).Get(
 			context.Background(), saName, metav1.GetOptions{},
 		)
 		if err != nil {
 			return false, nil
 		}
 
-		for _, objReference := range sa.Secrets {
-			saSecretName := objReference.Name
-			var err error
-			secret, err = clusterClientset.CoreV1().Secrets(joiningNamespace).Get(
-				context.Background(), saSecretName, metav1.GetOptions{},
-			)
-			if err != nil {
-				return false, nil
-			}
-			if secret.Type == corev1.SecretTypeServiceAccountToken {
-				klog.V(2).Infof("Using secret named: %s", secret.Name)
-				return true, nil
-			}
-		}
-		return false, nil
+		secret = joiningClusterSASecret
+
+		return true, nil
 	})
 
 	if err != nil {
-		klog.V(2).Infof("Could not get service account secret from joining cluster: %v", err)
+		klog.V(2).Infof("Could not get service account token secret from joining cluster: %v", err)
 		return nil, nil, err
 	}
 
