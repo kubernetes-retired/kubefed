@@ -904,6 +904,10 @@ func populateSecretInHostCluster(clusterClientset, hostClientset kubeclient.Inte
 			return false, nil
 		}
 
+		if _, ok := joiningClusterSASecret.Data[ctlutil.TokenKey]; !ok {
+			return false, nil
+		}
+
 		secret = joiningClusterSASecret
 
 		return true, nil
