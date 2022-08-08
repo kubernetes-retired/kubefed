@@ -1,4 +1,4 @@
 apiVersion: core.kubefed.io/v1beta1
 kind: EnableTypeDirective
 metadata:
-  name: ingresses.extensions
+  name: ingresses.networking.k8s.io

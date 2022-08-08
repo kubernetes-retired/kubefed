@@ -58,7 +58,7 @@ spec:
 apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig
 metadata:
-  name: ingresses.extensions
+  name: ingresses.networking.k8s.io
 spec:
   federatedType:
     group: types.kubefed.io
@@ -68,11 +68,11 @@ spec:
     version: v1beta1
   propagation: Enabled
   targetType:
-    group: extensions
+    group: networking.k8s.io
     kind: Ingress
     pluralName: ingresses
     scope: Namespaced
-    version: v1beta1
+    version: v1
 ---
 apiVersion: core.kubefed.io/v1beta1
 kind: FederatedTypeConfig

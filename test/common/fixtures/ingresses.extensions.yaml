@@ -1,6 +1,0 @@
-kind: fixture
-template:
-  spec:
-    backend:
-      serviceName: testsvc
-      servicePort: 80
