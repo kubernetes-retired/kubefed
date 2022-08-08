@@ -107,7 +107,7 @@ func ClusterServiceAccountName(joiningClusterName, hostClusterName string) strin
 	return fmt.Sprintf("%s-%s", joiningClusterName, hostClusterName)
 }
 
-// ClusterServiceAccountTokenName returns the name of a service account token secret whose
+// ClusterServiceAccountTokenSecretName returns the name of a service account token secret whose
 // credentials are used by the host cluster to access the client cluster.
 func ClusterServiceAccountTokenSecretName(joiningClusterName, hostClusterName string) string {
 	return fmt.Sprintf("%s-%s", joiningClusterName, hostClusterName)
