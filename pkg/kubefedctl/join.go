@@ -526,7 +526,7 @@ func createServiceAccount(clusterClientset kubeclient.Interface, namespace,
 	}
 }
 
-// createServiceAccount creates a service account in the cluster associated
+// createServiceAccountTokenSecret creates a service account token secret in the cluster associated
 // with clusterClientset with credentials that will be used by the host cluster
 // to access its API server.
 func createServiceAccountTokenSecret(saName string, clusterClientset kubeclient.Interface, namespace,
