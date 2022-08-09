@@ -78,3 +78,5 @@ echo -n "#   kubebuilder:    "; "${dest_dir}/kubebuilder" version
 echo -n "#   helm:           "; "${dest_dir}/helm" version --client --short
 echo -n "#   golangci-lint:  "; "${dest_dir}/golangci-lint" --version
 echo -n "#   go-bindata:     "; "${dest_dir}/go-bindata" -version
+
+"${root_dir}/scripts/download-e2e-binaries.sh"

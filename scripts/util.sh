@@ -119,3 +119,10 @@ function check-command-installed() {
     exit 1
   }
 }
+
+trap-add() {
+  local sig="${2:?Signal required}"
+  hdls="$(trap -p "${sig}" | cut -f2 -d \')"
+  # shellcheck disable=SC2064 # Quotes are required here to properly expand when adding the new trap.
+  trap "${hdls}${hdls:+;}${1:?Handler required}" "${sig}"
+}
