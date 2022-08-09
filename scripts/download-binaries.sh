@@ -49,14 +49,28 @@ kb_url="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_v
 curl "${curl_args}" "${kb_url}" \
   | tar xzP -C "${dest_dir}" --strip-components=2
 
-export KUBEBUILDER_ASSETS="${dest_dir}"
-echo "Setting to KUBEBUILDER_ASSETS ${dest_dir}"
+go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+source <(setup-envtest use -p env 1.21.x)
+
+echo "KUBEBUILDER_ASSETS is set to ${KUBEBUILDER_ASSETS}"
 
 helm_version="3.6.0"
 helm_tgz="helm-v${helm_version}-${platform}-amd64.tar.gz"
 helm_url="https://get.helm.sh/$helm_tgz"
 curl "${curl_args}" "${helm_url}" \
     | tar xzP -C "${dest_dir}" --strip-components=1 "${platform}-amd64/helm"
+
+kubectl_version="v1.21.14"
+curl -Lo "${dest_dir}/kubectl" "https://dl.k8s.io/release/${kubectl_version}/bin/${platform}/amd64/kubectl"
+(cd "${dest_dir}" && \
+ echo "$(curl -L "https://dl.k8s.io/release/${kubectl_version}/bin/${platform}/amd64/kubectl.sha256")  kubectl" | \
+   sha256sum --check
+)
+chmod +x "${dest_dir}/kubectl"
+
+kubebuilder_version="2.3.2"
+curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kubebuilder_version}/kubebuilder_${kubebuilder_version}_${platform}_amd64.tar.gz | \
+  tar xzP -C "${dest_dir}" --strip-components=2 -- "kubebuilder_${kubebuilder_version}_${platform}_amd64/bin/kubebuilder"
 
 golint_version="1.40.1"
 golint_dir="golangci-lint-${golint_version}-${platform}-amd64"
