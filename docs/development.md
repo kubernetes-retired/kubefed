@@ -34,16 +34,26 @@ help you get started.
 ### Binaries
 
 The KubeFed deployment depends on `kubebuilder`, `etcd`, `kubectl`, and
-`kube-apiserver` >= v1.16 being installed in the path. The `kubebuilder`
-([v2.3.1](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v2.3.1)
-as of this writing) release packages all of these dependencies together.
+`kube-apiserver` >= v1.21. The `kubebuilder` release packages all of these
+dependencies together and the `controller-runtime` project contains a helper
+utility called `setup-envtest` that downloads required binaries and can also
+set up required environment variables (especially `KUBEBUILDER_ASSETS`).
 
 These binaries can be installed via the `download-binaries.sh` script, which
 downloads them to `./bin`:
 
 ```bash
 ./scripts/download-binaries.sh
+```
+
+Running make targets will ensure that the `PATH` and other environment variables
+are correctly configured for the build itself, but if you wish to configure your
+local shell in the same way then run the following commands after running the
+`download-binaries.sh` script above:
+
+```bash
 export PATH=$(pwd)/bin:${PATH}
+source <(setup-envtest use -p env 1.21.x)
 ```
 
 ### kubernetes
