@@ -24,21 +24,21 @@ set -o pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." ; pwd)"
 
-if command -v go-bindata > /dev/null; then
-  cd "${ROOT_DIR}"
-  "go-bindata" \
-    -nocompress \
-    -nometadata \
-    -pkg 'common' \
-    -o test/common/bindata.go \
-    test/common/fixtures \
-    config/kubefedconfig.yaml \
-    config/enabletypedirectives
+cd "${ROOT_DIR}"
 
-  cat ./hack/boilerplate.go.txt ./test/common/bindata.go > bindatatmp \
-    && mv bindatatmp ./test/common/bindata.go
-else
+if [ ! -x "${ROOT_DIR}"/bin/go-bindata ]; then
   echo "go-bindata is not found. Use './scripts/download-binaries.sh' to download it."
   exit 1
 fi
 
+"${ROOT_DIR}"/bin/go-bindata \
+  -nocompress \
+  -nometadata \
+  -pkg 'common' \
+  -o test/common/bindata.go \
+  test/common/fixtures \
+  config/kubefedconfig.yaml \
+  config/enabletypedirectives
+
+cat ./hack/boilerplate.go.txt ./test/common/bindata.go > bindatatmp \
+  && mv bindatatmp ./test/common/bindata.go
