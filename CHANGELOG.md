@@ -1,3 +1,32 @@
+# v0.10.0
+
+## BREAKING CHANGE
+
+Ingress propagation has now moved from `extensions/v1beta1.Ingress` to `networking.k8s.io/v1.Ingress`.
+Ingress propagation was broken on Kubernetes >=v1.22 due to the removal of the `extensions/v1beta1`
+API group. `networking.k8s.io/v1.Ingress` has been usable since Kubernetes v1.19 so while this change
+could be considered a breaking change, it is required to support propagating Ingress configuration
+on Kubernetes versions >=v1.22.
+
+## What's Changed
+* Update repo for release v0.9.2 by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1502
+* fix: controller-manager panic when kubeconfig set filed insecure-skip-tls-verify by @xyz-li in https://github.com/kubernetes-sigs/kubefed/pull/1505
+* Make kubefed webhook replica count configurable by @nitinatgh in https://github.com/kubernetes-sigs/kubefed/pull/1469
+* Introduce standard controller runtime metrics by @zqzten in https://github.com/kubernetes-sigs/kubefed/pull/1506
+* fix: Use specific service account token secret for join by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1515
+* fix: Wait for SA token to be populated by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1517
+* build: Use KinD for syncing helm chart resources by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1518
+* build: Ensure correct go-bindata is used by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1520
+* build: Use setup-envtest to download later version of envtest by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1519
+* fix: Move ingress from extensions/v1beta1 to networking.k8s.io/v1 by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1521
+* fixes #1454: add document for intersectWithClusterSelector by @xunpan in https://github.com/kubernetes-sigs/kubefed/pull/1455
+* build: Use k8s v1.24 for tests by @jimmidyson in https://github.com/kubernetes-sigs/kubefed/pull/1516
+
+## New Contributors
+* @xyz-li made their first contribution in https://github.com/kubernetes-sigs/kubefed/pull/1505
+
+**Full Changelog**: https://github.com/kubernetes-sigs/kubefed/compare/v0.9.2...v0.10.0
+
 # v0.9.2
 
 ## What's Changed
