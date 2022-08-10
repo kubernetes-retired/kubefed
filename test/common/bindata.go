@@ -20,7 +20,7 @@ limitations under the License.
 // test/common/fixtures/clusterroles.rbac.authorization.k8s.io.yaml
 // test/common/fixtures/configmaps.yaml
 // test/common/fixtures/deployments.apps.yaml
-// test/common/fixtures/ingresses.extensions.yaml
+// test/common/fixtures/ingresses.networking.k8s.io.yaml
 // test/common/fixtures/jobs.batch.yaml
 // test/common/fixtures/namespaces.yaml
 // test/common/fixtures/replicasets.apps.yaml
@@ -31,7 +31,7 @@ limitations under the License.
 // config/enabletypedirectives/clusterroles.rbac.authorization.k8s.io.yaml
 // config/enabletypedirectives/configmaps.yaml
 // config/enabletypedirectives/deployments.apps.yaml
-// config/enabletypedirectives/ingresses.extensions.yaml
+// config/enabletypedirectives/ingresses.networking.k8s.io.yaml
 // config/enabletypedirectives/jobs.batch.yaml
 // config/enabletypedirectives/namespaces.yaml
 // config/enabletypedirectives/replicasets.apps.yaml
@@ -182,25 +182,27 @@ func testCommonFixturesDeploymentsAppsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testCommonFixturesIngressesExtensionsYaml = []byte(`kind: fixture
+var _testCommonFixturesIngressesNetworkingK8sIoYaml = []byte(`kind: fixture
 template:
   spec:
-    backend:
-      serviceName: testsvc
-      servicePort: 80
+    defaultBackend:
+      service:
+        name: testsvc
+        port:
+          number: 80
 `)
 
-func testCommonFixturesIngressesExtensionsYamlBytes() ([]byte, error) {
-	return _testCommonFixturesIngressesExtensionsYaml, nil
+func testCommonFixturesIngressesNetworkingK8sIoYamlBytes() ([]byte, error) {
+	return _testCommonFixturesIngressesNetworkingK8sIoYaml, nil
 }
 
-func testCommonFixturesIngressesExtensionsYaml() (*asset, error) {
-	bytes, err := testCommonFixturesIngressesExtensionsYamlBytes()
+func testCommonFixturesIngressesNetworkingK8sIoYaml() (*asset, error) {
+	bytes, err := testCommonFixturesIngressesNetworkingK8sIoYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/common/fixtures/ingresses.extensions.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/common/fixtures/ingresses.networking.k8s.io.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -485,23 +487,23 @@ func configEnabletypedirectivesDeploymentsAppsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _configEnabletypedirectivesIngressesExtensionsYaml = []byte(`apiVersion: core.kubefed.io/v1beta1
+var _configEnabletypedirectivesIngressesNetworkingK8sIoYaml = []byte(`apiVersion: core.kubefed.io/v1beta1
 kind: EnableTypeDirective
 metadata:
-  name: ingresses.extensions
+  name: ingresses.networking.k8s.io
 `)
 
-func configEnabletypedirectivesIngressesExtensionsYamlBytes() ([]byte, error) {
-	return _configEnabletypedirectivesIngressesExtensionsYaml, nil
+func configEnabletypedirectivesIngressesNetworkingK8sIoYamlBytes() ([]byte, error) {
+	return _configEnabletypedirectivesIngressesNetworkingK8sIoYaml, nil
 }
 
-func configEnabletypedirectivesIngressesExtensionsYaml() (*asset, error) {
-	bytes, err := configEnabletypedirectivesIngressesExtensionsYamlBytes()
+func configEnabletypedirectivesIngressesNetworkingK8sIoYaml() (*asset, error) {
+	bytes, err := configEnabletypedirectivesIngressesNetworkingK8sIoYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "config/enabletypedirectives/ingresses.extensions.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "config/enabletypedirectives/ingresses.networking.k8s.io.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -687,7 +689,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/common/fixtures/clusterroles.rbac.authorization.k8s.io.yaml":        testCommonFixturesClusterrolesRbacAuthorizationK8sIoYaml,
 	"test/common/fixtures/configmaps.yaml":                                    testCommonFixturesConfigmapsYaml,
 	"test/common/fixtures/deployments.apps.yaml":                              testCommonFixturesDeploymentsAppsYaml,
-	"test/common/fixtures/ingresses.extensions.yaml":                          testCommonFixturesIngressesExtensionsYaml,
+	"test/common/fixtures/ingresses.networking.k8s.io.yaml":                   testCommonFixturesIngressesNetworkingK8sIoYaml,
 	"test/common/fixtures/jobs.batch.yaml":                                    testCommonFixturesJobsBatchYaml,
 	"test/common/fixtures/namespaces.yaml":                                    testCommonFixturesNamespacesYaml,
 	"test/common/fixtures/replicasets.apps.yaml":                              testCommonFixturesReplicasetsAppsYaml,
@@ -698,7 +700,7 @@ var _bindata = map[string]func() (*asset, error){
 	"config/enabletypedirectives/clusterroles.rbac.authorization.k8s.io.yaml": configEnabletypedirectivesClusterrolesRbacAuthorizationK8sIoYaml,
 	"config/enabletypedirectives/configmaps.yaml":                             configEnabletypedirectivesConfigmapsYaml,
 	"config/enabletypedirectives/deployments.apps.yaml":                       configEnabletypedirectivesDeploymentsAppsYaml,
-	"config/enabletypedirectives/ingresses.extensions.yaml":                   configEnabletypedirectivesIngressesExtensionsYaml,
+	"config/enabletypedirectives/ingresses.networking.k8s.io.yaml":            configEnabletypedirectivesIngressesNetworkingK8sIoYaml,
 	"config/enabletypedirectives/jobs.batch.yaml":                             configEnabletypedirectivesJobsBatchYaml,
 	"config/enabletypedirectives/namespaces.yaml":                             configEnabletypedirectivesNamespacesYaml,
 	"config/enabletypedirectives/replicasets.apps.yaml":                       configEnabletypedirectivesReplicasetsAppsYaml,
@@ -753,7 +755,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"clusterroles.rbac.authorization.k8s.io.yaml": &bintree{configEnabletypedirectivesClusterrolesRbacAuthorizationK8sIoYaml, map[string]*bintree{}},
 			"configmaps.yaml":                             &bintree{configEnabletypedirectivesConfigmapsYaml, map[string]*bintree{}},
 			"deployments.apps.yaml":                       &bintree{configEnabletypedirectivesDeploymentsAppsYaml, map[string]*bintree{}},
-			"ingresses.extensions.yaml":                   &bintree{configEnabletypedirectivesIngressesExtensionsYaml, map[string]*bintree{}},
+			"ingresses.networking.k8s.io.yaml":            &bintree{configEnabletypedirectivesIngressesNetworkingK8sIoYaml, map[string]*bintree{}},
 			"jobs.batch.yaml":                             &bintree{configEnabletypedirectivesJobsBatchYaml, map[string]*bintree{}},
 			"namespaces.yaml":                             &bintree{configEnabletypedirectivesNamespacesYaml, map[string]*bintree{}},
 			"replicasets.apps.yaml":                       &bintree{configEnabletypedirectivesReplicasetsAppsYaml, map[string]*bintree{}},
@@ -769,7 +771,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"clusterroles.rbac.authorization.k8s.io.yaml": &bintree{testCommonFixturesClusterrolesRbacAuthorizationK8sIoYaml, map[string]*bintree{}},
 				"configmaps.yaml":                             &bintree{testCommonFixturesConfigmapsYaml, map[string]*bintree{}},
 				"deployments.apps.yaml":                       &bintree{testCommonFixturesDeploymentsAppsYaml, map[string]*bintree{}},
-				"ingresses.extensions.yaml":                   &bintree{testCommonFixturesIngressesExtensionsYaml, map[string]*bintree{}},
+				"ingresses.networking.k8s.io.yaml":            &bintree{testCommonFixturesIngressesNetworkingK8sIoYaml, map[string]*bintree{}},
 				"jobs.batch.yaml":                             &bintree{testCommonFixturesJobsBatchYaml, map[string]*bintree{}},
 				"namespaces.yaml":                             &bintree{testCommonFixturesNamespacesYaml, map[string]*bintree{}},
 				"replicasets.apps.yaml":                       &bintree{testCommonFixturesReplicasetsAppsYaml, map[string]*bintree{}},
