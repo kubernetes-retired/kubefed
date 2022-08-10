@@ -980,6 +980,20 @@ desired by user preferences), which apparently is the only mechanism to check if
 this cluster has capacity now. The `spec.rebalance` should not be used if this
 behaviour is unacceptable.
 
+By default, RSP placement scheduling result overwrites the clusters list in the
+`spec.placement.clusters` of the target resource. However, the federated resources
+can use `spec.placement.clusterSelector` to select target clusters dynamically for
+resource propagation. When the RSP placement scheduling result is determined, the
+federated resource may need to apply its cluster selector at the same time to get
+the result clusters instead of override.
+
+If `intersectWithClusterSelector` is set to true, the placement of target kind will
+be determined using the instersection of RSP placement scheduling result and the
+`spec.placement.clusterSelector` specified on the target kind. For example, a
+`FederatedDeployment` specifies a `clusterSelector` and chooses clusters `A`, `B`
+and `C`. The corresponding RSP defines clusters `C` and `D`. The final placement
+decision is `C` if `intersectionWithClusterSelector` is defined in the RSP.
+
 The RSP can be considered as more user friendly mechanism to distribute the
 replicas, where the inputs needed from the user at federated control plane are
 reduced. The user only needs to create the RSP resource and associated federated
