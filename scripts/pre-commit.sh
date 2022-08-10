@@ -57,7 +57,7 @@ function download-dependencies() {
 }
 
 function run-unit-tests() {
-  KUBEBUILDER_ASSETS=${ROOT_DIR}/bin ${MAKE_CMD} test
+  ${MAKE_CMD} test
 }
 
 function run-e2e-tests() {
@@ -188,7 +188,7 @@ run-unit-tests
 echo "Downloading e2e test dependencies"
 ./scripts/download-e2e-binaries.sh
 
-KIND_TAG="v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6" ./scripts/create-clusters.sh
+KIND_TAG="v1.24.2@sha256:1f0cee2282f43150b52dc7933183ed96abdcfc8d293f30ec07082495874876f1" ./scripts/create-clusters.sh
 
 declare -a join_cluster_list=()
 if [[ -z "${JOIN_CLUSTERS}" ]]; then
