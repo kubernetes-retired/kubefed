@@ -4,7 +4,7 @@
 
 - [Joining Clusters](#joining-clusters)
 - [Checking status of joined clusters](#checking-status-of-joined-clusters)
-- [Joining kind clusters on MacOS](#joining-kind-clusters-on-macos)
+- [Joining kind clusters on MacOS and Linux](#joining-kind-clusters-on-macos-and-linux)
 - [Unjoining clusters](#unjoining-clusters)
 - [Joining additional clusters in a namespace scoped deployment](#joining-additional-clusters-in-a-namespace-scoped-deployment)
 
@@ -42,10 +42,10 @@ cluster2   1m    True    v1.22.0
 
 The Kubernetes version is checked periodically along with the cluster health check so that it would be automatically updated within the cluster health check period after a Kubernetes upgrade/downgrade of the cluster.
 
-# Joining kind clusters on MacOS
+# Joining kind clusters on MacOS and Linux
 
 A Kubernetes cluster deployed with [kind](https://sigs.k8s.io/kind) on Docker
-for MacOS will have an API endpoint of `https://localhost:<random-port>` in its
+for MacOS or Linux will have an API endpoint of `https://localhost:<random-port>` in its
 kubeconfig context. Such an endpoint will be compatible with local invocations
 of cli tools like `kubectl`. The same endpoint will not be reachable from a
 KubeFed control plane, and the endpoints of kind clusters joined to a KubeFed

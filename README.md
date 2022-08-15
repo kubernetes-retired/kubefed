@@ -81,7 +81,7 @@ You now have a Kubernetes cluster with kubefed up and running. The cluster has b
    ```
    kubectl -n kube-federation-system get kubefedcluster
    ```
-   **If you're on macOS** the cluster will not immediately show as ready. You need to [change the API endpoint's URL first](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/cluster-registration.md#joining-kind-clusters-on-macos):
+   **If you're on macOS or Linux** the cluster will not immediately show as ready. You need to [change the API endpoint's URL first](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/cluster-registration.md#joining-kind-clusters-on-macos-and-linux).
    ```
    ./scripts/fix-joined-kind-clusters.sh
    ```

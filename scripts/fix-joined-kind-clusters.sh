@@ -30,8 +30,8 @@ set -o pipefail
 # components run in-memory by local e2e tests.
 LOCAL_TESTING="${LOCAL_TESTING:-}"
 
-if [ "`uname`" != 'Darwin' ]; then
-  >&2 echo "This script is only intended for use on MacOS"
+if [[ "`uname`" != 'Darwin' && "`uname`" != 'Linux' ]]; then
+  >&2 echo "This script is only intended for use on MacOS and Linux"
   exit 1
 fi
 
@@ -45,7 +45,12 @@ do
   if [[ "${LOCAL_TESTING}" ]]; then
     ENDPOINT="$(kubectl config view -o jsonpath='{.clusters[?(@.name == "'"${cluster}"'")].cluster.server}')"
   else
-    IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "${cluster}-control-plane")"
+    # workaround for quickstart guide (tested on Ubuntu 22.04 / kind v0.14)
+    if [[ "$cluster" == "kind-kind" ]]; then
+      IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "kind-control-plane")"
+    else
+      IP_ADDR="$(docker inspect -f "${INSPECT_PATH}" "${cluster}-control-plane")"
+    fi
     ENDPOINT="https://${IP_ADDR}:6443"
   fi
   kubectl patch kubefedclusters -n "${NS}" "${cluster}" --type merge \
