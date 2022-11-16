@@ -94,7 +94,7 @@ bindir:
 	mkdir -p $(BIN_DIR)
 
 COMMANDS := $(HYPERFED_TARGET) $(CONTROLLER_TARGET) $(KUBEFEDCTL_TARGET) $(WEBHOOK_TARGET)
-PLATFORMS := linux-amd64 linux-arm64 linux-ppc64le linux-s390x darwin-amd64
+PLATFORMS := linux-amd64 linux-arm64 linux-ppc64le linux-s390x darwin-amd64 darwin-arm64
 ALL_BINS :=
 
 define PLATFORM_template
