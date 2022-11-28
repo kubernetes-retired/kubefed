@@ -56,6 +56,8 @@ controllermanager:
     logLevel: 2
     forceRedeployment: false
     env: {}
+    affinity: {}
+    topologySpreadConstraints: []
     resources:
       limits:
         cpu: 500m
@@ -73,6 +75,8 @@ controllermanager:
     logLevel: 8
     forceRedeployment: false
     env: {}
+    affinity: {}
+    topologySpreadConstraints: []
     resources:
       limits:
         cpu: 100m

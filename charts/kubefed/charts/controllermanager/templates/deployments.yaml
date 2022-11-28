@@ -37,6 +37,10 @@ spec:
         {{- toYaml .Values.commonNodeSelector | nindent 8 }}
       tolerations:
         {{- toYaml .Values.commonTolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.controller.affinity | nindent 8 }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.controller.topologySpreadConstraints | nindent 8 }}
       securityContext:
         runAsUser: 1001
       serviceAccountName: kubefed-controller
@@ -103,6 +107,10 @@ spec:
         {{- toYaml .Values.commonNodeSelector | nindent 8 }}
       tolerations:
         {{- toYaml .Values.commonTolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.webhook.affinity | nindent 8 }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.webhook.topologySpreadConstraints | nindent 8 }}
       securityContext:
         runAsUser: 1001
       serviceAccountName: kubefed-admission-webhook
