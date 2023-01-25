@@ -32,7 +32,6 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -43,7 +42,7 @@ import (
 
 func TestKubefedClusterController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "KubefedCluster Controller Integration Suite", []Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "KubefedCluster Controller Integration Suite")
 }
 
 var testenv *envtest.Environment
