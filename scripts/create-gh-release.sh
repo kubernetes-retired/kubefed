@@ -64,7 +64,7 @@ See asset links below for \`kubefedctl-x.x.x-<os>-<arch>.tgz\`
 See asset link below for \`kubefed-x.x.x.tgz\`
 
 ### Controller-manager image
-**_quay.io/kubernetes-multicluster/kubefed:${RELEASE_TAG}_**
+**_docker.io/mesosphere/kubefed:${RELEASE_TAG}_**
 
 ### User Guide
 [**User Guide**](https://github.com/kubernetes-sigs/kubefed/blob/master/docs/userguide.md)

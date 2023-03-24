@@ -1,6 +1,13 @@
 name: Build and Test
 
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize, labeled]
+  push:
+    tags:
+      - "v*"
+    branches:
+      - main
 
 jobs:
   build-and-test:

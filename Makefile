@@ -15,7 +15,7 @@
 SHELL := /bin/bash
 TARGET = kubefed
 GOTARGET = sigs.k8s.io/$(TARGET)
-REGISTRY ?= quay.io/kubernetes-multicluster
+REGISTRY ?= docker.io/mesosphere
 IMAGE = $(REGISTRY)/$(TARGET)
 DIR := ${CURDIR}
 BIN_DIR := bin
